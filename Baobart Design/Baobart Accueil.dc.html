@@ -1,0 +1,2137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&amp;family=Poppins:wght@400;500;600;700;800&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  a { color: #121212; text-decoration: none; }
+  a:hover { color: #E2622C; }
+  ::selection { background: #FFD84A; }
+  @keyframes floaty { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+  @keyframes popin { from { opacity: 0; transform: translateY(18px) scale(.98) } to { opacity: 1; transform: none } }
+  [data-rail-nav]::-webkit-scrollbar { width: 0; height: 0; }
+  [style*="cursor: pointer"] { transition: transform .13s cubic-bezier(.2,.85,.3,1), box-shadow .13s cubic-bezier(.2,.85,.3,1), background-color .13s ease, color .13s ease; }
+  [style*="cursor: pointer"]:active { transform: translate(2px, 2px) scale(.985); box-shadow: 0 0 0 #121212 !important; }
+  input, textarea { transition: box-shadow .13s ease, background-color .13s ease; }
+  input:focus, textarea:focus { box-shadow: 4px 4px 0 #121212; }
+  @media (max-width: 1180px) {
+    [data-rail] { display: none !important; }
+    [data-root] { padding-left: 0 !important; }
+  }
+  @media (max-width: 900px) {
+    [style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
+    [data-masonry] { columns: 200px !important; }
+  }
+  @media (max-width: 620px) {
+    [data-masonry] { columns: 1 !important; }
+    [data-root] h1, [data-root] h2 { letter-spacing: -1px !important; }
+  }
+</style>
+</helmet>
+
+<div data-root="1" style="min-height:100vh; background:#EADFF9; overflow-x:hidden; transition:padding-left .18s ease; padding:0 0 0 {{ padLeft }}">
+
+  <!-- RAIL LATERAL (variante B) -->
+  <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+    <div data-rail="1" onMouseEnter="{{ railIn }}" onMouseLeave="{{ railOut }}" style="position:fixed; left:18px; top:104px; bottom:24px; z-index:45; display:flex; flex-direction:column; gap:10px; border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:12px 11px; overflow:hidden; transition:width .18s ease; width:{{ railWidth }}">
+      <div onClick="{{ toggleRail }}" style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:4px 4px 10px; border-bottom:2.5px solid #121212">
+        <div style="width:36px; height:36px; flex:0 0 auto; border:2.5px solid #121212; border-radius:11px; background:#FFD84A; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:16px">B</div>
+        <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:17px; white-space:nowrap">Baobart<span style="color:#E2622C">.</span></div>
+        </sc-if>
+      </div>
+      <div data-rail-nav="1" style="display:flex; flex-direction:column; gap:6px; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -ms-overflow-style:none">
+        <sc-for list="{{ railItems }}" as="n" hint-placeholder-count="11">
+          <div onClick="{{ n.pick }}" style="display:flex; align-items:center; gap:12px; padding:7px 6px; border-radius:12px; cursor:pointer; white-space:nowrap; background:{{ n.bg }}" style-hover="background:#F4EEFC">
+            <div style="width:34px; height:34px; flex:0 0 auto; border:2px solid #121212; border-radius:10px; display:grid; place-items:center; font-size:15px; font-weight:800; background:{{ n.iconBg }}">{{ n.glyph }}</div>
+            <sc-if value="{{ n.open }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:14px; font-weight:800">{{ n.label }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-wrap:nowrap; gap:8px; flex:0 0 auto; overflow:hidden; padding-top:10px; border-top:2.5px solid #121212">
+          <sc-for list="{{ socials }}" as="s" hint-placeholder-count="5">
+            <div style="width:26px; height:26px; flex:0 0 auto; border:2px solid #121212; border-radius:8px; display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; cursor:pointer" style-hover="background:#FFD84A">{{ s }}</div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+
+  <!-- HEADER -->
+  <div style="position:sticky; top:0; z-index:40; padding:18px 32px 0">
+    <div style="max-width:1400px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:14px 20px; background:#FFFFFF; border:2.5px solid #121212; border-radius:22px; box-shadow:5px 5px 0 #121212; padding:12px 16px">
+      <div onClick="{{ goHome }}" style="display:flex; align-items:center; gap:10px; flex:0 0 auto; cursor:pointer">
+        <div style="width:40px; height:40px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="Baobart" style="width:27px; display:block; margin-top:2px" /></div>
+        <div style="font-family:'Archivo Black',sans-serif; font-size:22px; letter-spacing:-.5px">Baobart<span style="color:#E2622C">.</span></div>
+      </div>
+      <div style="flex:1 1 190px; max-width:300px; position:relative; min-width:0">
+        <input value="{{ q }}" onChange="{{ onQuery }}" onFocus="{{ onFocus }}" placeholder="Cherche un mockup, une illu, une font…" style="width:100%; font-family:Poppins,sans-serif; font-size:14px; font-weight:500; padding:11px 16px; border:2.5px solid #121212; border-radius:14px; background:#F4EEFC; outline:none">
+        <sc-if value="{{ showSuggest }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; top:52px; left:0; right:0; background:#FFFFFF; border:2.5px solid #121212; border-radius:16px; box-shadow:5px 5px 0 #121212; padding:8px; animation:popin .16s ease-out">
+            <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="3">
+              <div onClick="{{ s.pick }}" style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:11px; cursor:pointer; font-size:13.5px; font-weight:600" style-hover="background:#F4EEFC">
+                <span style="width:26px; height:26px; border-radius:8px; border:2px solid #121212; flex:0 0 auto; background:{{ s.bg }}"></span>
+                <span style="flex:1 1 auto">{{ s.title }}</span>
+                <span style="font-family:'Space Mono',monospace; font-size:11px; opacity:.55">{{ s.type }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; font-size:11.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; flex:1 1 auto; justify-content:flex-end; flex-wrap:wrap">
+        <sc-for list="{{ navMenus }}" as="nm" hint-placeholder-count="5">
+          <div onMouseEnter="{{ nm.enter }}" onMouseLeave="{{ nm.leave }}" style="position:relative">
+            <div onClick="{{ nm.go }}" style="display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; color:{{ nm.color }}">{{ nm.label }} <span style="font-size:9px">{{ nm.caret }}</span></div>
+            <sc-if value="{{ nm.open }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; top:26px; left:-14px; width:262px; background:#FFFFFF; border:2.5px solid #121212; border-radius:18px; box-shadow:5px 5px 0 #121212; padding:8px; text-transform:none; letter-spacing:0; z-index:50; animation:popin .14s ease-out">
+                <sc-for list="{{ nm.items }}" as="m" hint-placeholder-count="3">
+                  <div onClick="{{ m.go }}" style="display:flex; align-items:center; gap:11px; padding:10px; border-radius:12px; cursor:pointer; background:{{ m.bg }}" style-hover="background:#F4EEFC">
+                    <div style="width:30px; height:30px; flex:0 0 auto; border:2px solid #121212; border-radius:9px; display:grid; place-items:center; font-size:13px; background:{{ m.iconBg }}">{{ m.glyph }}</div>
+                    <div>
+                      <div style="font-size:13.5px; font-weight:800">{{ m.label }}</div>
+                      <div style="font-size:11px; font-weight:600; opacity:.6">{{ m.hint }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex:0 0 auto">
+        <div onClick="{{ toggleCart }}" style="position:relative; padding:10px 13px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.06em; cursor:pointer" style-hover="background:#FFD84A">PANIER
+          <span style="position:absolute; top:-8px; right:-8px; min-width:22px; height:22px; padding:0 5px; border:2.5px solid #121212; border-radius:99px; background:#E2622C; color:#FFFFFF; font-size:11px; font-weight:800; display:grid; place-items:center">{{ cartCount }}</span>
+        </div>
+        <div onMouseEnter="{{ accountIn }}" onMouseLeave="{{ accountOut }}" style="position:relative">
+          <div style="display:flex; align-items:center; gap:9px; padding:6px 12px 6px 6px; border:2.5px solid #121212; border-radius:14px; background:#C9A8F5; cursor:pointer">
+            <div style="width:30px; height:30px; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#FFD84A 0 5px,#FFFFFF 5px 11px)"></div>
+            <div style="font-size:12.5px; font-weight:800">Dev.team</div>
+          </div>
+          <sc-if value="{{ accountOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; top:48px; right:0; width:268px; background:#FFFFFF; border:2.5px solid #121212; border-radius:20px; box-shadow:6px 6px 0 #121212; padding:10px; z-index:55; animation:popin .14s ease-out">
+              <div style="display:flex; align-items:center; gap:11px; padding:10px; border:2.5px solid #121212; border-radius:14px; background:#F4EEFC">
+                <div style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#FFD84A 0 5px,#FFFFFF 5px 11px)"></div>
+                <div style="min-width:0">
+                  <div style="font-size:14px; font-weight:800">Dev.team</div>
+                  <div style="font-size:11px; font-weight:600; opacity:.6; overflow:hidden; text-overflow:ellipsis">support@baobart.africa</div>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:2px; margin-top:8px">
+                <sc-for list="{{ accountMenu }}" as="a" hint-placeholder-count="6">
+                  <div onClick="{{ a.go }}" style="padding:9px 10px; border-radius:11px; font-size:13.5px; font-weight:700; cursor:pointer; color:{{ a.color }}; background:{{ a.bg }}" style-hover="background:#F4EEFC">{{ a.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <!-- HERO SWITCHER -->
+  <div style="max-width:1400px; margin:22px auto 0; padding:0 32px; display:flex; align-items:center; gap:10px">
+    <span style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">Hero</span>
+    <div onClick="{{ pickA }}" style="padding:6px 14px; border:2px solid #121212; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; background:{{ tabA }}">Variante A</div>
+    <div onClick="{{ pickB }}" style="padding:6px 14px; border:2px solid #121212; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; background:{{ tabB }}">Variante B</div>
+  </div>
+
+  <!-- HERO A -->
+  <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1400px; margin:0 auto; padding:34px 32px 0">
+    <div style="text-align:center; position:relative">
+      <div style="display:inline-flex; align-items:center; gap:8px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; padding:7px 16px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em">
+        <span style="width:9px; height:9px; border-radius:99px; background:#E2622C"></span>+170 ressources africaines, prêtes à l'emploi
+      </div>
+      <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(42px,5.4vw,76px); line-height:.93; letter-spacing:-2.5px; margin:20px auto 0; max-width:1000px; text-transform:uppercase; text-wrap:balance"><span class="a_GcMg font-feature-liga-off font-feature-clig-off font-feature-calt-off text-decoration-none text-strikethrough-none" style="color: rgba(34,34,34,var(--O42jJQ,1)); caret-color: rgb(34, 34, 34); --Ys-XuQ: none; font-kerning: none;">Create<span style="color: rgb(226, 98, 44); font-size: clamp(42px, 5.4vw, 76px); text-wrap-mode: initial;">.</span><span style="color: rgba(34,34,34,var(--O42jJQ,1)); font-size: clamp(42px, 5.4vw, 76px); text-wrap-mode: initial;">&nbsp;Share</span><span style="font-size: clamp(42px, 5.4vw, 76px); text-wrap-mode: initial; color: rgb(226, 98, 44);">.</span><span class="a_GcMg font-feature-liga-off font-feature-clig-off font-feature-calt-off text-decoration-none text-strikethrough-none" style="color: rgba(34,34,34,var(--O42jJQ,1)); font-size: clamp(42px, 5.4vw, 76px); text-wrap-mode: initial; --Ys-XuQ: none; font-kerning: none;">&nbsp;Inspire</span><span style="font-size: clamp(42px, 5.4vw, 76px); text-wrap-mode: initial; color: rgb(226, 98, 44);">.</span><br></span></h1>
+      <p style="max-width:560px; margin:18px auto 0; font-size:16.5px; font-weight:500; line-height:1.5; opacity:.75; text-wrap:pretty">La communauté créative africaine met ses illustrations, mockups, fonts et photos en commun. Tu prends, tu partages, on avance ensemble.</p>
+      <div style="display:flex; gap:14px; justify-content:center; margin-top:26px">
+        <a href="#grid" style="padding:15px 28px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800">Explorer les ressources</a>
+        <a href="#contrib" style="padding:15px 28px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800">Publier mon travail</a>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:22px; align-items:stretch; margin-top:40px">
+      <div style="display:flex; flex-direction:column; gap:18px">
+        <div style="border:2.5px solid #121212; border-radius:22px; background:#C9A8F5; box-shadow:5px 5px 0 #121212; padding:18px; animation:floaty 6s ease-in-out infinite">
+          <div style="width:34px; height:34px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:13px">#1</div>
+          <div style="margin-top:14px; font-size:15px; font-weight:700; line-height:1.35">Le pack « Wax &amp; Motifs » a été téléchargé 2 340 fois ce mois.</div>
+          <div style="margin-top:14px; height:96px; border:2.5px solid #121212; border-radius:14px; background:repeating-linear-gradient(135deg,#121212 0 7px,#FFD84A 7px 17px)"></div>
+        </div>
+        <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:18px; flex:1 1 auto">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:34px; line-height:1">4.9</div>
+          <div style="font-size:14px; font-weight:600; line-height:1.4; margin-top:6px">de satisfaction chez les créatifs du continent</div>
+        </div>
+      </div>
+      <div style="border:2.5px solid #121212; border-radius:26px; background:#FFD84A; box-shadow:6px 6px 0 #121212; padding:22px; display:flex; flex-direction:column; gap:16px">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em">
+          <span>Ressource du jour</span><span>gratuit</span>
+        </div>
+        <div style="flex:1 1 auto; min-height:250px; border:2.5px solid #121212; border-radius:18px; background:url('img/mode-rouge.jpg') center 22% / cover no-repeat"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
+          <div>
+            <div style="font-size:19px; font-weight:800; line-height:1.2">Collection Ankara Editorial</div>
+            <div style="font-size:13px; font-weight:600; opacity:.7">24 visuels · par Awa Diallo</div>
+          </div>
+          <div onClick="{{ openFeatured }}" style="padding:13px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer" style-hover="transform:translate(-1px,-1px); box-shadow:6px 6px 0 #121212">Voir la ressource</div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:18px">
+        <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:18px; flex:1 1 auto">
+          <div style="display:flex; gap:-10px">
+            <span style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#E2622C 0 6px,#FFD84A 6px 13px)"></span>
+            <span style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#C9A8F5 0 6px,#FFFFFF 6px 13px); margin-left:-12px"></span>
+            <span style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#121212 0 6px,#EADFF9 6px 13px); margin-left:-12px"></span>
+            <span style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; margin-left:-12px">+</span>
+          </div>
+          <div style="margin-top:14px; font-size:14.5px; font-weight:700; line-height:1.35">Crée un espace, invite ton équipe, commentez les mêmes boards.</div>
+          <a href="#collab" style="display:inline-block; margin-top:12px; font-size:13px; font-weight:800; border-bottom:2.5px solid #121212">Voir les espaces</a>
+        </div>
+        <div style="border:2.5px solid #121212; border-radius:22px; background:#E2622C; color:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:18px">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:30px; line-height:1">12 400</div>
+          <div style="font-size:14px; font-weight:600; margin-top:4px">créatifs déjà inscrits</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- HERO B -->
+  <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:34px 32px 0">
+    <div style="display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:34px; align-items:center">
+      <div style="min-width:0">
+        <div style="display:inline-flex; align-items:center; gap:8px; border:2.5px solid #121212; border-radius:999px; background:#FFD84A; padding:7px 16px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em">Plateforme collaborative</div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(40px,5.8vw,82px); line-height:.94; letter-spacing:-2.5px; margin:18px 0 0; text-transform:uppercase; overflow-wrap:break-word; min-width:0">Le studio partagé de l'Afrique <span style="background:#C9A8F5; border:3px solid #121212; padding:0 10px; display:inline-block; transform:rotate(-1.5deg)">créative</span></h1>
+        <p style="max-width:480px; margin:22px 0 0; font-size:17px; font-weight:500; line-height:1.5; opacity:.75">Illustrations, mockups, fonts, photos : tout est là, libre ou à petit prix. Enregistre dans tes collections, commente avec ton équipe.</p>
+        <div style="display:flex; gap:14px; margin-top:28px">
+          <a href="#grid" style="padding:16px 30px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; font-size:15px; font-weight:800">Commencer gratuitement</a>
+          <a href="#collab" style="padding:16px 30px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800">Créer un espace</a>
+        </div>
+        <div style="display:flex; gap:28px; margin-top:34px">
+          <div><div style="font-family:'Archivo Black',sans-serif; font-size:28px">170+</div><div style="font-size:12.5px; font-weight:600; opacity:.7">ressources</div></div>
+          <div><div style="font-family:'Archivo Black',sans-serif; font-size:28px">12 400</div><div style="font-size:12.5px; font-weight:600; opacity:.7">créatifs</div></div>
+          <div><div style="font-family:'Archivo Black',sans-serif; font-size:28px">4.9</div><div style="font-size:12.5px; font-weight:600; opacity:.7">satisfaction</div></div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:18px">
+        <div style="grid-column:1 / span 2; border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:16px">
+          <div style="height:240px; border:2.5px solid #121212; border-radius:16px; background:url('img/beaute-afro.jpg') center 30% / cover no-repeat"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px">
+            <div style="font-size:16px; font-weight:800">Ankara Editorial · 24 visuels</div>
+            <div onClick="{{ openFeatured }}" style="padding:10px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:13px; font-weight:800; cursor:pointer">Ouvrir</div>
+          </div>
+        </div>
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFD84A; box-shadow:6px 6px 0 #121212; padding:16px; animation:floaty 7s ease-in-out infinite">
+          <div style="height:130px; border:2.5px solid #121212; border-radius:14px; background:url('img/neon-01.png') center / cover no-repeat"></div>
+          <div style="margin-top:12px; font-size:14px; font-weight:800">Pack Wax &amp; Motifs</div>
+          <div style="font-size:12.5px; font-weight:600; opacity:.75">gratuit · 2 340 dl</div>
+        </div>
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:16px">
+          <div style="height:130px; border:2.5px solid #121212; border-radius:14px; background:url('img/packshot-soin.png') center / cover no-repeat"></div>
+          <div style="margin-top:12px; font-size:14px; font-weight:800">Mockup Affiche Rue</div>
+          <div style="font-size:12.5px; font-weight:600; opacity:.75">3 000 FCFA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- CATEGORIES -->
+  <div style="max-width:1400px; margin:0 auto; padding:64px 32px 0">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:20px">
+      <h2 style="font-family:'Archivo Black',sans-serif; font-size:34px; letter-spacing:-1px; margin:0; text-transform:uppercase">Gratuit, tout de suite</h2>
+      <div style="font-family:'Space Mono',monospace; font-size:12px; opacity:.6">10 familles de ressources</div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px">
+      <sc-for list="{{ categories }}" as="c" hint-placeholder-count="5">
+        <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:14px; display:flex; align-items:center; gap:14px; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">
+          <div style="flex:1 1 auto">
+            <div style="font-size:16px; font-weight:800">{{ c.name }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:11.5px; opacity:.6">{{ c.count }}</div>
+          </div>
+          <div style="width:58px; height:58px; border:2.5px solid #121212; border-radius:14px; flex:0 0 auto; background:{{ c.bg }}"></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  </sc-if>
+
+  <!-- PAGE EXPLORER -->
+  <sc-if value="{{ isExplorer }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:40px 32px; text-align:center">
+      <div style="font-family:'Space Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.14em; opacity:.6">Explorer</div>
+      <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(34px,4.6vw,62px); line-height:.98; letter-spacing:-2px; margin:12px 0 0; text-transform:uppercase">Que cherches-tu<br>aujourd'hui ?</h1>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:820px; margin:26px auto 0">
+        <div style="display:flex; align-items:center; gap:8px; padding:13px 18px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; font-size:14px; font-weight:800; cursor:pointer">{{ filterLabel }} <span style="font-size:9px">▼</span></div>
+        <input value="{{ q }}" onChange="{{ onQuery }}" placeholder="Rechercher maintenant…" style="flex:1 1 320px; min-width:0; font-family:Poppins,sans-serif; font-size:15px; font-weight:500; padding:13px 18px; border:2.5px solid #121212; border-radius:14px; background:#F4EEFC; outline:none">
+        <div style="padding:13px 26px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer">Chercher</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:9px; justify-content:center; align-items:center; margin-top:20px">
+        <span style="font-family:'Space Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">Populaire</span>
+        <sc-for list="{{ popularTags }}" as="t" hint-placeholder-count="6">
+          <div onClick="{{ t.pick }}" style="padding:8px 15px; border:2px solid #121212; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; background:{{ t.bg }}">{{ t.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-top:26px">
+      <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6">
+        <div onClick="{{ c.pick }}" style="border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:12px; display:flex; align-items:center; gap:12px; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">
+          <div style="width:46px; height:46px; border:2.5px solid #121212; border-radius:12px; flex:0 0 auto; background:{{ c.bg }}"></div>
+          <div>
+            <div style="font-size:14.5px; font-weight:800">{{ c.name }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">{{ c.count }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ true }}">
+  <!-- FILTERS + GRID -->
+  <div id="grid" style="max-width:1400px; margin:0 auto; padding:64px 32px 0">
+    <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px 20px">
+      <h2 style="font-family:'Archivo Black',sans-serif; font-size:clamp(28px,4vw,44px); letter-spacing:-1.5px; margin:0; text-transform:uppercase">Découvre aujourd'hui</h2>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; min-width:0">
+        <span style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">Cartes</span>
+        <sc-for list="{{ cardStyles }}" as="cs" hint-placeholder-count="3">
+          <div onClick="{{ cs.pick }}" style="padding:6px 13px; border:2px solid #121212; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; background:{{ cs.bg }}">{{ cs.label }}</div>
+        </sc-for>
+        <span style="font-family:'Space Mono',monospace; font-size:12px; opacity:.6; margin-left:8px">{{ countLabel }}</span>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 26px">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="8">
+        <div onClick="{{ f.pick }}" style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; font-size:13px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; margin-bottom:20px">
+      <sc-for list="{{ featured }}" as="r" hint-placeholder-count="2">
+        <div onClick="{{ r.open }}" onMouseEnter="{{ r.enter }}" onMouseLeave="{{ r.leave }}" style="border-radius:24px; background:#FFFFFF; overflow:hidden; cursor:pointer; position:relative; border:{{ r.bd }}; box-shadow:{{ r.shBig }}">
+          <div style="height:280px; border-bottom:{{ r.bd }}; display:grid; place-items:center; background:{{ r.bg }}">
+            <span style="padding:7px 14px; display:{{ r.chipShow }}; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:12px">{{ r.ph }}</span>
+          </div>
+          <sc-if value="{{ r.showInfo }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px; display:flex; align-items:center; gap:14px">
+            <div style="flex:1 1 auto">
+              <div style="font-size:18px; font-weight:800; line-height:1.25">{{ r.title }}</div>
+              <div style="font-size:13px; font-weight:600; opacity:.7">par {{ r.author }} · {{ r.type }}</div>
+            </div>
+            <sc-if value="{{ r.showPrice }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:8px 14px; border:2.5px solid #121212; border-radius:11px; font-size:13px; font-weight:800; background:{{ r.priceBg }}; white-space:nowrap">{{ r.priceLabel }}</div>
+            </sc-if>
+          </div>
+          </sc-if>
+          <sc-if value="{{ r.hovered }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; top:14px; right:14px; display:flex; gap:8px; animation:popin .14s ease-out">
+              <div onClick="{{ r.like }}" style="width:40px; height:40px; border:2.5px solid #121212; border-radius:12px; background:{{ r.likeBg }}; display:grid; place-items:center; font-size:15px; font-weight:800">♥</div>
+              <div onClick="{{ r.save }}" style="width:40px; height:40px; border:2.5px solid #121212; border-radius:12px; background:{{ r.saveBg }}; display:grid; place-items:center; font-size:15px; font-weight:800">⌸</div>
+              <div style="width:40px; height:40px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; font-size:15px; font-weight:800">↓</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div data-masonry="1" style="columns:250px; column-gap:20px">
+      <sc-for list="{{ grid }}" as="r" hint-placeholder-count="12">
+        <div onClick="{{ r.open }}" onMouseEnter="{{ r.enter }}" onMouseLeave="{{ r.leave }}" style="break-inside:avoid; margin-bottom:20px; border-radius:20px; background:#FFFFFF; overflow:hidden; cursor:pointer; position:relative; display:inline-block; width:100%; border:{{ r.bd }}; box-shadow:{{ r.sh }}">
+          <div style="border-bottom:{{ r.bd }}; display:grid; place-items:center; padding:8px; height:{{ r.h }}; background:{{ r.bg }}">
+            <span style="padding:6px 12px; display:{{ r.chipShow }}; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:11px; text-align:center">{{ r.ph }}</span>
+          </div>
+          <sc-if value="{{ r.showInfo }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px 13px; display:flex; align-items:center; gap:10px">
+            <div style="flex:1 1 auto; min-width:0">
+              <div style="font-size:14px; font-weight:800; line-height:1.25">{{ r.title }}</div>
+              <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ r.author }}</div>
+            </div>
+            <sc-if value="{{ r.showPrice }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:5px 10px; border:2px solid #121212; border-radius:9px; font-size:11px; font-weight:800; background:{{ r.priceBg }}; white-space:nowrap">{{ r.priceLabel }}</div>
+            </sc-if>
+          </div>
+          </sc-if>
+          <sc-if value="{{ r.hovered }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; top:10px; right:10px; display:flex; gap:6px; animation:popin .14s ease-out">
+              <div onClick="{{ r.like }}" style="width:34px; height:34px; border:2.5px solid #121212; border-radius:10px; background:{{ r.likeBg }}; display:grid; place-items:center; font-size:13px; font-weight:800">♥</div>
+              <div onClick="{{ r.save }}" style="width:34px; height:34px; border:2.5px solid #121212; border-radius:10px; background:{{ r.saveBg }}; display:grid; place-items:center; font-size:13px; font-weight:800">⌸</div>
+              <div style="width:34px; height:34px; border:2.5px solid #121212; border-radius:10px; background:#FFFFFF; display:grid; place-items:center; font-size:13px; font-weight:800">↓</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; justify-content:center; margin-top:8px">
+      <div style="padding:14px 28px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">Charger plus de ressources</div>
+    </div>
+  </div>
+
+  </sc-if>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <!-- 170 RESSOURCES -->
+  <div style="max-width:1400px; margin:0 auto; padding:72px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#C9A8F5; box-shadow:7px 7px 0 #121212; padding:32px; display:grid; grid-template-columns:.85fr 1.15fr; gap:32px; align-items:center">
+      <div>
+        <h2 style="font-family:'Archivo Black',sans-serif; font-size:40px; line-height:.98; letter-spacing:-1.5px; margin:0; text-transform:uppercase">Plus de 170 ressources, triées à la main</h2>
+        <p style="font-size:15.5px; font-weight:500; line-height:1.55; margin:16px 0 0; opacity:.8">Motifs, portraits, typos, mockups, icônes : des collections pensées pour les projets d'ici. Pas de banque d'images générique, du vrai matériel local.</p>
+        <div style="display:inline-block; margin-top:22px; padding:14px 26px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer">Voir les collections</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px">
+        <sc-for list="{{ collections }}" as="k" hint-placeholder-count="8">
+          <div style="border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; padding:10px">
+            <div style="height:74px; border:2px solid #121212; border-radius:10px; background:{{ k.bg }}"></div>
+            <div style="font-size:12.5px; font-weight:800; margin-top:8px">{{ k.name }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ k.count }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLLAB -->
+  <div id="collab" style="max-width:1400px; margin:0 auto; padding:72px 32px 0">
+    <h2 style="font-family:'Archivo Black',sans-serif; font-size:44px; letter-spacing:-1.5px; margin:0 0 6px; text-transform:uppercase">Vos espaces d'équipe</h2>
+    <p style="font-size:16px; font-weight:500; opacity:.75; margin:0 0 26px; max-width:620px">Likes, collections partagées, commentaires au bon endroit. Fini les captures d'écran par WhatsApp.</p>
+    <div style="display:grid; grid-template-columns:1.15fr .85fr; gap:20px">
+      <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+        <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px; border-bottom:2.5px solid #121212">
+          <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:13px; background:#FFD84A; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:16px">AD</div>
+          <div style="flex:1 1 auto">
+            <div style="font-size:17px; font-weight:800">Collection · Campagne Dakar 2026</div>
+            <div style="font-size:12.5px; font-weight:600; opacity:.65">4 membres · 38 ressources · mise à jour il y a 2 h</div>
+          </div>
+          <div style="padding:9px 14px; border:2.5px solid #121212; border-radius:12px; background:#EADFF9; font-size:12.5px; font-weight:800; cursor:pointer">Inviter</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; padding:16px 0">
+          <sc-for list="{{ boardTiles }}" as="t" hint-placeholder-count="4">
+            <div style="height:96px; border:2.5px solid #121212; border-radius:14px; background:{{ t.bg }}"></div>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <sc-for list="{{ comments }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex; gap:12px; align-items:flex-start">
+              <div style="width:34px; height:34px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ c.bg }}"></div>
+              <div style="border:2.5px solid #121212; border-radius:14px; border-top-left-radius:4px; background:#F4EEFC; padding:10px 13px">
+                <div style="font-size:12.5px; font-weight:800">{{ c.who }} <span style="font-weight:600; opacity:.55">{{ c.when }}</span></div>
+                <div style="font-size:13.5px; font-weight:500; line-height:1.4; margin-top:3px">{{ c.text }}</div>
+              </div>
+            </div>
+          </sc-for>
+          <div style="display:flex; gap:10px; margin-top:4px">
+            <input value="{{ draft }}" onChange="{{ onDraft }}" placeholder="Écrire un commentaire…" style="flex:1 1 auto; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:11px 14px; border:2.5px solid #121212; border-radius:13px; outline:none; background:#FFFFFF">
+            <div onClick="{{ sendComment }}" style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFD84A; font-size:13px; font-weight:800; cursor:pointer">Envoyer</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:20px">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFD84A; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:24px; text-transform:uppercase; line-height:1.05">Mes collections</div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px">
+            <sc-for list="{{ myCollections }}" as="m" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; padding:10px 12px">
+                <div style="width:32px; height:32px; border:2px solid #121212; border-radius:9px; background:{{ m.bg }}"></div>
+                <div style="flex:1 1 auto; font-size:13.5px; font-weight:800">{{ m.name }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">{{ m.count }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px; flex:1 1 auto">
+          <div style="font-size:15px; font-weight:800">Créatifs à suivre</div>
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px">
+            <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px">
+                <div style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:{{ p.bg }}"></div>
+                <div style="flex:1 1 auto">
+                  <div style="font-size:13.5px; font-weight:800">{{ p.name }}</div>
+                  <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ p.role }}</div>
+                </div>
+                <div style="padding:7px 13px; border:2px solid #121212; border-radius:10px; background:#EADFF9; font-size:12px; font-weight:800; cursor:pointer">Suivre</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRIBUER -->
+  <div id="contrib" style="max-width:1400px; margin:0 auto; padding:72px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#121212; color:#FFFFFF; box-shadow:7px 7px 0 #E2622C; padding:34px; display:grid; grid-template-columns:1fr .8fr; gap:34px; align-items:center">
+      <div>
+        <div style="display:inline-block; border:2.5px solid #FFFFFF; border-radius:999px; padding:6px 14px; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.1em">Appel aux créatifs</div>
+        <h2 style="font-family:'Archivo Black',sans-serif; font-size:46px; line-height:.96; letter-spacing:-2px; margin:16px 0 0; text-transform:uppercase">Publie tes ressources. Fais-toi payer<span style="color:#FFD84A">.</span></h2>
+        <p style="font-size:15.5px; font-weight:500; line-height:1.55; opacity:.8; max-width:520px">Dépose tes fichiers, fixe ton prix (ou offre-les), garde 80 % de chaque vente. On s'occupe du reste.</p>
+        <div style="display:flex; gap:14px; margin-top:24px">
+          <div style="padding:15px 26px; border:2.5px solid #FFFFFF; border-radius:16px; background:#FFD84A; color:#121212; font-size:14.5px; font-weight:800; cursor:pointer">Déposer un fichier</div>
+          <div style="padding:15px 26px; border:2.5px solid #FFFFFF; border-radius:16px; font-size:14.5px; font-weight:800; cursor:pointer">Comment ça marche</div>
+        </div>
+      </div>
+      <div style="border:2.5px dashed #FFFFFF; border-radius:20px; padding:26px; text-align:center">
+        <div style="font-family:'Space Mono',monospace; font-size:12px; opacity:.7">glisse tes fichiers ici</div>
+        <div style="height:120px; margin-top:16px; border:2.5px solid #FFFFFF; border-radius:14px; background:repeating-linear-gradient(135deg,#FFFFFF 0 8px,#121212 8px 18px)"></div>
+        <div style="font-size:13px; font-weight:700; margin-top:14px">PNG · JPG · AI · PSD · TTF · ZIP — 200 Mo max</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMOIGNAGES -->
+  <div style="max-width:1400px; margin:0 auto; padding:72px 32px 0">
+    <h2 style="font-family:'Archivo Black',sans-serif; font-size:36px; letter-spacing:-1.2px; margin:0 0 22px; text-transform:uppercase">Ils nous font confiance</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px">
+      <sc-for list="{{ quotes }}" as="t" hint-placeholder-count="4">
+        <div style="border:2.5px solid #121212; border-radius:22px; background:{{ t.bg }}; box-shadow:5px 5px 0 #121212; padding:20px; display:flex; flex-direction:column; gap:14px">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:34px; line-height:.6">“</div>
+          <div style="font-size:14.5px; font-weight:600; line-height:1.5; flex:1 1 auto">{{ t.text }}</div>
+          <div style="display:flex; align-items:center; gap:10px; padding-top:12px; border-top:2.5px solid #121212">
+            <div style="width:34px; height:34px; border:2.5px solid #121212; border-radius:99px; background:{{ t.avatar }}"></div>
+            <div>
+              <div style="font-size:13px; font-weight:800">{{ t.name }}</div>
+              <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ t.role }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- BLOG -->
+  <div id="blog" style="max-width:1400px; margin:0 auto; padding:72px 32px 0">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px">
+      <h2 style="font-family:'Archivo Black',sans-serif; font-size:36px; letter-spacing:-1.2px; margin:0; text-transform:uppercase">Quoi de neuf</h2>
+      <a href="#blog" style="font-size:13px; font-weight:800; border-bottom:2.5px solid #121212">Tous les articles</a>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px">
+      <sc-for list="{{ posts }}" as="p" hint-placeholder-count="3">
+        <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; overflow:hidden; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">
+          <div style="height:150px; border-bottom:2.5px solid #121212; background:{{ p.bg }}"></div>
+          <div style="padding:16px">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">{{ p.date }}</div>
+            <div style="font-size:17px; font-weight:800; line-height:1.25; margin-top:6px">{{ p.title }}</div>
+            <div style="font-size:13.5px; font-weight:500; opacity:.75; line-height:1.45; margin-top:8px">{{ p.excerpt }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  </sc-if>
+
+  <!-- PANIER -->
+  <sc-if value="{{ cartOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:58; background:rgba(18,18,18,.45); display:flex; justify-content:flex-end">
+      <div style="width:min(420px,92vw); height:100%; background:#EADFF9; border-left:3px solid #121212; padding:20px; overflow:auto">
+        <div style="display:flex; align-items:center; gap:12px">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:22px; text-transform:uppercase; flex:1 1 auto">Panier</div>
+          <div onClick="{{ toggleCart }}" style="width:38px; height:38px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer">✕</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:18px">
+          <sc-for list="{{ cartItems }}" as="c" hint-placeholder-count="2">
+            <div style="display:flex; gap:12px; align-items:center; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:12px">
+              <div style="width:58px; height:58px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:{{ c.bg }}"></div>
+              <div style="flex:1 1 auto; min-width:0">
+                <div style="font-size:14px; font-weight:800; line-height:1.25">{{ c.title }}</div>
+                <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ c.author }} · licence commerciale</div>
+              </div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:15px; white-space:nowrap">{{ c.priceLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border:2.5px solid #121212; border-radius:20px; background:#FFD84A; box-shadow:5px 5px 0 #121212; padding:18px; margin-top:18px">
+          <div style="display:flex; justify-content:space-between; align-items:baseline">
+            <div style="font-size:14px; font-weight:800">Total</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:26px">{{ cartTotal }}</div>
+          </div>
+          <div style="padding:14px; margin-top:14px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer">Payer · Mobile Money / carte</div>
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-align:center; margin-top:10px; opacity:.7">Téléchargement immédiat après paiement</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- PAGE FONCTIONNALITES -->
+  <sc-if value="{{ isFeatures }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0; display:flex; flex-direction:column; gap:24px">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:40px 32px; text-align:center">
+      <div style="display:inline-block; border:2.5px solid #121212; border-radius:999px; background:#FFD84A; padding:7px 16px; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em">Fonctionnalités</div>
+      <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(36px,5vw,68px); line-height:.94; letter-spacing:-2.5px; margin:18px auto 0; max-width:900px; text-transform:uppercase">Tout ce qu'il faut pour créer, vendre et bosser à plusieurs<span style="color:#E2622C">.</span></h1>
+      <p style="max-width:620px; margin:16px auto 0; font-size:16.5px; font-weight:500; line-height:1.5; opacity:.78">Baobart n'est pas qu'une banque d'images : c'est la boutique, le paiement, les licences et l'espace d'équipe, dans un seul outil pensé pour les créatifs du continent.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:24px">
+        <sc-for list="{{ featureBlocks }}" as="f" hint-placeholder-count="5">
+          <div style="display:flex; align-items:center; gap:8px; padding:9px 16px; border:2.5px solid #121212; border-radius:999px; background:#F4EEFC; font-size:12.5px; font-weight:800">
+            <span style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ f.num }}</span>{{ f.kicker }}
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:26px">
+        <div onClick="{{ goExplorer }}" style="padding:15px 28px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">Explorer les ressources</div>
+        <a href="#contrib" onClick="{{ goHome }}" style="padding:15px 28px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800">Ouvrir ma boutique</a>
+      </div>
+    </div>
+
+    <sc-for list="{{ featureBlocks }}" as="f" hint-placeholder-count="5">
+      <div style="border:2.5px solid #121212; border-radius:28px; box-shadow:7px 7px 0 #121212; padding:30px; background:{{ f.bg }}; color:{{ f.fg }}">
+        <div style="text-align:center">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.65">{{ f.num }} · {{ f.kicker }}</div>
+          <h2 style="font-family:'Archivo Black',sans-serif; font-size:clamp(28px,3.6vw,44px); line-height:1; letter-spacing:-1.6px; margin:10px 0 0; text-transform:uppercase">{{ f.title }}</h2>
+          <p style="max-width:560px; margin:12px auto 0; font-size:15.5px; font-weight:500; line-height:1.5; opacity:.8">{{ f.intro }}</p>
+        </div>
+        <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:22px; margin-top:26px; align-items:stretch">
+          <div style="display:flex; flex-direction:column; gap:14px; order:{{ f.order }}">
+            <sc-for list="{{ f.items }}" as="it" hint-placeholder-count="3">
+              <div style="border-radius:20px; padding:18px; background:{{ f.cardBg }}; border:{{ f.cardBd }}">
+                <div style="font-size:16.5px; font-weight:800; line-height:1.25">{{ it.t }}</div>
+                <div style="font-size:13.5px; font-weight:500; line-height:1.5; margin-top:6px; opacity:.8">{{ it.d }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="min-height:360px; border-radius:22px; order:{{ f.imgOrder }}; border:{{ f.cardBd }}; box-shadow:{{ f.shadow }}; background:{{ f.img }}"></div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#E2622C; color:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:40px 32px; text-align:center">
+      <h2 style="font-family:'Archivo Black',sans-serif; font-size:clamp(30px,4.2vw,52px); line-height:.98; letter-spacing:-2px; margin:0; text-transform:uppercase">Partage ton travail.<br />Quelqu'un en a besoin.</h2>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:24px">
+        <a href="#contrib" onClick="{{ goHome }}" style="padding:15px 30px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; color:#121212; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800">Commencer gratuitement</a>
+        <div onClick="{{ goTarifs }}" style="padding:15px 30px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; color:#121212; box-shadow:5px 5px 0 #121212; font-size:15px; font-weight:800; cursor:pointer">Voir les tarifs</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGE CATEGORIE -->
+  <sc-if value="{{ isCategorie }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="text-align:center">
+      <h1 style="display:inline-block; font-family:'Archivo Black',sans-serif; font-size:clamp(34px,4.6vw,58px); letter-spacing:-2px; margin:0; text-transform:uppercase; border-bottom:5px solid #FFD84A">{{ catTitle }}</h1>
+      <div style="font-size:14.5px; font-weight:600; opacity:.7; margin-top:10px">{{ catCount }}</div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:24px 0 22px">
+      <sc-for list="{{ catNav }}" as="c" hint-placeholder-count="8">
+        <div onClick="{{ c.pick }}" style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; font-size:13px; font-weight:800; cursor:pointer; background:{{ c.bg }}; color:{{ c.fg }}">{{ c.label }}</div>
+      </sc-for>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:22px">
+      <sc-for list="{{ catItems }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.open }}" onMouseEnter="{{ r.enter }}" onMouseLeave="{{ r.leave }}" style="display:flex; flex-direction:column; gap:10px; cursor:pointer; position:relative">
+          <div style="height:280px; border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; display:grid; place-items:center; background:{{ r.bg }}">
+            <span style="padding:6px 12px; display:{{ r.chipShow }}; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:11px">{{ r.ph }}</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px">
+            <div style="flex:1 1 auto; min-width:0">
+              <div style="font-size:14.5px; font-weight:800; line-height:1.3">{{ r.title }}</div>
+              <div style="font-size:11.5px; font-weight:600; opacity:.65">par {{ r.author }} dans {{ r.type }}</div>
+              <div style="font-size:12px; letter-spacing:.14em; color:#E2622C; margin-top:3px">★★★★★</div>
+            </div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:13px; white-space:nowrap">{{ r.priceLabel }}</div>
+          </div>
+          <sc-if value="{{ r.hovered }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; top:12px; right:12px; display:flex; gap:8px; animation:popin .14s ease-out">
+              <div onClick="{{ r.like }}" style="width:36px; height:36px; border:2.5px solid #121212; border-radius:11px; background:{{ r.likeBg }}; display:grid; place-items:center; font-size:14px; font-weight:800">♥</div>
+              <div onClick="{{ r.save }}" style="width:36px; height:36px; border:2.5px solid #121212; border-radius:11px; background:{{ r.saveBg }}; display:grid; place-items:center; font-size:14px; font-weight:800">⌸</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; justify-content:center; gap:10px; margin-top:30px">
+      <sc-for list="{{ profilPages }}" as="p" hint-placeholder-count="5">
+        <div style="min-width:44px; text-align:center; padding:10px 14px; border:2.5px solid #121212; border-radius:12px; font-size:13px; font-weight:800; cursor:pointer; background:{{ p.bg }}; color:{{ p.fg }}">{{ p.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PROFIL CREATEUR -->
+  <sc-if value="{{ isProfil }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; overflow:hidden">
+      <div style="height:150px; border-bottom:2.5px solid #121212; background:repeating-linear-gradient(135deg,#C9A8F5 0 10px,#FFFFFF 10px 22px)"></div>
+      <div style="padding:20px; display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end">
+        <div style="width:104px; height:104px; flex:0 0 auto; margin-top:-70px; border:3px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#E2622C 0 7px,#FFD84A 7px 15px)"></div>
+        <div style="flex:1 1 260px; min-width:0">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:30px; letter-spacing:-1px">Awa Diallo</div>
+            <div style="padding:5px 11px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-size:11px; font-weight:800">CRÉATRICE VÉRIFIÉE</div>
+          </div>
+          <div style="font-size:14px; font-weight:600; opacity:.72; margin-top:4px">Illustratrice · Dakar, Sénégal · membre depuis 2024</div>
+          <p style="font-size:14.5px; font-weight:500; line-height:1.5; max-width:620px; margin:10px 0 0; opacity:.85">Je dessine des portraits et des motifs inspirés du wax et des tissus d'Afrique de l'Ouest. Disponible pour des commandes d'identité visuelle et d'édition.</p>
+        </div>
+        <div style="display:flex; gap:10px; flex:0 0 auto; flex-wrap:wrap">
+          <div style="padding:12px 20px; border:2.5px solid #121212; border-radius:14px; background:#C9A8F5; box-shadow:4px 4px 0 #121212; font-size:13.5px; font-weight:800; cursor:pointer">Suivre</div>
+          <div style="padding:12px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:13.5px; font-weight:800; cursor:pointer">Contact</div>
+          <div style="padding:12px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer">Partager</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; border-top:2.5px solid #121212">
+        <sc-for list="{{ profilStats }}" as="s" hint-placeholder-count="5">
+          <div style="padding:16px 18px; border-right:2.5px solid #121212">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:24px">{{ s.value }}</div>
+            <div style="font-size:12px; font-weight:700; opacity:.65">{{ s.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding:12px 18px; border-top:2.5px solid #121212; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase">Créatrice depuis le 15 janvier 2024 · répond en moyenne en 4 h</div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 20px">
+      <sc-for list="{{ profilTabs }}" as="t" hint-placeholder-count="4">
+        <div onClick="{{ t.pick }}" style="padding:10px 18px; border:2.5px solid #121212; border-radius:999px; font-size:13px; font-weight:800; cursor:pointer; background:{{ t.bg }}; color:{{ t.fg }}">{{ t.label }}</div>
+      </sc-for>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:20px; min-width:0">
+      <input placeholder="Chercher dans le portfolio…" style="flex:1 1 260px; min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 16px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; outline:none" />
+      <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer">Toutes les catégories <span style="font-size:9px">▼</span></div>
+      <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; font-size:13px; font-weight:800; cursor:pointer">Récent <span style="font-size:9px">▼</span></div>
+    </div>
+    <div data-masonry="1" style="columns:250px; column-gap:20px">
+      <sc-for list="{{ profilWork }}" as="r" hint-placeholder-count="8">
+        <div style="break-inside:avoid; margin-bottom:20px; display:inline-block; width:100%; border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; overflow:hidden; cursor:pointer" style-hover="box-shadow:7px 7px 0 #121212">
+          <div style="border-bottom:2.5px solid #121212; display:grid; place-items:center; height:{{ r.h }}; background:{{ r.bg }}">
+            <span style="padding:6px 12px; display:{{ r.chipShow }}; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:11px">{{ r.ph }}</span>
+          </div>
+          <div style="padding:12px 13px; display:flex; align-items:center; gap:10px">
+            <div style="flex:1 1 auto; min-width:0">
+              <div style="font-size:14px; font-weight:800; line-height:1.25">{{ r.title }}</div>
+              <div style="font-size:11px; font-weight:600; opacity:.6">par Awa Diallo dans {{ r.type }}</div>
+            </div>
+            <div style="padding:5px 10px; border:2px solid #121212; border-radius:9px; font-size:11px; font-weight:800; background:{{ r.priceBg }}">{{ r.priceLabel }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; justify-content:center; gap:10px; margin-top:6px">
+      <sc-for list="{{ profilPages }}" as="p" hint-placeholder-count="5">
+        <div style="min-width:44px; text-align:center; padding:10px 14px; border:2.5px solid #121212; border-radius:12px; font-size:13px; font-weight:800; cursor:pointer; background:{{ p.bg }}; color:{{ p.fg }}">{{ p.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- MON COMPTE -->
+  <sc-if value="{{ isCompte }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px">
+      <div style="width:66px; height:66px; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#FFD84A 0 7px,#FFFFFF 7px 15px)"></div>
+      <div style="flex:1 1 240px">
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(28px,3.4vw,42px); letter-spacing:-1.4px; margin:0; text-transform:uppercase">Mon compte</h1>
+        <div style="font-size:14px; font-weight:600; opacity:.7">Dev.team · forfait Essentiel · acheteur</div>
+      </div>
+      <div style="padding:12px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:13.5px; font-weight:800; cursor:pointer">Devenir créateur</div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-top:22px">
+      <sc-for list="{{ compteStats }}" as="s" hint-placeholder-count="4">
+        <div style="border:2.5px solid #121212; border-radius:20px; background:{{ s.bg }}; box-shadow:4px 4px 0 #121212; padding:18px">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:28px">{{ s.value }}</div>
+          <div style="font-size:12.5px; font-weight:700; opacity:.7; margin-top:2px">{{ s.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 18px">
+      <sc-for list="{{ compteTabs }}" as="t" hint-placeholder-count="4">
+        <div onClick="{{ t.pick }}" style="padding:10px 18px; border:2.5px solid #121212; border-radius:999px; font-size:13px; font-weight:800; cursor:pointer; background:{{ t.bg }}; color:{{ t.fg }}">{{ t.label }}</div>
+      </sc-for>
+    </div>
+    <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+      <div style="font-size:16px; font-weight:800">{{ compteTabLabel }}</div>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px">
+        <sc-for list="{{ compteRows }}" as="r" hint-placeholder-count="4">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
+            <div style="width:52px; height:52px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:{{ r.bg }}"></div>
+            <div style="flex:1 1 200px; min-width:0">
+              <div style="font-size:14.5px; font-weight:800">{{ r.title }}</div>
+              <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.65">{{ r.meta }}</div>
+            </div>
+            <div style="padding:6px 12px; border:2px solid #121212; border-radius:999px; background:{{ r.statusBg }}; font-size:11.5px; font-weight:800">{{ r.status }}</div>
+            <div style="padding:9px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer">{{ r.action }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TARIFS -->
+  <sc-if value="{{ isTarifs }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(32px,4.2vw,54px); letter-spacing:-2px; margin:0; text-transform:uppercase">Abonnements</h1>
+    <p style="font-size:16px; font-weight:600; opacity:.75; margin:8px 0 0">Des forfaits souples : tu télécharges à ton rythme, tu changes quand tu veux.</p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-top:24px">
+      <sc-for list="{{ plans }}" as="p" hint-placeholder-count="3">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:{{ p.bg }}; box-shadow:6px 6px 0 #121212; padding:22px; display:flex; flex-direction:column; gap:14px">
+          <div style="display:flex; align-items:center; gap:10px">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:26px; text-transform:uppercase">{{ p.name }}</div>
+            <sc-if value="{{ p.popular }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:5px 11px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-size:11px; font-weight:800">POPULAIRE</div>
+            </sc-if>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:6px; padding-bottom:14px; border-bottom:2.5px solid #121212">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:36px">{{ p.price }}</div>
+            <div style="font-size:13px; font-weight:700; opacity:.7">{{ p.per }}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:9px; flex:1 1 auto">
+            <sc-for list="{{ p.features }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex; gap:9px; align-items:flex-start; font-size:13.5px; font-weight:600; line-height:1.4">
+                <span style="flex:0 0 auto; width:18px; height:18px; border:2px solid #121212; border-radius:6px; background:#FFFFFF; display:grid; place-items:center; font-size:11px">✓</span>{{ f }}
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:14px; border:2.5px solid #121212; border-radius:14px; background:{{ p.ctaBg }}; color:{{ p.ctaFg }}; text-align:center; font-size:14px; font-weight:800; cursor:pointer">{{ p.cta }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:24px; margin-top:24px">
+      <h2 style="font-family:'Archivo Black',sans-serif; font-size:28px; letter-spacing:-1px; margin:0 0 16px; text-transform:uppercase">FAQ</h2>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <sc-for list="{{ faq }}" as="f" hint-placeholder-count="5">
+          <div onClick="{{ f.toggle }}" style="border:2.5px solid #121212; border-radius:16px; background:{{ f.bg }}; padding:14px 16px; cursor:pointer">
+            <div style="display:flex; gap:12px; align-items:center">
+              <div style="flex:1 1 auto; font-size:14.5px; font-weight:800">{{ f.q }}</div>
+              <div style="width:26px; height:26px; flex:0 0 auto; border:2px solid #121212; border-radius:8px; background:#FFFFFF; display:grid; place-items:center; font-size:13px; font-weight:800">{{ f.sign }}</div>
+            </div>
+            <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:13.5px; font-weight:500; line-height:1.5; margin-top:10px; opacity:.82">{{ f.a }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGES DOC / LEGAL / COMMUNAUTE -->
+  <sc-if value="{{ isDoc }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1080px; margin:0 auto; padding:44px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:32px">
+      <div style="font-family:'Space Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.14em; opacity:.6">{{ doc.kicker }}</div>
+      <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(30px,3.8vw,48px); line-height:1; letter-spacing:-1.6px; margin:12px 0 0; text-transform:uppercase">{{ doc.title }}</h1>
+      <p style="font-size:16px; font-weight:500; line-height:1.55; margin:14px 0 0; opacity:.82; max-width:720px">{{ doc.intro }}</p>
+      <div style="display:flex; flex-direction:column; gap:18px; margin-top:26px">
+        <sc-for list="{{ doc.sections }}" as="s" hint-placeholder-count="4">
+          <div style="border-top:2.5px solid #121212; padding-top:16px">
+            <div style="font-size:17px; font-weight:800">{{ s.h }}</div>
+            <div style="font-size:14.5px; font-weight:500; line-height:1.6; margin-top:6px; opacity:.82; text-wrap:pretty">{{ s.p }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ doc.showPosts }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; margin-top:26px">
+          <sc-for list="{{ posts }}" as="p" hint-placeholder-count="3">
+            <div style="border:2.5px solid #121212; border-radius:20px; overflow:hidden; box-shadow:4px 4px 0 #121212; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">
+              <div style="height:130px; border-bottom:2.5px solid #121212; background:{{ p.bg }}"></div>
+              <div style="padding:14px">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ p.date }}</div>
+                <div style="font-size:15.5px; font-weight:800; line-height:1.25; margin-top:5px">{{ p.title }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ doc.showContact }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:26px">
+          <input placeholder="Nom" style="min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none">
+          <input placeholder="Email" style="min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none">
+          <input placeholder="Sujet" style="min-width:0; grid-column:1 / span 2; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none">
+          <div style="grid-column:1 / span 2; padding:14px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; text-align:center; font-size:14px; font-weight:800; cursor:pointer">Envoyer le message</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGE CREATEURS -->
+  <sc-if value="{{ isCreateurs }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px">
+      <div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(32px,4vw,52px); letter-spacing:-1.8px; margin:0; text-transform:uppercase">Créateurs</h1>
+        <p style="font-size:15.5px; font-weight:600; opacity:.75; margin:8px 0 0">Trouve le talent qu'il te faut pour ton prochain projet.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap">
+        <span style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">Populaire</span>
+        <sc-for list="{{ popularTags }}" as="t" hint-placeholder-count="6">
+          <div onClick="{{ t.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; background:{{ t.bg }}">{{ t.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px; margin-top:24px">
+      <sc-for list="{{ creators }}" as="c" hint-placeholder-count="4">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:18px">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+            <div style="width:52px; height:52px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ c.avatar }}"></div>
+            <div style="flex:1 1 200px; min-width:0">
+              <div style="font-size:18px; font-weight:800">{{ c.name }}</div>
+              <div style="font-size:12.5px; font-weight:600; opacity:.65">{{ c.role }} · {{ c.count }}</div>
+            </div>
+            <div style="display:flex; gap:10px; flex:0 0 auto">
+              <div onClick="{{ c.follow }}" style="padding:10px 18px; border:2.5px solid #121212; border-radius:13px; font-size:13px; font-weight:800; cursor:pointer; background:{{ c.followBg }}">{{ c.followLabel }}</div>
+              <div onClick="{{ goProfil }}" style="padding:10px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Voir le profil</div>
+            </div>
+          </div>
+          <sc-if value="{{ c.hasWork }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-top:16px">
+              <sc-for list="{{ c.work }}" as="w" hint-placeholder-count="5">
+                <div style="height:112px; border:2.5px solid #121212; border-radius:14px; display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:10.5px; text-align:center; padding:6px; background:{{ w.bg }}">{{ w.label }}</div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGE SERVICES -->
+  <sc-if value="{{ isServices }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#C9A8F5; box-shadow:7px 7px 0 #121212; padding:30px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:22px">
+      <div style="flex:1 1 380px; min-width:0">
+        <div style="display:inline-block; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; padding:6px 14px; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.12em">Services</div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(32px,4.2vw,54px); line-height:.97; letter-spacing:-2px; margin:14px 0 0; text-transform:uppercase">Fais appel aux membres<span style="color:#E2622C">.</span></h1>
+        <p style="font-size:15.5px; font-weight:500; line-height:1.5; max-width:520px; margin:12px 0 0; opacity:.8">Identité visuelle, illustration, retouche, motion : les créatifs de Baobart proposent leurs services à prix affiché.</p>
+      </div>
+      <div style="flex:0 0 auto; padding:15px 26px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer">Proposer mon service</div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 20px">
+      <sc-for list="{{ serviceCats }}" as="s" hint-placeholder-count="6">
+        <div onClick="{{ s.pick }}" style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; font-size:13px; font-weight:800; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+      </sc-for>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:18px">
+      <sc-for list="{{ services }}" as="s" hint-placeholder-count="6">
+        <div onClick="{{ s.open }}" style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; overflow:hidden; cursor:pointer; display:flex; flex-direction:column" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">
+          <div style="height:150px; border-bottom:2.5px solid #121212; display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:11px; background:{{ s.bg }}">{{ s.ph }}</div>
+          <div style="padding:16px; display:flex; flex-direction:column; gap:10px; flex:1 1 auto">
+            <div style="display:flex; align-items:center; gap:10px">
+              <div style="width:32px; height:32px; border:2.5px solid #121212; border-radius:99px; background:{{ s.avatar }}"></div>
+              <div style="font-size:12.5px; font-weight:700">{{ s.member }}</div>
+              <div style="margin-left:auto; font-family:'Space Mono',monospace; font-size:11px; opacity:.6">★ {{ s.rating }}</div>
+            </div>
+            <div style="font-size:16.5px; font-weight:800; line-height:1.25; flex:1 1 auto">{{ s.title }}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding-top:12px; border-top:2.5px solid #121212">
+              <div>
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">à partir de</div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:19px">{{ s.price }}</div>
+              </div>
+              <div style="padding:8px 13px; border:2px solid #121212; border-radius:11px; background:#FFD84A; font-size:12px; font-weight:800">{{ s.delay }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGE JOBS -->
+  <sc-if value="{{ isJobs }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px">
+      <div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(32px,4vw,52px); letter-spacing:-1.8px; margin:0; text-transform:uppercase">Jobs</h1>
+        <p style="font-size:15.5px; font-weight:600; opacity:.75; margin:8px 0 0">Les missions publiées par la communauté. Réponds, chiffre, décroche.</p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <div style="padding:12px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:13.5px; font-weight:800; cursor:pointer">Publier une mission</div>
+        <div style="padding:12px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer">Mes propositions</div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:24px">
+      <sc-for list="{{ jobs }}" as="j" hint-placeholder-count="6">
+        <div onClick="{{ j.open }}" style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:18px; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">
+          <div style="display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap">
+            <div style="font-size:17px; font-weight:800; line-height:1.3; flex:1 1 260px">{{ j.title }}</div>
+            <div style="padding:5px 11px; border:2px solid #121212; border-radius:999px; background:#EADFF9; font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em">{{ j.tag }}</div>
+            <sc-if value="{{ j.isNew }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:5px 11px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-size:11px; font-weight:800">NOUVEAU</div>
+            </sc-if>
+            <div style="display:flex; align-items:center; gap:6px; padding:5px 11px; border:2px solid #121212; border-radius:999px; font-size:11px; font-weight:800">
+              <span style="width:8px; height:8px; border-radius:99px; background:#E2622C"></span>{{ j.status }}
+            </div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:10px; font-family:'Space Mono',monospace; font-size:11.5px; opacity:.65">
+            <span>{{ j.budget }}</span><span>publié {{ j.age }}</span><span>{{ j.props }} propositions</span>
+          </div>
+          <div style="font-size:14px; font-weight:500; line-height:1.5; margin-top:10px; opacity:.82; text-wrap:pretty">{{ j.desc }}</div>
+          <div style="display:flex; justify-content:flex-end; margin-top:14px; padding-top:14px; border-top:2.5px solid #121212">
+            <div style="padding:9px 16px; border:2.5px solid #121212; border-radius:12px; background:#EADFF9; font-size:12.5px; font-weight:800">Voir la mission →</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- FICHE SERVICE -->
+  <sc-if value="{{ isServiceDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:32px 32px 0">
+    <div onClick="{{ backServices }}" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer" style-hover="background:#FFD84A">← Tous les services</div>
+    <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:24px; margin-top:20px; align-items:start">
+
+      <div style="display:flex; flex-direction:column; gap:20px; min-width:0">
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; overflow:hidden">
+          <div style="height:340px; border-bottom:2.5px solid #121212; background:{{ svc.hero }}"></div>
+          <div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; padding:14px">
+            <sc-for list="{{ svc.gallery }}" as="g" hint-placeholder-count="4">
+              <div style="height:86px; border:2.5px solid #121212; border-radius:14px; cursor:pointer; background:{{ g }}" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212"></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:26px">
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+            <div style="padding:6px 13px; border:2px solid #121212; border-radius:999px; background:#EADFF9; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em">{{ svc.cat }}</div>
+            <div style="padding:6px 13px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-size:11.5px; font-weight:800">★ {{ svc.rating }} · {{ svc.reviews }} avis</div>
+            <div style="padding:6px 13px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-size:11.5px; font-weight:800">{{ svc.orders }} commandes livrées</div>
+          </div>
+          <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(28px,3.4vw,44px); line-height:1; letter-spacing:-1.6px; margin:16px 0 0; text-transform:uppercase">{{ svc.title }}</h1>
+          <p style="font-size:15.5px; font-weight:500; line-height:1.55; margin:14px 0 0; opacity:.84; text-wrap:pretty">{{ svc.pitch }}</p>
+
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Ce qui est inclus</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px">
+            <sc-for list="{{ svc.includes }}" as="i" hint-placeholder-count="5">
+              <div style="display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC">
+                <div style="width:22px; height:22px; flex:0 0 auto; border:2px solid #121212; border-radius:7px; background:#FFD84A; display:grid; place-items:center; font-size:11px; font-weight:800">✓</div>
+                <div style="font-size:13.5px; font-weight:700; line-height:1.35">{{ i }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Comment ça se passe</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px">
+            <sc-for list="{{ svc.steps }}" as="s" hint-placeholder-count="4">
+              <div style="border:2.5px solid #121212; border-radius:18px; background:{{ s.bg }}; padding:16px">
+                <div style="width:30px; height:30px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:13px">{{ s.n }}</div>
+                <div style="font-size:14.5px; font-weight:800; margin-top:11px">{{ s.t }}</div>
+                <div style="font-size:12.5px; font-weight:500; line-height:1.4; margin-top:5px; opacity:.8">{{ s.d }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Avis clients</div>
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <sc-for list="{{ svc.testimonials }}" as="t" hint-placeholder-count="3">
+              <div style="border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:16px">
+                <div style="display:flex; align-items:center; gap:11px">
+                  <div style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ t.avatar }}"></div>
+                  <div style="flex:1 1 auto; min-width:0">
+                    <div style="font-size:13.5px; font-weight:800">{{ t.name }}</div>
+                    <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ t.role }}</div>
+                  </div>
+                  <div style="font-size:12px; letter-spacing:.14em; color:#E2622C">★★★★★</div>
+                </div>
+                <div style="font-size:13.5px; font-weight:500; line-height:1.5; margin-top:10px; opacity:.85">{{ t.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px; position:sticky; top:88px; min-width:0">
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFD84A; box-shadow:7px 7px 0 #121212; padding:22px">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.7">À partir de</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:44px; line-height:1; margin-top:4px">{{ svc.price }}</div>
+          <div style="display:flex; flex-direction:column; gap:9px; margin-top:18px; padding-top:16px; border-top:2.5px solid #121212">
+            <sc-for list="{{ svc.specs }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; font-size:13px; font-weight:700">
+                <div style="flex:1 1 auto; opacity:.75">{{ s.k }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:12px">{{ s.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:15px; margin-top:18px; border:2.5px solid #121212; border-radius:15px; background:#121212; color:#FFFFFF; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer">Commander ce service</div>
+          <div style="padding:13px; margin-top:10px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer">Poser une question</div>
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-align:center; margin-top:12px; opacity:.7">Paiement séquestré · libéré à la livraison</div>
+        </div>
+
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="display:flex; align-items:center; gap:12px">
+            <div style="width:52px; height:52px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ svc.avatar }}"></div>
+            <div style="flex:1 1 auto; min-width:0">
+              <div style="font-size:15.5px; font-weight:800">{{ svc.member }}</div>
+              <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ svc.memberRole }}</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:16px">
+            <sc-for list="{{ svc.memberStats }}" as="m" hint-placeholder-count="3">
+              <div style="border:2.5px solid #121212; border-radius:14px; background:#F4EEFC; padding:10px; text-align:center">
+                <div style="font-family:'Archivo Black',sans-serif; font-size:17px">{{ m.v }}</div>
+                <div style="font-size:10px; font-weight:700; opacity:.65">{{ m.k }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div onClick="{{ goProfil }}" style="padding:12px; margin-top:14px; border:2.5px solid #121212; border-radius:13px; background:#C9A8F5; text-align:center; font-size:13px; font-weight:800; cursor:pointer">Voir le profil complet</div>
+        </div>
+
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#121212; color:#FFFFFF; box-shadow:6px 6px 0 #E2622C; padding:20px">
+          <div style="font-size:15px; font-weight:800">Besoin d'un devis sur mesure ?</div>
+          <div style="font-size:13px; font-weight:500; line-height:1.45; margin-top:7px; opacity:.85">Décris ton projet, {{ svc.member }} te répond sous 24 h avec une proposition adaptée.</div>
+          <div style="padding:12px; margin-top:14px; border:2.5px solid #FFFFFF; border-radius:13px; background:#FFD84A; color:#121212; text-align:center; font-size:13px; font-weight:800; cursor:pointer">Demander un devis</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- FICHE MISSION -->
+  <sc-if value="{{ isJobDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:32px 32px 0">
+    <div onClick="{{ backJobs }}" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer" style-hover="background:#FFD84A">← Toutes les missions</div>
+    <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:24px; margin-top:20px; align-items:start">
+
+      <div style="display:flex; flex-direction:column; gap:20px; min-width:0">
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:26px">
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+            <div style="padding:6px 13px; border:2px solid #121212; border-radius:999px; background:#EADFF9; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em">{{ job.tag }}</div>
+            <div style="display:flex; align-items:center; gap:7px; padding:6px 13px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-size:11.5px; font-weight:800">
+              <span style="width:8px; height:8px; border-radius:99px; background:#E2622C"></span>{{ job.status }}
+            </div>
+            <div style="padding:6px 13px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-size:11.5px; font-weight:800">Clôture {{ job.deadline }}</div>
+          </div>
+          <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(26px,3.2vw,42px); line-height:1.02; letter-spacing:-1.5px; margin:16px 0 0; text-transform:uppercase">{{ job.title }}</h1>
+          <div style="display:flex; flex-wrap:wrap; gap:18px; margin-top:12px; font-family:'Space Mono',monospace; font-size:11.5px; opacity:.65">
+            <span>publié {{ job.age }}</span><span>{{ job.props }} propositions</span><span>{{ job.location }}</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:20px">
+            <sc-for list="{{ job.facts }}" as="f" hint-placeholder-count="4">
+              <div style="border:2.5px solid #121212; border-radius:16px; background:{{ f.bg }}; padding:14px">
+                <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.65">{{ f.k }}</div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:18px; line-height:1.2; margin-top:5px">{{ f.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 10px">La mission</div>
+          <p style="font-size:15px; font-weight:500; line-height:1.6; margin:0; opacity:.85; text-wrap:pretty">{{ job.desc }}</p>
+          <p style="font-size:15px; font-weight:500; line-height:1.6; margin:12px 0 0; opacity:.85; text-wrap:pretty">{{ job.context }}</p>
+
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Livrables attendus</div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ job.deliverables }}" as="d" hint-placeholder-count="4">
+              <div style="display:flex; gap:11px; align-items:flex-start; padding:13px 15px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC">
+                <div style="width:22px; height:22px; flex:0 0 auto; border:2px solid #121212; border-radius:7px; background:#C9A8F5; display:grid; place-items:center; font-size:11px; font-weight:800">▸</div>
+                <div style="font-size:13.5px; font-weight:600; line-height:1.4">{{ d }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Profil recherché</div>
+          <div style="display:flex; flex-wrap:wrap; gap:9px">
+            <sc-for list="{{ job.skills }}" as="s" hint-placeholder-count="5">
+              <div style="padding:8px 15px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; font-size:12.5px; font-weight:800">{{ s }}</div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:26px; padding-top:20px; border-top:2.5px solid #121212">
+            <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">Envoyer une proposition</div>
+            <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer">Enregistrer</div>
+            <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer">Signaler</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px; position:sticky; top:88px; min-width:0">
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#C9A8F5; box-shadow:7px 7px 0 #121212; padding:22px">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.7">Budget annoncé</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:38px; line-height:1; margin-top:4px">{{ job.budget }}</div>
+          <div style="font-size:13px; font-weight:600; margin-top:6px; opacity:.8">{{ job.budgetNote }}</div>
+          <div style="margin-top:18px; padding-top:16px; border-top:2.5px solid #121212">
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:800"><span>Propositions reçues</span><span>{{ job.props }}</span></div>
+            <div style="height:18px; margin-top:8px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; overflow:hidden">
+              <div style="height:100%; background:#E2622C; width:{{ job.propsPct }}"></div>
+            </div>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; margin-top:8px; opacity:.7">Le client répond en moyenne sous 6 h</div>
+          </div>
+        </div>
+
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">Publié par</div>
+          <div style="display:flex; align-items:center; gap:12px; margin-top:12px">
+            <div style="width:52px; height:52px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ job.clientAvatar }}"></div>
+            <div style="flex:1 1 auto; min-width:0">
+              <div style="font-size:15.5px; font-weight:800">{{ job.client }}</div>
+              <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ job.clientRole }}</div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:9px; margin-top:16px; padding-top:14px; border-top:2.5px solid #121212">
+            <sc-for list="{{ job.clientStats }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px; font-size:13px; font-weight:700">
+                <div style="flex:1 1 auto; opacity:.75">{{ c.k }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:12px">{{ c.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="font-size:15px; font-weight:800">Missions similaires</div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:14px">
+            <sc-for list="{{ job.similar }}" as="s" hint-placeholder-count="3">
+              <div style="padding:12px 14px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC; cursor:pointer" style-hover="background:#FFD84A">
+                <div style="font-size:13.5px; font-weight:800; line-height:1.3">{{ s.t }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; margin-top:4px; opacity:.65">{{ s.m }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGE CONCOURS & EVENEMENTS -->
+  <sc-if value="{{ isConcours }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#FFD84A; box-shadow:7px 7px 0 #121212; padding:34px; display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:30px; align-items:center">
+      <div>
+        <div style="display:inline-block; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; padding:6px 14px; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.12em">Concours &amp; événements</div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(34px,4.4vw,58px); line-height:.96; letter-spacing:-2px; margin:14px 0 0; text-transform:uppercase">Montre ce que tu sais faire<span style="color:#E2622C">.</span></h1>
+        <p style="font-size:16px; font-weight:500; line-height:1.5; max-width:520px; margin:14px 0 0; opacity:.8">Un thème, deux semaines, un jury de créatifs du continent. Les gagnants sont mis en avant sur l'accueil et rémunérés.</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:22px">
+          <div style="padding:14px 26px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer">Participer au concours en cours</div>
+          <div style="padding:14px 26px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer">Proposer un événement</div>
+        </div>
+      </div>
+      <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; padding:20px">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">Édition en cours</div>
+        <div style="font-family:'Archivo Black',sans-serif; font-size:26px; line-height:1.05; margin-top:8px">Wax Futurism</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px">
+          <div style="border:2.5px solid #121212; border-radius:14px; padding:10px; text-align:center"><div style="font-family:'Archivo Black',sans-serif; font-size:22px">06</div><div style="font-size:10.5px; font-weight:700; opacity:.65">JOURS</div></div>
+          <div style="border:2.5px solid #121212; border-radius:14px; padding:10px; text-align:center"><div style="font-family:'Archivo Black',sans-serif; font-size:22px">14</div><div style="font-size:10.5px; font-weight:700; opacity:.65">HEURES</div></div>
+          <div style="border:2.5px solid #121212; border-radius:14px; padding:10px; text-align:center"><div style="font-family:'Archivo Black',sans-serif; font-size:22px">39</div><div style="font-size:10.5px; font-weight:700; opacity:.65">MIN</div></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:2.5px solid #121212; font-size:13px; font-weight:700">
+          <span>500 000 FCFA de prix</span><span style="opacity:.65">184 participants</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; margin-top:26px">
+      <sc-for list="{{ contests }}" as="c" hint-placeholder-count="3">
+        <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; overflow:hidden; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">
+          <div style="height:160px; border-bottom:2.5px solid #121212; display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:11.5px; background:{{ c.bg }}">{{ c.ph }}</div>
+          <div style="padding:16px">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="padding:5px 11px; border:2px solid #121212; border-radius:999px; font-size:11px; font-weight:800; background:{{ c.statusBg }}">{{ c.status }}</span>
+              <span style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">{{ c.date }}</span>
+            </div>
+            <div style="font-size:18px; font-weight:800; line-height:1.25; margin-top:10px">{{ c.title }}</div>
+            <div style="font-size:13.5px; font-weight:500; opacity:.75; line-height:1.45; margin-top:6px">{{ c.desc }}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:2.5px solid #121212; font-size:12.5px; font-weight:800">
+              <span>{{ c.prize }}</span><span style="opacity:.6">{{ c.people }}</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:26px">
+      <sc-for list="{{ contestSteps }}" as="s" hint-placeholder-count="3">
+        <div style="border:2.5px solid #121212; border-radius:20px; background:{{ s.bg }}; box-shadow:4px 4px 0 #121212; padding:18px">
+          <div style="width:34px; height:34px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:14px">{{ s.n }}</div>
+          <div style="font-size:15.5px; font-weight:800; margin-top:12px">{{ s.title }}</div>
+          <div style="font-size:13.5px; font-weight:500; opacity:.78; line-height:1.45; margin-top:5px">{{ s.text }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAGE SPONSORISER -->
+  <sc-if value="{{ isSponsor }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1400px; margin:0 auto; padding:44px 32px 0">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#121212; color:#FFFFFF; box-shadow:7px 7px 0 #C9A8F5; padding:34px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.85fr); gap:30px; align-items:center">
+      <div>
+        <div style="display:inline-block; border:2.5px solid #FFFFFF; border-radius:999px; padding:6px 14px; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.12em">Sponsoriser</div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(34px,4.4vw,58px); line-height:.96; letter-spacing:-2px; margin:14px 0 0; text-transform:uppercase">Parle aux créatifs qui font l'Afrique<span style="color:#FFD84A">.</span></h1>
+        <p style="font-size:16px; font-weight:500; line-height:1.5; max-width:540px; margin:14px 0 0; opacity:.82">12 400 designers, illustrateurs, agences et étudiants passent chaque mois par Baobart. Mets ton produit devant eux, sans bannière moche.</p>
+        <div style="display:flex; gap:24px; flex-wrap:wrap; margin-top:24px">
+          <div><div style="font-family:'Archivo Black',sans-serif; font-size:26px">68 000</div><div style="font-size:12px; font-weight:600; opacity:.7">visites / mois</div></div>
+          <div><div style="font-family:'Archivo Black',sans-serif; font-size:26px">31 %</div><div style="font-size:12px; font-weight:600; opacity:.7">agences &amp; studios</div></div>
+          <div><div style="font-family:'Archivo Black',sans-serif; font-size:26px">14 pays</div><div style="font-size:12px; font-weight:600; opacity:.7">audience active</div></div>
+        </div>
+      </div>
+      <div style="border:2.5px solid #FFFFFF; border-radius:22px; padding:18px">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.75">Sponsors &amp; partenaires</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px">
+          <sc-for list="{{ partners }}" as="p" hint-placeholder-count="6">
+            <div style="height:54px; border:2.5px solid #FFFFFF; border-radius:12px; display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:11px; background:{{ p.bg }}; color:#121212">{{ p.label }}</div>
+          </sc-for>
+        </div>
+        <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.7; margin-top:12px">…et d'autres à venir</div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-top:26px">
+      <sc-for list="{{ offers }}" as="o" hint-placeholder-count="3">
+        <div style="border:2.5px solid #121212; border-radius:22px; background:{{ o.bg }}; box-shadow:5px 5px 0 #121212; padding:20px; display:flex; flex-direction:column; gap:12px">
+          <div style="display:flex; justify-content:space-between; align-items:baseline">
+            <div style="font-size:17px; font-weight:800">{{ o.name }}</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:19px">{{ o.price }}</div>
+          </div>
+          <div style="font-size:13.5px; font-weight:500; line-height:1.45; opacity:.8; flex:1 1 auto">{{ o.desc }}</div>
+          <div style="height:78px; border:2.5px solid #121212; border-radius:14px; background:{{ o.ph }}"></div>
+          <div style="padding:12px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer">Réserver ce format</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:28px; margin-top:26px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:28px; align-items:center">
+      <div>
+        <h2 style="font-family:'Archivo Black',sans-serif; font-size:30px; line-height:1; letter-spacing:-1.2px; margin:0; text-transform:uppercase">Parlons-en</h2>
+        <p style="font-size:14.5px; font-weight:500; line-height:1.5; opacity:.78; margin:12px 0 0">Dis-nous ce que tu veux mettre en avant, on revient sous 48 h avec un plan et un tarif.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px">
+        <input placeholder="Nom / société" style="min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none">
+        <input placeholder="Email" style="min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none">
+        <input placeholder="Budget indicatif" style="min-width:0; grid-column:1 / span 2; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none">
+        <div style="grid-column:1 / span 2; padding:14px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; text-align:center; font-size:14px; font-weight:800; cursor:pointer">Envoyer la demande</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- FOOTER -->
+  <div style="max-width:1400px; margin:72px auto 0; padding:0 32px 40px">
+    <div style="border:2.5px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:32px">
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:26px">
+        <div>
+          <div style="display:flex; align-items:center; gap:10px">
+            <div style="width:36px; height:36px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="Baobart" style="width:24px; display:block; margin-top:2px" /></div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:20px">Baobart<span style="color:#E2622C">.</span></div>
+          </div>
+          <p style="font-size:13.5px; font-weight:500; opacity:.7; line-height:1.5; max-width:280px; margin:14px 0 0">La communauté créative africaine. Ressources partagées, projets menés ensemble.</p>
+        </div>
+        <div>
+          <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px">Explorer</div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:13.5px; font-weight:600"><a href="#grid">Illustrations</a><a href="#grid">Mockups</a><a href="#grid">Fonts</a><a href="#grid">Photos</a></div>
+        </div>
+        <div>
+          <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px">Communauté</div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:13.5px; font-weight:600"><a href="#collab">Espaces</a><a href="#contrib">Vendre</a><a href="#blog">Blog</a><a href="#collab">Créatifs</a></div>
+        </div>
+        <div>
+          <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px">Reste au courant</div>
+          <div style="display:flex; gap:8px">
+            <input placeholder="ton@email.com" style="flex:1 1 auto; font-family:Poppins,sans-serif; font-size:13px; font-weight:500; padding:10px 12px; border:2.5px solid #121212; border-radius:12px; outline:none; background:#F4EEFC">
+            <div style="padding:10px 14px; border:2.5px solid #121212; border-radius:12px; background:#C9A8F5; font-size:13px; font-weight:800; cursor:pointer">OK</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:26px; padding-top:18px; border-top:2.5px solid #121212; font-family:'Space Mono',monospace; font-size:11.5px; opacity:.65">
+        <span>© 2026 Baobart — Dakar, Sénégal</span><span>Conditions · Confidentialité · Licences</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL RESSOURCE -->
+  <sc-if value="{{ hasOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:60; background:rgba(18,18,18,.55); display:flex; align-items:flex-start; justify-content:center; padding:40px 24px; overflow:auto">
+      <div style="width:100%; max-width:1160px; border:3px solid #121212; border-radius:28px; background:#EADFF9; box-shadow:10px 10px 0 #121212; animation:popin .2s ease-out">
+        <div style="display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:3px solid #121212; background:#FFFFFF; border-radius:25px 25px 0 0">
+          <div style="font-family:'Space Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">Ressource</div>
+          <div style="flex:1 1 auto; font-size:15px; font-weight:800">{{ open.title }}</div>
+          <div onClick="{{ close }}" style="width:38px; height:38px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:16px; font-weight:800; cursor:pointer">✕</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1.35fr .65fr; gap:22px; padding:22px">
+          <div style="display:flex; flex-direction:column; gap:16px">
+            <div style="border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; height:440px; display:grid; place-items:center; background:{{ open.bg }}">
+              <span style="padding:8px 16px; display:{{ open.chipShow }}; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:13px">{{ open.ph }}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px">
+              <sc-for list="{{ boardTiles }}" as="t" hint-placeholder-count="4">
+                <div style="height:80px; border:2.5px solid #121212; border-radius:13px; background:{{ t.bg }}"></div>
+              </sc-for>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; padding:18px">
+              <div style="font-size:15px; font-weight:800">Commentaires ({{ open.comments }})</div>
+              <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px">
+                <sc-for list="{{ comments }}" as="c" hint-placeholder-count="2">
+                  <div style="display:flex; gap:12px; align-items:flex-start">
+                    <div style="width:32px; height:32px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ c.bg }}"></div>
+                    <div style="border:2.5px solid #121212; border-radius:14px; border-top-left-radius:4px; background:#F4EEFC; padding:9px 13px">
+                      <div style="font-size:12px; font-weight:800">{{ c.who }} <span style="font-weight:600; opacity:.55">{{ c.when }}</span></div>
+                      <div style="font-size:13.5px; font-weight:500; line-height:1.4; margin-top:2px">{{ c.text }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:14px">
+                <input value="{{ draft }}" onChange="{{ onDraft }}" placeholder="Ajouter un commentaire…" style="flex:1 1 auto; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:11px 14px; border:2.5px solid #121212; border-radius:13px; outline:none">
+                <div onClick="{{ sendComment }}" style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFD84A; font-size:13px; font-weight:800; cursor:pointer">Publier</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:16px">
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:18px">
+              <div style="display:inline-block; padding:6px 12px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:11px">{{ open.type }}</div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:26px; line-height:1.05; letter-spacing:-.8px; margin-top:12px">{{ open.title }}</div>
+              <div style="display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:14px; border-top:2.5px solid #121212">
+                <div style="width:40px; height:40px; border:2.5px solid #121212; border-radius:99px; background:{{ open.bg }}"></div>
+                <div style="flex:1 1 auto">
+                  <div style="font-size:13.5px; font-weight:800">{{ open.author }}</div>
+                  <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ open.authorRole }}</div>
+                </div>
+                <div style="padding:7px 13px; border:2px solid #121212; border-radius:10px; background:#EADFF9; font-size:12px; font-weight:800; cursor:pointer">Suivre</div>
+              </div>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFD84A; box-shadow:5px 5px 0 #121212; padding:18px">
+              <div style="display:flex; align-items:baseline; justify-content:space-between">
+                <div style="font-family:'Archivo Black',sans-serif; font-size:30px">{{ open.priceLabel }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:11px">licence commerciale</div>
+              </div>
+              <div style="padding:14px; margin-top:14px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer">Télécharger</div>
+              <div style="display:flex; gap:10px; margin-top:10px">
+                <div onClick="{{ likeOpen }}" style="flex:1 1 auto; padding:11px; border:2.5px solid #121212; border-radius:13px; text-align:center; font-size:13px; font-weight:800; cursor:pointer; background:{{ open.likeBg }}">♥ {{ open.likeLabel }}</div>
+                <div onClick="{{ saveOpen }}" style="flex:1 1 auto; padding:11px; border:2.5px solid #121212; border-radius:13px; text-align:center; font-size:13px; font-weight:800; cursor:pointer; background:{{ open.saveBg }}">⌸ Collection</div>
+              </div>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; padding:18px">
+              <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em">Détails</div>
+              <div style="display:flex; flex-direction:column; gap:9px; margin-top:12px; font-size:13px; font-weight:600">
+                <div style="display:flex; justify-content:space-between"><span style="opacity:.6">Format</span><span>{{ open.format }}</span></div>
+                <div style="display:flex; justify-content:space-between"><span style="opacity:.6">Dimensions</span><span>{{ open.dims }}</span></div>
+                <div style="display:flex; justify-content:space-between"><span style="opacity:.6">Téléchargements</span><span>{{ open.downloads }}</span></div>
+                <div style="display:flex; justify-content:space-between"><span style="opacity:.6">Ajouté le</span><span>{{ open.date }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;default&quot;:&quot;B&quot;,&quot;tsType&quot;:&quot;\&quot;A\&quot; | \&quot;B\&quot;&quot;,&quot;section&quot;:&quot;Mise en page&quot;},&quot;cardStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Sticker&quot;,&quot;Contour fin&quot;,&quot;Image pleine&quot;],&quot;default&quot;:&quot;Sticker&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Grille&quot;},&quot;showPrices&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Grille&quot;}}">
+const stripe = (base, s, w) => `repeating-linear-gradient(135deg, ${s} 0 ${w || 8}px, ${base} ${w || 8}px ${(w || 8) * 2 + 2}px)`;
+const LAV = "#EADFF9", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", INK = "#121212", W = "#FFFFFF";
+
+const ITEMS = [
+  { id: 1, title: "Portrait Wax Éditorial", type: "Photo", price: 0, author: "Awa Diallo", base: LAV, s: ORA, h: 300, ph: "photo · 900×1200", likes: 412, comments: 12, format: "JPG, RAW", dims: "4000×5000", downloads: "2 340", date: "12 juil. 2026", featured: true },
+  { id: 2, title: "Pack Motifs Ankara", type: "Pack", price: 0, author: "Kofi Mensah", base: W, s: YEL, h: 240, ph: "pack · 24 motifs", likes: 388, comments: 9, format: "AI, SVG, PNG", dims: "vectoriel", downloads: "1 908", date: "8 juil. 2026", featured: true },
+  { id: 3, title: "Affiche Sérigraphie Sahel", type: "Art", price: 10000, author: "Fatou Ba", base: LAV, s: INK, h: 320, ph: "art · 1000×1400", likes: 210, comments: 5, format: "PDF, PNG", dims: "3508×4961", downloads: "640", date: "3 juil. 2026" },
+  { id: 4, title: "Mockup Affiche Rue", type: "Mockup", price: 3000, author: "Studio Teranga", base: W, s: ORA, h: 220, ph: "mockup · 1200×900", likes: 176, comments: 3, format: "PSD", dims: "4000×3000", downloads: "512", date: "1 juil. 2026" },
+  { id: 5, title: "Font Bantu Display", type: "Font", price: 0, author: "Yao Kouadio", base: YEL, s: INK, h: 190, ph: "font · display", likes: 502, comments: 21, format: "TTF, OTF, WOFF2", dims: "3 graisses", downloads: "3 020", date: "28 juin 2026" },
+  { id: 6, title: "Icônes Marché 48px", type: "Icône", price: 0, author: "Nadia Cissé", base: W, s: PUR, h: 200, ph: "icônes · 64 pcs", likes: 233, comments: 4, format: "SVG", dims: "48×48", downloads: "1 122", date: "26 juin 2026" },
+  { id: 7, title: "Illu Femme au Foulard", type: "Illustration", price: 5000, author: "Awa Diallo", base: LAV, s: PUR, h: 330, ph: "illu · 1000×1400", likes: 640, comments: 33, format: "AI, PNG", dims: "vectoriel", downloads: "890", date: "22 juin 2026" },
+  { id: 8, title: "Logo Baobab Minimal", type: "Logo", price: 12000, author: "Studio Teranga", base: W, s: INK, h: 210, ph: "logo · vectoriel", likes: 145, comments: 2, format: "AI, SVG", dims: "vectoriel", downloads: "204", date: "20 juin 2026" },
+  { id: 9, title: "Textures Terre Battue", type: "Photo", price: 0, author: "Ibrahim Traoré", base: ORA, s: LAV, h: 260, ph: "photo · 12 textures", likes: 318, comments: 7, format: "JPG", dims: "5000×3333", downloads: "1 460", date: "18 juin 2026" },
+  { id: 10, title: "Illu Danse Sabar", type: "Illustration", price: 0, author: "Fatou Ba", base: W, s: YEL, h: 300, ph: "illu · 1200×1200", likes: 421, comments: 15, format: "PNG, SVG", dims: "3000×3000", downloads: "1 780", date: "15 juin 2026" },
+  { id: 11, title: "Beats Kora Lo-fi", type: "Audio", price: 8000, author: "Yao Kouadio", base: PUR, s: INK, h: 180, ph: "audio · 8 pistes", likes: 98, comments: 1, format: "WAV, MP3", dims: "24 min", downloads: "132", date: "12 juin 2026" },
+  { id: 12, title: "Mockup Tote Bag", type: "Mockup", price: 3000, author: "Nadia Cissé", base: W, s: PUR, h: 250, ph: "mockup · 1500×1500", likes: 187, comments: 6, format: "PSD", dims: "3000×3000", downloads: "409", date: "10 juin 2026" },
+  { id: 13, title: "Art Géométrique Kente", type: "Art", price: 0, author: "Kofi Mensah", base: YEL, s: ORA, h: 290, ph: "art · 1000×1300", likes: 355, comments: 11, format: "PNG", dims: "3000×4000", downloads: "1 240", date: "7 juin 2026" },
+  { id: 14, title: "Portraits Studio N&B", type: "Photo", price: 6000, author: "Ibrahim Traoré", base: INK, s: LAV, h: 320, ph: "photo · 18 shots", likes: 274, comments: 8, format: "JPG", dims: "4000×6000", downloads: "318", date: "5 juin 2026" },
+  { id: 15, title: "Illu Marché de Nuit", type: "Illustration", price: 0, author: "Awa Diallo", base: LAV, s: YEL, h: 230, ph: "illu · 1400×900", likes: 199, comments: 4, format: "PNG", dims: "4200×2700", downloads: "760", date: "2 juin 2026" },
+  { id: 16, title: "Pack Stickers Teranga", type: "Pack", price: 4000, author: "Nadia Cissé", base: W, s: ORA, h: 200, ph: "pack · 40 stickers", likes: 211, comments: 5, format: "PNG, SVG", dims: "1000×1000", downloads: "487", date: "30 mai 2026" },
+  { id: 17, title: "Font Sahel Mono", type: "Font", price: 7000, author: "Yao Kouadio", base: LAV, s: INK, h: 190, ph: "font · mono", likes: 162, comments: 3, format: "TTF, OTF", dims: "2 graisses", downloads: "241", date: "27 mai 2026" },
+  { id: 18, title: "Illu Baobab au Couchant", type: "Illustration", price: 0, author: "Fatou Ba", base: ORA, s: YEL, h: 270, ph: "illu · 1200×1500", likes: 480, comments: 19, format: "AI, PNG", dims: "vectoriel", downloads: "2 010", date: "24 mai 2026" },
+  { id: 19, title: "Logo Grid Adinkra", type: "Logo", price: 0, author: "Kofi Mensah", base: W, s: PUR, h: 210, ph: "logo · 12 grilles", likes: 129, comments: 2, format: "SVG", dims: "vectoriel", downloads: "603", date: "21 mai 2026" },
+  { id: 20, title: "Photos Tissus Bogolan", type: "Photo", price: 0, author: "Ibrahim Traoré", base: LAV, s: ORA, h: 300, ph: "photo · 20 shots", likes: 341, comments: 10, format: "JPG", dims: "5000×3333", downloads: "1 655", date: "18 mai 2026" }
+];
+
+ITEMS.push(
+  { id: 21, title: "Boucle Motifs Animés", type: "Vidéo", price: 0, author: "Kofi Mensah", base: INK, s: YEL, h: 210, ph: "vidéo · 1080p 12 s", likes: 174, comments: 4, format: "MP4, MOV", dims: "1920×1080", downloads: "418", date: "16 mai 2026" },
+  { id: 22, title: "Timelapse Marché Sandaga", type: "Vidéo", price: 9000, author: "Ibrahim Traoré", base: LAV, s: ORA, h: 250, ph: "vidéo · 4K 40 s", likes: 121, comments: 2, format: "MP4", dims: "3840×2160", downloads: "96", date: "13 mai 2026" }
+);
+
+const IMG = {
+  1: "img/mode-rouge.jpg", 2: "img/neon-01.png", 3: "img/collage-lunettes.jpg", 4: "img/packshot-soin.png",
+  5: "img/emeraude.png", 6: "img/neon-02.png", 7: "img/beaute-afro.jpg", 8: "img/neon-03.png",
+  9: "img/studio-01.png", 10: "img/mode-blanc-01.png", 11: "img/neon-04.png", 12: "img/packshot-soin.png",
+  13: "img/neon-05.png", 14: "img/studio-02.png", 15: "img/robe-bleue.png", 16: "img/studio-03.png",
+  17: "img/emeraude.png", 18: "img/mode-blanc-02.png", 19: "img/collage-lunettes.jpg", 20: "img/beaute-afro.jpg",
+  21: "img/neon-01.png", 22: "img/mode-rouge.jpg"
+};
+
+const FILTERS = ["Tous", "Illustration", "Photo", "Mockup", "Font", "Icône", "Logo", "Pack", "Art", "Audio", "Vidéo"];
+
+const NAV = [
+  { key: "explorer", label: "Explorer", items: [
+    { key: "explorer", label: "Explorer les ressources", hint: "Toute la bibliothèque", glyph: "▣" },
+    { key: "concours", label: "Concours & Événements", hint: "Édition Wax Futurism en cours", glyph: "★" },
+    { key: "sponsor", label: "Sponsoriser", hint: "Formats & partenariats", glyph: "◆" }
+  ] },
+  { key: "createurs", label: "Créateurs", items: [
+    { key: "createurs", label: "Créateurs", hint: "Annuaire des membres", glyph: "☺" },
+    { key: "services", label: "Services", hint: "Prestations des membres", glyph: "✦" },
+    { key: "jobs", label: "Jobs", hint: "Missions à saisir", glyph: "▤" }
+  ] },
+  { key: "conditions", label: "Conditions générales", items: [
+    { key: "doc", doc: "licences", label: "Licences Baobart", hint: "Ce que tu peux faire des fichiers", glyph: "§" },
+    { key: "doc", doc: "regles", label: "Règles de publication", hint: "Pour les contributeurs", glyph: "✎" },
+    { key: "doc", doc: "dmca", label: "Signalement DMCA", hint: "Signaler un contenu", glyph: "!" },
+    { key: "doc", doc: "cookies", label: "Politique de cookies (UE)", hint: "Traceurs & consentement", glyph: "◍" }
+  ] },
+  { key: "communaute", label: "Communauté & Blogs", items: [
+    { key: "doc", doc: "apropos", label: "À propos", hint: "Notre histoire", glyph: "◈" },
+    { key: "doc", doc: "contact", label: "Contact", hint: "Nous écrire", glyph: "✉" },
+    { key: "doc", doc: "blogs", label: "Blogs", hint: "Articles et coulisses", glyph: "▤" },
+    { key: "doc", doc: "support", label: "Support", hint: "Aide et litiges", glyph: "?" },
+    { key: "doc", doc: "docs", label: "Documentation Baobart", hint: "Guides d'utilisation", glyph: "▦" },
+    { key: "doc", doc: "changelog", label: "Changelog", hint: "Nouveautés de la plateforme", glyph: "★" }
+  ] },
+  { key: "features", label: "Fonctionnalités", go: "features", items: [] },
+  { key: "tarifs", label: "Tarifs", go: "tarifs", items: [] }
+];
+
+const FEATURES = [
+  {
+    bg: "#FFD84A", kicker: "Ta vitrine", title: "Ta boutique, à ta façon",
+    intro: "Baobart s'occupe du paiement, du fichier et de la licence. Toi, tu montres ton travail.",
+    img: "url('img/mode-blanc-01.png') center 18% / cover no-repeat",
+    items: [
+      { t: "Ouvre ta boutique en 10 minutes", d: "Un nom, un avatar, trois fichiers : ta page publique est en ligne, avec ton URL baobart.africa/vendor/ton-nom." },
+      { t: "Une page par ressource", d: "Aperçus, formats, dimensions, licence et avis : tout ce que l'acheteur veut savoir avant de payer." },
+      { t: "Ton profil devient ton portfolio", d: "Bio, réseaux, services proposés, tarif indicatif. Les agences te contactent directement." }
+    ]
+  },
+  {
+    bg: "#C9A8F5", kicker: "Encaisser", title: "Te faire payer, ici et maintenant",
+    intro: "Mobile Money et carte bancaire, prix en FCFA, versement automatique chaque mois.",
+    img: "url('img/neon-02.png') center / cover no-repeat", reverse: true,
+    items: [
+      { t: "Wave, Orange Money, carte", d: "Les moyens de paiement réellement utilisés sur le continent, sans compte bancaire à l'étranger." },
+      { t: "80 % pour toi", d: "Aucun frais fixe, aucune exclusivité. Le solde part le 7 de chaque mois, reçu à l'appui." },
+      { t: "Gratuit, payant, ou les deux", d: "Fixe un prix par ressource, offre un pack d'appel, ou laisse l'acheteur choisir son montant." }
+    ]
+  },
+  {
+    bg: "#121212", kicker: "Travailler ensemble", title: "Des espaces, pas des dossiers Drive",
+    intro: "Collections partagées, commentaires ancrés, invitations en un lien.",
+    img: "url('img/studio-03.png') center 20% / cover no-repeat", dark: true,
+    items: [
+      { t: "Collections d'équipe", d: "Range les ressources d'un projet, invite 3 personnes, tout le monde voit la même sélection." },
+      { t: "Commentaires au bon endroit", d: "On commente une ressource, pas un fil WhatsApp. L'historique reste attaché au fichier." },
+      { t: "Rôles simples", d: "Lecture, contribution, administration. Un lien d'invitation, aucune installation." }
+    ]
+  },
+  {
+    bg: "#FFFFFF", kicker: "Trouver vite", title: "Une recherche qui parle d'ici",
+    intro: "Dix familles de ressources, des filtres actifs, des collections triées à la main.",
+    img: "url('img/collage-lunettes.jpg') center / cover no-repeat", reverse: true,
+    items: [
+      { t: "Filtres instantanés", d: "Art, Audio, Fonts, Icônes, Illustrations, Images, Logos, Mockups, Packs, Vidéos — la grille se recompose sans recharger." },
+      { t: "Suggestions à la frappe", d: "Titres, créateurs, catégories : la recherche propose dès le troisième caractère." },
+      { t: "Curation locale", d: "Chaque collection est validée par un curateur du réseau, dans 14 pays." }
+    ]
+  },
+  {
+    bg: "#FFD84A", kicker: "Piloter", title: "Savoir ce qui marche",
+    intro: "Un tableau de bord par rôle : acheteur ou créateur, tu vois ce qui te concerne.",
+    img: "url('img/neon-05.png') center / cover no-repeat",
+    items: [
+      { t: "Gains, ventes, conversion", d: "Vues de fiche, taux de téléchargement, taux d'achat et meilleures ressources, mois par mois." },
+      { t: "Quota et licences côté acheteur", d: "Ce qu'il te reste ce mois, tes factures, tes fichiers accessibles à vie." },
+      { t: "Avis et feedback", d: "Réponds aux avis depuis le dashboard : ça compte dans le classement de la grille." }
+    ]
+  }
+];
+
+const CAT_TITLES = {
+  Art: "Arts", Audio: "Audios", Font: "Fonts", "Icône": "Icônes", Illustration: "Illustrations",
+  Photo: "Images", Logo: "Logos", Mockup: "Mockups", Pack: "Packs", "Vidéo": "Vidéos", Tous: "Tout"
+};
+
+const FAQ = [
+  { q: "Quels forfaits sont disponibles ?", a: "Free, Essentiel et Pro. Le forfait Free suffit pour tester, l'Essentiel couvre la majorité des projets clients, le Pro lève toutes les limites." },
+  { q: "Quelle différence entre licence personnelle et commerciale ?", a: "La licence personnelle couvre les usages non marchands et les maquettes. La commerciale autorise la diffusion payante et les livrables clients." },
+  { q: "Puis-je changer de forfait à tout moment ?", a: "Oui, le changement prend effet immédiatement et le prorata est ajusté sur la période en cours." },
+  { q: "Les téléchargements restent-ils accessibles ?", a: "Oui, tout ce que tu as téléchargé reste dans « Mes achats », même après un changement de forfait." },
+  { q: "Comment sont rémunérés les créateurs ?", a: "80 % du prix de vente revient au créateur, versé chaque mois par Mobile Money ou virement." }
+];
+
+const COMPTE = {
+  "Tableau de bord": [
+    { title: "Quota Essentiel : 158 / 200 téléchargements", meta: "renouvellement le 12 août 2026", status: "ACTIF", statusBg: "#FFD84A", action: "Gérer", bg: "repeating-linear-gradient(135deg,#FFD84A 0 7px,#FFFFFF 7px 16px)" },
+    { title: "Collection partagée · Campagne Dakar 2026", meta: "4 membres · 38 ressources", status: "ÉQUIPE", statusBg: "#C9A8F5", action: "Ouvrir", bg: "repeating-linear-gradient(135deg,#C9A8F5 0 7px,#FFFFFF 7px 16px)" },
+    { title: "Deviens créateur : publie et vends tes fichiers", meta: "80 % pour toi sur chaque vente", status: "À FAIRE", statusBg: "#FFFFFF", action: "Commencer", bg: "repeating-linear-gradient(135deg,#E2622C 0 7px,#FFFFFF 7px 16px)" }
+  ],
+  "Commandes": [
+    { title: "Commande #10428", meta: "12 juil. 2026 · 2 articles · 8 000 F", status: "PAYÉE", statusBg: "#FFD84A", action: "Facture", bg: "repeating-linear-gradient(135deg,#FFFFFF 0 7px,#121212 7px 16px)" },
+    { title: "Commande #10391", meta: "3 juil. 2026 · 1 article · 10 000 F", status: "PAYÉE", statusBg: "#FFD84A", action: "Facture", bg: "repeating-linear-gradient(135deg,#EADFF9 0 7px,#E2622C 7px 16px)" },
+    { title: "Abonnement Essentiel", meta: "prélèvement mensuel · 5 000 F", status: "EN COURS", statusBg: "#C9A8F5", action: "Gérer", bg: "repeating-linear-gradient(135deg,#FFD84A 0 7px,#121212 7px 16px)" }
+  ],
+  "Collections": [
+    { title: "Inspiration wax", meta: "18 ressources · privée", status: "PRIVÉE", statusBg: "#FFFFFF", action: "Ouvrir", bg: "repeating-linear-gradient(135deg,#FFFFFF 0 7px,#E2622C 7px 16px)" },
+    { title: "Refonte site club", meta: "7 ressources · partagée avec 3 personnes", status: "PARTAGÉE", statusBg: "#C9A8F5", action: "Ouvrir", bg: "repeating-linear-gradient(135deg,#EADFF9 0 7px,#121212 7px 16px)" },
+    { title: "Typos à tester", meta: "12 ressources · privée", status: "PRIVÉE", statusBg: "#FFFFFF", action: "Ouvrir", bg: "repeating-linear-gradient(135deg,#FFD84A 0 7px,#121212 7px 16px)" }
+  ],
+  "Achats": [
+    { title: "Illu Femme au Foulard", meta: "AI, PNG · acheté le 12 juil. 2026", status: "DISPONIBLE", statusBg: "#FFD84A", action: "Télécharger", bg: "repeating-linear-gradient(135deg,#FFFFFF 0 7px,#C9A8F5 7px 16px)" },
+    { title: "Mockup Affiche Rue", meta: "PSD · acheté le 12 juil. 2026", status: "DISPONIBLE", statusBg: "#FFD84A", action: "Télécharger", bg: "repeating-linear-gradient(135deg,#FFFFFF 0 7px,#E2622C 7px 16px)" },
+    { title: "Font Sahel Mono", meta: "TTF, OTF · acheté le 3 juil. 2026", status: "DISPONIBLE", statusBg: "#FFD84A", action: "Télécharger", bg: "repeating-linear-gradient(135deg,#EADFF9 0 7px,#121212 7px 16px)" }
+  ]
+};
+
+const DOCS = {
+  apropos: { kicker: "Communauté", title: "À propos de Baobart", intro: "Baobart est né d'un constat simple : les créatifs du continent passaient leurs journées à chercher des visuels qui ne ressemblaient pas à leurs clients.", sections: [
+    { h: "Ce qu'on fabrique", p: "Une bibliothèque de ressources produites par des créateurs africains, et les outils pour travailler dessus à plusieurs : collections partagées, commentaires, espaces d'équipe." },
+    { h: "Comment on se finance", p: "Par les abonnements et les ventes de ressources. 80 % du prix revient au créateur, sans exclusivité imposée." },
+    { h: "L'équipe", p: "Une petite équipe basée à Dakar et Abidjan, épaulée par un réseau de curateurs dans 14 pays." }
+  ] },
+  contact: { kicker: "Communauté", title: "Contact", intro: "Une question sur une licence, un partenariat, un bug ? Écris-nous, on répond sous 48 h ouvrées.", showContact: true, sections: [
+    { h: "Support utilisateurs", p: "support@baobart.africa — pour les téléchargements, les paiements et les litiges de licence." },
+    { h: "Partenariats & presse", p: "hello@baobart.africa — sponsors, événements, interviews." }
+  ] },
+  blogs: { kicker: "Communauté", title: "Blogs", intro: "Les coulisses de la plateforme, des interviews de créateurs et des guides pratiques.", showPosts: true, sections: [] },
+  support: { kicker: "Aide", title: "Support", intro: "La plupart des questions se règlent en deux minutes ici.", sections: [
+    { h: "Un fichier ne se télécharge pas", p: "Vérifie ton quota du mois dans Mon compte, puis relance le téléchargement. Si le problème persiste, ouvre un ticket avec le numéro de commande." },
+    { h: "Demander un remboursement", p: "Les fichiers numériques sont remboursables sous 14 jours s'ils n'ont pas été téléchargés, ou en cas de fichier non conforme à sa description." },
+    { h: "Signaler un créateur ou un contenu", p: "Utilise le bouton Signaler sur la fiche concernée, ou la procédure DMCA pour une atteinte au droit d'auteur." }
+  ] },
+  docs: { kicker: "Documentation", title: "Documentation Baobart", intro: "Guides d'utilisation pour les acheteurs comme pour les contributeurs.", sections: [
+    { h: "Bien démarrer", p: "Créer un compte, choisir un forfait, organiser tes collections et inviter ton équipe dans un espace partagé." },
+    { h: "Publier une ressource", p: "Formats acceptés, taille maximale, aperçus requis, nommage des fichiers et rédaction d'une description qui se trouve dans la recherche." },
+    { h: "Formats & licences", p: "Tableau des formats par catégorie et périmètre exact des licences personnelle et commerciale." }
+  ] },
+  changelog: { kicker: "Produit", title: "Changelog", intro: "Ce qui a changé sur la plateforme, du plus récent au plus ancien.", sections: [
+    { h: "Juillet 2026 — Espaces d'équipe", p: "Collections partagées, commentaires ancrés sur une ressource, invitation par lien." },
+    { h: "Juin 2026 — Filtres par type", p: "La grille se filtre instantanément par Art, Audio, Fonts, Icônes, Illustrations, Images, Logos, Mockups, Packs, Vidéos." },
+    { h: "Mai 2026 — Paiement Mobile Money", p: "Wave et Orange Money en plus de la carte bancaire, pour les achats comme pour les versements aux créateurs." }
+  ] },
+  licences: { kicker: "Conditions générales", title: "Licences Baobart", intro: "Deux licences seulement, pour que tu saches toujours ce que tu peux faire d'un fichier.", sections: [
+    { h: "Licence personnelle", p: "Usage privé, projets d'école, maquettes internes et présentations non commerciales. Pas de revente, pas de diffusion payante." },
+    { h: "Licence commerciale", p: "Livrables clients, produits vendus, campagnes publicitaires, jusqu'à 500 000 impressions. Inclus dans le forfait Pro." },
+    { h: "Interdictions communes", p: "Revendre le fichier tel quel, le redistribuer dans une autre banque de ressources, l'utiliser dans un contexte diffamatoire ou haineux." }
+  ] },
+  regles: { kicker: "Conditions générales", title: "Règles de publication", intro: "Ce qu'on accepte, ce qu'on refuse, et comment se faire valider vite.", sections: [
+    { h: "Tu dois être l'auteur", p: "Chaque fichier publié doit être ton travail original, ou une œuvre dont tu détiens les droits de diffusion." },
+    { h: "Qualité technique", p: "Aperçu propre, résolution annoncée respectée, fichiers sources fournis quand la catégorie l'exige (AI, PSD, TTF)." },
+    { h: "Personnes et marques", p: "Autorisation écrite pour tout visage reconnaissable ; aucune marque déposée visible sans accord." },
+    { h: "Modération", p: "Validation manuelle sous 72 h. Deux refus motivés non corrigés suspendent la publication automatique." }
+  ] },
+  dmca: { kicker: "Conditions générales", title: "Signalement DMCA", intro: "Si un contenu publié porte atteinte à tes droits, voici la procédure.", sections: [
+    { h: "Ce que doit contenir ta demande", p: "Identification de l'œuvre, URL du contenu litigieux, preuve de titularité, coordonnées et déclaration de bonne foi." },
+    { h: "Notre délai", p: "Retrait provisoire sous 48 h après réception d'une demande complète, notification au contributeur, droit de réponse de 10 jours." },
+    { h: "Abus", p: "Les signalements manifestement abusifs entraînent la suspension du compte émetteur." }
+  ] },
+  cookies: { kicker: "Conditions générales", title: "Politique de cookies (UE)", intro: "On utilise le minimum de traceurs nécessaires, et rien de publicitaire sans ton accord.", sections: [
+    { h: "Cookies essentiels", p: "Session, panier et préférences d'affichage. Ils ne peuvent pas être désactivés sans casser le site." },
+    { h: "Mesure d'audience", p: "Statistiques agrégées et anonymisées, conservées 13 mois. Désactivables depuis le bandeau." },
+    { h: "Tes droits", p: "Accès, rectification, effacement et retrait du consentement à tout moment via privacy@baobart.africa." }
+  ] }
+};
+
+
+const SERVICE_LIST = [
+  { title: "Charte graphique complète en 10 jours", member: "Nadia Cissé", memberRole: "Direction artistique · Abidjan", cat: "Identité visuelle", price: "180 000 F", delay: "10 jours", rating: "4.9", reviews: "38", orders: "62", bg: stripe(LAV, ORA, 9), ph: "aperçu service", avatar: stripe(W, INK, 5), hero: "url('img/mode-blanc-01.png') center 18% / cover no-repeat",
+    pitch: "Un système visuel complet et documenté : logo, palette, typographies, règles d'usage et déclinaisons prêtes à l'emploi. Pensé pour tenir la route sur l'affiche comme sur Instagram.",
+    includes: ["Atelier de cadrage d'1 h", "3 pistes créatives distinctes", "Logo principal + 2 déclinaisons", "Palette et typographies argumentées", "Charte PDF de 24 pages", "Fichiers sources AI, SVG, PNG"],
+    specs: [{ k: "Délai de livraison", v: "10 jours" }, { k: "Révisions incluses", v: "3" }, { k: "Fichiers sources", v: "oui" }, { k: "Licence", v: "cession totale" }],
+    memberStats: [{ k: "commandes", v: "62" }, { k: "note", v: "4,9" }, { k: "réponse", v: "3 h" }] },
+  { title: "Portrait illustré sur mesure, style wax", member: "Awa Diallo", memberRole: "Illustratrice · Dakar", cat: "Illustration", price: "45 000 F", delay: "5 jours", rating: "5.0", reviews: "94", orders: "128", bg: stripe(W, PUR, 9), ph: "aperçu service", avatar: stripe(ORA, YEL, 5), hero: "url('img/beaute-afro.jpg') center 25% / cover no-repeat",
+    pitch: "Un portrait dessiné à la main, motifs inspirés des tissus d'Afrique de l'Ouest. À partir d'une photo, je compose une illustration qui tient aussi bien en avatar qu'en tirage A2.",
+    includes: ["Illustration couleur haute résolution", "Fond au choix : uni, motif ou transparent", "Format carré + bannière", "Fichier PNG 300 dpi et PDF vectoriel", "Usage personnel inclus"],
+    specs: [{ k: "Délai de livraison", v: "5 jours" }, { k: "Révisions incluses", v: "2" }, { k: "Résolution", v: "4000 px" }, { k: "Licence commerciale", v: "+20 000 F" }],
+    memberStats: [{ k: "commandes", v: "128" }, { k: "note", v: "5,0" }, { k: "réponse", v: "1 h" }] },
+  { title: "Retouche produit e-commerce (lot de 20)", member: "Ibrahim Traoré", memberRole: "Photographe · Bamako", cat: "Retouche", price: "60 000 F", delay: "4 jours", rating: "4.8", reviews: "51", orders: "77", bg: stripe(YEL, INK, 9), ph: "aperçu service", avatar: stripe(YEL, ORA, 5), hero: "url('img/packshot-soin.png') center / cover no-repeat",
+    pitch: "Détourage propre, fond blanc ou transparent, colorimétrie homogène sur tout le lot. Livré aux formats attendus par Shopify, WooCommerce et les places de marché.",
+    includes: ["Détourage manuel (pas d'automatique)", "Fond blanc, transparent ou couleur", "Harmonisation colorimétrique du lot", "Export web + impression", "Renommage selon ta nomenclature"],
+    specs: [{ k: "Délai de livraison", v: "4 jours" }, { k: "Volume", v: "20 visuels" }, { k: "Révisions incluses", v: "1 passe" }, { k: "Visuel supplémentaire", v: "2 500 F" }],
+    memberStats: [{ k: "commandes", v: "77" }, { k: "note", v: "4,8" }, { k: "réponse", v: "5 h" }] },
+  { title: "Habillage motion pour vidéo YouTube", member: "Kofi Mensah", memberRole: "Motion designer · Accra", cat: "Motion", price: "120 000 F", delay: "7 jours", rating: "4.7", reviews: "29", orders: "41", bg: stripe(INK, YEL, 9), ph: "aperçu service", avatar: stripe(PUR, W, 5), hero: "url('img/neon-02.png') center / cover no-repeat",
+    pitch: "Une identité animée cohérente pour ta chaîne : intro, transitions, bandeaux titres et outro. Livrée en fichiers réutilisables pour que tu montes seul ensuite.",
+    includes: ["Intro animée de 8 secondes", "3 bandeaux titres animés", "2 transitions signature", "Outro avec cartes d'abonnement", "Projet After Effects fourni"],
+    specs: [{ k: "Délai de livraison", v: "7 jours" }, { k: "Résolution", v: "4K" }, { k: "Révisions incluses", v: "2" }, { k: "Sound design", v: "+35 000 F" }],
+    memberStats: [{ k: "commandes", v: "41" }, { k: "note", v: "4,7" }, { k: "réponse", v: "6 h" }] },
+  { title: "Mise en page livre / catalogue InDesign", member: "Grace Dembélé", memberRole: "Éditrice graphique · Lomé", cat: "Mise en page", price: "90 000 F", delay: "8 jours", rating: "4.9", reviews: "44", orders: "58", bg: stripe(W, INK, 9), ph: "aperçu service", avatar: stripe(LAV, ORA, 5), hero: "url('img/emeraude.png') center / cover no-repeat",
+    pitch: "Grille typographique solide, gabarits propres, sommaire automatique : un fichier que ton imprimeur accepte du premier coup.",
+    includes: ["Grille et gabarits de pages", "Mise en page jusqu'à 180 pages", "Sommaire et folios automatiques", "Contrôle en amont du PDF d'impression", "Fichier source InDesign livré"],
+    specs: [{ k: "Délai de livraison", v: "8 jours" }, { k: "Pages incluses", v: "180" }, { k: "Révisions incluses", v: "2" }, { k: "Page supplémentaire", v: "600 F" }],
+    memberStats: [{ k: "commandes", v: "58" }, { k: "note", v: "4,9" }, { k: "réponse", v: "4 h" }] },
+  { title: "Pack 12 illustrations d'interface", member: "Marie Diarrassouba", memberRole: "Illustratrice produit · Abidjan", cat: "Illustration", price: "150 000 F", delay: "12 jours", rating: "5.0", reviews: "22", orders: "31", bg: stripe(PUR, W, 9), ph: "aperçu service", avatar: stripe(INK, LAV, 5), hero: "url('img/neon-04.png') center / cover no-repeat",
+    pitch: "Douze illustrations cohérentes pour tes états vides, ton onboarding et tes pages d'erreur. Même grille, même palette, même trait.",
+    includes: ["12 illustrations vectorielles", "Palette adaptée à ta marque", "Versions claire et sombre", "SVG optimisés pour le web", "Fichier Figma organisé"],
+    specs: [{ k: "Délai de livraison", v: "12 jours" }, { k: "Illustrations", v: "12" }, { k: "Révisions incluses", v: "3" }, { k: "Licence", v: "commerciale" }],
+    memberStats: [{ k: "commandes", v: "31" }, { k: "note", v: "5,0" }, { k: "réponse", v: "2 h" }] }
+];
+
+const SERVICE_STEPS = [
+  { n: "1", t: "Tu commandes", d: "Paiement séquestré : le montant n'est versé qu'à la livraison acceptée.", bg: "#FFD84A" },
+  { n: "2", t: "Cadrage", d: "Un échange de 30 minutes pour aligner les attentes et le calendrier.", bg: "#FFFFFF" },
+  { n: "3", t: "Production", d: "Tu suis l'avancement et commentes directement sur les visuels.", bg: "#EADFF9" },
+  { n: "4", t: "Livraison", d: "Fichiers sources et exports remis, révisions incluses appliquées.", bg: "#C9A8F5" }
+];
+
+const SERVICE_REVIEWS = [
+  { name: "Mariam Sow", role: "DA, Studio Kaay", text: "Livré avec deux jours d'avance et une documentation impeccable. On a pu déployer la charte sans poser une seule question.", avatar: stripe(ORA, YEL, 5) },
+  { name: "Serge Nkosi", role: "Lead design, Kivu", text: "Très bonne écoute sur le cadrage. Les trois pistes proposées étaient réellement différentes, pas trois variantes de la même idée.", avatar: stripe(PUR, W, 5) },
+  { name: "Aïcha Barry", role: "Fondatrice, Teranga Cosmetics", text: "Le rendu correspond exactement au brief et le prix annoncé n'a pas bougé. Je reprends pour la gamme suivante.", avatar: stripe(INK, LAV, 5) }
+];
+
+const JOB_LIST = [
+  { title: "Réalisation des badges du personnel d'une entreprise", tag: "Cartes de visite", isNew: true, status: "Ouvert", budget: "Sur devis", budgetNote: "Le client attend une fourchette dans ta proposition.", age: "il y a 8 h", props: 5, propsPct: "25%", deadline: "le 12 août", location: "Dakar · à distance possible",
+    desc: "Création de badges professionnels pour une PME de 40 personnes : gabarit, porte-nom, déclinaison par service.",
+    context: "L'entreprise possède déjà une charte (logo, deux couleurs, une typographie). Il s'agit de l'appliquer, pas de la refaire. Les badges seront imprimés en PVC format carte de crédit avec impression recto-verso.",
+    deliverables: ["Gabarit maître recto-verso au format 85 × 54 mm", "5 déclinaisons de couleur par service", "Fichier de production avec fonds perdus et repères", "Version modifiable (AI ou Figma) remise à l'équipe RH"],
+    skills: ["Illustrator ou Figma", "Préparation fichier d'impression", "Rigueur typographique", "Respect d'une charte existante"],
+    client: "Teranga Industries", clientRole: "PME · Dakar · membre depuis 2025", clientAvatar: stripe(ORA, YEL, 5),
+    clientStats: [{ k: "Missions publiées", v: "4" }, { k: "Taux d'attribution", v: "100 %" }, { k: "Paiement vérifié", v: "oui" }] },
+  { title: "Recherche maquettiste PAO & correcteur(trice)", tag: "Livre", isNew: true, status: "Ouvert", budget: "300 000 F", budgetNote: "Forfait pour l'ensemble de la mission, payé en deux fois.", age: "il y a 7 h", props: 7, propsPct: "35%", deadline: "le 20 août", location: "À distance",
+    desc: "Mise en page d'un ouvrage de 180 pages sous InDesign ou Affinity, avec relecture orthotypographique.",
+    context: "Recueil de nouvelles à paraître en octobre chez un éditeur indépendant. Le texte est fourni au format Word, propre mais non corrigé. Deux allers-retours avec l'auteur sont prévus avant le bon à tirer.",
+    deliverables: ["Grille typographique et gabarits validés avant lancement", "Mise en page complète des 180 pages", "Relecture orthotypographique du texte", "PDF d'impression conforme aux specs de l'imprimeur", "Fichier source remis à l'éditeur"],
+    skills: ["InDesign ou Affinity Publisher", "Orthotypographie française", "Édition littéraire", "Gestion des délais imprimeur"],
+    client: "Éditions Baobab", clientRole: "Maison d'édition · Abidjan · membre depuis 2024", clientAvatar: stripe(PUR, W, 5),
+    clientStats: [{ k: "Missions publiées", v: "11" }, { k: "Taux d'attribution", v: "91 %" }, { k: "Paiement vérifié", v: "oui" }] },
+  { title: "Montage photo pour une affiche de festival", tag: "Affiche", isNew: true, status: "Ouvert", budget: "Sur devis", budgetNote: "Budget indicatif communiqué en message privé.", age: "il y a 7 h", props: 8, propsPct: "40%", deadline: "le 10 août", location: "Abidjan · à distance possible",
+    desc: "Détourage et composition à partir de 6 photos fournies, rendu prêt pour impression A2.",
+    context: "Festival de musique urbaine, quatrième édition. L'affiche doit reprendre les codes graphiques des éditions précédentes tout en assumant un traitement plus contrasté.",
+    deliverables: ["Composition A2 en 300 dpi", "Déclinaison réseaux sociaux (carré et story)", "Fichier source en calques", "Version sans texte pour réutilisation"],
+    skills: ["Photoshop", "Détourage fin", "Composition d'affiche", "Colorimétrie impression"],
+    client: "Collectif Wôrô", clientRole: "Association culturelle · Abidjan", clientAvatar: stripe(YEL, ORA, 5),
+    clientStats: [{ k: "Missions publiées", v: "6" }, { k: "Taux d'attribution", v: "83 %" }, { k: "Paiement vérifié", v: "oui" }] },
+  { title: "Reproduction de mon logo en vectoriel", tag: "Logo", isNew: false, status: "Ouvert", budget: "40 000 F", budgetNote: "Forfait fixe, paiement à la livraison.", age: "il y a 18 h", props: 12, propsPct: "60%", deadline: "le 8 août", location: "À distance",
+    desc: "Redessin fidèle d'un logo existant, livrables AI, SVG et EPS, sans modification du dessin.",
+    context: "Le logo n'existe qu'en JPG basse définition. Aucun changement de dessin n'est souhaité : il s'agit d'une reproduction fidèle, courbes propres et nettoyées.",
+    deliverables: ["Fichier vectoriel AI éditable", "Export SVG optimisé", "Export EPS pour l'imprimeur", "Versions monochrome et négatif"],
+    skills: ["Illustrator", "Vectorisation manuelle", "Gestion des courbes", "Précision"],
+    client: "Kaay Café", clientRole: "Commerce · Thiès", clientAvatar: stripe(INK, LAV, 5),
+    clientStats: [{ k: "Missions publiées", v: "2" }, { k: "Taux d'attribution", v: "50 %" }, { k: "Paiement vérifié", v: "oui" }] },
+  { title: "Création de maquettes Figma pour site vitrine", tag: "Maquette", isNew: false, status: "Ouvert", budget: "450 000 F", budgetNote: "Payé en trois jalons : cadrage, maquettes, livraison.", age: "il y a 1 j", props: 9, propsPct: "45%", deadline: "le 25 août", location: "À distance",
+    desc: "5 écrans desktop + mobile pour un site WordPress, charte existante à respecter.",
+    context: "Refonte du site d'un cabinet de conseil. La charte est fournie et validée : couleurs, typographies, ton photographique. Le développement sera assuré par une autre équipe.",
+    deliverables: ["5 écrans desktop et 5 écrans mobile", "Bibliothèque de composants Figma", "Spécifications d'espacement et de typographie", "Prototype cliquable pour validation client"],
+    skills: ["Figma", "Design système léger", "Responsive", "Handoff développeur"],
+    client: "Cabinet Ndiaye & Associés", clientRole: "Conseil · Dakar · membre depuis 2025", clientAvatar: stripe(W, INK, 5),
+    clientStats: [{ k: "Missions publiées", v: "3" }, { k: "Taux d'attribution", v: "100 %" }, { k: "Paiement vérifié", v: "oui" }] },
+  { title: "Habillage vidéo pour chaîne YouTube pêche", tag: "Montage vidéo", isNew: false, status: "Ouvert", budget: "Sur devis", budgetNote: "Le client compare les propositions avant de fixer le budget.", age: "il y a 2 j", props: 3, propsPct: "15%", deadline: "le 18 août", location: "À distance",
+    desc: "Intro 8 s, bandeaux et miniatures types pour une chaîne de 40 000 abonnés.",
+    context: "Chaîne consacrée à la pêche en lagune, publication hebdomadaire. Le créateur monte lui-même : il a besoin d'éléments réutilisables, pas d'un montage complet.",
+    deliverables: ["Intro animée de 8 secondes", "3 bandeaux titres réutilisables", "Gabarit de miniature modifiable", "Fichiers sources et notice d'utilisation"],
+    skills: ["After Effects", "Motion design", "Gabarits réutilisables", "Direction artistique YouTube"],
+    client: "Lagune Fishing", clientRole: "Créateur de contenu · Abidjan", clientAvatar: stripe(LAV, ORA, 5),
+    clientStats: [{ k: "Missions publiées", v: "1" }, { k: "Taux d'attribution", v: "—" }, { k: "Paiement vérifié", v: "oui" }] }
+];
+
+class Component extends DCLogic {
+  serviceDetail() {
+    const s = SERVICE_LIST.find(x => x.title === this.state.svcKey) || SERVICE_LIST[0];
+    return Object.assign({}, s, {
+      gallery: [s.bg, stripe(LAV, ORA, 9), stripe(W, PUR, 9), stripe(YEL, INK, 9)],
+      steps: SERVICE_STEPS,
+      testimonials: SERVICE_REVIEWS
+    });
+  }
+
+  jobDetail() {
+    const j = JOB_LIST.find(x => x.title === this.state.jobKey) || JOB_LIST[0];
+    return Object.assign({}, j, {
+      facts: [
+        { k: "Budget", v: j.budget, bg: "#FFD84A" },
+        { k: "Clôture", v: j.deadline, bg: "#FFFFFF" },
+        { k: "Propositions", v: String(j.props), bg: "#EADFF9" },
+        { k: "Lieu", v: j.location, bg: "#FFFFFF" }
+      ],
+      similar: JOB_LIST.filter(x => x.title !== j.title).slice(0, 3).map(x => ({ t: x.title, m: x.budget + " · " + x.props + " propositions" }))
+    });
+  }
+
+  state = { screen: "home", openMenu: null, docKey: "apropos", cartOpen: false, accountOpen: false, profilTab: "Ressources", compteTab: "Tableau de bord", faqOpen: null, follows: {}, serviceCat: "Tous", hero: null, cardStyle: null, railOpen: false, railPinned: false, filter: "Tous", q: "", focus: false, hover: null, open: null, likes: {}, saved: {}, draft: "", extra: [] };
+
+  price(p) { return p === 0 ? "GRATUIT" : p.toLocaleString("fr-FR") + " F"; }
+
+  decorate(r) {
+    const liked = !!this.state.likes[r.id], saved = !!this.state.saved[r.id];
+    const style = this.state.cardStyle || this.props.cardStyle || "Sticker";
+    const hovered = this.state.hover === r.id;
+    const thin = style === "Contour fin";
+    const photo = style === "Image pleine";
+    const img = IMG[r.id];
+    return Object.assign({}, r, {
+      chipShow: img ? "none" : "inline-block",
+      bd: thin ? "1.5px solid #121212" : "2.5px solid #121212",
+      sh: thin ? "0 8px 20px rgba(18,18,18,.16)" : "4px 4px 0 #121212",
+      shBig: thin ? "0 14px 30px rgba(18,18,18,.18)" : "6px 6px 0 #121212",
+      showInfo: photo ? hovered : true,
+      showPrice: this.props.showPrices !== false,
+      bg: img ? 'url("' + img + '") center / cover no-repeat' : stripe(r.base, r.s, 9),
+      h: r.h + "px",
+      priceLabel: this.price(r.price),
+      priceBg: r.price === 0 ? YEL : W,
+      hovered: this.state.hover === r.id,
+      liked, saved,
+      likeBg: liked ? ORA : W,
+      saveBg: saved ? PUR : W,
+      likeLabel: r.likes + (liked ? 1 : 0),
+      authorRole: "Créatif · Dakar",
+      enter: () => this.setState({ hover: r.id }),
+      leave: () => this.setState({ hover: null }),
+      open: () => this.setState({ open: r.id }),
+      like: (e) => { e.stopPropagation(); this.toggle("likes", r.id); },
+      save: (e) => { e.stopPropagation(); this.toggle("saved", r.id); }
+    });
+  }
+
+  railActive(type, screen) {
+    if (type === "Tous") return screen === "home";
+    return (screen === "categorie" || screen === "explorer") && this.state.filter === type;
+  }
+
+  toggle(key, id) {
+    this.setState(s => ({ [key]: Object.assign({}, s[key], { [id]: !s[key][id] }) }));
+  }
+
+  matching() {
+    const q = this.state.q.trim().toLowerCase(), f = this.state.filter;
+    return ITEMS.filter(r => (f === "Tous" || r.type === f) && (!q || r.title.toLowerCase().includes(q) || r.author.toLowerCase().includes(q)));
+  }
+
+  renderVals() {
+    const hero = this.state.hero || this.props.heroVariant || "B";
+    const screen = this.state.screen || "home";
+    const list = this.matching();
+    const feat = list.filter(r => r.featured);
+    const rest = list.filter(r => !r.featured);
+    const openItem = ITEMS.find(r => r.id === this.state.open);
+    const q = this.state.q.trim().toLowerCase();
+
+    return {
+      isA: hero === "A", isB: hero === "B",
+      tabA: hero === "A" ? YEL : W, tabB: hero === "B" ? YEL : W,
+      pickA: () => this.setState({ hero: "A" }), pickB: () => this.setState({ hero: "B" }),
+
+      isHome: screen === "home", isExplorer: screen === "explorer",
+      isConcours: screen === "concours", isSponsor: screen === "sponsor",
+      showGrid: screen === "home" || screen === "explorer",
+      explorerColor: screen === "home" ? INK : ORA,
+      filterLabel: this.state.filter === "Tous" ? "Tout" : this.state.filter,
+      menuOpen: this.state.openMenu === "explorer",
+      menuIn: () => this.setState({ openMenu: "explorer" }),
+      menuOut: () => this.setState({ openMenu: null }),
+      goHome: () => this.setState({ screen: "home", openMenu: null }),
+      goExplorer: () => this.setState({ screen: "explorer", openMenu: null }),
+      explorerMenu: [
+        { key: "explorer", label: "Explorer les ressources", hint: "Toute la bibliothèque", glyph: "▣" },
+        { key: "concours", label: "Concours & Événements", hint: "Édition Wax Futurism en cours", glyph: "★" },
+        { key: "sponsor", label: "Sponsoriser", hint: "Formats & partenariats", glyph: "◆" }
+      ].map(m => ({
+        label: m.label, hint: m.hint, glyph: m.glyph,
+        bg: screen === m.key ? YEL : "transparent",
+        iconBg: screen === m.key ? W : LAV,
+        go: () => this.setState({ screen: m.key, openMenu: null })
+      })),
+      isServiceDetail: screen === "service_detail",
+      svc: this.serviceDetail(),
+      backServices: () => this.setState({ screen: "services" }),
+      isJobDetail: screen === "job_detail",
+      job: this.jobDetail(),
+      backJobs: () => this.setState({ screen: "jobs" }),
+      isCreateurs: screen === "createurs", isServices: screen === "services", isJobs: screen === "jobs",
+      createursColor: ["createurs", "services", "jobs"].indexOf(screen) >= 0 ? ORA : INK,
+      menuOpen2: this.state.openMenu === "createurs",
+      menuIn2: () => this.setState({ openMenu: "createurs" }),
+      menuOut2: () => this.setState({ openMenu: null }),
+      goCreateurs: () => this.setState({ screen: "createurs", openMenu: null }),
+      createursMenu: [
+        { key: "createurs", label: "Créateurs", hint: "Annuaire des membres", glyph: "☺" },
+        { key: "services", label: "Services", hint: "Prestations proposées par les membres", glyph: "✦" },
+        { key: "jobs", label: "Jobs", hint: "Missions à saisir", glyph: "▤" }
+      ].map(m => ({
+        label: m.label, hint: m.hint, glyph: m.glyph,
+        bg: screen === m.key ? YEL : "transparent",
+        iconBg: screen === m.key ? W : LAV,
+        go: () => this.setState({ screen: m.key, openMenu: null })
+      })),
+      creators: [
+        { name: "Awa Diallo", role: "Illustratrice · Dakar", count: "18 ressources", avatar: stripe(ORA, YEL, 6), work: ["portrait wax", "illu foulard", "série marché", "affiche", "motif"] },
+        { name: "Kofi Mensah", role: "Motion & motifs · Accra", count: "12 ressources", avatar: stripe(PUR, W, 6), work: ["boucle animée", "pack motifs", "kente grid", "poster", "loop 4K"] },
+        { name: "Sarah Bakayoko", role: "Peintre numérique · Abidjan", count: "26 ressources", avatar: stripe(INK, LAV, 6), work: ["portrait", "abstrait", "série cadre", "wax art", "collage"] },
+        { name: "Ibrahim Traoré", role: "Photographe · Bamako", count: "31 ressources", avatar: stripe(YEL, ORA, 6), work: ["textures", "studio N&B", "timelapse", "rue", "tissus"] },
+        { name: "Nadia Cissé", role: "Direction artistique · Abidjan", count: "9 ressources", avatar: stripe(W, INK, 6), work: [] }
+      ].map(c => ({
+        name: c.name, role: c.role, count: c.count, avatar: c.avatar,
+        hasWork: c.work.length > 0,
+        work: c.work.map((label, i) => ({ label: label, bg: stripe(W, [LAV, YEL, ORA, PUR, LAV][i % 5], 8) })),
+        followBg: this.state.follows[c.name] ? ORA : W,
+        followLabel: this.state.follows[c.name] ? "Suivi ✓" : "Suivre",
+        follow: () => this.setState(s => ({ follows: Object.assign({}, s.follows, { [c.name]: !s.follows[c.name] }) }))
+      })),
+      serviceCats: ["Tous", "Identité visuelle", "Illustration", "Retouche", "Motion", "Mise en page"].map(s => ({
+        label: s,
+        bg: (this.state.serviceCat || "Tous") === s ? INK : W,
+        fg: (this.state.serviceCat || "Tous") === s ? W : INK,
+        pick: () => this.setState({ serviceCat: s })
+      })),
+      services: SERVICE_LIST.filter(s => (this.state.serviceCat || "Tous") === "Tous" || s.cat === this.state.serviceCat)
+        .map(s => Object.assign({}, s, { open: () => this.setState({ screen: "service_detail", svcKey: s.title }) })),
+      jobs: JOB_LIST.map(j => Object.assign({}, j, { open: () => this.setState({ screen: "job_detail", jobKey: j.title }) })),
+
+      popularTags: ["Afrique", "Femme", "Style africain", "Abstrait", "Wax", "Business"].map(t => ({
+        label: t, bg: this.state.q === t ? YEL : W,
+        pick: () => this.setState({ q: t, screen: "explorer" })
+      })),
+      contests: [
+        { title: "Wax Futurism", status: "EN COURS", statusBg: YEL, date: "clôture le 6 août", desc: "Réinvente un motif traditionnel en visuel science-fiction.", prize: "500 000 FCFA", people: "184 participants", bg: stripe(LAV, ORA, 9), ph: "affiche concours" },
+        { title: "Type Africa", status: "BIENTÔT", statusBg: PUR, date: "ouvre le 20 août", desc: "Un caractère display inspiré d'une écriture du continent.", prize: "300 000 FCFA", people: "inscriptions ouvertes", bg: stripe(YEL, INK, 9), ph: "affiche concours" },
+        { title: "Mockup Marché", status: "TERMINÉ", statusBg: W, date: "juin 2026", desc: "Les gagnants sont exposés dans la collection Marché.", prize: "200 000 FCFA", people: "142 participants", bg: stripe(W, INK, 9), ph: "affiche concours" }
+      ],
+      contestSteps: [
+        { n: "1", title: "Tu t'inscris", text: "Un clic depuis ton profil, aucun frais de participation.", bg: W },
+        { n: "2", title: "Tu déposes", text: "Jusqu'à 3 propositions par concours, avant la date de clôture.", bg: LAV },
+        { n: "3", title: "Le jury tranche", text: "5 créatifs invités, résultats publiés sur l'accueil.", bg: YEL }
+      ],
+      partners: [
+        { label: "logo partenaire", bg: W }, { label: "logo partenaire", bg: YEL },
+        { label: "logo partenaire", bg: W }, { label: "logo partenaire", bg: PUR },
+        { label: "logo partenaire", bg: YEL }, { label: "logo partenaire", bg: W }
+      ],
+      offers: [
+        { name: "Bannière accueil", price: "180 000 F", desc: "Emplacement sticker en haut de l'accueil, semaine complète, un seul sponsor à la fois.", bg: W, ph: stripe(LAV, ORA, 8) },
+        { name: "Collection sponsorisée", price: "260 000 F", desc: "Une collection à ta marque dans la grille Découvre, épinglée 14 jours.", bg: YEL, ph: stripe(W, INK, 8) },
+        { name: "Newsletter", price: "120 000 F", desc: "Un encart dans l'envoi hebdo, 9 200 abonnés, 38 % d'ouverture.", bg: W, ph: stripe(PUR, W, 8) }
+      ],
+
+      navMenus: NAV.map(g => ({
+        label: g.label, caret: g.items.length ? "▼" : "",
+        color: g.items.concat([{ key: g.key }]).some(i => i.key === screen) ? ORA : INK,
+        open: this.state.openMenu === g.key,
+        enter: () => this.setState({ openMenu: g.key }),
+        leave: () => this.setState({ openMenu: null }),
+        go: () => this.setState({ screen: g.go || (g.items[0] && g.items[0].key) || g.key, openMenu: null, docKey: g.go ? null : (g.items[0] ? g.items[0].doc : null) }),
+        items: g.items.map(i => ({
+          label: i.label, hint: i.hint, glyph: i.glyph,
+          bg: screen === i.key && (!i.doc || this.state.docKey === i.doc) ? YEL : "transparent",
+          iconBg: screen === i.key && (!i.doc || this.state.docKey === i.doc) ? W : LAV,
+          go: () => this.setState({ screen: i.key, docKey: i.doc || null, openMenu: null })
+        }))
+      })),
+
+      cartOpen: !!this.state.cartOpen,
+      toggleCart: () => this.setState(s => ({ cartOpen: !s.cartOpen })),
+      cartCount: "2",
+      cartItems: [
+        { title: "Illu Femme au Foulard", author: "Awa Diallo", priceLabel: "5 000 F", bg: stripe(W, PUR, 7) },
+        { title: "Mockup Affiche Rue", author: "Studio Teranga", priceLabel: "3 000 F", bg: stripe(W, ORA, 7) }
+      ],
+      cartTotal: "8 000 F",
+      accountOpen: !!this.state.accountOpen,
+      accountIn: () => this.setState({ accountOpen: true }),
+      accountOut: () => this.setState({ accountOpen: false }),
+      accountMenu: [
+        { label: "Tableau de bord", key: "compte", tab: "Tableau de bord" },
+        { label: "Historique des commandes", key: "compte", tab: "Commandes" },
+        { label: "Mes collections", key: "compte", tab: "Collections" },
+        { label: "Mes achats", key: "compte", tab: "Achats" },
+        { label: "Mon profil public", key: "profil" },
+        { label: "Règles de publication", key: "doc", doc: "regles" },
+        { label: "Support", key: "doc", doc: "support" },
+        { label: "Déconnexion", danger: true }
+      ].map(a => ({
+        label: a.label,
+        color: a.danger ? ORA : INK,
+        bg: a.danger ? "#FFF3EE" : "transparent",
+        go: () => this.setState(a.danger ? { accountOpen: false } : { screen: a.key, docKey: a.doc || null, compteTab: a.tab || this.state.compteTab, accountOpen: false })
+      })),
+
+      isFeatures: screen === "features",
+      goTarifs: () => this.setState({ screen: "tarifs", openMenu: null }),
+      featureBlocks: FEATURES.map((f, i) => ({
+        kicker: f.kicker, title: f.title, intro: f.intro, img: f.img, items: f.items,
+        bg: f.bg, fg: f.dark ? W : INK,
+        cardBg: f.dark ? "#1E1E1E" : W,
+        cardBd: f.dark ? "2.5px solid #FFFFFF" : "2.5px solid #121212",
+        shadow: f.dark ? "6px 6px 0 #E2622C" : "6px 6px 0 #121212",
+        num: "0" + (i + 1),
+        order: f.reverse ? "2" : "1",
+        imgOrder: f.reverse ? "1" : "2"
+      })),
+
+      isCategorie: screen === "categorie",
+      catTitle: CAT_TITLES[this.state.filter] || this.state.filter,
+      catCount: list.length + " ressources dans cette catégorie",
+      catItems: list.map(r => this.decorate(r)),
+      catNav: FILTERS.filter(f => f !== "Tous").map(f => ({
+        label: CAT_TITLES[f] || f,
+        bg: this.state.filter === f ? INK : W,
+        fg: this.state.filter === f ? W : INK,
+        pick: () => this.setState({ filter: f, screen: "categorie" })
+      })),
+
+      isProfil: screen === "profil",
+      goProfil: () => this.setState({ screen: "profil" }),
+      profilPages: ["1", "2", "3", "…", "6", "Suivant →"].map(p => ({
+        label: p, bg: p === "1" ? INK : W, fg: p === "1" ? W : INK
+      })),
+      profilStats: [
+        { value: "57", label: "produits" }, { value: "128", label: "ventes à vie" },
+        { value: "18 400", label: "vues de page" }, { value: "1 240", label: "abonnés" },
+        { value: "14", label: "abonnements" }
+      ],
+      profilTabs: ["Ressources", "Services", "Collections", "À propos"].map(t => ({
+        label: t,
+        bg: (this.state.profilTab || "Ressources") === t ? INK : W,
+        fg: (this.state.profilTab || "Ressources") === t ? W : INK,
+        pick: () => this.setState({ profilTab: t })
+      })),
+      profilWork: ITEMS.filter(r => r.author === "Awa Diallo" || r.id % 3 === 0).slice(0, 8).map(r => this.decorate(r)),
+
+      isCompte: screen === "compte",
+      compteStats: [
+        { value: "42", label: "téléchargements ce mois", bg: W },
+        { value: "8", label: "achats", bg: YEL },
+        { value: "3", label: "collections", bg: W },
+        { value: "158/200", label: "quota Essentiel", bg: PUR }
+      ],
+      compteTabs: ["Tableau de bord", "Commandes", "Collections", "Achats"].map(t => ({
+        label: t,
+        bg: (this.state.compteTab || "Tableau de bord") === t ? INK : W,
+        fg: (this.state.compteTab || "Tableau de bord") === t ? W : INK,
+        pick: () => this.setState({ compteTab: t })
+      })),
+      compteTabLabel: this.state.compteTab || "Tableau de bord",
+      compteRows: (COMPTE[this.state.compteTab || "Tableau de bord"] || []),
+
+      isTarifs: screen === "tarifs",
+      plans: [
+        { name: "Free", price: "0 F", per: "/ mois", bg: W, cta: "Commencer", ctaBg: W, ctaFg: INK, popular: false, features: ["100 téléchargements par mois", "Téléchargement en un clic", "Images, vidéos, illustrations", "Licence personnelle"] },
+        { name: "Essentiel", price: "5 000 F", per: "/ mois", bg: YEL, cta: "S'abonner", ctaBg: INK, ctaFg: W, popular: true, features: ["200 téléchargements par mois", "Téléchargement en un clic", "Images, vidéos, illus, fonts, icônes, modèles", "Licence personnelle étendue"] },
+        { name: "Pro", price: "10 000 F", per: "/ mois", bg: W, cta: "S'abonner", ctaBg: PUR, ctaFg: INK, popular: false, features: ["Téléchargements illimités", "Toutes les catégories", "Licence personnelle + commerciale", "Support prioritaire"] }
+      ],
+      faq: FAQ.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: this.state.faqOpen === i,
+        sign: this.state.faqOpen === i ? "–" : "+",
+        bg: this.state.faqOpen === i ? LAV : W,
+        toggle: () => this.setState(s => ({ faqOpen: s.faqOpen === i ? null : i }))
+      })),
+
+      isDoc: screen === "doc",
+      doc: DOCS[this.state.docKey || "apropos"] || DOCS.apropos,
+
+      padLeft: hero === "B" ? (this.state.railOpen ? "268px" : "112px") : "0px",
+      railWidth: this.state.railOpen ? "230px" : "78px",
+      railOpen: !!this.state.railOpen,
+      toggleRail: () => this.setState(s => ({ railPinned: !s.railPinned, railOpen: !s.railPinned })),
+      railIn: () => this.setState({ railOpen: true }),
+      railOut: () => this.setState(s => ({ railOpen: !!s.railPinned })),
+      railItems: [
+        { label: "Accueil", glyph: "⌂", type: "Tous" },
+        { label: "Arts", glyph: "◈", type: "Art" },
+        { label: "Audios", glyph: "♪", type: "Audio" },
+        { label: "Fonts", glyph: "A", type: "Font" },
+        { label: "Icons", glyph: "✦", type: "Icône" },
+        { label: "Illustrations", glyph: "✎", type: "Illustration" },
+        { label: "Images", glyph: "▣", type: "Photo" },
+        { label: "Logos", glyph: "◎", type: "Logo" },
+        { label: "Mockups", glyph: "▤", type: "Mockup" },
+        { label: "Packs", glyph: "▦", type: "Pack" },
+        { label: "Vidéos", glyph: "▶", type: "Vidéo" }
+      ].map(n => ({
+        label: n.label, glyph: n.glyph, open: !!this.state.railOpen,
+        bg: this.railActive(n.type, screen) ? YEL : "transparent",
+        iconBg: this.railActive(n.type, screen) ? W : LAV,
+        pick: () => this.setState(n.type === "Tous" ? { filter: "Tous", screen: "home" } : { filter: n.type, screen: "categorie" })
+      })),
+      socials: ["f", "X", "P", "ig", "in"],
+
+      cardStyles: ["Sticker", "Contour fin", "Image pleine"].map(cs => ({
+        label: cs,
+        bg: (this.state.cardStyle || this.props.cardStyle || "Sticker") === cs ? YEL : W,
+        pick: () => this.setState({ cardStyle: cs })
+      })),
+
+      q: this.state.q,
+      onQuery: e => this.setState({ q: e.target.value, focus: true }),
+      onFocus: () => this.setState({ focus: true }),
+      showSuggest: this.state.focus && q.length > 0,
+      suggestions: ITEMS.filter(r => r.title.toLowerCase().includes(q)).slice(0, 5).map(r => ({
+        title: r.title, type: r.type, bg: stripe(r.base, r.s, 5),
+        pick: () => this.setState({ q: r.title, focus: false, open: r.id })
+      })),
+
+      filters: FILTERS.map(f => ({
+        label: f,
+        bg: this.state.filter === f ? INK : W,
+        fg: this.state.filter === f ? W : INK,
+        pick: () => this.setState({ filter: f })
+      })),
+      countLabel: list.length + " ressources affichées",
+      featured: feat.map(r => this.decorate(r)),
+      grid: rest.map(r => this.decorate(r)),
+
+      categories: [
+        { name: "Mockups", count: "24 fichiers", bg: stripe(W, ORA, 7), type: "Mockup" },
+        { name: "Logos", count: "18 fichiers", bg: stripe(LAV, INK, 7), type: "Logo" },
+        { name: "Modèles", count: "31 fichiers", bg: stripe(W, YEL, 7), type: "Pack" },
+        { name: "Images", count: "62 fichiers", bg: stripe(ORA, LAV, 7), type: "Photo" },
+        { name: "Illustrations", count: "44 fichiers", bg: stripe(W, PUR, 7), type: "Illustration" },
+        { name: "Vidéos", count: "12 fichiers", bg: stripe(INK, YEL, 7), type: "Vidéo" },
+        { name: "Fonts", count: "9 fichiers", bg: stripe(YEL, INK, 7), type: "Font" },
+        { name: "Icônes", count: "27 fichiers", bg: stripe(W, INK, 7), type: "Icône" },
+        { name: "Arts", count: "38 fichiers", bg: stripe(LAV, ORA, 7), type: "Art" },
+        { name: "Packs", count: "15 fichiers", bg: stripe(PUR, W, 7), type: "Pack" }
+      ].map(c => Object.assign({}, c, { pick: () => this.setState({ filter: c.type, screen: "categorie" }) })),
+      collections: [
+        { name: "Wax", count: "18 pièces", bg: stripe(W, ORA, 6) },
+        { name: "Portraits", count: "24 pièces", bg: stripe(LAV, INK, 6) },
+        { name: "Typo", count: "9 pièces", bg: stripe(YEL, INK, 6) },
+        { name: "Affiches", count: "31 pièces", bg: stripe(W, PUR, 6) },
+        { name: "Mockups", count: "12 pièces", bg: stripe(ORA, YEL, 6) },
+        { name: "Textures", count: "22 pièces", bg: stripe(INK, LAV, 6) },
+        { name: "Icônes", count: "27 pièces", bg: stripe(W, YEL, 6) },
+        { name: "Motifs", count: "40 pièces", bg: stripe(PUR, W, 6) }
+      ],
+      boardTiles: [
+        { bg: stripe(LAV, ORA, 8) }, { bg: stripe(W, INK, 8) },
+        { bg: stripe(YEL, INK, 8) }, { bg: stripe(PUR, W, 8) }
+      ],
+      comments: [
+        { who: "Fatou", when: "il y a 2 h", text: "Le motif du haut marche mieux en fond de l'affiche 2.", bg: stripe(ORA, YEL, 5) },
+        { who: "Kofi", when: "il y a 4 h", text: "J'ai ajouté deux variantes dans la collection.", bg: stripe(PUR, W, 5) }
+      ].concat(this.state.extra),
+      draft: this.state.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      sendComment: () => {
+        const t = this.state.draft.trim();
+        if (!t) return;
+        this.setState(s => ({ draft: "", extra: s.extra.concat([{ who: "Vous", when: "à l'instant", text: t, bg: stripe(YEL, INK, 5) }]) }));
+      },
+      myCollections: [
+        { name: "Inspiration wax", count: "18", bg: stripe(W, ORA, 6) },
+        { name: "Refonte site club", count: "7", bg: stripe(LAV, INK, 6) },
+        { name: "Typos à tester", count: "12", bg: stripe(YEL, INK, 6) }
+      ],
+      people: [
+        { name: "Awa Diallo", role: "Illustratrice · Dakar", bg: stripe(ORA, YEL, 5) },
+        { name: "Kofi Mensah", role: "Motion · Accra", bg: stripe(PUR, W, 5) },
+        { name: "Nadia Cissé", role: "Direction artistique · Abidjan", bg: stripe(INK, LAV, 5) }
+      ],
+      quotes: [
+        { text: "Enfin des visuels qui ressemblent à nos clients. On a gagné deux jours de recherche par projet.", name: "Mariam Sow", role: "DA, Studio Kaay", bg: W, avatar: stripe(ORA, YEL, 5) },
+        { text: "J'ai vendu mes premiers packs en trois semaines. Le paiement mobile change tout.", name: "Yao Kouadio", role: "Type designer", bg: YEL, avatar: stripe(INK, LAV, 5) },
+        { text: "Les espaces partagés remplacent nos dossiers Drive éparpillés.", name: "Serge Nkosi", role: "Lead design, Kivu", bg: W, avatar: stripe(PUR, W, 5) },
+        { text: "En école, mes étudiants ont enfin une banque de références locales.", name: "Aïcha Barry", role: "Enseignante", bg: PUR, avatar: stripe(YEL, ORA, 5) }
+      ],
+      posts: [
+        { date: "24 juil. 2026", title: "Comment fixer le prix d'un pack de ressources", excerpt: "Trois grilles tarifaires testées par nos vendeurs les plus actifs.", bg: "url('img/studio-01.png') center 20% / cover no-repeat" },
+        { date: "17 juil. 2026", title: "Les motifs wax expliqués aux designers", excerpt: "Origines, symboliques et pièges à éviter quand on les remixe.", bg: "url('img/collage-lunettes.jpg') center / cover no-repeat" },
+        { date: "9 juil. 2026", title: "Nouveau : les espaces d'équipe", excerpt: "Collections partagées, commentaires ancrés, invitations en un lien.", bg: "url('img/mode-blanc-01.png') center 20% / cover no-repeat" }
+      ],
+      hasOpen: !!openItem,
+      open: openItem ? this.decorate(openItem) : {},
+      close: () => this.setState({ open: null }),
+      likeOpen: () => openItem && this.toggle("likes", openItem.id),
+      saveOpen: () => openItem && this.toggle("saved", openItem.id),
+      openFeatured: () => this.setState({ open: 1 })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

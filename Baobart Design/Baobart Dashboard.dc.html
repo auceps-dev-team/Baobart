@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Poppins:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  a { color: #121212; text-decoration: none; }
+  a:hover { color: #E2622C; }
+  ::selection { background: #FFD84A; }
+  [data-scroll]::-webkit-scrollbar { width: 0; height: 0; }
+  [style*="cursor: pointer"] { transition: transform .13s cubic-bezier(.2,.85,.3,1), box-shadow .13s cubic-bezier(.2,.85,.3,1), background-color .13s ease, color .13s ease; }
+  [style*="cursor: pointer"]:active { transform: translate(2px, 2px) scale(.985); box-shadow: 0 0 0 #121212 !important; }
+  input, textarea { transition: box-shadow .13s ease; }
+  input:focus, textarea:focus { box-shadow: 4px 4px 0 #121212; }
+  @media (max-width: 980px) {
+    [data-sidebar] { position: static !important; width: 100% !important; height: auto !important; border-right: none !important; border-bottom: 3px solid #121212 !important; }
+    [data-shell] { flex-direction: column !important; }
+    [style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
+  }
+  @keyframes popin { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+</style>
+</helmet>
+
+<div data-shell="1" style="min-height:100vh; display:flex; align-items:stretch; gap:0; background:#EADFF9">
+
+  <!-- SIDEBAR -->
+  <div data-scroll="1" data-sidebar="1" style="width:274px; flex:0 0 auto; height:100vh; position:sticky; top:0; overflow-y:auto; scrollbar-width:none; border-right:3px solid #121212; background:#FFFFFF; padding:18px 16px; display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:center; gap:10px">
+      <div style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="Baobart" style="width:26px; display:block; margin-top:2px" /></div>
+      <div style="font-family:'Archivo Black',sans-serif; font-size:19px">Baobart<span style="color:#E2622C">.</span></div>
+    </div>
+
+    <div style="display:flex; gap:5px; padding:5px; border:2.5px solid #121212; border-radius:14px; background:#F4EEFC">
+      <sc-for list="{{ roles }}" as="r" hint-placeholder-count="3">
+        <div onClick="{{ r.pick }}" style="flex:1 1 0; text-align:center; padding:8px 4px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; background:{{ r.bg }}; color:{{ r.fg }}">{{ r.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:4px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="9">
+        <div onClick="{{ n.pick }}" style="display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:12px; cursor:pointer; background:{{ n.bg }}" style-hover="background:#F4EEFC">
+          <div style="width:30px; height:30px; flex:0 0 auto; border:2px solid #121212; border-radius:9px; display:grid; place-items:center; font-size:13px; font-weight:800; background:{{ n.iconBg }}">{{ n.glyph }}</div>
+          <div style="flex:1 1 auto; font-size:13.5px; font-weight:700; line-height:1.25">{{ n.label }}</div>
+          <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:3px 8px; border:2px solid #121212; border-radius:999px; background:#E2622C; color:#FFFFFF; font-size:10.5px; font-weight:800">{{ n.badgeLabel }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:auto; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC; padding:12px; display:flex; align-items:center; gap:11px">
+      <div style="width:36px; height:36px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#FFD84A 0 5px,#FFFFFF 5px 11px)"></div>
+      <div style="flex:1 1 auto; min-width:0">
+        <div style="font-size:13px; font-weight:800">{{ accountName }}</div>
+        <div style="font-size:10.5px; font-weight:600; opacity:.6">{{ roleLabel }}</div>
+      </div>
+      <div style="width:30px; height:30px; border:2px solid #121212; border-radius:9px; background:#FFFFFF; display:grid; place-items:center; font-size:12px; cursor:pointer" style-hover="background:#FFD84A">⏻</div>
+    </div>
+  </div>
+
+  <!-- CONTENU -->
+  <div style="flex:1 1 auto; min-width:0; display:flex; flex-direction:column">
+    <div style="position:sticky; top:0; z-index:20; display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:16px 26px; border-bottom:3px solid #121212; background:#EADFF9">
+      <div style="flex:1 1 240px; min-width:0">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">{{ roleLabel }} · {{ spaceLabel }}</div>
+        <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(22px,2.6vw,32px); letter-spacing:-1px; text-transform:uppercase; line-height:1.05">{{ page.title }}</div>
+      </div>
+      <input placeholder="{{ searchPh }}" style="flex:1 1 200px; min-width:0; max-width:320px; font-family:Poppins,sans-serif; font-size:13px; font-weight:500; padding:11px 15px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; outline:none" />
+      <div style="display:flex; gap:10px; flex:0 0 auto">
+        <div style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:13px; font-weight:800; cursor:pointer" style-hover="transform:translate(-1px,-1px); box-shadow:6px 6px 0 #121212">{{ page.cta }}</div>
+      </div>
+    </div>
+
+    <div data-scroll="1" style="flex:1 1 auto; padding:26px; display:flex; flex-direction:column; gap:20px">
+      <div style="font-size:15px; font-weight:600; opacity:.75; max-width:760px; text-wrap:pretty">{{ page.intro }}</div>
+
+      <!-- KPI -->
+      <sc-if value="{{ page.hasKpis }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px">
+          <sc-for list="{{ page.kpis }}" as="k" hint-placeholder-count="4">
+            <div style="border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; padding:18px; background:{{ k.bg }}">
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.65">{{ k.label }}</div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:30px; line-height:1.1; margin-top:6px">{{ k.value }}</div>
+              <div style="font-size:12px; font-weight:700; opacity:.7">{{ k.delta }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ANNONCE + URL BOUTIQUE -->
+      <sc-if value="{{ page.hasNotice }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px">
+          <div style="border:2.5px solid #121212; border-radius:22px; background:#C9A8F5; box-shadow:5px 5px 0 #121212; padding:20px">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:20px; text-transform:uppercase">{{ page.notice.title }}</div>
+            <div style="font-size:14.5px; font-weight:600; line-height:1.5; margin-top:8px">{{ page.notice.text }}</div>
+          </div>
+          <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:20px; display:flex; flex-direction:column; gap:10px">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">{{ page.notice.label }}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+              <div style="flex:1 1 200px; min-width:0; padding:11px 14px; border:2.5px solid #121212; border-radius:12px; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ page.notice.url }}</div>
+              <div style="padding:11px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="background:#121212; color:#FFFFFF">Copier</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- GRAPHIQUE -->
+      <sc-if value="{{ page.hasChart }}" hint-placeholder-val="{{ false }}">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+          <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:12px">
+            <div style="font-size:16px; font-weight:800; flex:1 1 auto">{{ page.chartTitle }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">6 derniers mois</div>
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:14px; height:190px; margin-top:20px; padding-top:10px; border-top:2.5px solid #121212">
+            <sc-for list="{{ page.chart }}" as="c" hint-placeholder-count="6">
+              <div style="flex:1 1 0; display:flex; flex-direction:column; justify-content:flex-end; align-items:stretch; gap:8px; height:100%">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-align:center">{{ c.value }}</div>
+                <div style="border:2.5px solid #121212; border-radius:10px 10px 0 0; background:{{ c.bg }}; height:{{ c.h }}"></div>
+                <div style="font-size:11px; font-weight:800; text-align:center">{{ c.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- LIGNES / TABLEAU -->
+      <sc-if value="{{ page.hasRows }}" hint-placeholder-val="{{ false }}">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center">
+            <div style="font-size:16px; font-weight:800; flex:1 1 auto">{{ page.rowsTitle }}</div>
+            <sc-for list="{{ page.filters }}" as="f" hint-placeholder-count="3">
+              <div onClick="{{ f.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+            </sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px">
+            <sc-for list="{{ page.rows }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:13px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
+                <div style="width:54px; height:54px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:{{ r.bg }}"></div>
+                <div style="flex:1 1 210px; min-width:0">
+                  <div style="font-size:14.5px; font-weight:800; line-height:1.3">{{ r.title }}</div>
+                  <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.65">{{ r.meta }}</div>
+                </div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:16px; white-space:nowrap">{{ r.amount }}</div>
+                <div style="padding:6px 12px; border:2px solid #121212; border-radius:999px; font-size:11px; font-weight:800; white-space:nowrap; background:{{ r.statusBg }}">{{ r.status }}</div>
+                <div style="padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap" style-hover="background:#FFD84A">{{ r.action }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- GRILLE RESSOURCES -->
+      <sc-if value="{{ page.hasGrid }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px">
+          <sc-for list="{{ page.grid }}" as="g" hint-placeholder-count="6">
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; overflow:hidden; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">
+              <div style="height:150px; border-bottom:2.5px solid #121212; display:grid; place-items:center; background:{{ g.bg }}">
+                <span style="padding:6px 12px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:11px">{{ g.ph }}</span>
+              </div>
+              <div style="padding:14px">
+                <div style="font-size:14.5px; font-weight:800; line-height:1.25">{{ g.title }}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:2.5px solid #121212; font-size:12px; font-weight:700">
+                  <span style="opacity:.65">{{ g.meta }}</span><span>{{ g.value }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- PERSONNES -->
+      <sc-if value="{{ page.hasPeople }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px">
+          <sc-for list="{{ page.people }}" as="p" hint-placeholder-count="6">
+            <div style="display:flex; align-items:center; gap:12px; border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:14px">
+              <div style="width:44px; height:44px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ p.bg }}"></div>
+              <div style="flex:1 1 auto; min-width:0">
+                <div style="font-size:14px; font-weight:800">{{ p.name }}</div>
+                <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ p.role }}</div>
+              </div>
+              <div style="padding:8px 14px; border:2px solid #121212; border-radius:11px; background:{{ p.actionBg }}; font-size:12px; font-weight:800; cursor:pointer">{{ p.action }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- FORMULAIRE -->
+      <sc-if value="{{ page.hasForm }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; align-items:start">
+          <sc-for list="{{ page.formBlocks }}" as="b" hint-placeholder-count="2">
+            <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">{{ b.title }}</div>
+              <sc-if value="{{ b.hasAvatar }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:16px; margin-top:16px; padding:16px; border:2.5px dashed #121212; border-radius:18px; background:#F4EEFC">
+                  <div style="width:72px; height:72px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:repeating-linear-gradient(135deg,#FFD84A 0 6px,#FFFFFF 6px 13px)"></div>
+                  <div style="flex:1 1 auto; min-width:0">
+                    <div style="font-size:13.5px; font-weight:800">Photo de profil</div>
+                    <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.65">PNG ou JPG · 400×400 min</div>
+                  </div>
+                  <div style="padding:10px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap">Téléverser</div>
+                </div>
+              </sc-if>
+              <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:18px">
+                <sc-for list="{{ b.fields }}" as="f" hint-placeholder-count="4">
+                  <div style="display:flex; flex-direction:column; gap:6px; min-width:0; grid-column:{{ f.span }}">
+                    <div style="font-size:12.5px; font-weight:800">{{ f.label }}</div>
+                    <sc-if value="{{ f.isArea }}" hint-placeholder-val="{{ false }}">
+                      <textarea placeholder="{{ f.placeholder }}" style="min-width:0; min-height:96px; resize:vertical; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none"></textarea>
+                    </sc-if>
+                    <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ true }}">
+                      <input placeholder="{{ f.placeholder }}" style="min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none" />
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ b.hasSave }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; padding-top:18px; border-top:2.5px solid #121212">
+                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer">Enregistrer les modifications</div>
+                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer">Annuler</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ABONNEMENT / PASS -->
+      <sc-if value="{{ page.hasPlan }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; align-items:start">
+          <div style="border:2.5px solid #121212; border-radius:24px; background:#FFD84A; box-shadow:6px 6px 0 #121212; padding:22px">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em">Forfait actuel</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:34px; text-transform:uppercase; margin-top:6px">{{ page.plan.name }}</div>
+            <div style="font-size:14px; font-weight:700; opacity:.75">{{ page.plan.price }} · renouvellement le {{ page.plan.renew }}</div>
+            <div style="margin-top:18px">
+              <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:800"><span>Quota du mois</span><span>{{ page.plan.quota }}</span></div>
+              <div style="height:20px; margin-top:8px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; overflow:hidden">
+                <div style="height:100%; background:#E2622C; width:{{ page.plan.pct }}"></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px">
+              <div style="padding:13px 20px; border:2.5px solid #121212; border-radius:13px; background:#121212; color:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer">Changer de forfait</div>
+              <div style="padding:13px 20px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer">Résilier</div>
+            </div>
+          </div>
+          <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+            <div style="font-size:16px; font-weight:800">{{ page.plan.sideTitle }}</div>
+            <div style="display:flex; flex-direction:column; gap:11px; margin-top:14px">
+              <sc-for list="{{ page.plan.lines }}" as="l" hint-placeholder-count="4">
+                <div style="display:flex; align-items:center; gap:12px; padding-bottom:11px; border-bottom:2px solid #EADFF9">
+                  <div style="flex:1 1 auto; font-size:13.5px; font-weight:700">{{ l.label }}</div>
+                  <div style="font-family:'Space Mono',monospace; font-size:12px; opacity:.7">{{ l.value }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ONBOARDING VENDEUR -->
+      <sc-if value="{{ page.hasSteps }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px">
+          <sc-for list="{{ page.steps }}" as="s" hint-placeholder-count="3">
+            <div style="border:2.5px solid #121212; border-radius:20px; background:{{ s.bg }}; box-shadow:5px 5px 0 #121212; padding:18px">
+              <div style="width:34px; height:34px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:14px">{{ s.n }}</div>
+              <div style="font-size:15.5px; font-weight:800; margin-top:12px">{{ s.title }}</div>
+              <div style="font-size:13.5px; font-weight:500; line-height:1.45; margin-top:5px; opacity:.8">{{ s.text }}</div>
+              <div style="display:inline-block; margin-top:14px; padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer">{{ s.action }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;acheteur&quot;,&quot;createur&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;acheteur&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rôle&quot;}}">
+const stripe = (base, s, w) => `repeating-linear-gradient(135deg, ${s} 0 ${w || 8}px, ${base} ${w || 8}px ${(w || 8) * 2 + 2}px)`;
+const LAV = "#EADFF9", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", INK = "#121212", W = "#FFFFFF";
+
+const NAV = {
+  acheteur: [
+    { key: "apercu", label: "Aperçu", glyph: "◈" },
+    { key: "profil", label: "Profil", glyph: "☺" },
+    { key: "achats", label: "Historique des achats", glyph: "▤" },
+    { key: "telechargements", label: "Historique des téléchargements", glyph: "↓" },
+    { key: "suivis", label: "Éléments suivis", glyph: "♥" },
+    { key: "collections", label: "Mes collections", glyph: "⌸" },
+    { key: "abonnements_suivis", label: "Abonnements", glyph: "☍" },
+    { key: "abonnement", label: "Forfait & pass d'accès", glyph: "◉" },
+    { key: "vendeur", label: "Devenir vendeur", glyph: "★", badge: true, badgeLabel: "NEW" }
+  ],
+  createur: [
+    { key: "c_apercu", label: "Tableau de bord", glyph: "◈" },
+    { key: "c_produits", label: "Produits", glyph: "▦" },
+    { key: "c_publier", label: "Ajouter un produit", glyph: "+" },
+    { key: "c_revenus", label: "Gains", glyph: "◎" },
+    { key: "c_commandes", label: "Commandes", glyph: "▤" },
+    { key: "c_ventes", label: "Ventes", glyph: "◫" },
+    { key: "c_commissions", label: "Commissions", glyph: "%" },
+    { key: "c_stats", label: "Statistiques", glyph: "▲" },
+    { key: "c_profil", label: "Profil de la boutique", glyph: "☺" },
+    { key: "c_purchases", label: "Mes achats", glyph: "⌂" },
+    { key: "c_suivre", label: "Suivre les détails", glyph: "☍" },
+    { key: "c_allaccess", label: "All Access", glyph: "◉" },
+    { key: "c_subscription", label: "Abonnement", glyph: "◍" },
+    { key: "c_avis", label: "Créateur feedback", glyph: "✎", badge: true, badgeLabel: "3" }
+  ],
+  admin: [
+    { key: "a_apercu", label: "Vue d'ensemble", glyph: "◈" },
+    { key: "a_moderation", label: "File de modération", glyph: "✓", badge: true, badgeLabel: "23" },
+    { key: "a_signalements", label: "Signalements & DMCA", glyph: "!", badge: true, badgeLabel: "5" },
+    { key: "a_membres", label: "Membres", glyph: "☺" },
+    { key: "a_boutiques", label: "Boutiques créateurs", glyph: "▦" },
+    { key: "a_catalogue", label: "Catalogue", glyph: "◫" },
+    { key: "a_finances", label: "Finances plateforme", glyph: "◎" },
+    { key: "a_versements", label: "Versements créateurs", glyph: "%" },
+    { key: "a_abonnements", label: "Abonnements", glyph: "◉" },
+    { key: "a_jobs", label: "Jobs & services", glyph: "▤" },
+    { key: "a_editorial", label: "Contenus éditoriaux", glyph: "✎" },
+    { key: "a_taxonomie", label: "Catégories & tags", glyph: "☍" },
+    { key: "a_equipe", label: "Équipe & rôles", glyph: "◍" },
+    { key: "a_journal", label: "Journal d'activité", glyph: "▲" },
+    { key: "a_reglages", label: "Réglages plateforme", glyph: "⚙" }
+  ]
+};
+
+const chart = (vals, color) => vals.map(v => ({
+  label: v[0], value: v[1], h: Math.round((v[2] / 100) * 130) + "px", bg: color
+}));
+
+const rows = list => list.map(r => Object.assign({ statusBg: YEL, action: "Ouvrir" }, r));
+
+const ADMIN_PAGES = {
+  a_apercu: {
+    title: "Vue d'ensemble", cta: "Exporter le rapport",
+    intro: "État de la plateforme au 1er août 2026. Tout ce qui demande une décision humaine est remonté en haut.",
+    kpis: [
+      { label: "Membres actifs (30 j)", value: "12 480", delta: "+8,4 % vs juillet", bg: W },
+      { label: "Créateurs vérifiés", value: "412", delta: "+17 ce mois", bg: PUR },
+      { label: "Volume de ventes", value: "18,4 M F", delta: "+12 % vs juillet", bg: YEL },
+      { label: "En attente de modération", value: "23", delta: "dont 4 > 48 h", bg: W }
+    ],
+    notice: { title: "4 fichiers attendent depuis plus de 48 h", text: "L'engagement affiché aux contributeurs est de 72 h. Traite-les en priorité pour ne pas casser la promesse.", label: "Statut du service", url: "api.baobart.africa · 99,97 % · 142 ms" },
+    chartTitle: "Volume de ventes mensuel (millions F)",
+    chart: chart([["Mar", "11,2", 55], ["Avr", "13,0", 64], ["Mai", "14,6", 72], ["Juin", "15,9", 79], ["Juil", "16,4", 82], ["Août", "18,4", 96]], ORA),
+    rowsTitle: "À traiter maintenant",
+    rows: rows([
+      { title: "Signalement DMCA · « Portrait Wax Éditorial »", meta: "déposé par Studio Kaay · il y a 6 h", amount: "URGENT", status: "À arbitrer", statusBg: ORA, action: "Arbitrer", bg: stripe(ORA, W, 5) },
+      { title: "Demande de vérification créateur · Kofi Mensah", meta: "pièce d'identité + 12 ressources en ligne", amount: "—", status: "En attente", statusBg: PUR, action: "Vérifier", bg: stripe(PUR, W, 5) },
+      { title: "Litige de remboursement #10428", meta: "fichier non conforme à la description · 8 000 F", amount: "8 000 F", status: "Ouvert", statusBg: YEL, action: "Ouvrir", bg: stripe(YEL, INK, 5) },
+      { title: "Versement mensuel créateurs", meta: "412 bénéficiaires · échéance le 5 août", amount: "14,7 M F", status: "À valider", statusBg: W, action: "Valider", bg: stripe(INK, LAV, 5) }
+    ])
+  },
+  a_moderation: {
+    title: "File de modération", cta: "Tout approuver (sélection)",
+    intro: "23 ressources en attente. Objectif : validation sous 72 h, deux refus motivés non corrigés suspendent la publication automatique.",
+    kpis: [
+      { label: "En attente", value: "23", delta: "délai moyen 19 h", bg: YEL },
+      { label: "Approuvées (7 j)", value: "184", delta: "taux d'acceptation 87 %", bg: W },
+      { label: "Refusées (7 j)", value: "27", delta: "motif n°1 : aperçu illisible", bg: W },
+      { label: "> 48 h", value: "4", delta: "à traiter aujourd'hui", bg: PUR }
+    ],
+    filters: ["Tous", "Images", "Illustrations", "Fonts", "Mockups"],
+    rowsTitle: "Ressources soumises",
+    rows: rows([
+      { title: "Portrait Wax Éditorial", meta: "Awa Diallo · PNG, AI · soumis il y a 52 h", amount: "Gratuit", status: "En attente", statusBg: YEL, action: "Examiner", bg: stripe(ORA, YEL, 5) },
+      { title: "Pack 12 icônes marché", meta: "Kofi Mensah · SVG · soumis il y a 50 h", amount: "3 000 F", status: "En attente", statusBg: YEL, action: "Examiner", bg: stripe(PUR, W, 5) },
+      { title: "Font Sahel Mono", meta: "Grace Dembélé · TTF, OTF · soumis il y a 12 h", amount: "10 000 F", status: "En relecture", statusBg: PUR, action: "Examiner", bg: stripe(INK, LAV, 5) },
+      { title: "Mockup Affiche Rue", meta: "Studio Teranga · PSD · soumis il y a 8 h", amount: "3 000 F", status: "En attente", statusBg: YEL, action: "Examiner", bg: stripe(YEL, ORA, 5) },
+      { title: "Textures papier recyclé", meta: "Ibrahim Traoré · JPG · soumis il y a 3 h", amount: "Gratuit", status: "En attente", statusBg: YEL, action: "Examiner", bg: stripe(W, INK, 5) }
+    ])
+  },
+  a_signalements: {
+    title: "Signalements & DMCA", cta: "Nouvelle procédure",
+    intro: "Retrait provisoire sous 48 h après une demande complète, notification au contributeur, droit de réponse de 10 jours.",
+    kpis: [
+      { label: "Dossiers ouverts", value: "5", delta: "2 hors délai", bg: ORA },
+      { label: "Retraits provisoires", value: "3", delta: "en cours de réponse", bg: W },
+      { label: "Classés sans suite", value: "18", delta: "sur 90 jours", bg: W },
+      { label: "Comptes suspendus", value: "2", delta: "signalements abusifs", bg: PUR }
+    ],
+    rowsTitle: "Dossiers",
+    rows: rows([
+      { title: "DMCA-2026-041 · Portrait Wax Éditorial", meta: "plaignant : Studio Kaay · reçu il y a 6 h", amount: "48 h", status: "À arbitrer", statusBg: ORA, action: "Arbitrer", bg: stripe(ORA, W, 5) },
+      { title: "DMCA-2026-039 · Pack Motifs Bogolan", meta: "retrait provisoire · réponse attendue le 6 août", amount: "10 j", status: "Retiré", statusBg: PUR, action: "Suivre", bg: stripe(PUR, INK, 5) },
+      { title: "SIG-2026-118 · Contenu inapproprié", meta: "3 signalements utilisateurs · même ressource", amount: "—", status: "À vérifier", statusBg: YEL, action: "Ouvrir", bg: stripe(YEL, INK, 5) },
+      { title: "SIG-2026-115 · Profil frauduleux", meta: "usurpation d'identité présumée", amount: "—", status: "Enquête", statusBg: W, action: "Ouvrir", bg: stripe(INK, LAV, 5) }
+    ])
+  },
+  a_membres: {
+    title: "Membres", cta: "Inviter un membre",
+    intro: "12 480 comptes actifs. Filtre par rôle pour retrouver un acheteur, un créateur ou un compte suspendu.",
+    kpis: [
+      { label: "Total comptes", value: "18 902", delta: "+1 240 ce mois", bg: W },
+      { label: "Acheteurs", value: "18 490", delta: "dont 3 180 abonnés", bg: YEL },
+      { label: "Créateurs", value: "412", delta: "taux de conversion 2,2 %", bg: PUR },
+      { label: "Suspendus", value: "31", delta: "dont 8 en appel", bg: W }
+    ],
+    filters: ["Tous", "Acheteurs", "Créateurs", "Suspendus"],
+    rowsTitle: "Derniers comptes",
+    rows: rows([
+      { title: "Awa Diallo", meta: "créatrice vérifiée · Dakar · inscrite en 2024", amount: "18 ress.", status: "Actif", statusBg: YEL, action: "Ouvrir", bg: stripe(ORA, YEL, 5) },
+      { title: "Dev.team", meta: "agence · Dakar · forfait Essentiel", amount: "8 achats", status: "Actif", statusBg: YEL, action: "Ouvrir", bg: stripe(PUR, W, 5) },
+      { title: "Marie Bamba", meta: "étudiante · Abidjan · forfait Free", amount: "42 dl", status: "Actif", statusBg: YEL, action: "Ouvrir", bg: stripe(INK, LAV, 5) },
+      { title: "Compte #8821", meta: "3 signalements · publication bloquée", amount: "—", status: "Suspendu", statusBg: ORA, action: "Examiner", bg: stripe(ORA, INK, 5) }
+    ]),
+    people: [
+      { name: "Kofi Mensah", role: "Vérification en attente", action: "Vérifier", actionBg: YEL, bg: stripe(PUR, W, 5) },
+      { name: "Nadia Cissé", role: "Vérification en attente", action: "Vérifier", actionBg: YEL, bg: stripe(ORA, YEL, 5) },
+      { name: "Sarah Bakayoko", role: "Demande de changement d'URL", action: "Traiter", actionBg: LAV, bg: stripe(INK, LAV, 5) }
+    ]
+  },
+  a_boutiques: {
+    title: "Boutiques créateurs", cta: "Exporter la liste",
+    intro: "412 boutiques en ligne. Le classement suit le chiffre d'affaires des 30 derniers jours.",
+    kpis: [
+      { label: "Boutiques actives", value: "412", delta: "+17 ce mois", bg: W },
+      { label: "CA moyen / boutique", value: "44 700 F", delta: "+6 % vs juillet", bg: YEL },
+      { label: "Sans vente (60 j)", value: "58", delta: "à relancer", bg: PUR },
+      { label: "Note moyenne", value: "4,7", delta: "sur 2 840 avis", bg: W }
+    ],
+    grid: [
+      { title: "Awa Diallo", meta: "18 ressources", value: "312 000 F", ph: "boutique", bg: stripe(ORA, YEL, 8) },
+      { title: "Studio Teranga", meta: "34 ressources", value: "287 500 F", ph: "boutique", bg: stripe(PUR, W, 8) },
+      { title: "Kofi Mensah", meta: "12 ressources", value: "198 000 F", ph: "boutique", bg: stripe(INK, LAV, 8) },
+      { title: "Grace Dembélé", meta: "22 ressources", value: "164 200 F", ph: "boutique", bg: stripe(YEL, ORA, 8) },
+      { title: "Sarah Bakayoko", meta: "9 ressources", value: "121 000 F", ph: "boutique", bg: stripe(W, INK, 8) },
+      { title: "Ibrahim Traoré", meta: "27 ressources", value: "98 400 F", ph: "boutique", bg: stripe(LAV, ORA, 8) }
+    ]
+  },
+  a_catalogue: {
+    title: "Catalogue", cta: "Mettre en avant",
+    intro: "8 940 ressources publiées. Choisis ce qui apparaît en vedette sur l'accueil et dans les collections éditoriales.",
+    kpis: [
+      { label: "Ressources en ligne", value: "8 940", delta: "+184 cette semaine", bg: W },
+      { label: "Gratuites", value: "3 120", delta: "35 % du catalogue", bg: YEL },
+      { label: "Téléchargements (30 j)", value: "412 800", delta: "+9 %", bg: PUR },
+      { label: "Dépubliées", value: "96", delta: "dont 12 sur DMCA", bg: W }
+    ],
+    filters: ["Tous", "En vedette", "Gratuites", "Dépubliées"],
+    grid: [
+      { title: "Portrait Wax Éditorial", meta: "Awa Diallo", value: "4 210 dl", ph: "en vedette", bg: stripe(ORA, YEL, 8) },
+      { title: "Collage Lunettes", meta: "Sarah Bakayoko", value: "2 980 dl", ph: "en vedette", bg: stripe(PUR, W, 8) },
+      { title: "Font Sahel Mono", meta: "Grace Dembélé", value: "1 740 dl", ph: "catalogue", bg: stripe(INK, LAV, 8) },
+      { title: "Mockup Affiche Rue", meta: "Studio Teranga", value: "1 520 dl", ph: "catalogue", bg: stripe(YEL, ORA, 8) },
+      { title: "Textures papier", meta: "Ibrahim Traoré", value: "1 180 dl", ph: "catalogue", bg: stripe(W, INK, 8) },
+      { title: "Pack icônes marché", meta: "Kofi Mensah", value: "940 dl", ph: "catalogue", bg: stripe(LAV, ORA, 8) }
+    ]
+  },
+  a_finances: {
+    title: "Finances plateforme", cta: "Exporter la compta",
+    intro: "Commission plateforme de 20 % sur chaque vente, plus les abonnements. Les chiffres sont hors taxes.",
+    kpis: [
+      { label: "Volume brut (août)", value: "18,4 M F", delta: "+12 % vs juillet", bg: YEL },
+      { label: "Revenu plateforme", value: "3,68 M F", delta: "commission 20 %", bg: W },
+      { label: "Abonnements récurrents", value: "9,2 M F", delta: "3 180 abonnés", bg: PUR },
+      { label: "Remboursements", value: "184 000 F", delta: "1,0 % du volume", bg: W }
+    ],
+    chartTitle: "Revenu plateforme mensuel (millions F)",
+    chart: chart([["Mar", "2,24", 58], ["Avr", "2,60", 67], ["Mai", "2,92", 75], ["Juin", "3,18", 82], ["Juil", "3,28", 85], ["Août", "3,68", 96]], PUR),
+    rowsTitle: "Flux récents",
+    rows: rows([
+      { title: "Encaissements Wave", meta: "31 juil. 2026 · 1 284 transactions", amount: "6,4 M F", status: "Rapproché", statusBg: YEL, action: "Détail", bg: stripe(YEL, INK, 5) },
+      { title: "Encaissements Orange Money", meta: "31 juil. 2026 · 940 transactions", amount: "4,8 M F", status: "Rapproché", statusBg: YEL, action: "Détail", bg: stripe(ORA, W, 5) },
+      { title: "Encaissements carte bancaire", meta: "31 juil. 2026 · 612 transactions", amount: "7,2 M F", status: "En attente", statusBg: PUR, action: "Détail", bg: stripe(PUR, INK, 5) },
+      { title: "Remboursements traités", meta: "juillet · 23 dossiers", amount: "−184 000 F", status: "Clôturé", statusBg: W, action: "Détail", bg: stripe(INK, LAV, 5) }
+    ])
+  },
+  a_versements: {
+    title: "Versements créateurs", cta: "Lancer le versement",
+    intro: "Versement mensuel le 5. 80 % du prix de vente revient au créateur, seuil minimum de 10 000 F.",
+    kpis: [
+      { label: "À verser le 5 août", value: "14,7 M F", delta: "412 bénéficiaires", bg: YEL },
+      { label: "Sous le seuil", value: "128", delta: "reportés au mois suivant", bg: W },
+      { label: "Versé en juillet", value: "13,1 M F", delta: "0 échec", bg: PUR },
+      { label: "Coordonnées manquantes", value: "9", delta: "à relancer", bg: W }
+    ],
+    filters: ["Tous", "À verser", "Reportés", "Bloqués"],
+    rowsTitle: "Bénéficiaires",
+    rows: rows([
+      { title: "Awa Diallo", meta: "Wave · +221 •• •• 42 · 18 ventes", amount: "249 600 F", status: "À verser", statusBg: YEL, action: "Valider", bg: stripe(ORA, YEL, 5) },
+      { title: "Studio Teranga", meta: "virement bancaire · 34 ventes", amount: "230 000 F", status: "À verser", statusBg: YEL, action: "Valider", bg: stripe(PUR, W, 5) },
+      { title: "Kofi Mensah", meta: "Orange Money · 12 ventes", amount: "158 400 F", status: "À verser", statusBg: YEL, action: "Valider", bg: stripe(INK, LAV, 5) },
+      { title: "Marie Diarrassouba", meta: "coordonnées bancaires manquantes", amount: "42 000 F", status: "Bloqué", statusBg: ORA, action: "Relancer", bg: stripe(ORA, INK, 5) }
+    ])
+  },
+  a_abonnements: {
+    title: "Abonnements", cta: "Modifier la grille",
+    intro: "3 180 abonnements actifs répartis sur trois forfaits. Le taux d'attrition mensuel est de 3,4 %.",
+    kpis: [
+      { label: "Abonnés actifs", value: "3 180", delta: "+214 ce mois", bg: YEL },
+      { label: "Revenu récurrent", value: "9,2 M F", delta: "+7 % vs juillet", bg: W },
+      { label: "Attrition", value: "3,4 %", delta: "−0,6 pt vs juillet", bg: PUR },
+      { label: "Essais en cours", value: "412", delta: "conversion 38 %", bg: W }
+    ],
+    grid: [
+      { title: "Free", meta: "12 400 comptes", value: "0 F", ph: "forfait", bg: stripe(W, INK, 8) },
+      { title: "Essentiel", meta: "2 240 abonnés", value: "5 000 F / mois", ph: "forfait", bg: stripe(YEL, INK, 8) },
+      { title: "Pro", meta: "940 abonnés", value: "10 000 F / mois", ph: "forfait", bg: stripe(PUR, INK, 8) }
+    ],
+    rowsTitle: "Mouvements récents",
+    rows: rows([
+      { title: "Passages Essentiel → Pro", meta: "juillet 2026", amount: "+84", status: "Croissance", statusBg: YEL, action: "Détail", bg: stripe(YEL, ORA, 5) },
+      { title: "Résiliations", meta: "juillet 2026 · motif n°1 : usage trop faible", amount: "−108", status: "Attrition", statusBg: ORA, action: "Détail", bg: stripe(ORA, W, 5) },
+      { title: "Échecs de paiement", meta: "relance automatique à J+3", amount: "31", status: "Relance", statusBg: PUR, action: "Détail", bg: stripe(PUR, INK, 5) }
+    ])
+  },
+  a_jobs: {
+    title: "Jobs & services", cta: "Publier une annonce",
+    intro: "Les missions et prestations publiées par la communauté. Chaque annonce passe une validation avant mise en ligne.",
+    kpis: [
+      { label: "Missions ouvertes", value: "64", delta: "+12 cette semaine", bg: YEL },
+      { label: "Services en ligne", value: "218", delta: "+9 ce mois", bg: W },
+      { label: "En attente de validation", value: "11", delta: "délai moyen 9 h", bg: PUR },
+      { label: "Missions attribuées", value: "148", delta: "sur 90 jours", bg: W }
+    ],
+    filters: ["Tous", "Missions", "Services", "À valider"],
+    rowsTitle: "Annonces",
+    rows: rows([
+      { title: "Recherche maquettiste PAO & correcteur(trice)", meta: "mission · 7 propositions · publiée il y a 7 h", amount: "300 000 F", status: "En ligne", statusBg: YEL, action: "Ouvrir", bg: stripe(YEL, INK, 5) },
+      { title: "Charte graphique complète en 10 jours", meta: "service · Nadia Cissé · note 4,9", amount: "180 000 F", status: "En ligne", statusBg: YEL, action: "Ouvrir", bg: stripe(PUR, W, 5) },
+      { title: "Réalisation des badges du personnel", meta: "mission · 5 propositions · sur devis", amount: "Devis", status: "En ligne", statusBg: YEL, action: "Ouvrir", bg: stripe(ORA, YEL, 5) },
+      { title: "Retouche photo produit à la chaîne", meta: "service · en attente de validation", amount: "25 000 F", status: "À valider", statusBg: PUR, action: "Examiner", bg: stripe(INK, LAV, 5) }
+    ])
+  },
+  a_editorial: {
+    title: "Contenus éditoriaux", cta: "Nouvel article",
+    intro: "Articles de blog, pages légales et bannières d'accueil. Toute publication est datée et versionnée.",
+    kpis: [
+      { label: "Articles publiés", value: "48", delta: "3 en brouillon", bg: W },
+      { label: "Vues (30 j)", value: "62 400", delta: "+14 %", bg: YEL },
+      { label: "Pages légales", value: "9", delta: "dernière révision : juin", bg: PUR },
+      { label: "Bannières actives", value: "2", delta: "accueil + explorer", bg: W }
+    ],
+    rowsTitle: "Publications",
+    rows: rows([
+      { title: "Comment fixer le prix d'un pack de ressources", meta: "blog · publié le 24 juil. 2026", amount: "8 240 vues", status: "En ligne", statusBg: YEL, action: "Éditer", bg: stripe(ORA, YEL, 5) },
+      { title: "Les motifs wax expliqués aux designers", meta: "blog · publié le 17 juil. 2026", amount: "12 100 vues", status: "En ligne", statusBg: YEL, action: "Éditer", bg: stripe(PUR, W, 5) },
+      { title: "Licences Baobart", meta: "page légale · révisée le 12 juin 2026", amount: "—", status: "En ligne", statusBg: W, action: "Éditer", bg: stripe(INK, LAV, 5) },
+      { title: "Concours Wax Futurism — bilan", meta: "brouillon · dernière modif. il y a 2 j", amount: "—", status: "Brouillon", statusBg: PUR, action: "Éditer", bg: stripe(YEL, ORA, 5) }
+    ])
+  },
+  a_taxonomie: {
+    title: "Catégories & tags", cta: "Ajouter une catégorie",
+    intro: "La taxonomie pilote les filtres de la grille et les pages catégorie. Éviter les doublons de tags.",
+    kpis: [
+      { label: "Catégories", value: "11", delta: "structure figée", bg: W },
+      { label: "Tags actifs", value: "348", delta: "+22 ce mois", bg: YEL },
+      { label: "Tags à fusionner", value: "17", delta: "doublons détectés", bg: ORA },
+      { label: "Sans ressource", value: "9", delta: "à supprimer", bg: PUR }
+    ],
+    grid: [
+      { title: "Illustrations", meta: "1 840 ressources", value: "actif", ph: "catégorie", bg: stripe(ORA, YEL, 8) },
+      { title: "Images", meta: "2 210 ressources", value: "actif", ph: "catégorie", bg: stripe(PUR, W, 8) },
+      { title: "Mockups", meta: "980 ressources", value: "actif", ph: "catégorie", bg: stripe(INK, LAV, 8) },
+      { title: "Fonts", meta: "412 ressources", value: "actif", ph: "catégorie", bg: stripe(YEL, ORA, 8) },
+      { title: "Icônes", meta: "760 ressources", value: "actif", ph: "catégorie", bg: stripe(W, INK, 8) },
+      { title: "Audio", meta: "184 ressources", value: "faible", ph: "catégorie", bg: stripe(LAV, ORA, 8) }
+    ]
+  },
+  a_equipe: {
+    title: "Équipe & rôles", cta: "Inviter un administrateur",
+    intro: "Qui peut faire quoi. Les actions sensibles (versements, suppression de compte) demandent une double validation.",
+    kpis: [
+      { label: "Administrateurs", value: "6", delta: "dont 2 super admins", bg: PUR },
+      { label: "Modérateurs", value: "9", delta: "3 à temps partiel", bg: W },
+      { label: "Actions sensibles (30 j)", value: "42", delta: "toutes double-validées", bg: YEL },
+      { label: "Invitations en attente", value: "2", delta: "expirent sous 7 j", bg: W }
+    ],
+    people: [
+      { name: "Fatou Ndiaye", role: "Super admin · Dakar", action: "Gérer", actionBg: YEL, bg: stripe(ORA, YEL, 5) },
+      { name: "Yao Kouassi", role: "Super admin · Abidjan", action: "Gérer", actionBg: YEL, bg: stripe(PUR, W, 5) },
+      { name: "Aminata Bah", role: "Modération · catalogue", action: "Gérer", actionBg: LAV, bg: stripe(INK, LAV, 5) },
+      { name: "Paul Etoundi", role: "Finance · versements", action: "Gérer", actionBg: LAV, bg: stripe(YEL, ORA, 5) },
+      { name: "Aïssatou Sy", role: "Éditorial · blog", action: "Gérer", actionBg: LAV, bg: stripe(W, INK, 5) },
+      { name: "Support N1", role: "Compte partagé · tickets", action: "Gérer", actionBg: LAV, bg: stripe(LAV, ORA, 5) }
+    ]
+  },
+  a_journal: {
+    title: "Journal d'activité", cta: "Exporter le journal",
+    intro: "Toutes les actions administratives des 30 derniers jours, horodatées et non modifiables.",
+    kpis: [
+      { label: "Actions (30 j)", value: "1 842", delta: "6 administrateurs", bg: W },
+      { label: "Suppressions", value: "38", delta: "toutes justifiées", bg: ORA },
+      { label: "Connexions admin", value: "214", delta: "2FA obligatoire", bg: YEL },
+      { label: "Alertes sécurité", value: "0", delta: "sur 30 jours", bg: PUR }
+    ],
+    rowsTitle: "Événements",
+    rows: rows([
+      { title: "Versement mensuel validé", meta: "Paul Etoundi · 5 juil. 2026, 09:12", amount: "13,1 M F", status: "Double validation", statusBg: YEL, action: "Détail", bg: stripe(YEL, INK, 5) },
+      { title: "Ressource dépubliée sur DMCA", meta: "Aminata Bah · 28 juil. 2026, 16:40", amount: "—", status: "Modération", statusBg: PUR, action: "Détail", bg: stripe(PUR, INK, 5) },
+      { title: "Compte suspendu #8821", meta: "Fatou Ndiaye · 30 juil. 2026, 11:03", amount: "—", status: "Sanction", statusBg: ORA, action: "Détail", bg: stripe(ORA, W, 5) },
+      { title: "Grille tarifaire modifiée", meta: "Yao Kouassi · 1 juil. 2026, 08:55", amount: "—", status: "Configuration", statusBg: W, action: "Détail", bg: stripe(INK, LAV, 5) }
+    ])
+  },
+  a_reglages: {
+    title: "Réglages plateforme", cta: "Enregistrer",
+    intro: "Commission, seuils, délais de modération et moyens de paiement. Toute modification est journalisée.",
+    formBlocks: [
+      {
+        title: "Commercial", hasSave: true,
+        fields: [
+          { label: "Commission plateforme (%)", placeholder: "20", isInput: true, span: "auto" },
+          { label: "Seuil de versement (F)", placeholder: "10 000", isInput: true, span: "auto" },
+          { label: "Jour de versement", placeholder: "5 de chaque mois", isInput: true, span: "auto" },
+          { label: "Délai de remboursement (jours)", placeholder: "14", isInput: true, span: "auto" },
+          { label: "Moyens de paiement actifs", placeholder: "Wave, Orange Money, carte bancaire", isInput: true, span: "1 / span 2" }
+        ]
+      },
+      {
+        title: "Modération & contenu", hasSave: true,
+        fields: [
+          { label: "Délai de validation cible (h)", placeholder: "72", isInput: true, span: "auto" },
+          { label: "Taille max par fichier (Mo)", placeholder: "250", isInput: true, span: "auto" },
+          { label: "Refus avant suspension auto", placeholder: "2", isInput: true, span: "auto" },
+          { label: "Quota Free (dl / mois)", placeholder: "100", isInput: true, span: "auto" },
+          { label: "Message affiché aux contributeurs", placeholder: "Validation manuelle sous 72 h.", isArea: true, span: "1 / span 2" }
+        ]
+      }
+    ]
+  }
+};
+
+const PAGES = {
+  apercu: {
+    title: "Aperçu", cta: "Explorer les ressources",
+    intro: "Ton activité du mois : quota, achats récents et ce que ton équipe a ajouté aux collections partagées.",
+    kpis: [
+      { label: "Téléchargements ce mois", value: "158", delta: "sur 200 inclus", bg: W },
+      { label: "Achats", value: "8", delta: "+2 ce mois", bg: YEL },
+      { label: "Collections", value: "3", delta: "1 partagée", bg: W },
+      { label: "Créateurs suivis", value: "14", delta: "+3 ce mois", bg: PUR }
+    ],
+    chartTitle: "Téléchargements par mois",
+    chart: chart([["fév", "62", 40], ["mars", "88", 56], ["avr", "104", 66], ["mai", "121", 78], ["juin", "140", 90], ["juil", "158", 100]], YEL),
+    rowsTitle: "Activité récente",
+    rows: rows([
+      { title: "Illu Femme au Foulard", meta: "téléchargée · 12 juil. 2026", amount: "5 000 F", status: "ACHETÉE", action: "Télécharger", bg: stripe(W, PUR, 7) },
+      { title: "Collection Campagne Dakar 2026", meta: "Fatou a ajouté 4 ressources", amount: "38 pièces", status: "ÉQUIPE", statusBg: PUR, action: "Ouvrir", bg: stripe(W, INK, 7) },
+      { title: "Pack Motifs Ankara", meta: "téléchargé · 8 juil. 2026", amount: "gratuit", status: "FREE", action: "Télécharger", bg: stripe(W, YEL, 7) }
+    ])
+  },
+  profil: {
+    title: "Profil", cta: "Voir mon profil public",
+    intro: "Ces informations servent à tes factures et à ce que les créateurs voient quand tu commentes.",
+    formBlocks: [
+      { title: "Identité", hasAvatar: true, fields: [
+        { label: "Prénom", placeholder: "Awa" }, { label: "Nom de famille", placeholder: "Diallo" },
+        { label: "Nom à afficher", placeholder: "dev-team", span: "1 / span 2" },
+        { label: "Adresse e-mail principale", placeholder: "support@baobart.africa", span: "1 / span 2" },
+        { label: "Description", placeholder: "Deux lignes sur toi…", area: true, span: "1 / span 2" }
+      ] },
+      { title: "Facturation & sécurité", hasSave: true, fields: [
+        { label: "Adresse ligne 1", placeholder: "12 rue de la Corniche", span: "1 / span 2" },
+        { label: "Adresse ligne 2", placeholder: "Appartement, étage", span: "1 / span 2" },
+        { label: "Ville", placeholder: "Dakar" }, { label: "Code postal", placeholder: "11000" },
+        { label: "Pays", placeholder: "Sénégal" }, { label: "Région", placeholder: "Dakar" },
+        { label: "Nouveau mot de passe", placeholder: "••••••••" }, { label: "Confirmer le mot de passe", placeholder: "••••••••" }
+      ] }
+    ]
+  },
+  achats: {
+    title: "Historique des achats", cta: "Télécharger mes factures",
+    intro: "Toutes tes commandes, avec la facture et le détail des licences.",
+    filters: ["Toutes", "Payées", "Abonnement"],
+    rowsTitle: "8 commandes",
+    rows: rows([
+      { title: "Commande #10428", meta: "12 juil. 2026 · 2 articles", amount: "8 000 F", status: "PAYÉE", action: "Facture", bg: stripe(W, INK, 7) },
+      { title: "Commande #10391", meta: "3 juil. 2026 · 1 article", amount: "10 000 F", status: "PAYÉE", action: "Facture", bg: stripe(LAV, ORA, 7) },
+      { title: "Abonnement Essentiel", meta: "prélèvement mensuel", amount: "5 000 F", status: "EN COURS", statusBg: PUR, action: "Gérer", bg: stripe(YEL, INK, 7) },
+      { title: "Commande #10222", meta: "18 juin 2026 · 3 articles", amount: "16 000 F", status: "PAYÉE", action: "Facture", bg: stripe(W, PUR, 7) }
+    ])
+  },
+  telechargements: {
+    title: "Historique des téléchargements", cta: "Voir mon quota",
+    intro: "158 téléchargements ce mois. Les fichiers restent accessibles indéfiniment.",
+    filters: ["Tous", "Ce mois", "Achetés", "Gratuits"],
+    rowsTitle: "Derniers fichiers",
+    rows: rows([
+      { title: "Illu Femme au Foulard", meta: "AI, PNG · 12 juil. 2026", amount: "3 fois", status: "DISPONIBLE", action: "Télécharger", bg: stripe(W, PUR, 7) },
+      { title: "Font Sahel Mono", meta: "TTF, OTF · 10 juil. 2026", amount: "1 fois", status: "DISPONIBLE", action: "Télécharger", bg: stripe(LAV, INK, 7) },
+      { title: "Textures Terre Battue", meta: "JPG · 6 juil. 2026", amount: "2 fois", status: "DISPONIBLE", action: "Télécharger", bg: stripe(ORA, LAV, 7) },
+      { title: "Pack Stickers Teranga", meta: "PNG, SVG · 2 juil. 2026", amount: "1 fois", status: "DISPONIBLE", action: "Télécharger", bg: stripe(W, ORA, 7) }
+    ])
+  },
+  suivis: {
+    title: "Éléments suivis", cta: "Tout enregistrer dans une collection",
+    intro: "Les ressources que tu as aimées ou mises de côté.",
+    grid: [
+      { title: "Affiche Sérigraphie Sahel", meta: "Fatou Ba", value: "10 000 F", bg: stripe(W, INK, 9), ph: "aperçu · 1000×1400" },
+      { title: "Illu Danse Sabar", meta: "Fatou Ba", value: "gratuit", bg: stripe(W, YEL, 9), ph: "aperçu · 1200×1200" },
+      { title: "Mockup Tote Bag", meta: "Nadia Cissé", value: "3 000 F", bg: stripe(W, PUR, 9), ph: "aperçu · 1500×1500" },
+      { title: "Art Géométrique Kente", meta: "Kofi Mensah", value: "gratuit", bg: stripe(YEL, ORA, 9), ph: "aperçu · 1000×1300" },
+      { title: "Logo Baobab Minimal", meta: "Studio Teranga", value: "12 000 F", bg: stripe(W, INK, 9), ph: "aperçu · vectoriel" },
+      { title: "Beats Kora Lo-fi", meta: "Yao Kouadio", value: "8 000 F", bg: stripe(PUR, W, 9), ph: "audio · 8 pistes" }
+    ]
+  },
+  collections: {
+    title: "Mes collections", cta: "Nouvelle collection",
+    intro: "Range tes trouvailles, invite ton équipe, commentez au bon endroit.",
+    grid: [
+      { title: "Inspiration wax", meta: "privée", value: "18 pièces", bg: stripe(W, ORA, 9), ph: "couverture collection" },
+      { title: "Refonte site club", meta: "partagée · 3 membres", value: "7 pièces", bg: stripe(LAV, INK, 9), ph: "couverture collection" },
+      { title: "Typos à tester", meta: "privée", value: "12 pièces", bg: stripe(YEL, INK, 9), ph: "couverture collection" },
+      { title: "Campagne Dakar 2026", meta: "équipe · 4 membres", value: "38 pièces", bg: stripe(W, PUR, 9), ph: "couverture collection" }
+    ]
+  },
+  abonnements_suivis: {
+    title: "Abonnements", cta: "Découvrir des créateurs",
+    intro: "Les créateurs que tu suis. Tu reçois une notification à chaque nouvelle ressource.",
+    people: [
+      { name: "Awa Diallo", role: "Illustratrice · Dakar", action: "Suivi ✓", actionBg: ORA, bg: stripe(ORA, YEL, 5) },
+      { name: "Kofi Mensah", role: "Motion · Accra", action: "Suivi ✓", actionBg: ORA, bg: stripe(PUR, W, 5) },
+      { name: "Sarah Bakayoko", role: "Peintre numérique · Abidjan", action: "Suivi ✓", actionBg: ORA, bg: stripe(INK, LAV, 5) },
+      { name: "Ibrahim Traoré", role: "Photographe · Bamako", action: "Suivre", actionBg: LAV, bg: stripe(YEL, ORA, 5) },
+      { name: "Nadia Cissé", role: "Direction artistique · Abidjan", action: "Suivre", actionBg: LAV, bg: stripe(W, INK, 5) },
+      { name: "Grace Dembélé", role: "Édition · Lomé", action: "Suivi ✓", actionBg: ORA, bg: stripe(LAV, ORA, 5) }
+    ]
+  },
+  abonnement: {
+    title: "Forfait & pass d'accès", cta: "Comparer les forfaits",
+    intro: "Ton forfait, ton quota et tes pass d'accès ponctuels.",
+    plan: {
+      name: "Essentiel", price: "5 000 F / mois", renew: "12 août 2026", quota: "158 / 200", pct: "79%",
+      sideTitle: "Détails du compte",
+      lines: [
+        { label: "Licence", value: "personnelle étendue" },
+        { label: "Catégories", value: "images, vidéos, illus, fonts, icônes" },
+        { label: "Pass d'accès actif", value: "Pack Wax · 3 j restants" },
+        { label: "Moyen de paiement", value: "Wave ···· 4821" },
+        { label: "Prochaine facture", value: "5 000 F le 12 août" }
+      ]
+    }
+  },
+  vendeur: {
+    title: "Devenir vendeur", cta: "Ouvrir ma boutique",
+    intro: "Tu gardes 80 % de chaque vente. Trois étapes, validation sous 72 h.",
+    steps: [
+      { n: "1", title: "Complète ton profil", text: "Photo, bio, spécialités et liens vers ton portfolio.", action: "Compléter", bg: W },
+      { n: "2", title: "Ajoute un moyen de versement", text: "Wave, Orange Money ou virement bancaire.", action: "Configurer", bg: LAV },
+      { n: "3", title: "Publie 3 ressources", text: "Nos curateurs valident sous 72 h et ta boutique s'ouvre.", action: "Publier", bg: YEL }
+    ],
+    kpis: [
+      { label: "Revenu moyen créateur", value: "142 000 F", delta: "par mois, 6 mois d'ancienneté", bg: W },
+      { label: "Commission plateforme", value: "20 %", delta: "aucun frais fixe", bg: YEL },
+      { label: "Délai de versement", value: "7 jours", delta: "après la fin du mois", bg: W }
+    ]
+  },
+  c_apercu: {
+    title: "Tableau de bord", cta: "Ajouter un produit",
+    intro: "Tes gains, tes ventes et l'audience de ta boutique ce mois-ci.",
+    notice: { title: "Dernière annonce", text: "Les versements de juillet partent le 7 août. Pense à vérifier ton moyen de paiement.", label: "L'URL de ta boutique", url: "baobart.africa/vendor/awa-diallo" },
+    kpis: [
+      { label: "Gains", value: "184 000 F", delta: "+22 % vs juin", bg: YEL },
+      { label: "Commissions versées", value: "914 000 F", delta: "cumul 2026", bg: W },
+      { label: "Ventes", value: "37", delta: "+9 ce mois", bg: W },
+      { label: "Vues de page", value: "18 400", delta: "+14 % vs juin", bg: PUR },
+      { label: "Taux de conversion", value: "2,1 %", delta: "vues → vente", bg: W }
+    ],
+    chartTitle: "Revenus par mois",
+    chart: chart([["fév", "62k", 34], ["mars", "88k", 48], ["avr", "97k", 53], ["mai", "121k", 66], ["juin", "151k", 82], ["juil", "184k", 100]], ORA),
+    rowsTitle: "Dernières ventes",
+    rows: rows([
+      { title: "Illu Femme au Foulard", meta: "12 juil. 2026 · licence commerciale", amount: "+4 000 F", status: "VERSÉ", action: "Détail", bg: stripe(W, PUR, 7) },
+      { title: "Pack Motifs Ankara", meta: "11 juil. 2026 · licence perso", amount: "+3 200 F", status: "EN ATTENTE", statusBg: PUR, action: "Détail", bg: stripe(W, YEL, 7) },
+      { title: "Portrait Wax Éditorial", meta: "10 juil. 2026 · licence commerciale", amount: "+6 400 F", status: "VERSÉ", action: "Détail", bg: stripe(LAV, ORA, 7) },
+      { title: "Illu Baobab au Couchant", meta: "9 juil. 2026 · licence perso", amount: "+2 400 F", status: "VERSÉ", action: "Détail", bg: stripe(ORA, YEL, 7) }
+    ])
+  },
+  c_produits: {
+    title: "Mes ressources", cta: "Publier une ressource",
+    intro: "18 ressources en ligne, 2 en modération.",
+    filters: ["Toutes", "En ligne", "En modération", "Brouillons"],
+    rowsTitle: "Catalogue",
+    rows: rows([
+      { title: "Illu Femme au Foulard", meta: "AI, PNG · 890 dl · 640 ♥", amount: "5 000 F", status: "EN LIGNE", action: "Modifier", bg: stripe(W, PUR, 7) },
+      { title: "Portrait Wax Éditorial", meta: "JPG, RAW · 2 340 dl", amount: "gratuit", status: "EN LIGNE", action: "Modifier", bg: stripe(LAV, ORA, 7) },
+      { title: "Série Marché de Nuit", meta: "PNG · en cours de relecture", amount: "3 000 F", status: "MODÉRATION", statusBg: PUR, action: "Suivre", bg: stripe(W, YEL, 7) },
+      { title: "Pack Motifs Ankara vol.2", meta: "AI, SVG · brouillon", amount: "—", status: "BROUILLON", statusBg: W, action: "Reprendre", bg: stripe(W, INK, 7) }
+    ])
+  },
+  c_ventes: {
+    title: "Ventes", cta: "Exporter en CSV",
+    intro: "37 ventes ce mois, dont 12 en licence commerciale.",
+    filters: ["Ce mois", "Trimestre", "Année"],
+    rowsTitle: "Détail des ventes",
+    rows: rows([
+      { title: "Vente #8842 · Illu Femme au Foulard", meta: "acheteur Dev.team · Wave", amount: "+4 000 F", status: "VERSÉ", action: "Facture", bg: stripe(W, PUR, 7) },
+      { title: "Vente #8831 · Portrait Wax Éditorial", meta: "acheteur Studio Kaay · carte", amount: "+6 400 F", status: "VERSÉ", action: "Facture", bg: stripe(LAV, ORA, 7) },
+      { title: "Vente #8820 · Pack Motifs Ankara", meta: "acheteur école ISAD · virement", amount: "+3 200 F", status: "EN ATTENTE", statusBg: PUR, action: "Facture", bg: stripe(YEL, INK, 7) }
+    ])
+  },
+  c_revenus: {
+    title: "Revenus & versements", cta: "Demander un versement",
+    intro: "80 % du prix de vente te revient. Versement le 7 de chaque mois.",
+    kpis: [
+      { label: "Solde disponible", value: "96 800 F", delta: "versement le 7 août", bg: YEL },
+      { label: "En attente de validation", value: "12 400 F", delta: "3 ventes récentes", bg: W },
+      { label: "Cumul 2026", value: "914 000 F", delta: "7 mois", bg: W }
+    ],
+    chartTitle: "Versements par mois",
+    chart: chart([["fév", "50k", 30], ["mars", "70k", 42], ["avr", "78k", 47], ["mai", "97k", 58], ["juin", "121k", 73], ["juil", "165k", 100]], PUR),
+    rowsTitle: "Historique des versements",
+    rows: rows([
+      { title: "Versement juin 2026", meta: "Wave ···· 4821 · 7 juil. 2026", amount: "121 000 F", status: "PAYÉ", action: "Reçu", bg: stripe(W, INK, 7) },
+      { title: "Versement mai 2026", meta: "Wave ···· 4821 · 7 juin 2026", amount: "97 000 F", status: "PAYÉ", action: "Reçu", bg: stripe(LAV, INK, 7) }
+    ])
+  },
+  c_stats: {
+    title: "Statistiques", cta: "Exporter le rapport",
+    intro: "Ce qui attire du monde, et ce qui convertit.",
+    kpis: [
+      { label: "Vues de fiches", value: "18 400", delta: "+14 % vs juin", bg: W },
+      { label: "Taux de téléchargement", value: "12,7 %", delta: "vues → dl", bg: YEL },
+      { label: "Taux d'achat", value: "2,1 %", delta: "vues → vente", bg: W },
+      { label: "Nouveaux abonnés", value: "132", delta: "ce mois", bg: PUR }
+    ],
+    chartTitle: "Vues par mois",
+    chart: chart([["fév", "6,2k", 34], ["mars", "8,1k", 44], ["avr", "9,4k", 51], ["mai", "12k", 65], ["juin", "16,1k", 87], ["juil", "18,4k", 100]], YEL),
+    rowsTitle: "Meilleures ressources",
+    rows: rows([
+      { title: "Portrait Wax Éditorial", meta: "4 200 vues · 2 340 dl", amount: "55 %", status: "TOP 1", action: "Détail", bg: stripe(LAV, ORA, 7) },
+      { title: "Illu Femme au Foulard", meta: "3 100 vues · 890 dl · 44 ventes", amount: "29 %", status: "TOP 2", action: "Détail", bg: stripe(W, PUR, 7) },
+      { title: "Pack Motifs Ankara", meta: "2 800 vues · 1 908 dl", amount: "68 %", status: "TOP 3", action: "Détail", bg: stripe(W, YEL, 7) }
+    ])
+  },
+  c_avis: {
+    title: "Avis & commentaires", cta: "Répondre à tout",
+    intro: "128 avis, note moyenne 4.9. Réponds vite : ça pèse dans le classement.",
+    filters: ["Tous", "Sans réponse", "5 étoiles", "≤ 3 étoiles"],
+    rowsTitle: "Derniers avis",
+    rows: rows([
+      { title: "« Les fichiers sources sont impeccables »", meta: "Mariam Sow · Illu Femme au Foulard", amount: "★ 5", status: "À RÉPONDRE", statusBg: PUR, action: "Répondre", bg: stripe(ORA, YEL, 7) },
+      { title: "« Parfait pour mon affiche, merci »", meta: "Serge Nkosi · Portrait Wax Éditorial", amount: "★ 5", status: "RÉPONDU", action: "Voir", bg: stripe(W, INK, 7) },
+      { title: "« J'aurais aimé une version SVG »", meta: "Aïcha Barry · Pack Motifs Ankara", amount: "★ 3", status: "À RÉPONDRE", statusBg: PUR, action: "Répondre", bg: stripe(YEL, INK, 7) }
+    ])
+  },
+  c_abonnes: {
+    title: "Abonnés", cta: "Publier une actu",
+    intro: "1 240 personnes suivent ton travail.",
+    people: [
+      { name: "Mariam Sow", role: "DA, Studio Kaay", action: "Message", actionBg: LAV, bg: stripe(ORA, YEL, 5) },
+      { name: "Serge Nkosi", role: "Lead design, Kivu", action: "Message", actionBg: LAV, bg: stripe(PUR, W, 5) },
+      { name: "Aïcha Barry", role: "Enseignante", action: "Message", actionBg: LAV, bg: stripe(INK, LAV, 5) },
+      { name: "Dev.team", role: "Agence · Dakar", action: "Message", actionBg: LAV, bg: stripe(YEL, ORA, 5) },
+      { name: "Grace Dembélé", role: "Édition · Lomé", action: "Message", actionBg: LAV, bg: stripe(W, INK, 5) },
+      { name: "Marie Bamba", role: "Étudiante en design", action: "Message", actionBg: LAV, bg: stripe(LAV, ORA, 5) }
+    ]
+  },
+  c_publier: {
+    title: "Publier une ressource", cta: "Enregistrer le brouillon",
+    intro: "Formats acceptés : PNG, JPG, AI, PSD, SVG, TTF, MP4, ZIP — 200 Mo max.",
+    formBlocks: [
+      { title: "Fichier & aperçu", fields: [
+        { label: "Titre de la ressource", placeholder: "Illu Femme au Foulard", span: "1 / span 2" },
+        { label: "Catégorie", placeholder: "Illustration" }, { label: "Type de licence", placeholder: "Commerciale" },
+        { label: "Mots-clés", placeholder: "wax, portrait, motif", span: "1 / span 2" },
+        { label: "Description", placeholder: "Ce que contient le fichier, dimensions, usages conseillés…", area: true, span: "1 / span 2" }
+      ] },
+      { title: "Prix & fichiers", hasSave: true, fields: [
+        { label: "Prix (FCFA)", placeholder: "5 000" }, { label: "Gratuit ?", placeholder: "Non" },
+        { label: "Fichiers sources", placeholder: "AI, PNG", span: "1 / span 2" },
+        { label: "Dimensions", placeholder: "3000 × 4000" }, { label: "Poids total", placeholder: "84 Mo" }
+      ] }
+    ]
+  },
+  c_profil: {
+    title: "Profil public", cta: "Voir mon profil public",
+    intro: "Ce que les acheteurs voient avant de te confier un projet.",
+    formBlocks: [
+      { title: "Vitrine", hasAvatar: true, fields: [
+        { label: "Nom affiché", placeholder: "Awa Diallo", span: "1 / span 2" },
+        { label: "Spécialité", placeholder: "Illustration & motifs" }, { label: "Ville", placeholder: "Dakar" },
+        { label: "Bio", placeholder: "Deux ou trois phrases sur ton travail…", area: true, span: "1 / span 2" }
+      ] },
+      { title: "Liens & services", hasSave: true, fields: [
+        { label: "Portfolio", placeholder: "awadiallo.com", span: "1 / span 2" },
+        { label: "Instagram", placeholder: "@awa.draws" }, { label: "Behance", placeholder: "behance.net/awa" },
+        { label: "Ouvert aux commandes", placeholder: "Oui, sous 2 semaines", span: "1 / span 2" },
+        { label: "Tarif journalier indicatif", placeholder: "45 000 F", span: "1 / span 2" }
+      ] }
+    ]
+  },
+  c_commandes: {
+    title: "Commandes", cta: "Exporter en CSV",
+    intro: "Les commandes qui contiennent au moins une de tes ressources.",
+    filters: ["Toutes", "Payées", "En attente", "Remboursées"],
+    rowsTitle: "12 commandes ce mois",
+    rows: rows([
+      { title: "Commande #10428 · 2 articles", meta: "Dev.team · Wave · 12 juil. 2026", amount: "8 000 F", status: "PAYÉE", action: "Détail", bg: stripe(W, INK, 7) },
+      { title: "Commande #10412 · 1 article", meta: "Studio Kaay · carte · 11 juil. 2026", amount: "6 400 F", status: "PAYÉE", action: "Détail", bg: stripe(LAV, ORA, 7) },
+      { title: "Commande #10399 · 3 articles", meta: "École ISAD · virement · 10 juil. 2026", amount: "14 000 F", status: "EN ATTENTE", statusBg: PUR, action: "Relancer", bg: stripe(YEL, INK, 7) },
+      { title: "Commande #10344 · 1 article", meta: "M. Sow · Orange Money · 4 juil. 2026", amount: "3 000 F", status: "REMBOURSÉE", statusBg: W, action: "Détail", bg: stripe(W, PUR, 7) }
+    ])
+  },
+  c_commissions: {
+    title: "Commissions", cta: "Comprendre le calcul",
+    intro: "Tu touches 80 % du prix de vente. Les commissions passent d'impayées à versées le 7 du mois suivant.",
+    kpis: [
+      { label: "Rémunération impayée", value: "12 400 F", delta: "3 ventes récentes", bg: W },
+      { label: "Rémunération versée", value: "914 000 F", delta: "cumul 2026", bg: YEL },
+      { label: "Gains révoqués", value: "3 000 F", delta: "1 remboursement", bg: W }
+    ],
+    rowsTitle: "Commissions par ressource",
+    filters: ["Ce mois", "Trimestre", "Année"],
+    rows: rows([
+      { title: "Illu Femme au Foulard", meta: "44 ventes · 80 % de 5 000 F", amount: "176 000 F", status: "VERSÉE", action: "Détail", bg: stripe(W, PUR, 7) },
+      { title: "Portrait Wax Éditorial", meta: "26 ventes · 80 % de 8 000 F", amount: "166 400 F", status: "VERSÉE", action: "Détail", bg: stripe(LAV, ORA, 7) },
+      { title: "Pack Motifs Ankara vol.1", meta: "12 ventes · 80 % de 4 000 F", amount: "38 400 F", status: "IMPAYÉE", statusBg: PUR, action: "Détail", bg: stripe(W, YEL, 7) },
+      { title: "Mockup Affiche Rue", meta: "1 vente remboursée", amount: "−3 000 F", status: "RÉVOQUÉE", statusBg: W, action: "Détail", bg: stripe(W, ORA, 7) }
+    ])
+  },
+  c_purchases: {
+    title: "Mes achats", cta: "Explorer les ressources",
+    intro: "Toi aussi tu achètes : voici tes commandes et tes téléchargements en tant que membre.",
+    filters: ["Tous", "Achats", "Téléchargements"],
+    rowsTitle: "Historique",
+    rows: rows([
+      { title: "Font Sahel Mono", meta: "acheté 7 000 F · 10 juil. 2026", amount: "TTF, OTF", status: "DISPONIBLE", action: "Télécharger", bg: stripe(LAV, INK, 7) },
+      { title: "Textures Terre Battue", meta: "gratuit · 6 juil. 2026", amount: "JPG", status: "DISPONIBLE", action: "Télécharger", bg: stripe(ORA, LAV, 7) },
+      { title: "Icônes Marché 48px", meta: "gratuit · 28 juin 2026", amount: "SVG", status: "DISPONIBLE", action: "Télécharger", bg: stripe(W, PUR, 7) }
+    ])
+  },
+  c_suivre: {
+    title: "Suivre les détails", cta: "Découvrir des créateurs",
+    intro: "Qui te suit, qui tu suis, et ce qu'ils viennent de publier.",
+    kpis: [
+      { label: "Abonnés", value: "1 240", delta: "+132 ce mois", bg: YEL },
+      { label: "Abonnements", value: "14", delta: "créateurs suivis", bg: W },
+      { label: "Publications suivies", value: "9", delta: "cette semaine", bg: W }
+    ],
+    rowsTitle: "Articles des créateurs que tu suis",
+    rows: rows([
+      { title: "Kofi Mensah a publié « Boucle Motifs Animés »", meta: "il y a 2 h · Vidéo", amount: "gratuit", status: "NOUVEAU", action: "Voir", bg: stripe(INK, YEL, 7) },
+      { title: "Nadia Cissé a publié « Pack Stickers Teranga »", meta: "il y a 1 j · Pack", amount: "4 000 F", status: "NOUVEAU", action: "Voir", bg: stripe(W, ORA, 7) },
+      { title: "Ibrahim Traoré a publié « Portraits Studio N&B »", meta: "il y a 3 j · Photo", amount: "6 000 F", status: "VU", statusBg: W, action: "Voir", bg: stripe(INK, LAV, 7) }
+    ]),
+    people: [
+      { name: "Mariam Sow", role: "DA, Studio Kaay · abonnée", action: "Message", actionBg: LAV, bg: stripe(ORA, YEL, 5) },
+      { name: "Serge Nkosi", role: "Lead design, Kivu · abonné", action: "Message", actionBg: LAV, bg: stripe(PUR, W, 5) },
+      { name: "Kofi Mensah", role: "Motion · Accra · suivi", action: "Suivi ✓", actionBg: ORA, bg: stripe(INK, LAV, 5) },
+      { name: "Nadia Cissé", role: "DA · Abidjan · suivie", action: "Suivi ✓", actionBg: ORA, bg: stripe(YEL, ORA, 5) }
+    ]
+  },
+  c_allaccess: {
+    title: "All Access", cta: "Activer un pass",
+    intro: "Les pass d'accès donnent un accès complet à un catalogue pour une durée limitée.",
+    plan: {
+      name: "Pass Wax", price: "12 000 F / 30 jours", renew: "3 août 2026", quota: "48 / illimité", pct: "62%",
+      sideTitle: "Ce que le pass inclut",
+      lines: [
+        { label: "Catalogues", value: "Wax, Motifs, Portraits" },
+        { label: "Téléchargements", value: "illimités pendant 30 j" },
+        { label: "Licence", value: "commerciale" },
+        { label: "Jours restants", value: "3 jours" },
+        { label: "Renouvellement auto", value: "désactivé" }
+      ]
+    },
+    grid: [
+      { title: "Catalogue Wax", meta: "62 pièces", value: "inclus", bg: stripe(W, ORA, 9), ph: "couverture catalogue" },
+      { title: "Catalogue Motifs", meta: "40 pièces", value: "inclus", bg: stripe(YEL, INK, 9), ph: "couverture catalogue" },
+      { title: "Catalogue Portraits", meta: "24 pièces", value: "inclus", bg: stripe(LAV, INK, 9), ph: "couverture catalogue" }
+    ]
+  },
+  c_subscription: {
+    title: "Abonnement", cta: "Comparer les forfaits",
+    intro: "Ton abonnement de membre, séparé de tes revenus de créateur.",
+    plan: {
+      name: "Pro", price: "10 000 F / mois", renew: "12 août 2026", quota: "illimité", pct: "100%",
+      sideTitle: "Détails de l'abonnement",
+      lines: [
+        { label: "Licence", value: "personnelle + commerciale" },
+        { label: "Catégories", value: "toutes" },
+        { label: "Moyen de paiement", value: "Wave ···· 4821" },
+        { label: "Prochaine facture", value: "10 000 F le 12 août" },
+        { label: "Statut créateur", value: "boutique active" }
+      ]
+    }
+  }
+};
+
+class Component extends DCLogic {
+  state = { role: null, key: null, filter: {} };
+
+  renderVals() {
+    const role = this.state.role || this.props.role || "acheteur";
+    const nav = NAV[role] || NAV.acheteur;
+    const key = (nav.some(n => n.key === this.state.key) && this.state.key) || nav[0].key;
+    const raw = PAGES[key] || ADMIN_PAGES[key] || {};
+    const filters = raw.filters || [];
+    const active = this.state.filter[key] || filters[0];
+
+    const page = Object.assign({}, raw, {
+      hasKpis: !!raw.kpis, hasChart: !!raw.chart, hasRows: !!raw.rows,
+      hasGrid: !!raw.grid, hasPeople: !!raw.people, hasForm: !!raw.formBlocks,
+      hasPlan: !!raw.plan, hasSteps: !!raw.steps, hasNotice: !!raw.notice,
+      notice: raw.notice || {},
+      filters: filters.map(f => ({
+        label: f, bg: active === f ? INK : W, fg: active === f ? W : INK,
+        pick: () => this.setState(s => ({ filter: Object.assign({}, s.filter, { [key]: f }) }))
+      })),
+      formBlocks: (raw.formBlocks || []).map(b => Object.assign({}, b, {
+        hasAvatar: !!b.hasAvatar, hasSave: !!b.hasSave,
+        fields: b.fields.map(f => Object.assign({ span: "auto" }, f, {
+          isArea: !!f.area, isInput: !f.area
+        }))
+      }))
+    });
+
+    return {
+      roles: [{ k: "acheteur", l: "Acheteur" }, { k: "createur", l: "Créateur" }, { k: "admin", l: "Super admin" }].map(r => ({
+        label: r.l, bg: role === r.k ? INK : "transparent", fg: role === r.k ? W : INK,
+        pick: () => this.setState({ role: r.k, key: null })
+      })),
+      roleLabel: role === "admin" ? "Super admin" : role === "createur" ? "Créateur" : "Acheteur",
+      spaceLabel: role === "admin" ? "Administration plateforme" : "Espace personnel",
+      searchPh: role === "admin" ? "Rechercher un membre, une ressource, une commande…" : "Rechercher dans mon espace…",
+      accountName: role === "admin" ? "Fatou Ndiaye" : "Dev.team",
+      nav: nav.map(n => ({
+        label: n.label, glyph: n.glyph, badge: !!n.badge, badgeLabel: n.badgeLabel,
+        bg: key === n.key ? YEL : "transparent",
+        iconBg: key === n.key ? W : LAV,
+        pick: () => this.setState({ key: n.key })
+      })),
+      page: page
+    };
+  }
+}
+
+</script>
+</body>
+</html>
