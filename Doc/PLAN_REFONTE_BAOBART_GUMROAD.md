@@ -1,7 +1,22 @@
 # Refonte de Baobart — Plan directeur
 
 **Baobart = Dribbble × Pinterest × monétisation, pour l'Afrique créative**
-**Document v10.0 — juillet 2026** (v10 : exploration finale — admin produits, policies, équipes multi-rôles, Staff Picked, lib/helpers)
+**Document v10.1 — 2 août 2026** (v10 : exploration finale — admin produits, policies, équipes multi-rôles, Staff Picked, lib/helpers · **v10.1 : corrections issues de la lecture du code**)
+
+> ### ⚠️ Statut de vérification
+>
+> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-D, §10.1, §10.2, §10.4, §10.5** ont été
+> **confrontées au code source** de `antiwork/gumroad` (commit `a475e3f`, 1er août 2026) et
+> corrigées. Chacune porte une note de vérification datée.
+>
+> **Tout le reste de ce document décrit le dépôt sans l'avoir lu ligne à ligne.** Les chiffres
+> qui y figurent — « 84 endpoints » du Store Agent, « 226 workers Sidekiq », « 48 policies »,
+> « 25+ ressources API », « 19 contrôleurs mobile », « 21 mailers » — sont **non vérifiés**
+> tant qu'ils n'apparaissent pas dans `VERIFICATION_GUMROAD.md`.
+>
+> Le relevé complet des écarts, avec ses sources fichier par fichier, vit dans
+> **`VERIFICATION_GUMROAD.md`**. Ce plan reste le document de décision ; c'est là-bas qu'on
+> retrouve *sur quoi* chaque correction s'appuie.
 
 ---
 
@@ -93,6 +108,14 @@ ProductLicense  product_id, license_type_id  (quelle licence s'applique au produ
 
 ### 2.4 Commission créateurs
 
+> ✅❌ **Vérifié le 2 août 2026** contre `app/models/purchase.rb` → voir `VERIFICATION_GUMROAD.md` §2.1.
+> **Gumroad ne facture pas un taux unique** : il facture selon **qui a amené l'acheteur**.
+> 10 % quand le créateur amène son public, **30 % quand la marketplace l'amène** — et
+> dans ce second cas, aucune part fixe. Le dilemme « 10 % ou 20 % » ci-dessous en est
+> dissous plutôt que tranché : Baobart peut annoncer 10 % sans sacrifier sa marge,
+> puisque le feed se rémunère sur les ventes qu'il génère réellement.
+> **Porté** dans `lib/domain/fees.ts` (régimes `DIRECT` / `DECOUVERTE`).
+
 - **10 %** (positionnement agressif : Gumroad ≈ 10 % + frais, Envato ≈ 50 %, Creative Market 30-50 %).
 - Maquette affichait « garde 80 % » (= 20 %) → **choisir** : 10 % pour l'acquisition, 20 % pour la marge directe. Recommandation : **10 %** + pool d'abonnement **60-70 % redistribué** (parts proportionnelles aux téléchargements, modèle Envato Elements).
 - **Exemple indicatif** : pack 3 000 F → créateur 2 700 F, Baobart 300 F + frais (~1-2 %). Abonnement Studio : 7 500 F × 1 000 abonnés = 7,5 M F/mois → pool 60 % = 4,5 M F répartis, Baobart garde 3 M F/mois.
@@ -134,7 +157,10 @@ Règles : critères **transparents**, **jamais de badge acheté**, cycles glissa
 
 ### 2.8 Décisions à trancher
 
-1. Commission **10 % ou 20 %**.
+1. ~~Commission **10 % ou 20 %**.~~ → **reformulée** après vérification (§2.4) : la question
+   n'est plus « quel taux unique », mais **quels deux taux** — celui qui s'applique quand
+   le créateur amène l'acheteur, et celui qui s'applique quand le feed l'amène.
+   Proposition portée dans le code : 10 % / 30 %. Le second reste à calibrer sur le marché.
 2. Mécanique créateurs sur abonnements : **pool (A)** / par téléchargement (B) / remise (C).
 3. Prix exacts des paliers (étude marché locale + coût mobile money).
 4. Shield : défaut vs opt-in ; niveau de dégradation acceptable.
@@ -180,7 +206,7 @@ Règles : critères **transparents**, **jamais de badge acheté**, cycles glissa
 | Domaine | Modules présents | Fichiers clés |
 |---|---|---|
 | Vente de ressources | `Link` (produit), prix, variantes, bundles, checkout | `app/models/link.rb`, `checkout_controller.rb` |
-| **Devises africaines** | **XOF, NGN, GHS définis** (+ AOA, BWP, RWF, TZS…) + conversion | `app/business/payments/currency.rb`, colonne `currency` sur `links` |
+| ~~**Devises africaines**~~ ❌ | **CORRIGÉ** — XOF/NGN/GHS existent **uniquement comme devises de versement** Stripe Connect : elles ne peuvent **pas** fixer un prix produit, et la conversion ne les supporte pas. Sur les 19 devises pouvant porter un prix, **une seule est africaine (ZAR)**. La tarification FCFA est **100 % à construire**. Voir `VERIFICATION_GUMROAD.md` §3.1 | `app/business/payments/currency.rb`, `config/currencies.json` |
 | **Payouts panafricains** | **Comptes bancaires par pays (CI, BJ…)** + balances « versé/en attente » | `cote_d_ivoire_bank_account.rb`, `balance.rb`, `balance_transaction.rb` |
 | **Services** | **Commissions** : acompte 50 % + solde à la livraison | `commission.rb`, `commissions_controller.rb` |
 | Consultations | Calls (créneaux) | `call.rb`, `calls_controller.rb` |
@@ -233,6 +259,12 @@ Exploration systématique du dépôt au-delà du commerce de base. Chaque élém
 - `direct_affiliate.rb` — chaque vendeur crée ses **propres programmes d'affiliation** en self-service (n'importe qui peut postuler → `affiliate_request.rb`).
 - `global_affiliate.rb` — le **programme « ambassadeur » global** de Gumroad (cookie 7 jours, ~10 %).
 
+> ✅❌ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §6.1-6.3. Deux corrections :
+> **il y a deux durées de cookie**, pas une — **30 jours** pour l'affiliation entre créateurs
+> (`DirectAffiliate`), 7 jours seulement pour les ambassadeurs. Et **un affilié direct ne
+> touche rien sur une vente issue du feed** (`return false if opts[:was_recommended]`) :
+> c'est la plateforme qui a amené l'acheteur, pas lui.
+
 **Ce que ça apporte à Baobart** :
 - **Programme d'ambassadeurs panafricain** : blogueurs, créateurs de contenu, écoles de design qui réfèrent → commission sur les ventes. **Acquisition organique massive** pour un lancement à budget limité.
 - **Affiliation peer-to-peer** : un créateur recommande le pack d'un autre → commission. Renforce la communauté.
@@ -248,11 +280,18 @@ Exploration systématique du dépôt au-delà du commerce de base. Chaque élém
 | **Produits « coffee »** | Soutien ponctuel sans contrepartie (style Ko-fi) | `NATIVE_TYPE_COFFEE` | Bouton « Offrir un café » mobile money aux créateurs | 🟠 |
 | **Domaines personnalisés** | Les vendeurs branchent leur propre domaine | `custom_domain.rb` | Créateurs pros → leur portfolio sous leur nom | 🟡 |
 
-#### E. Types de produits (11) — à exploiter 🟠
+#### E. Types de produits (~~11~~ **12**) — à exploiter 🟠
 
-`digital` (fichiers), `ebook`, `newsletter`, `membership` (récurrent), `podcast`, `audiobook`, `physical` (avec expédition), `bundle` (packs), `commission` (services), `call` (consultations), `coffee` (soutien libre).
+> ❌ **Vérifié le 2 août 2026** contre `NATIVE_TYPES_TO_TAX_CODE` dans `app/models/link.rb`
+> → `VERIFICATION_GUMROAD.md` §4.1. Le compte était faux **des deux côtés**.
 
-**Pour Baobart** : la maquette a déjà les familles (Mockups, Logos, Fonts…) — le typage de Gumroad permet en plus : **packs (bundle)**, **membreships** (soutenir un créateur), **soutien libre (coffee)**, **audios/podcasts**, et **physique** (imprimés wax, textiles — un vrai marché ouest-africain). Activer progressivement selon la demande.
+**Vivants** : `digital` (fichiers), `ebook`, `membership` (récurrent), **`course` (formation — oublié dans la v10)**, `physical` (avec expédition), `bundle` (packs), `commission` (services), `call` (consultations), `coffee` (soutien libre).
+
+**Dépréciés** (`LEGACY_TYPES`) : ~~`newsletter`~~, ~~`podcast`~~, ~~`audiobook`~~ — Gumroad les a lui-même abandonnés.
+
+Groupement utile relevé : `SERVICE_TYPES = [commission, call, coffee]`, qui recoupe exactement le bloc « Services » du plan.
+
+**Pour Baobart** : la maquette a déjà les familles (Mockups, Logos, Fonts…) — le typage permet en plus : **packs (bundle)**, **membreships** (soutenir un créateur), **soutien libre (coffee)**, **formations (`course`)** et **physique** (imprimés wax, textiles — un vrai marché ouest-africain). En revanche, ne pas suivre Gumroad sur podcast/audiobook : il les abandonne.
 
 #### F. Outils vendeurs & divers — 🟡
 
@@ -310,7 +349,14 @@ Exploration systématique du dépôt au-delà du commerce de base. Chaque élém
 
 #### D. « Boost de découverte » payant — 🟠 (monétisation native)
 
-`DEFAULT_BOOSTED_DISCOVER_FEE_PER_THOUSAND = 300` — Gumroad permet aux **vendeurs de payer pour plus de visibilité** dans Discover (fra par millier d'impressions). **Pour Baobart** : un système « mettre en avant mon shot / ma ressource » (visibilité feed + newsletter) — à rapprocher du **sponsoring** (§2.9) et du boost de service. C'est un revenu B2B simple qui pousse l'adoption (les créateurs paient pour exister face à la concurrence).
+> ❌ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §2.2. **Ce n'est pas de la publicité.**
+> `_per_thousand` signifie « **pour mille** », pas « par millier d'impressions » : c'est un
+> dénominateur de pourcentage. `links.discover_fee_per_thousand` vaut **100 par défaut (10 %)** ;
+> le vendeur qui veut être mieux classé la **monte jusqu'à 300**, c'est-à-dire qu'il accepte de
+> céder **30 % au lieu de 10 % sur les ventes issues du feed**. Aucune impression n'est vendue,
+> aucun budget n'est avancé.
+
+**Pour Baobart** : ce modèle est bien meilleur que le CPM sur ce marché — **le créateur n'avance rien** et ne paie que si la plateforme lui a effectivement vendu quelque chose. Vendre des impressions à des créateurs sans trésorerie revient à leur vendre du risque. À ne **pas** confondre avec le **sponsoring** (§2.9), qui reste un vrai achat d'espace destiné aux annonceurs : ce sont deux produits distincts.
 
 #### E. Synthèse zones admin/sécurité/ops
 
@@ -687,6 +733,18 @@ Community → ForumCategory → ForumTopic → ForumPost ; ForumMembership (rôl
 ## 6. Les 4 modules à construire
 
 ### 6.1 Monnaies africaines + mobile money (+ abonnements)
+
+> ➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §3.1, §7.1. Deux points :
+> **(a)** rien n'est à porter depuis Gumroad pour la tarification en FCFA — les devises
+> africaines n'y servent qu'aux versements. Ce module est **intégralement à écrire**, et il
+> faudra y fixer un **prix plancher** par devise (sans lui, les parts fixes rendent les petits
+> produits déficitaires pour le créateur).
+> **(b)** en revanche, l'abstraction `ChargeProcessor` est **directement transposable** : son
+> cycle `créer l'intention → confirmer → encaisser`, avec une fenêtre d'authentification de
+> 15 minutes, a exactement la forme d'un paiement mobile money — on crée une demande,
+> l'acheteur valide sur son téléphone par OTP ou USSD, l'encaissement se confirme.
+> Orange Money, Wave et MTN entrent dans ce contrat sans le déformer.
+
 - Devise par défaut **XOF**, bascule vendeur (XOF, NGN, GHS, KES, ZAR, MAD, USD).
 - **FCFA sans cents** : entiers FCFA (adapter, pas copier, le modèle cents de Gumroad).
 - Formatage localisé : `180 000 F`, `₦45 000`, `GH₵120`, `KSh 5 000`.
@@ -847,14 +905,32 @@ lib/ai-assistant/
 Implémentation détaillée des éléments 🔴 du §3.4 dans l'architecture Next.js. **Ordre recommandé** : 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
 
 ### 10.1 Affiliation (peer + ambassadeurs) — M3-M4
-- **Données** : `Affiliate` (créateur/vendeur), `AffiliateRequest` (demande de devenir affilié), `AffiliateCredit` (commission), cookie `ref` **7 jours** (pattern `AFFILIATE_COOKIE_LIFETIME_DAYS`).
+
+> ❌➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §6.1-6.3.
+
+- **Données** : `Affiliate` (créateur/vendeur), `AffiliateRequest` (demande de devenir affilié), `AffiliateCredit` (commission), cookie `ref` : **30 jours** entre créateurs (`DirectAffiliate`) et **7 jours** pour les ambassadeurs (`GlobalAffiliate`) — ~~7 jours~~ pour les deux était une erreur de la v10.
+- **Règle vérifiée à porter** : un **affilié direct ne touche rien sur une vente issue du feed** — c'est la plateforme qui a amené l'acheteur. Même principe que les deux régimes de commission (§2.4).
+- **Deux finesses à conserver** : aucun crédit sur son propre achat ; et le retrait d'un vendeur du programme s'applique aux **renouvellements** d'abonnements déjà référés, sinon il paie à vie sur un parrainage qu'il ne peut plus dénoncer — sans pour autant re-juger rétroactivement les conditions d'origine.
+- **Part de l'affilié** (formule vérifiée) : `(basis_points / 10 000) × prix affiché − (basis_points / 10 000) × commission plateforme`, arrondie au plancher ; un drapeau bascule cette quote-part sur le vendeur. Les `basis_points` peuvent être définis **par produit**. **Portée** dans `lib/domain/fees.ts`.
 - **Mécanique** : cookie `?ref=<id>` → à l'achat, crédit `affiliate_basis_points` (en % — ex. 10 %) ajouté au solde de l'affilié via `BalanceTransaction`.
 - **Ambassadeurs** (programme global Baobart) : les influenceurs créatifs africains réfèrent des créateurs ; commission sur leurs ventes.
 - **Renouvellements** : crédit sur les renouvellements d'abonnements (pattern confirmé dans `affiliate.rb`).
 - **UI** : section « Affiliation » dans le dashboard (lien personnel, taux, gains).
 
 ### 10.2 Codes promo — M2
+
+> ❌ **Vérifié le 2 août 2026** contre `app/models/offer_code.rb` → `VERIFICATION_GUMROAD.md` §6.4.
+> Le modèle réel fait **trois fois plus** que ce que décrivait la v10.
+
 - **Données** : `OfferCode` (code, type %, montant fixe, durée, usages max, produits cibles/exclus, `is_cancellation_discount`).
+- **Mécaniques supplémentaires vérifiées** :
+  - **remises par ancienneté** — jusqu'à 10 paliers : la remise varie selon depuis combien de temps l'acheteur possède le produit ou l'abonnement. **Levier de fidélisation absent de la v10** ;
+  - **remises par défaut**, appliquées sans qu'aucun code soit saisi ;
+  - **ciblage des clients existants** (les inclure ou les exclure) ;
+  - **codes universels**, valables sur toute la boutique ;
+  - **codes sans code** : un `OfferCode` rattaché à un upsell ne porte que la remise ;
+  - **évaluation par acheteur** — la remise n'est pas une valeur figée ;
+  - **plancher de prix** : un code ne peut pas passer sous le prix minimum de la devise, sauf à amener exactement à zéro.
 - **Usages Baobart** : lancement (-30 %), partenariats, **anti-résiliation d'abonnement** (code de remise pour un abonné qui veut partir), campagnes de fin d'année.
 - **UI** : création depuis le dashboard (assistée par l'IA en M7) + affichage au checkout.
 
@@ -865,12 +941,27 @@ Implémentation détaillée des éléments 🔴 du §3.4 dans l'architecture Nex
 - **UI** : email template + page de reprise du panier.
 
 ### 10.4 Échelonnement des paiements — M2-M3
+
+> ✅ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §6.6. Le reste va bien sur la
+> **première** tranche. Deux règles à ajouter : seuls `call`, `course`, `digital`, `ebook`
+> et `bundle` y ont droit (ni abonnements, ni précommandes, ni prix libre), et **chaque
+> tranche** doit rester au-dessus du prix minimum de la devise.
+
 - **Données** : `ProductInstallmentPlan` (nombre de tranches, calcul auto du prix par tranche — pattern `calculate_installment_payment_price_cents` avec reste sur la première).
 - **Mécanique** : produit éligible → l'acheteur choisit « payer en 3× » → 3 prélèvements planifiés ; le créateur est payé progressivement (ou au complet selon règle Baobart).
 - **Pourquoi** : un pack à 100 000 F devient accessible en 3 × 33 333 F — levier de conversion FCFA direct.
 
-### 10.5 Upsell post-achat — M3
-- **Données** : `Upsell` (produit déclencheur → produit/variant proposé après achat), `UpsellPurchase` (trace).
+### 10.5 Upsell ~~post-achat~~ **au checkout** — M3
+
+> ❌ **Vérifié le 2 août 2026** contre `app/models/upsell.rb` → `VERIFICATION_GUMROAD.md` §6.5.
+> Ce sont **deux mécanismes** derrière un seul modèle (booléen `cross_sell`), et ils se jouent
+> **au moment du checkout**, pas seulement après l'achat :
+> **upsell** = monter en gamme sur *le même* produit (variante supérieure) ;
+> **cross-sell** = proposer un *autre* produit, déclenché par le contenu du panier.
+> La remise est portée par un `OfferCode` rattaché, et `paused` existe séparément de
+> `deleted` — on suspend une offre sans la perdre.
+
+- **Données** : `Upsell` (produit déclencheur → produit/variant proposé), `UpsellPurchase` (trace).
 - **Cas Baobart** : « vous avez acheté le pack de 20 motifs → version complète à -40 % », licence étendue, version HD du shot.
 - **UI** : page de remerciement enrichie + email.
 

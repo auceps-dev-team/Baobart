@@ -93,6 +93,22 @@ baobart/
 
 ## 4. Schéma Prisma détaillé
 
+> ### ⚠️ Ce schéma n'est plus la source de vérité
+>
+> Le schéma réel vit dans **`prisma/schema.prisma`**, à la racine du dépôt. Il est
+> implémenté, migré et validé. Ce qui suit est le brouillon de conception, conservé pour
+> mémoire — il contient des erreurs corrigées depuis :
+>
+> - `User.profile` y est déclaré **deux fois** (§4.1) : le schéma ne compile pas tel quel ;
+> - `ShieldLevel` (§4.0) écrit `WATERMARK ONLY` sans souligné, ce qui crée **5 valeurs au lieu de 4** ;
+> - la plupart des relations n'ont qu'une extrémité, ce que Prisma refuse.
+>
+> **Le bloc argent (§4.3) a par ailleurs été refondu** après lecture du code Gumroad
+> (voir `VERIFICATION_GUMROAD.md` §5) : `Balance` est journalier et non unique par vendeur,
+> `BalanceTransaction` porte **six** colonnes monétaires et non une, `refunded` n'est **pas**
+> un statut mais un enregistrement `Refund` — ce qui seul permet le remboursement partiel —
+> et l'état de l'argent vit sur la **ligne d'achat**, pas sur la commande.
+
 ### 4.0 Enums
 
 ```prisma
