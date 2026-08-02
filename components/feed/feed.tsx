@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition } from "react";
 
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
-import { FILTRES, type CarteRessource, type Filtre } from "@/lib/feed/queries";
+import { FILTRES, type CarteRessource, type Filtre } from "@/lib/feed/types";
 
 /**
  * Le feed « Découvre aujourd'hui ».
@@ -23,20 +23,13 @@ export interface FeedProps {
   itemsInitiaux: CarteRessource[];
   curseurInitial: string | null;
   alaUne: CarteRessource[];
-  total: number;
 }
 
-export function Feed({
-  itemsInitiaux,
-  curseurInitial,
-  alaUne,
-  total,
-}: FeedProps) {
+export function Feed({ itemsInitiaux, curseurInitial, alaUne }: FeedProps) {
   const [items, setItems] = useState(itemsInitiaux);
   const [curseur, setCurseur] = useState(curseurInitial);
   const [filtre, setFiltre] = useState<Filtre>("Tous");
   const [styleCarte, setStyleCarte] = useState<StyleCarte>("Sticker");
-  const [compte, setCompte] = useState(total);
   const [survolee, setSurvolee] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, boolean>>({});
   const [epingles, setEpingles] = useState<Record<string, boolean>>({});
@@ -51,7 +44,6 @@ export function Feed({
       const page = await reponse.json();
       setItems(page.items);
       setCurseur(page.nextCursor);
-      setCompte(page.total);
     });
   }, []);
 
@@ -156,7 +148,7 @@ export function Feed({
               marginLeft: 8,
             }}
           >
-            {compte} ressources
+            {items.length} ressources affichées
           </span>
         </div>
       </div>

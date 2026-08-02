@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 
-import {
-  FILTRES,
-  compterRessources,
-  listerFeed,
-  type Filtre,
-} from "@/lib/feed/queries";
+import { compterRessources, listerFeed } from "@/lib/feed/queries";
+import { FILTRES, type Filtre } from "@/lib/feed/types";
 
 /**
  * Page suivante du feed, ou première page d'une famille.

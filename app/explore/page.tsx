@@ -1,9 +1,5 @@
 import { Feed } from "@/components/feed/feed";
-import {
-  compterRessources,
-  listerAlaUne,
-  listerFeed,
-} from "@/lib/feed/queries";
+import { listerAlaUne, listerFeed } from "@/lib/feed/queries";
 
 export const metadata = {
   title: "Explorer — Baobart.",
@@ -14,11 +10,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ExplorerPage() {
-  const [page, alaUne, total] = await Promise.all([
-    listerFeed(),
-    listerAlaUne(),
-    compterRessources(),
-  ]);
+  const [page, alaUne] = await Promise.all([listerFeed(), listerAlaUne()]);
 
   return (
     <main style={{ minHeight: "100vh", background: "#EADFF9", paddingBottom: 72 }}>
@@ -26,7 +18,6 @@ export default async function ExplorerPage() {
         itemsInitiaux={page.items}
         curseurInitial={page.nextCursor}
         alaUne={alaUne}
-        total={total}
       />
     </main>
   );

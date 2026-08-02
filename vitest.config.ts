@@ -6,7 +6,19 @@ const racine = fileURLToPath(new URL(".", import.meta.url));
 
 // Même alias que tsconfig.json. Il doit être posé sur CHAQUE projet : la
 // configuration racine n'est pas héritée par les projets Vitest.
-const resolve = { alias: { "@": racine } };
+//
+// `server-only` est un marqueur : importé hors d'un composant serveur, il lève.
+// C'est exactement ce qu'on veut au build — c'est ce garde qui aurait attrapé
+// Prisma parti dans le bundle navigateur. Mais Vitest n'est ni l'un ni l'autre,
+// donc on le remplace par le module vide que le paquet fournit pour ce cas.
+const resolve = {
+  alias: {
+    "@": racine,
+    "server-only": fileURLToPath(
+      new URL("./node_modules/server-only/empty.js", import.meta.url),
+    ),
+  },
+};
 
 export default defineConfig({
   test: {

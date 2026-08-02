@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 
-import type { CarteRessource } from "@/lib/feed/queries";
+import type { CarteRessource } from "@/lib/feed/types";
 import { formatPrice } from "@/lib/i18n/money";
 
 /**
@@ -300,6 +300,7 @@ export function CarteAlaUne(props: CarteProps) {
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}>
               par {r.author}
+              {r.famille ? ` · ${r.famille}` : ""}
             </div>
           </div>
           <div

@@ -1,49 +1,20 @@
-/**
- * Lecture du feed.
- *
- * Pagination **par curseur** sur `(createdAt, id)` — jamais d'OFFSET
- * (PLAN §8.2-2). L'index composite existe déjà sur `Product`. C'est ce qui
- * permet au feed masonry de rester rapide quelle que soit la profondeur.
- */
+import "server-only";
 
-import type { Currency, ProductFamily, ProductType } from "@prisma/client";
+import type { ProductFamily } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import {
+  FAMILLE_PAR_LIBELLE,
+  LIBELLE_PAR_FAMILLE,
+  type Filtre,
+} from "@/lib/feed/types";
 
-/**
- * La barre de filtres, dans l'ordre exact des maquettes
- * (« Baobart Accueil.dc.html », constante `FILTERS`).
- */
-export const FILTRES = [
-  "Tous",
-  "Illustration",
-  "Photo",
-  "Mockup",
-  "Font",
-  "Icône",
-  "Logo",
-  "Pack",
-  "Art",
-  "Audio",
-  "Vidéo",
-] as const;
-
-export type Filtre = (typeof FILTRES)[number];
-
-/** Libellé affiché → valeur stockée. « Tous » ne filtre rien. */
-const FAMILLE_PAR_LIBELLE: Record<Filtre, ProductFamily | null> = {
-  Tous: null,
-  Illustration: "ILLUSTRATION",
-  Photo: "PHOTO",
-  Mockup: "MOCKUP",
-  Font: "FONT",
-  Icône: "ICONE",
-  Logo: "LOGO",
-  Pack: "PACK",
-  Art: "ART",
-  Audio: "AUDIO",
-  Vidéo: "VIDEO",
-};
+export {
+  FILTRES,
+  type CarteRessource,
+  type Filtre,
+  type PageFeed,
+} from "@/lib/feed/types";
 
 export function familleDepuisLibelle(filtre: Filtre): ProductFamily | null {
   return FAMILLE_PAR_LIBELLE[filtre] ?? null;
@@ -52,28 +23,6 @@ export function familleDepuisLibelle(filtre: Filtre): ProductFamily | null {
 function clauseFamille(filtre: Filtre) {
   const famille = familleDepuisLibelle(filtre);
   return famille ? { family: famille } : {};
-}
-
-export interface CarteRessource {
-  id: string;
-  slug: string;
-  title: string;
-  author: string;
-  authorUsername: string | null;
-  type: ProductType;
-  price: number;
-  currency: Currency;
-  coverUrl: string | null;
-  /** Hauteur du visuel dans la mosaïque — variée pour éviter l'effet damier. */
-  visualHeight: number;
-  isStaffPicked: boolean;
-  createdAt: Date;
-}
-
-export interface PageFeed {
-  items: CarteRessource[];
-  /** Curseur opaque à renvoyer pour la page suivante. `null` = fin du feed. */
-  nextCursor: string | null;
 }
 
 const TAILLE_PAGE = 24;
@@ -121,7 +70,7 @@ export interface ListerFeedInput {
 
 export async function listerFeed(
   input: ListerFeedInput = {},
-): Promise<PageFeed> {
+): Promise<import("@/lib/feed/types").PageFeed> {
   const { cursor = null, limit = TAILLE_PAGE, filtre = "Tous" } = input;
 
   const position = cursor ? decoderCurseur(cursor) : null;
@@ -156,6 +105,7 @@ export async function listerFeed(
       slug: true,
       name: true,
       type: true,
+      family: true,
       price: true,
       currency: true,
       coverUrl: true,
@@ -178,6 +128,7 @@ export async function listerFeed(
       author: p.seller.profile?.displayName ?? "Créateur Baobart",
       authorUsername: p.seller.profile?.username ?? null,
       type: p.type,
+      famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
       price: p.price,
       currency: p.currency,
       coverUrl: p.coverUrl,
@@ -194,7 +145,9 @@ export async function listerFeed(
  * Ce sont les produits de la sélection éditoriale (§3.10-A) — la porte
  * d'entrée qui ne dépend pas d'avoir déjà vendu.
  */
-export async function listerAlaUne(limit = 2): Promise<CarteRessource[]> {
+export async function listerAlaUne(
+  limit = 2,
+): Promise<import("@/lib/feed/types").CarteRessource[]> {
   const lignes = await db.product.findMany({
     where: { status: "PUBLISHED", isStaffPicked: true },
     orderBy: [{ staffPickedAt: "desc" }, { id: "desc" }],
@@ -204,6 +157,7 @@ export async function listerAlaUne(limit = 2): Promise<CarteRessource[]> {
       slug: true,
       name: true,
       type: true,
+      family: true,
       price: true,
       currency: true,
       coverUrl: true,
@@ -222,6 +176,7 @@ export async function listerAlaUne(limit = 2): Promise<CarteRessource[]> {
     author: p.seller.profile?.displayName ?? "Créateur Baobart",
     authorUsername: p.seller.profile?.username ?? null,
     type: p.type,
+    famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
     price: p.price,
     currency: p.currency,
     coverUrl: p.coverUrl,

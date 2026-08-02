@@ -19,34 +19,40 @@ const CREATEURS = [
   { username: "chidi-okonkwo", displayName: "Chidi Okonkwo", city: "Lagos" },
 ];
 
+/**
+ * Les visuels viennent du dossier de design, recopiés dans `public/img/demo/`.
+ * Sans eux la mosaïque n'affiche que sa trame de repli, et on ne peut pas
+ * comparer honnêtement le rendu aux maquettes.
+ */
 const RESSOURCES: Array<{
   name: string;
   family: ProductFamily;
   price: number;
+  cover?: string;
   staffPicked?: boolean;
 }> = [
-  { name: "Portrait Wax Éditorial", family: "PHOTO", price: 0, staffPicked: true },
-  { name: "Illu Femme au Foulard", family: "ILLUSTRATION", price: 5_000 },
-  { name: "Collage Lunettes", family: "ILLUSTRATION", price: 10_000, staffPicked: true },
-  { name: "Pack 20 motifs wax", family: "PACK", price: 25_000 },
-  { name: "Mockup affiche Sandaga", family: "MOCKUP", price: 7_500 },
-  { name: "Typo Sahel Display", family: "FONT", price: 18_000 },
+  { name: "Portrait Wax Éditorial", family: "PHOTO", price: 0, cover: "beaute-afro.jpg", staffPicked: true },
+  { name: "Illu Femme au Foulard", family: "ILLUSTRATION", price: 5_000, cover: "mode-rouge.jpg" },
+  { name: "Collage Lunettes", family: "ILLUSTRATION", price: 10_000, cover: "collage-lunettes.jpg", staffPicked: true },
+  { name: "Pack 20 motifs wax", family: "PACK", price: 25_000, cover: "neon-01.png" },
+  { name: "Mockup affiche Sandaga", family: "MOCKUP", price: 7_500, cover: "packshot-soin.png" },
+  { name: "Typo Sahel Display", family: "FONT", price: 18_000, cover: "neon-02.png" },
   { name: "Icônes transport Abidjan", family: "ICONE", price: 4_000 },
   { name: "Logo coopérative textile", family: "LOGO", price: 0 },
-  { name: "Studio Dakar — série nuit", family: "PHOTO", price: 12_000 },
-  { name: "Peinture Émeraude", family: "ART", price: 180_000 },
+  { name: "Studio Dakar — série nuit", family: "PHOTO", price: 12_000, cover: "studio-01.png" },
+  { name: "Peinture Émeraude", family: "ART", price: 180_000, cover: "emeraude.png" },
   { name: "Boucle kora — 12 samples", family: "AUDIO", price: 9_000 },
-  { name: "Motion néon Lagos", family: "VIDEO", price: 30_000 },
-  { name: "Portraits marché Kermel", family: "PHOTO", price: 0 },
+  { name: "Motion néon Lagos", family: "VIDEO", price: 30_000, cover: "neon-03.png" },
+  { name: "Portraits marché Kermel", family: "PHOTO", price: 0, cover: "mode-blanc-01.png" },
   { name: "Pack icônes cuisine ouest", family: "ICONE", price: 6_000 },
-  { name: "Illu Danseuse Sabar", family: "ILLUSTRATION", price: 8_500 },
-  { name: "Mockup packaging beurre de karité", family: "MOCKUP", price: 11_000 },
+  { name: "Illu Danseuse Sabar", family: "ILLUSTRATION", price: 8_500, cover: "robe-bleue.png" },
+  { name: "Mockup packaging beurre de karité", family: "MOCKUP", price: 11_000, cover: "studio-02.png" },
   { name: "Typo Adinkra Mono", family: "FONT", price: 22_000 },
-  { name: "Affiche Wax Futurism", family: "ART", price: 15_000 },
+  { name: "Affiche Wax Futurism", family: "ART", price: 15_000, cover: "neon-04.png" },
   { name: "Nappe sonore Harmattan", family: "AUDIO", price: 5_500 },
-  { name: "Logotype Baobab moderne", family: "LOGO", price: 13_000 },
-  { name: "Pack 40 textures terre", family: "PACK", price: 28_000 },
-  { name: "Timelapse marché de Treichville", family: "VIDEO", price: 0 },
+  { name: "Logotype Baobab moderne", family: "LOGO", price: 13_000, cover: "neon-05.png" },
+  { name: "Pack 40 textures terre", family: "PACK", price: 28_000, cover: "studio-03.png" },
+  { name: "Timelapse marché de Treichville", family: "VIDEO", price: 0, cover: "mode-blanc-02.png" },
 ];
 
 function slugifier(valeur: string): string {
@@ -103,6 +109,7 @@ async function main() {
         price: r.price,
         currency: "XOF",
         status: "PUBLISHED",
+        coverUrl: r.cover ? `/img/demo/${r.cover}` : null,
         isStaffPicked: r.staffPicked ?? false,
         staffPickedAt: r.staffPicked ? createdAt : null,
         createdAt,
