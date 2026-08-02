@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   BAOBART — STICKER SYSTEM (tokens)
+   Source : Doc/ANALYSE_DESIGN_SYSTEM_BAOBART.md + « Baobart Design System.dc.html »
+   « Deux fonds, deux accents, un noir. Jamais plus de deux accents par écran. »
+   ============================================================================ */
+
+@theme {
+  /* --- Couleurs ---------------------------------------------------------- */
+  --color-lavande-fond: #eadff9; /* fond de page, socle de toutes les vues */
+  --color-lavande-clair: #f4eefc; /* survols, champs de saisie, zones internes */
+  --color-lavande-profond: #c9a8f5; /* blocs d'accent, boutons tertiaires, avatars */
+  --color-jaune: #ffd84a; /* action principale, état actif, prix gratuits */
+  --color-orange: #e2622c; /* marque, likes, alertes — SURFACES uniquement */
+  --color-orange-sombre: #b34a1f; /* le SEUL orange autorisé en texte (§4.2) */
+  --color-encre: #121212; /* contours, texte, blocs contrastés */
+  --color-blanc: #ffffff; /* surfaces, pastilles sur image */
+
+  /* --- Typographie (3 voix : impact / lisibilité / données) --------------- */
+  --font-display: "Archivo Black", "Arial Black", sans-serif;
+  --font-body: "Poppins", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+
+  /* --- Ombres dures : toujours 45°, jamais floues ------------------------- */
+  --shadow-sticker: 4px 4px 0 var(--color-encre); /* carte de liste */
+  --shadow-sticker-md: 6px 6px 0 var(--color-encre); /* bloc de page */
+  --shadow-sticker-lg: 9px 9px 0 var(--color-encre); /* panneau modal */
+  --shadow-sticker-hover: 7px 7px 0 var(--color-encre); /* survol = +3px */
+  --shadow-douce: 0 8px 20px rgb(18 18 18 / 0.16); /* traitement « contour fin » */
+
+  /* --- Rayons ------------------------------------------------------------- */
+  --radius-sticker-sm: 10px;
+  --radius-sticker-md: 16px;
+  --radius-sticker-lg: 24px;
+  --radius-pastille: 999px;
+
+  /* --- Espacement (token manquant relevé §5 de l'analyse) ----------------- */
+  --spacing-baobart: 4px; /* échelle 4/8/12/16/24/32/48 via multiples */
+
+  /* --- Mouvement ---------------------------------------------------------- */
+  --animate-duration-sticker: 130ms;
+}
+
+/* --- Contours & superposition (hors namespace @theme) --------------------- */
+:root {
+  --trait: 2.5px; /* contour standard */
+  --trait-fin: 1.5px; /* traitement « contour fin » */
+  --trait-large: 3px; /* surfaces plein écran */
+  --trait-petit: 2px; /* petits éléments */
+
+  --z-nav: 50;
+  --z-modal: 100;
+  --z-toast: 200;
+}
+
+/* ============================================================================
+   BASE
+   ============================================================================ */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-lavande-fond);
+    color: var(--color-encre);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ::selection {
+    background: var(--color-jaune);
+  }
+
+  /* Focus visible : contour jaune épais (état manquant relevé §5) */
+  :focus-visible {
+    outline: 3px solid var(--color-jaune);
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================================================
+   UTILITAIRES DU SYSTÈME
+   ============================================================================ */
+
+@utility trait {
+  border: var(--trait) solid var(--color-encre);
+}
+
+@utility trait-fin {
+  border: var(--trait-fin) solid var(--color-encre);
+}
+
+@utility trait-large {
+  border: var(--trait-large) solid var(--color-encre);
+}
+
+/* Micro-interaction physique : survol -2/-2 + ombre +3 · clic +2/+2 ombre 0 */
+@utility sticker-press {
+  transition:
+    transform var(--animate-duration-sticker) cubic-bezier(0.2, 0.85, 0.3, 1),
+    box-shadow var(--animate-duration-sticker) cubic-bezier(0.2, 0.85, 0.3, 1),
+    background-color var(--animate-duration-sticker) ease,
+    color var(--animate-duration-sticker) ease;
+
+  &:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-sticker-hover);
+  }
+
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 var(--color-encre);
+  }
+}
+
+/* Trame diagonale 135° : le fond des visuels sans image (§2.3) */
+@utility trame {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-lavande-profond) 0px,
+    var(--color-lavande-profond) 10px,
+    var(--color-lavande-clair) 10px,
+    var(--color-lavande-clair) 20px
+  );
+}
+
+/* Métadonnées : Space Mono majuscules — formats de fichiers, compteurs */
+@utility meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

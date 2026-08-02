@@ -1,0 +1,76 @@
+# ============================================================================
+# BAOBART — stack de développement
+# Source : Doc/SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md
+#
+#   docker compose up -d      → postgres + redis + minio
+#   pnpm db:migrate           → applique le schéma
+#   pnpm dev                  → l'app tourne en local
+#
+# La stack de PRODUCTION (app + worker + caddy) est décrite dans la spec ;
+# elle sera ajoutée quand le worker existera (M1).
+# ============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baobart-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: baobart
+      POSTGRES_PASSWORD: baobart
+      POSTGRES_DB: baobart
+    ports:
+      # 5432 est souvent déjà pris par un autre projet local : on décale l'hôte.
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    command:
+      # Journalise toute requête > 200 ms : l'observabilité commence en M0 (PLAN §8.2-5).
+      - "postgres"
+      - "-c"
+      - "log_min_duration_statement=200"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baobart -d baobart"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: baobart-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: baobart-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: baobart
+      MINIO_ROOT_PASSWORD: baobart-dev-secret
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # console web
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

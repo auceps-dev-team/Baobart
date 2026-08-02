@@ -1,0 +1,30 @@
+# dépendances
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# environnement
+.env
+.env.local
+.env.*.local
+
+# prisma
+prisma/*.db
+prisma/*.db-journal
+
+# tests / build
+coverage/
+*.tsbuildinfo
+
+# éditeurs & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# docker (volumes locaux)
+.docker-data/

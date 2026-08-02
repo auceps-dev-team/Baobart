@@ -1,0 +1,1246 @@
+// ============================================================================
+// BAOBART — Schéma de données
+// Source : Doc/BLUEPRINT_NEXTJS_BAOBART.md §4, corrigé et rendu valide.
+//
+// CORRECTIONS APPORTÉES AU BLUEPRINT :
+//   1. `User.profile` était déclaré deux fois (§4.1) → une seule déclaration.
+//   2. `ShieldLevel` : `WATERMARK ONLY` → `WATERMARK_ONLY` (4 valeurs, pas 5).
+//   3. Toutes les relations ont désormais leurs deux extrémités (exigence Prisma).
+//
+// CONVENTIONS :
+//   - ARGENT : tout montant est un Int, exprimé dans l'unité mineure ISO 4217.
+//     Le XOF ayant 0 décimale, « entiers FCFA » = unité mineure. Voir lib/i18n/money.ts.
+//   - PAGINATION : index composite (createdAt, id) sur toute table paginée en
+//     curseur — jamais d'OFFSET sur les grandes tables (PLAN §8.2).
+//   - COMPTEURS : dénormalisés sur le modèle, mis à jour par jobs async.
+//   - PORTÉE : les relations sont déclarées sur le graphe chaud (auth, social,
+//     commerce, argent). Les modules livrés plus tard (jobs, événements, forum,
+//     croissance) portent des FK scalaires indexées ; leurs relations seront
+//     déclarées quand le module sera construit.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRiskState {
+  NOT_REVIEWED
+  COMPLIANT
+  ON_PROBATION
+  FLAGGED_FRAUD
+  FLAGGED_TOS
+  SUSPENDED_FRAUD
+  SUSPENDED_TOS
+}
+
+enum KycStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TeamRole {
+  ADMIN
+  MARKETING
+  SUPPORT
+  ACCOUNTANT
+}
+
+enum ProductType {
+  DIGITAL
+  BUNDLE
+  COMMISSION
+  CALL
+  COFFEE
+  PHYSICAL
+  MEMBERSHIP
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum WorkItemStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  IN_PROGRESS
+  SUCCESSFUL
+  REFUNDED
+  FAILED
+  NOT_CHARGED
+}
+
+enum BalanceTransactionStatus {
+  ON_HOLD
+  ISSUING
+  PAID
+  FAILED
+}
+
+enum BalanceTransactionType {
+  SALE
+  COMMISSION
+  REFUND
+  PAYOUT
+  AFFILIATE
+  POOL
+  TIP
+}
+
+enum PayoutStatus {
+  PENDING
+  ISSUING
+  PAID
+  FAILED
+  REVERSED
+}
+
+enum PayoutMethod {
+  BANK
+  MOBILE_MONEY
+}
+
+enum LicenseCode {
+  PERSONAL
+  COMMERCIAL
+  EXTENDED
+}
+
+enum LicenseKeyStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PlanCode {
+  DISCOVERY
+  EXPLORER
+  STUDIO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING_CANCELLATION
+  CANCELLED
+  EXPIRED
+}
+
+enum CommunityVisibility {
+  PUBLIC
+  PRIVATE
+  INVITE_ONLY
+}
+
+enum ForumRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+}
+
+enum BadgeCode {
+  VERIFIED_CREATOR
+  TOP_CREATOR
+  NEW_TALENT
+  COMMUNITY_PILLAR
+  VIP_CREATOR
+}
+
+enum JobType {
+  FREELANCE
+  CDD
+  CDI
+  INTERN
+  APPRENTICE
+}
+
+enum JobMode {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
+enum EventKind {
+  CONTEST
+  WORKSHOP
+  CONFERENCE
+  EXHIBITION
+}
+
+// Corrigé : « WATERMARK ONLY » du blueprint créait 5 valeurs au lieu de 4.
+enum ShieldLevel {
+  NONE
+  WATERMARK_ONLY
+  PERTURBATION
+  PERTURBATION_PLUS
+}
+
+enum Currency {
+  XOF
+  NGN
+  GHS
+  KES
+  ZAR
+  MAD
+  USD
+  EUR
+}
+
+enum MediaStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ConsumptionType {
+  DOWNLOAD
+  STREAM
+  READ
+}
+
+// ============================================================================
+// 1. AUTH & UTILISATEURS
+// ============================================================================
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  emailVerified   DateTime?
+  phone           String?       @unique // mobile money (OTP = mode principal en Afrique)
+  passwordHash    String?
+  riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
+  kycStatus       KycStatus     @default(NONE)
+  defaultCurrency Currency      @default(XOF)
+  suspendedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // identité
+  profile  Profile?
+  accounts Account[]
+  sessions Session[]
+  passkeys Passkey[]
+
+  // équipes multi-rôles (§3.10-B)
+  memberships TeamMembership[] @relation("TeamMember")
+  teamSeats   TeamMembership[] @relation("TeamSeller")
+
+  // social visuel
+  workItems WorkItem[]
+  boards    Board[]
+  likes     Like[]
+  comments  Comment[]
+  following Follow[]   @relation("Follower")
+  followers Follow[]   @relation("Following")
+
+  // commerce
+  products Product[]
+  orders   Order[]
+  cart     Cart?
+
+  // argent
+  balance             Balance?
+  balanceTransactions BalanceTransaction[]
+  payouts             Payout[]
+  mobileMoneyAccounts MobileMoneyAccount[]
+
+  // monétisation & réputation
+  subscriptions Subscription[]
+  badges        UserBadge[]
+
+  // communauté
+  communityMemberships CommunityMembership[]
+
+  // médias & notifications
+  mediaAssets   MediaAsset[]
+  notifications Notification[]
+
+  @@index([riskState])
+  @@index([createdAt, id])
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  username      String   @unique
+  displayName   String
+  bio           String?  @db.Text
+  city          String?
+  country       String? // ISO 3166-1 alpha-2
+  avatarUrl     String?
+  bannerUrl     String?
+  isVerified    Boolean  @default(false) // badge « Créateur vérifié »
+  // compteurs dénormalisés (§3.9-H : jamais d'AVG() ni de COUNT() live)
+  ratingAvg     Decimal  @default(0) @db.Decimal(3, 2)
+  ratingCount   Int      @default(0)
+  workCount     Int      @default(0)
+  followerCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([username])
+}
+
+model TeamMembership {
+  id        String    @id @default(cuid())
+  memberId  String
+  sellerId  String
+  role      TeamRole
+  invitedAt DateTime  @default(now())
+  joinedAt  DateTime?
+
+  member User @relation("TeamMember", fields: [memberId], references: [id], onDelete: Cascade)
+  seller User @relation("TeamSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, sellerId])
+  @@index([sellerId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String // google | github | apple | discord | phone…
+  providerAccountId String
+  refreshToken      String? @db.Text
+  accessToken       String? @db.Text
+  expiresAt         Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Passkey {
+  id           String   @id @default(cuid())
+  userId       String
+  credentialId String   @unique
+  publicKey    String   @db.Text
+  counter      Int      @default(0)
+  label        String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================================
+// 2. SOCIAL VISUEL — le cœur Pinterest × Dribbble
+// ============================================================================
+
+model WorkItem {
+  id            String         @id @default(cuid())
+  authorId      String
+  title         String
+  caption       String?        @db.Text
+  coverImageId  String?
+  status        WorkItemStatus @default(PUBLISHED)
+  shieldLevel   ShieldLevel    @default(WATERMARK_ONLY)
+  likesCount    Int            @default(0)
+  commentsCount Int            @default(0)
+  savesCount    Int            @default(0)
+  viewsCount    Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  images   WorkImage[]
+  tags     WorkItemTag[]
+  likes    Like[]
+  comments Comment[]
+  saves    Save[]
+  product  Product?
+
+  @@index([status, createdAt, id]) // pagination curseur du feed
+  @@index([authorId, createdAt])
+}
+
+model WorkImage {
+  id         String @id @default(cuid())
+  workItemId String
+  mediaId    String
+  variant    String @default("original") // original | preview | thumb
+  width      Int?
+  height     Int?
+  position   Int    @default(0)
+
+  workItem WorkItem   @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  media    MediaAsset @relation(fields: [mediaId], references: [id])
+
+  @@index([workItemId])
+  @@index([mediaId])
+}
+
+model Tag {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  name      String
+  usesCount Int           @default(0)
+  workItems WorkItemTag[]
+}
+
+model WorkItemTag {
+  workItemId String
+  tagId      String
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([workItemId, tagId])
+  @@index([tagId])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  workItemId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workItemId])
+  @@index([workItemId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  authorId   String
+  workItemId String
+  parentId   String? // réponses threadées
+  body       String   @db.Text
+  likesCount Int      @default(0)
+  isFlagged  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  workItem WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentThread")
+
+  @@index([workItemId, createdAt])
+  @@index([authorId])
+}
+
+model Board {
+  id           String   @id @default(cuid())
+  ownerId      String
+  title        String
+  description  String?
+  isPublic     Boolean  @default(true)
+  coverImageId String?
+  savesCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  saves Save[]
+
+  @@index([ownerId])
+}
+
+model Save {
+  id         String   @id @default(cuid())
+  boardId    String
+  workItemId String?
+  productId  String?
+  createdAt  DateTime @default(now())
+
+  board    Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  workItem WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, workItemId])
+  @@unique([boardId, productId])
+  @@index([workItemId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+// ============================================================================
+// 3. COMMERCE (logique portée de Gumroad — spécification MIT)
+// ============================================================================
+
+model Product {
+  id            String        @id @default(cuid())
+  sellerId      String
+  workItemId    String?       @unique // le shot devient vendable
+  slug          String        @unique
+  name          String
+  description   String?       @db.Text
+  coverImageId  String?
+  type          ProductType   @default(DIGITAL)
+  status        ProductStatus @default(DRAFT)
+  price         Int // unité mineure — voir lib/i18n/money.ts
+  currency      Currency      @default(XOF)
+  licenseTypeId String?
+
+  // découverte
+  isStaffPicked          Boolean   @default(false) // sélection éditoriale §3.10-A
+  staffPickedAt          DateTime?
+  isBoosted              Boolean   @default(false) // boost payant §10.9
+  discoverFeePerThousand Int?
+
+  // compteurs dénormalisés
+  salesCount     Int     @default(0)
+  downloadsCount Int     @default(0)
+  ratingAvg      Decimal @default(0) @db.Decimal(3, 2)
+  ratingCount    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seller      User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  workItem    WorkItem?     @relation(fields: [workItemId], references: [id])
+  licenseType LicenseType?  @relation(fields: [licenseTypeId], references: [id])
+  files       ProductFile[]
+  variants    Variant[]
+  orderItems  OrderItem[]
+  saves       Save[]
+
+  @@index([status, createdAt, id]) // curseur feed
+  @@index([sellerId, status])
+  @@index([isStaffPicked, staffPickedAt])
+}
+
+model ProductFile {
+  id        String   @id @default(cuid())
+  productId String
+  mediaId   String
+  filename  String
+  sizeBytes Int
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media   MediaAsset @relation(fields: [mediaId], references: [id])
+
+  @@index([productId])
+  @@index([mediaId])
+}
+
+model Variant {
+  id         String @id @default(cuid())
+  productId  String
+  name       String
+  priceDelta Int    @default(0)
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  items     Json     @default("[]") // [{productId, variantId, qty}]
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  buyerId     String
+  status      OrderStatus @default(IN_PROGRESS)
+  total       Int
+  currency    Currency    @default(XOF)
+  provider    String? // flutterwave | paystack | cinetpay | stripe
+  providerRef String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  buyer User        @relation(fields: [buyerId], references: [id])
+  items OrderItem[]
+
+  @@index([buyerId, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String
+  variantId   String?
+  quantity    Int     @default(1)
+  price       Int
+  // Part plateforme figée à la vente (10 % — décision §2.4 encore ouverte).
+  platformFee Int     @default(0)
+
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id])
+  variant    Variant?    @relation(fields: [variantId], references: [id])
+  licenseKey LicenseKey?
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ============================================================================
+// 4. ARGENT — soldes, transactions, payouts
+// ============================================================================
+
+model Balance {
+  id       String   @id @default(cuid())
+  userId   String   @unique
+  unpaid   Int      @default(0)
+  held     Int      @default(0)
+  paid     Int      @default(0)
+  currency Currency @default(XOF)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BalanceTransaction {
+  id          String                   @id @default(cuid())
+  userId      String
+  type        BalanceTransactionType
+  amount      Int
+  currency    Currency                 @default(XOF)
+  status      BalanceTransactionStatus @default(ON_HOLD)
+  orderItemId String?
+  payoutId    String?
+  createdAt   DateTime                 @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payout Payout? @relation(fields: [payoutId], references: [id])
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+model Payout {
+  id            String       @id @default(cuid())
+  userId        String
+  method        PayoutMethod
+  provider      String // om | mtn | wave | moov | bank | stripe
+  accountRef    String
+  amount        Int
+  currency      Currency     @default(XOF)
+  status        PayoutStatus @default(PENDING)
+  scheduledDate DateTime? // projection « quand serai-je payé » §3.9-A
+  processedAt   DateTime?
+  isInstant     Boolean      @default(false)
+  failureReason String?
+  createdAt     DateTime     @default(now())
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions BalanceTransaction[]
+
+  @@index([userId, status])
+  @@index([status, scheduledDate])
+}
+
+model MobileMoneyAccount {
+  id         String    @id @default(cuid())
+  userId     String
+  provider   String // om | mtn | moov | wave
+  phone      String
+  country    String
+  verifiedAt DateTime?
+  kycStatus  KycStatus @default(NONE)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model ExchangeRate {
+  id   String   @id @default(cuid())
+  from Currency
+  to   Currency
+  rate Decimal  @db.Decimal(18, 8)
+  date DateTime @default(now()) @db.Date
+
+  @@unique([from, to, date])
+}
+
+// ============================================================================
+// 5. MONÉTISATION & LICENCES
+// ============================================================================
+
+model Plan {
+  id                String       @id @default(cuid())
+  code              PlanCode     @unique
+  name              String
+  priceMonthly      Int // unité mineure XOF
+  downloadsPerMonth Int? // null = illimité (Studio)
+  licenseIncluded   LicenseCode?
+  shieldLevel       ShieldLevel  @default(NONE)
+  features          Json         @default("{}")
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  userId          String
+  planId          String
+  status          SubscriptionStatus @default(ACTIVE)
+  cycleStart      DateTime           @default(now())
+  cycleEnd        DateTime
+  paymentProvider String?
+  providerRef     String?
+  cancelledAt     DateTime?
+  createdAt       DateTime           @default(now())
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan   Plan            @relation(fields: [planId], references: [id])
+  quotas DownloadQuota[]
+
+  @@index([userId, status])
+  @@index([status, cycleEnd])
+}
+
+model DownloadQuota {
+  id             String @id @default(cuid())
+  subscriptionId String
+  period         String // « 2026-08 »
+  used           Int    @default(0)
+  limit          Int
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, period])
+}
+
+model ConsumptionEvent {
+  id         String          @id @default(cuid())
+  userId     String?
+  productId  String
+  eventType  ConsumptionType
+  platform   String? // détecté depuis le user-agent
+  consumedAt DateTime        @default(now())
+
+  @@index([productId, consumedAt])
+  @@index([userId, consumedAt])
+}
+
+model LicenseType {
+  id           String      @id @default(cuid())
+  code         LicenseCode @unique
+  title        String
+  description  String      @db.Text
+  conditions   Json        @default("{}") // print, edition, broadcast, merchandising…
+  pricePremium Int? // licence étendue payante
+
+  products Product[]
+}
+
+model LicenseKey {
+  id          String           @id @default(cuid())
+  productId   String
+  orderItemId String           @unique
+  serial      String           @unique // XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX
+  status      LicenseKeyStatus @default(ACTIVE)
+  usesCount   Int              @default(0)
+  disabledAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model RevenuePool {
+  id            String    @id @default(cuid())
+  periodStart   DateTime
+  periodEnd     DateTime
+  totalAmount   Int
+  creatorsShare Int // 60-70 % redistribué (§2.4)
+  distributedAt DateTime?
+
+  allocations RevenuePoolAllocation[]
+
+  @@unique([periodStart, periodEnd])
+}
+
+model RevenuePoolAllocation {
+  id             String @id @default(cuid())
+  poolId         String
+  userId         String
+  amount         Int
+  downloadsCount Int
+
+  pool RevenuePool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, userId])
+  @@index([userId])
+}
+
+// ============================================================================
+// 6. GAMIFICATION
+// ============================================================================
+
+model Badge {
+  id          String    @id @default(cuid())
+  code        BadgeCode @unique
+  name        String
+  description String
+  criteria    Json      @default("{}") // formules publiées — transparence §2.6
+
+  awards UserBadge[]
+}
+
+model UserBadge {
+  id         String    @id @default(cuid())
+  userId     String
+  badgeId    String
+  awardedAt  DateTime  @default(now())
+  validUntil DateTime? // cycles glissants
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+// ============================================================================
+// 7. JOBS, ÉVÉNEMENTS, SERVICES  (M3-M4 — FK scalaires pour l'instant)
+// ============================================================================
+
+model JobPosting {
+  id          String    @id @default(cuid())
+  recruiterId String
+  title       String
+  type        JobType
+  mode        JobMode
+  country     String?
+  city        String?
+  salaryMin   Int?
+  salaryMax   Int?
+  currency    Currency  @default(XOF)
+  description String    @db.Text
+  deadline    DateTime?
+  status      String    @default("published") // draft | published | filled | closed
+  isFeatured  Boolean   @default(false) // offre payante §2.9
+  isVerified  Boolean   @default(false) // badge « Offre vérifiée » — anti-arnaque
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([recruiterId])
+}
+
+model Event {
+  id                String    @id @default(cuid())
+  organizerId       String
+  title             String
+  kind              EventKind
+  startsAt          DateTime
+  endsAt            DateTime
+  location          String?
+  isOnline          Boolean   @default(false)
+  ticketPrice       Int?
+  currency          Currency  @default(XOF)
+  capacity          Int?
+  status            String    @default("upcoming")
+  prizeAmount       Int?
+  jury              Json?
+  participantsCount Int       @default(0)
+  createdAt         DateTime  @default(now())
+
+  registrations EventRegistration[]
+
+  @@index([status, startsAt])
+}
+
+model EventRegistration {
+  id         String   @id @default(cuid())
+  eventId    String
+  userId     String
+  status     String   @default("registered")
+  ticketPaid Int?
+  createdAt  DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model Commission {
+  id               String   @id @default(cuid())
+  sellerId         String
+  buyerId          String
+  productId        String
+  status           String   @default("in_progress") // in_progress | completed | cancelled
+  depositAmount    Int // acompte 50 %
+  completionAmount Int? // solde à la livraison
+  brief            String?  @db.Text
+  createdAt        DateTime @default(now())
+
+  @@index([sellerId, status])
+  @@index([buyerId])
+}
+
+model Call {
+  id          String   @id @default(cuid())
+  sellerId    String
+  buyerId     String
+  productId   String
+  scheduledAt DateTime
+  durationMin Int
+  meetingUrl  String?
+  status      String   @default("scheduled")
+
+  @@index([sellerId, scheduledAt])
+}
+
+// ============================================================================
+// 8. COMMUNAUTÉ & FORUM  (M5)
+// ============================================================================
+
+model Community {
+  id           String              @id @default(cuid())
+  creatorId    String
+  name         String
+  slug         String              @unique
+  description  String?             @db.Text
+  coverImageId String?
+  visibility   CommunityVisibility @default(PUBLIC)
+  memberCount  Int                 @default(0)
+  status       String              @default("active")
+  createdAt    DateTime            @default(now())
+
+  members      CommunityMembership[]
+  categories   ForumCategory[]
+  chatMessages CommunityChatMessage[]
+}
+
+model CommunityMembership {
+  id          String    @id @default(cuid())
+  communityId String
+  userId      String
+  role        ForumRole @default(MEMBER)
+  joinedAt    DateTime  @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+}
+
+model CommunityChatMessage {
+  id          String   @id @default(cuid())
+  communityId String
+  authorId    String
+  body        String   @db.Text
+  createdAt   DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, createdAt])
+}
+
+model ForumCategory {
+  id          String @id @default(cuid())
+  communityId String
+  name        String
+  slug        String
+  position    Int    @default(0)
+
+  community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  topics    ForumTopic[]
+
+  @@unique([communityId, slug])
+}
+
+model ForumTopic {
+  id           String   @id @default(cuid())
+  categoryId   String
+  authorId     String
+  title        String
+  viewsCount   Int      @default(0)
+  repliesCount Int      @default(0)
+  isPinned     Boolean  @default(false)
+  isLocked     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  category ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  posts    ForumPost[]
+
+  @@index([categoryId, createdAt])
+}
+
+model ForumPost {
+  id         String   @id @default(cuid())
+  topicId    String
+  authorId   String
+  body       String   @db.Text
+  likesCount Int      @default(0)
+  isFlagged  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  topic ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String // reply | mention | sale | follow | payout…
+  payload   Json      @default("{}")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+// ============================================================================
+// 9. CROISSANCE  (M2-M7 — FK scalaires pour l'instant)
+// ============================================================================
+
+model Affiliate {
+  id                 String   @id @default(cuid())
+  sellerId           String
+  affiliateUserId    String?
+  type               String   @default("DIRECT") // DIRECT (peer) | GLOBAL (ambassadeur)
+  basisPoints        Int      @default(1000) // 10 %
+  cookieLifetimeDays Int      @default(7)
+  status             String   @default("active")
+  createdAt          DateTime @default(now())
+
+  credits AffiliateCredit[]
+
+  @@index([sellerId])
+  @@index([affiliateUserId])
+}
+
+model AffiliateRequest {
+  id          String   @id @default(cuid())
+  sellerId    String
+  applicantId String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  @@unique([sellerId, applicantId])
+}
+
+model AffiliateCredit {
+  id          String   @id @default(cuid())
+  affiliateId String
+  orderItemId String
+  amount      Int
+  status      String   @default("on_hold")
+  createdAt   DateTime @default(now())
+
+  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId])
+}
+
+model OfferCode {
+  id                     String    @id @default(cuid())
+  sellerId               String
+  code                   String
+  type                   String // PERCENT | FIXED
+  amount                 Int
+  durationDays           Int?
+  maxUses                Int?
+  usesCount              Int       @default(0)
+  isCancellationDiscount Boolean   @default(false)
+  productIds             Json      @default("[]") // [] = tous les produits
+  expiresAt              DateTime?
+  createdAt              DateTime  @default(now())
+
+  @@unique([sellerId, code])
+}
+
+model Upsell {
+  id               String  @id @default(cuid())
+  sellerId         String
+  triggerProductId String
+  offerProductId   String
+  variantId        String?
+  discountPercent  Int?
+  isActive         Boolean @default(true)
+
+  @@index([triggerProductId])
+}
+
+model SentAbandonedCartEmail {
+  id        String   @id @default(cuid())
+  cartId    String   @unique
+  sentAt    DateTime @default(now())
+  converted Boolean  @default(false)
+}
+
+model CustomField {
+  id         String  @id @default(cuid())
+  productId  String
+  name       String
+  fieldType  String // TEXT | CHOICE | BOOLEAN | FILE | TERMS
+  isRequired Boolean @default(false)
+  position   Int     @default(0)
+  options    Json    @default("[]")
+
+  @@index([productId])
+}
+
+model Post {
+  id             String    @id @default(cuid())
+  sellerId       String
+  title          String
+  body           String    @db.Text
+  audienceFilter Json      @default("{}") // tous | acheteurs | followers | segment
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  openRate       Decimal?  @db.Decimal(5, 4)
+  createdAt      DateTime  @default(now())
+
+  deliveries PostDelivery[]
+
+  @@index([sellerId, createdAt])
+}
+
+model PostDelivery {
+  id       String    @id @default(cuid())
+  postId   String
+  email    String
+  status   String    @default("pending") // pending | sent | opened | bounced
+  sentAt   DateTime?
+  openedAt DateTime?
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, status])
+}
+
+// ============================================================================
+// 10. CONFIANCE, MODÉRATION & AUDIT
+// ============================================================================
+
+model BlockedObject {
+  id          String    @id @default(cuid())
+  objectType  String // IP | EMAIL | PHONE | CARD | OBJECT
+  objectValue String
+  reason      String?
+  expiresAt   DateTime? // expiration automatique (6 mois pour les IP)
+  createdAt   DateTime  @default(now())
+
+  @@unique([objectType, objectValue])
+  @@index([expiresAt])
+}
+
+model ModerationLog {
+  id         String   @id @default(cuid())
+  entityType String // product | work_item | comment | forum_post
+  entityId   String
+  reason     String
+  action     String // blocked | flagged | approved
+  actorId    String? // null = automatique
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model FraudWarning {
+  id          String   @id @default(cuid())
+  orderItemId String
+  processor   String
+  riskLevel   String
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  resource  String
+  details   Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([resource, createdAt])
+}
+
+// ============================================================================
+// 11. MÉDIAS — upload direct presign + pipeline Shield
+// ============================================================================
+
+model MediaAsset {
+  id               String      @id @default(cuid())
+  ownerId          String
+  purpose          String // shot | product | avatar | banner | preview
+  s3Key            String      @unique
+  checksum         String
+  sizeBytes        Int
+  contentType      String
+  width            Int?
+  height           Int?
+  status           MediaStatus @default(PROCESSING)
+  shieldLevel      ShieldLevel @default(WATERMARK_ONLY)
+  watermarkPayload String? // ownerId + assetId + horodatage, chiffré
+  c2paManifestId   String?
+  phash            String? // empreinte perceptuelle — recherche inversée
+  createdAt        DateTime    @default(now())
+
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  workImages   WorkImage[]
+  productFiles ProductFile[]
+
+  @@index([ownerId, createdAt])
+  @@index([phash])
+}
+
+model UploadReservation {
+  id           String   @id @default(cuid())
+  ownerId      String
+  purpose      String
+  filename     String
+  byteSize     Int
+  checksum     String
+  s3Key        String   @unique
+  presignedUrl String   @db.Text
+  expiresAt    DateTime
+  status       String   @default("pending") // pending | uploaded | expired
+  createdAt    DateTime @default(now())
+
+  @@index([ownerId, status])
+}
