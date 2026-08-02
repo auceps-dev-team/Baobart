@@ -44,7 +44,7 @@ Doc/          spécifications produit
 Baobart Design/  maquettes .dc.html de référence (non buildées)
 ```
 
-## Trois règles à ne pas casser
+## Quatre règles à ne pas casser
 
 1. **L'argent est un entier.** Tout montant est stocké dans l'unité mineure ISO 4217.
    Le XOF n'ayant pas de décimale, « FCFA entiers » et « unité mineure » sont la
@@ -55,6 +55,11 @@ Baobart Design/  maquettes .dc.html de référence (non buildées)
    les ombres sont dures à 45°, deux accents maximum par écran, le jaune n'est
    jamais du texte et le texte orange est toujours `#B34A1F`.
    → `Doc/ANALYSE_DESIGN_SYSTEM_BAOBART.md`
+4. **Le grand livre est immuable et les soldes se figent.** `BalanceTransaction`
+   n'accepte ni `UPDATE` ni `DELETE` — une erreur se corrige par une écriture
+   inverse. Un `Balance` qui a quitté l'état `UNPAID` a ses montants gelés.
+   Ces deux règles sont tenues par des triggers Postgres, pas par du code
+   applicatif. → `prisma/tests/garde-fous-argent.sql`
 
 ## Déploiement
 

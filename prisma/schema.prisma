@@ -78,19 +78,34 @@ enum WorkItemStatus {
   ARCHIVED
 }
 
+// État de la SESSION de paiement (le panier), pas de l'argent.
 enum OrderStatus {
   IN_PROGRESS
-  SUCCESSFUL
-  REFUNDED
-  FAILED
-  NOT_CHARGED
+  COMPLETED
+  ABANDONED
 }
 
-enum BalanceTransactionStatus {
-  ON_HOLD
-  ISSUING
-  PAID
+// État de l'ARGENT, ligne par ligne. Vérifié dans purchase.rb (state_machine
+// purchase_state) : un panier multi-vendeurs produit une charge par vendeur,
+// donc une ligne peut réussir pendant qu'une autre échoue.
+// `REFUNDED` n'existe volontairement pas : un remboursement est un
+// enregistrement Refund distinct, avec son propre montant — c'est ce qui rend
+// le remboursement PARTIEL représentable.
+enum PurchaseState {
+  IN_PROGRESS
+  SUCCESSFUL
   FAILED
+  NOT_CHARGED // gratuit ou montant nul : livré sans encaissement
+}
+
+// État d'un solde journalier. Porté de balance.rb :
+//   unpaid → processing → paid,  unpaid → forfeited
+// Invariante : les montants ne sont modifiables qu'en état UNPAID.
+enum BalanceState {
+  UNPAID
+  PROCESSING
+  PAID
+  FORFEITED
 }
 
 enum BalanceTransactionType {
@@ -253,7 +268,7 @@ model User {
   cart     Cart?
 
   // argent
-  balance             Balance?
+  balances            Balance[]
   balanceTransactions BalanceTransaction[]
   payouts             Payout[]
   mobileMoneyAccounts MobileMoneyAccount[]
@@ -597,56 +612,147 @@ model Order {
   @@index([status, createdAt])
 }
 
+/// Une ligne d'achat = un produit d'un vendeur. C'est ici que vit l'état de
+/// l'argent (équivalent de `Purchase` chez Gumroad), et non sur la commande :
+/// un panier multi-vendeurs génère une charge par vendeur, dont l'une peut
+/// échouer sans annuler les autres.
 model OrderItem {
-  id          String  @id @default(cuid())
-  orderId     String
-  productId   String
-  variantId   String?
-  quantity    Int     @default(1)
-  price       Int
-  // Part plateforme figée à la vente (10 % — décision §2.4 encore ouverte).
-  platformFee Int     @default(0)
+  id        String        @id @default(cuid())
+  orderId   String
+  productId String
+  variantId String?
+  quantity  Int           @default(1)
+  state     PurchaseState @default(IN_PROGRESS)
+
+  // Décomposition BRUT → NET, figée au moment de la vente. Le net est ce qui
+  // alimente le solde du vendeur : net = price × quantity − les quatre parts.
+  price        Int // prix unitaire encaissé
+  platformFee  Int @default(0) // commission Baobart (§2.4 — 10 % ou 20 %, non tranché)
+  processorFee Int @default(0) // mobile money / carte
+  affiliateFee Int @default(0) // part de l'affilié (§10.1)
+  taxAmount    Int @default(0)
+
+  /// Cumul remboursé, dénormalisé depuis Refund. Permet le remboursement
+  /// PARTIEL, qu'un simple statut « remboursé » ne sait pas exprimer.
+  refundedAmount Int @default(0)
+
+  createdAt DateTime @default(now())
 
   order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product    Product     @relation(fields: [productId], references: [id])
   variant    Variant?    @relation(fields: [variantId], references: [id])
   licenseKey LicenseKey?
+  refunds    Refund[]
 
   @@index([orderId])
   @@index([productId])
+  @@index([state, createdAt])
+}
+
+/// Un remboursement est un ENREGISTREMENT, pas un statut (vérifié : `refunded`
+/// n'est pas un état de `purchase_state` chez Gumroad ; les remboursements sont
+/// des lignes `Refund` avec leur propre montant). Plusieurs remboursements
+/// partiels peuvent s'empiler sur la même ligne d'achat.
+model Refund {
+  id           String   @id @default(cuid())
+  orderItemId  String
+  amount       Int
+  currency     Currency @default(XOF)
+  reason       String?
+  processorRef String?
+  refundedById String? // null = automatique (politique, litige)
+  createdAt    DateTime @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([orderItemId])
+  @@index([createdAt])
 }
 
 // ============================================================================
 // 4. ARGENT — soldes, transactions, payouts
 // ============================================================================
 
+/// Solde JOURNALIER d'un vendeur, pas un solde unique.
+///
+/// Porté de `balance.rb` : une ligne par (vendeur, jour, devise de détention).
+/// C'est ce découpage par jour qui rend le versement par lot possible — sans
+/// lui, impossible de répondre « voici exactement ce qui part mercredi ».
+///
+/// INVARIANTE : `amount` et `holdingAmount` ne sont modifiables qu'en état
+/// UNPAID. Une fois le solde passé en PROCESSING, il est figé — c'est ce qui
+/// empêche une vente tardive de modifier un versement déjà en cours.
+/// À faire respecter dans `lib/domain/balances.ts` ET par un trigger Postgres.
 model Balance {
-  id       String   @id @default(cuid())
-  userId   String   @unique
-  unpaid   Int      @default(0)
-  held     Int      @default(0)
-  paid     Int      @default(0)
-  currency Currency @default(XOF)
+  id     String   @id @default(cuid())
+  userId String
+  date   DateTime @db.Date
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Devise d'encaissement et montant net collecté ce jour-là.
+  currency Currency @default(XOF)
+  amount   Int      @default(0)
+
+  /// Devise de DÉTENTION : ce que Baobart doit réellement au créateur.
+  /// Pour les fonds détenus par Baobart c'est toujours le XOF — la dette est
+  /// libellée dans la devise de versement, jamais dans celle de l'acheteur.
+  holdingCurrency Currency @default(XOF)
+  holdingAmount   Int      @default(0)
+
+  state     BalanceState @default(UNPAID)
+  payoutId  String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  payout       Payout?              @relation(fields: [payoutId], references: [id])
+  transactions BalanceTransaction[]
+
+  @@unique([userId, date, holdingCurrency])
+  @@index([state, date]) // sélection des soldes à verser
+  @@index([userId, state])
 }
 
+/// Grand livre IMMUABLE : une ligne par mouvement d'argent.
+/// Montant positif = crédit au solde, négatif = débit. Jamais de UPDATE ni de
+/// DELETE — une erreur se corrige par une écriture inverse.
+///
+/// Les SIX colonnes monétaires viennent de `balance_transactions` (vérifié dans
+/// db/schema.rb) et ne sont pas un luxe : un acheteur de la diaspora paie en
+/// EUR pendant que le créateur d'Abidjan est crédité en XOF. Avec un montant
+/// unique, on perd soit le montant réellement encaissé, soit la dette réelle.
+///   - issued*  : ce qui a été encaissé, dans la devise de l'acheteur
+///   - holding* : ce que Baobart doit au vendeur, dans sa devise de versement
+///   - gross    : avant frais, taxes et part d'affiliation
+///   - net      : après — c'est le net qui alimente le solde
 model BalanceTransaction {
-  id          String                   @id @default(cuid())
-  userId      String
-  type        BalanceTransactionType
-  amount      Int
-  currency    Currency                 @default(XOF)
-  status      BalanceTransactionStatus @default(ON_HOLD)
+  id         String                 @id @default(cuid())
+  userId     String
+  balanceId  String
+  type       BalanceTransactionType
+  occurredAt DateTime               @default(now())
+
+  issuedCurrency Currency
+  issuedGross    Int
+  issuedNet      Int
+
+  holdingCurrency Currency
+  holdingGross    Int
+  holdingNet      Int
+
+  /// Origine du mouvement — exactement une de ces références est renseignée.
   orderItemId String?
+  refundId    String?
   payoutId    String?
-  createdAt   DateTime                 @default(now())
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payout Payout? @relation(fields: [payoutId], references: [id])
+  createdAt DateTime @default(now())
 
-  @@index([userId, status])
-  @@index([userId, createdAt])
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  balance Balance @relation(fields: [balanceId], references: [id])
+  payout  Payout? @relation(fields: [payoutId], references: [id])
+
+  @@index([userId, occurredAt])
+  @@index([balanceId])
+  @@index([orderItemId])
 }
 
 model Payout {
@@ -664,7 +770,8 @@ model Payout {
   failureReason String?
   createdAt     DateTime     @default(now())
 
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  balances     Balance[]
   transactions BalanceTransaction[]
 
   @@index([userId, status])
