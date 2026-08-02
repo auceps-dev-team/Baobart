@@ -66,6 +66,21 @@ enum ProductType {
   MEMBERSHIP
 }
 
+/// Les familles de la barre de filtres du feed, dans l'ordre exact des
+/// maquettes (« Baobart Accueil.dc.html », constante FILTERS).
+enum ProductFamily {
+  ILLUSTRATION
+  PHOTO
+  MOCKUP
+  FONT
+  ICONE
+  LOGO
+  PACK
+  ART
+  AUDIO
+  VIDEO
+}
+
 enum ProductStatus {
   DRAFT
   PUBLISHED
@@ -568,17 +583,22 @@ model Follow {
 // ============================================================================
 
 model Product {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   sellerId      String
-  workItemId    String?       @unique // le shot devient vendable
-  slug          String        @unique
+  workItemId    String?        @unique // le shot devient vendable
+  slug          String         @unique
   name          String
-  description   String?       @db.Text
+  description   String?        @db.Text
   coverImageId  String?
-  type          ProductType   @default(DIGITAL)
-  status        ProductStatus @default(DRAFT)
+  type          ProductType    @default(DIGITAL)
+  /// Famille affichée dans la barre de filtres du feed.
+  family        ProductFamily?
+  status        ProductStatus  @default(DRAFT)
+  /// URL CDN de la couverture, dénormalisée : le feed en affiche des dizaines
+  /// par page et ne doit pas résoudre un MediaAsset par carte (PLAN §8.2).
+  coverUrl      String?
   price         Int // unité mineure — voir lib/i18n/money.ts
-  currency      Currency      @default(XOF)
+  currency      Currency       @default(XOF)
   licenseTypeId String?
 
   // découverte
@@ -605,6 +625,7 @@ model Product {
   saves       Save[]
 
   @@index([status, createdAt, id]) // curseur feed
+  @@index([status, family, createdAt, id]) // curseur feed filtré par famille
   @@index([sellerId, status])
   @@index([isStaffPicked, staffPickedAt])
 }
