@@ -8,6 +8,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 
 if (existsSync(".env")) {
   process.loadEnvFile(".env");
@@ -40,13 +41,12 @@ run("docker", [
 ]);
 
 console.log("Application des migrations…");
-// `npx.cmd` sous Windows plutôt que `shell: true` : passer des arguments à
-// travers un shell les concatène sans les échapper.
-run(process.platform === "win32" ? "npx.cmd" : "npx", [
-  "prisma",
-  "migrate",
-  "deploy",
-], {
+// On appelle l'entrée JS de Prisma avec le Node courant, plutôt que `npx`.
+// Deux raisons : `shell: true` concatène les arguments sans les échapper, et
+// Node 24 refuse d'exécuter un `.cmd` sans shell — donc `npx.cmd` échoue aussi.
+// Résoudre le module contourne les deux et ne dépend pas de la plateforme.
+const prisma = createRequire(import.meta.url).resolve("prisma/build/index.js");
+run(process.execPath, [prisma, "migrate", "deploy"], {
   env: { ...process.env, DATABASE_URL: url },
 });
 
