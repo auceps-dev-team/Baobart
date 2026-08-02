@@ -1,0 +1,418 @@
+/**
+ * Le parcours complet, contre une vraie base : acheter → encaisser → créditer
+ * le créateur → télécharger.
+ *
+ * Ces tests ne vérifient pas la logique (les tests unitaires s'en chargent) :
+ * ils vérifient que le **câblage** tient — transactions, triggers, quotas,
+ * compteurs.
+ */
+
+import { beforeEach, describe, expect, it } from "vitest";
+
+import { db } from "@/lib/db";
+import { soldeVersableJusqua } from "@/lib/domain/balances";
+import { autoriserTelechargement } from "@/lib/domain/downloads";
+import { encaisserLigne, rembourserLigne } from "@/lib/domain/orders";
+
+const MO = 1024 * 1024;
+
+async function creerCreateur(suffixe = "") {
+  return db.user.create({
+    data: { email: `awa${suffixe}@baobart.test`, defaultCurrency: "XOF" },
+  });
+}
+
+async function creerProduitAvecFichier(sellerId: string, prix: number) {
+  const produit = await db.product.create({
+    data: {
+      sellerId,
+      slug: `pack-wax-${Math.random().toString(36).slice(2, 9)}`,
+      name: "Pack motifs wax",
+      price: prix,
+      currency: "XOF",
+      status: "PUBLISHED",
+    },
+  });
+
+  const media = await db.mediaAsset.create({
+    data: {
+      ownerId: sellerId,
+      purpose: "product",
+      s3Key: `produits/${produit.id}/pack.zip`,
+      checksum: "abc",
+      sizeBytes: 200 * MO,
+      contentType: "application/zip",
+      status: "READY",
+    },
+  });
+
+  const fichier = await db.productFile.create({
+    data: {
+      productId: produit.id,
+      mediaId: media.id,
+      filename: "pack-motifs-wax.zip",
+      sizeBytes: 200 * MO,
+    },
+  });
+
+  return { produit, fichier };
+}
+
+async function creerCommande(buyerId: string, productId: string, prix: number) {
+  const commande = await db.order.create({
+    data: { buyerId, total: prix, currency: "XOF", status: "IN_PROGRESS" },
+  });
+
+  return db.orderItem.create({
+    data: { orderId: commande.id, productId, price: prix, quantity: 1 },
+  });
+}
+
+describe("encaissement d'une vente", () => {
+  let createur: Awaited<ReturnType<typeof creerCreateur>>;
+  let acheteur: Awaited<ReturnType<typeof creerCreateur>>;
+
+  beforeEach(async () => {
+    createur = await creerCreateur("-vendeuse");
+    acheteur = await creerCreateur("-acheteur");
+  });
+
+  it("fige les frais, crédite le créateur et écrit au grand livre", async () => {
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+
+    const { frais, mouvement } = await encaisserLigne({
+      orderItemId: ligne.id,
+      regime: "DIRECT",
+    });
+
+    // La ligne porte la décomposition, figée.
+    const relue = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
+    expect(relue.state).toBe("SUCCESSFUL");
+    expect(relue.platformFee).toBe(1_000);
+    expect(relue.processorFee).toBe(150);
+
+    // Le créateur a été crédité de son net, et de rien d'autre.
+    const solde = await db.balance.findFirstOrThrow({
+      where: { userId: createur.id },
+    });
+    expect(solde.holdingAmount).toBe(frais.sellerNet);
+    expect(solde.state).toBe("UNPAID");
+
+    // Le mouvement porte les deux devises et les deux niveaux.
+    expect(mouvement).toMatchObject({
+      type: "SALE",
+      issuedGross: 10_000,
+      issuedNet: frais.sellerNet,
+      issuedCurrency: "XOF",
+      holdingCurrency: "XOF",
+    });
+  });
+
+  it("prélève davantage quand la vente vient du feed", async () => {
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const l1 = await creerCommande(acheteur.id, produit.id, 10_000);
+    const direct = await encaisserLigne({ orderItemId: l1.id, regime: "DIRECT" });
+
+    const l2 = await creerCommande(acheteur.id, produit.id, 10_000);
+    const feed = await encaisserLigne({
+      orderItemId: l2.id,
+      regime: "DECOUVERTE",
+    });
+
+    expect(feed.frais.sellerNet).toBeLessThan(direct.frais.sellerNet);
+  });
+
+  it("regroupe deux ventes du même jour sur un seul solde", async () => {
+    const { produit } = await creerProduitAvecFichier(createur.id, 5_000);
+    const l1 = await creerCommande(acheteur.id, produit.id, 5_000);
+    const l2 = await creerCommande(acheteur.id, produit.id, 5_000);
+
+    await encaisserLigne({ orderItemId: l1.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: l2.id, regime: "DIRECT" });
+
+    const soldes = await db.balance.findMany({ where: { userId: createur.id } });
+    expect(soldes).toHaveLength(1);
+
+    const mouvements = await db.balanceTransaction.findMany({
+      where: { userId: createur.id },
+    });
+    expect(mouvements).toHaveLength(2);
+  });
+
+  it("livre un produit gratuit sans rien encaisser", async () => {
+    const { produit } = await creerProduitAvecFichier(createur.id, 0);
+    const ligne = await creerCommande(acheteur.id, produit.id, 0);
+
+    const { mouvement } = await encaisserLigne({
+      orderItemId: ligne.id,
+      regime: "DIRECT",
+    });
+
+    const relue = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
+    expect(relue.state).toBe("NOT_CHARGED");
+    expect(mouvement).toBeNull();
+    expect(await db.balance.count({ where: { userId: createur.id } })).toBe(0);
+  });
+
+  it("refuse d'encaisser deux fois la même ligne", async () => {
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await expect(
+      encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" }),
+    ).rejects.toThrow(/déjà en état/);
+
+    expect(
+      await db.balanceTransaction.count({ where: { userId: createur.id } }),
+    ).toBe(1);
+  });
+});
+
+describe("remboursement", () => {
+  it("débite le créateur au prorata de son net, sans lui faire rendre la commission", async () => {
+    const createur = await creerCreateur("-v2");
+    const acheteur = await creerCreateur("-a2");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+
+    const { frais } = await encaisserLigne({
+      orderItemId: ligne.id,
+      regime: "DIRECT",
+    });
+
+    // Remboursement de la moitié.
+    const { partNette } = await rembourserLigne({
+      orderItemId: ligne.id,
+      amount: 5_000,
+      reason: "geste commercial",
+    });
+
+    expect(partNette).toBe(Math.round(frais.sellerNet / 2));
+
+    const solde = await db.balance.findFirstOrThrow({
+      where: { userId: createur.id },
+    });
+    expect(solde.holdingAmount).toBe(frais.sellerNet - partNette);
+
+    const relue = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
+    expect(relue.refundedAmount).toBe(5_000);
+    // Le statut ne bouge pas : c'est le RemboursEment qui porte l'information.
+    expect(relue.state).toBe("SUCCESSFUL");
+  });
+
+  it("empile plusieurs remboursements partiels", async () => {
+    const createur = await creerCreateur("-v3");
+    const acheteur = await creerCreateur("-a3");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+
+    await rembourserLigne({ orderItemId: ligne.id, amount: 3_000 });
+    await rembourserLigne({ orderItemId: ligne.id, amount: 2_000 });
+
+    const relue = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
+    expect(relue.refundedAmount).toBe(5_000);
+    expect(await db.refund.count({ where: { orderItemId: ligne.id } })).toBe(2);
+  });
+
+  it("refuse de rembourser plus que ce qui a été encaissé", async () => {
+    const createur = await creerCreateur("-v4");
+    const acheteur = await creerCreateur("-a4");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+
+    await expect(
+      rembourserLigne({ orderItemId: ligne.id, amount: 10_001 }),
+    ).rejects.toThrow(RangeError);
+  });
+});
+
+describe("le grand livre est immuable en base", () => {
+  it("refuse de modifier une écriture, trigger Postgres à l'appui", async () => {
+    const createur = await creerCreateur("-v5");
+    const acheteur = await creerCreateur("-a5");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    const { mouvement } = await encaisserLigne({
+      orderItemId: ligne.id,
+      regime: "DIRECT",
+    });
+
+    await expect(
+      db.balanceTransaction.update({
+        where: { id: mouvement!.id },
+        data: { issuedNet: 0 },
+      }),
+    ).rejects.toThrow(/immuable/);
+  });
+
+  it("refuse de créditer un solde déjà parti en versement", async () => {
+    const createur = await creerCreateur("-v6");
+    const acheteur = await creerCreateur("-a6");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+
+    const l1 = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: l1.id, regime: "DIRECT" });
+
+    // Le versement démarre : le solde du jour se fige.
+    const solde = await db.balance.findFirstOrThrow({
+      where: { userId: createur.id },
+    });
+    await db.balance.update({
+      where: { id: solde.id },
+      data: { state: "PROCESSING" },
+    });
+
+    const l2 = await creerCommande(acheteur.id, produit.id, 10_000);
+    await expect(
+      encaisserLigne({ orderItemId: l2.id, regime: "DIRECT" }),
+    ).rejects.toThrow(/figés/);
+  });
+});
+
+describe("téléchargement", () => {
+  it("autorise l'acheteur, compte la consommation et calcule la durée d'URL", async () => {
+    const createur = await creerCreateur("-v7");
+    const acheteur = await creerCreateur("-a7");
+    const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+
+    const r = await autoriserTelechargement({
+      userId: acheteur.id,
+      productFileId: fichier.id,
+      userAgent: "Mozilla/5.0 (Linux; Android 14)",
+      ipAddress: "41.82.0.1",
+    });
+
+    expect(r.decision).toEqual({ autorise: true, consommeQuota: false });
+    // 200 Mo sur une connexion lente : il faut plus de 4 heures.
+    expect(r.dureeUrlSecondes).toBeGreaterThan(4 * 3600);
+
+    const evenement = await db.consumptionEvent.findFirstOrThrow({
+      where: { userId: acheteur.id },
+    });
+    expect(evenement.platform).toBe("ANDROID");
+    expect(evenement.orderItemId).toBe(ligne.id);
+
+    const relu = await db.product.findUniqueOrThrow({ where: { id: produit.id } });
+    expect(relu.downloadsCount).toBe(1);
+  });
+
+  it("refuse quelqu'un qui n'a rien acheté", async () => {
+    const createur = await creerCreateur("-v8");
+    const curieux = await creerCreateur("-curieux");
+    const { fichier } = await creerProduitAvecFichier(createur.id, 10_000);
+
+    const r = await autoriserTelechargement({
+      userId: curieux.id,
+      productFileId: fichier.id,
+    });
+
+    expect(r.decision).toEqual({
+      autorise: false,
+      raison: "COMMANDE_NON_PAYEE",
+    });
+    expect(await db.consumptionEvent.count()).toBe(0);
+  });
+
+  it("refuse après un remboursement intégral", async () => {
+    const createur = await creerCreateur("-v9");
+    const acheteur = await creerCreateur("-a9");
+    const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await rembourserLigne({ orderItemId: ligne.id, amount: 10_000 });
+
+    const r = await autoriserTelechargement({
+      userId: acheteur.id,
+      productFileId: fichier.id,
+    });
+
+    expect(r.decision).toEqual({ autorise: false, raison: "REMBOURSE" });
+  });
+
+  it("décompte le quota d'un abonné, puis le laisse re-télécharger gratuitement", async () => {
+    const createur = await creerCreateur("-v10");
+    const abonne = await creerCreateur("-abonne");
+    const { fichier } = await creerProduitAvecFichier(createur.id, 0);
+
+    const plan = await db.plan.upsert({
+      where: { code: "EXPLORER" },
+      update: { downloadsPerMonth: 2 },
+      create: {
+        code: "EXPLORER",
+        name: "Explorer",
+        priceMonthly: 2_500,
+        downloadsPerMonth: 2,
+      },
+    });
+    await db.subscription.create({
+      data: {
+        userId: abonne.id,
+        planId: plan.id,
+        status: "ACTIVE",
+        cycleEnd: new Date(Date.now() + 30 * 86_400_000),
+      },
+    });
+
+    const premier = await autoriserTelechargement({
+      userId: abonne.id,
+      productFileId: fichier.id,
+    });
+    expect(premier.decision).toEqual({ autorise: true, consommeQuota: true });
+
+    const quota = await db.downloadQuota.findFirstOrThrow({});
+    expect(quota.used).toBe(1);
+
+    // Deuxième téléchargement du MÊME fichier : le droit est déjà acquis.
+    const second = await autoriserTelechargement({
+      userId: abonne.id,
+      productFileId: fichier.id,
+    });
+    expect(second.decision).toEqual({ autorise: true, consommeQuota: false });
+
+    const quotaApres = await db.downloadQuota.findFirstOrThrow({});
+    expect(quotaApres.used).toBe(1);
+  });
+});
+
+describe("projection des versements sur données réelles", () => {
+  it("additionne les soldes non versés jusqu'à la fin de période", async () => {
+    const createur = await creerCreateur("-v11");
+    const acheteur = await creerCreateur("-a11");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+
+    const l1 = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({
+      orderItemId: l1.id,
+      regime: "DIRECT",
+      date: new Date("2026-07-20T10:00:00Z"),
+    });
+
+    const l2 = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({
+      orderItemId: l2.id,
+      regime: "DIRECT",
+      date: new Date("2026-07-28T10:00:00Z"),
+    });
+
+    // Arrêté au 24 juillet : seule la première vente compte.
+    const au24 = await soldeVersableJusqua(
+      db,
+      createur.id,
+      new Date("2026-07-24T00:00:00Z"),
+    );
+    const au31 = await soldeVersableJusqua(
+      db,
+      createur.id,
+      new Date("2026-07-31T00:00:00Z"),
+    );
+
+    expect(au24).toBe(8_850);
+    expect(au31).toBe(17_700);
+  });
+});

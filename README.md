@@ -16,8 +16,13 @@ cp .env.example .env      # puis remplir AUTH_SECRET et les clés de passerelles
 docker compose up -d      # postgres + redis + minio
 pnpm db:migrate           # applique le schéma
 pnpm db:seed              # plans, licences, badges
+pnpm db:test:setup        # base de test isolée (pour pnpm test)
 pnpm dev                  # http://localhost:3000
 ```
+
+Les tests d'intégration tournent sur **`baobart_test`**, jamais sur la base de
+développement : le grand livre est immuable, une écriture comptable de test y
+resterait pour toujours.
 
 ## Commandes
 
@@ -26,7 +31,9 @@ pnpm dev                  # http://localhost:3000
 | `pnpm dev` / `pnpm build` / `pnpm start` | cycle Next.js |
 | `pnpm typecheck` | TypeScript strict, sans émission |
 | `pnpm lint` | ESLint (config Next) |
-| `pnpm test` | Vitest — `lib/**` uniquement, sans React ni DOM |
+| `pnpm test` | Vitest — décideurs purs **et** câblage réel |
+| `pnpm test:unite` | Décideurs purs seuls : ni base, ni réseau |
+| `pnpm db:test:setup` | (Re)crée la base de test et y applique les migrations |
 | `pnpm db:migrate` / `db:deploy` / `db:studio` / `db:seed` | Prisma |
 | `pnpm stack:up` / `stack:down` | Postgres + Redis + MinIO |
 
