@@ -23,12 +23,19 @@ export interface FeedProps {
   itemsInitiaux: CarteRessource[];
   curseurInitial: string | null;
   alaUne: CarteRessource[];
+  /** Famille pré-sélectionnée, quand on arrive depuis un lien du rail. */
+  filtreInitial?: Filtre;
 }
 
-export function Feed({ itemsInitiaux, curseurInitial, alaUne }: FeedProps) {
+export function Feed({
+  itemsInitiaux,
+  curseurInitial,
+  alaUne,
+  filtreInitial = "Tous",
+}: FeedProps) {
   const [items, setItems] = useState(itemsInitiaux);
   const [curseur, setCurseur] = useState(curseurInitial);
-  const [filtre, setFiltre] = useState<Filtre>("Tous");
+  const [filtre, setFiltre] = useState<Filtre>(filtreInitial);
   const [styleCarte, setStyleCarte] = useState<StyleCarte>("Sticker");
   const [survolee, setSurvolee] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, boolean>>({});

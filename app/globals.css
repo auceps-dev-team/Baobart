@@ -181,3 +181,24 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Flottement léger des cartes de hero — repris de la maquette. */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Le rail disparaît sous 1180 px, et la page reprend toute la largeur. */
+@media (max-width: 1180px) {
+  [data-rail] {
+    display: none !important;
+  }
+  [data-root] {
+    padding-left: 0 !important;
+  }
+}

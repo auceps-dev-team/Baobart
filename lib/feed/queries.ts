@@ -192,3 +192,31 @@ export async function compterRessources(filtre: Filtre = "Tous") {
     where: { status: "PUBLISHED", ...clauseFamille(filtre) },
   });
 }
+
+/**
+ * Suggestions du champ de recherche.
+ *
+ * La maquette filtrait un tableau en dur ; ici on interroge la base. Recherche
+ * insensible à la casse sur le titre, limitée à cinq résultats — le nombre
+ * qu'affiche le panneau de la maquette.
+ */
+export async function rechercher(q: string) {
+  const terme = q.trim();
+  if (terme.length === 0) return [];
+
+  const lignes = await db.product.findMany({
+    where: {
+      status: "PUBLISHED",
+      name: { contains: terme, mode: "insensitive" },
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take: 5,
+    select: { slug: true, name: true, family: true },
+  });
+
+  return lignes.map((p) => ({
+    slug: p.slug,
+    title: p.name,
+    famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
+  }));
+}
