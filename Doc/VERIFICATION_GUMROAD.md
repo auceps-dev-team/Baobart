@@ -38,7 +38,7 @@ fichier sous licence tierce n'entre dans notre historique git.
 
 ## 1. Synthèse
 
-Sur les affirmations vérifiées : **13 confirmées, 9 erronées, 18 découvertes**.
+Sur les affirmations vérifiées : **14 confirmées, 10 erronées, 22 découvertes**.
 
 Les trois erreurs qui changent une décision :
 
@@ -597,7 +597,94 @@ distincts est porté, pas les montants en dollars.
 
 ---
 
-## 10. Ce qui reste à vérifier
+## 10. La livraison des fichiers — §3.9-C, §3.9-D, §13
+
+Vérifié dans `app/helpers/signed_url_helper.rb`, `app/models/url_redirect.rb`,
+`app/controllers/url_redirects_controller.rb` et `app/models/consumption_event.rb`.
+
+### 10.1 ✅ URLs signées avec expiration — §3.9-C
+
+Confirmé. Chaque achat reçoit une URL signée à durée de vie limitée, avec
+`response-content-disposition=attachment` pour forcer le téléchargement sous le
+nom d'origine. Trois états d'indisponibilité existent bien : accès expiré,
+location expirée, abonnement inactif.
+
+### 10.2 ➕ La durée de validité dépend de la TAILLE du fichier
+
+C'est la découverte importante, et elle est absente du plan.
+
+```
+durée = borner( taille_octets / débit_supposé , plancher , plafond )
+```
+
+Chez Gumroad : plancher **10 minutes**, plafond **3 heures**, vidéos **12
+heures**, et un débit supposé de **~51 200 o/s (50 Kio/s)**.
+
+Une durée fixe condamnerait soit les gros fichiers — l'URL expire au milieu du
+téléchargement — soit la sécurité des petits, en les laissant partageables trop
+longtemps.
+
+**Conséquence pour Baobart, et elle est sérieuse** : 50 Kio/s est une hypothèse
+optimiste sur une connexion mobile ouest-africaine. Un pack de 200 Mo tiendrait
+tout juste dans les 3 heures à ce débit — mais à 12,8 Ko/s, un plancher 3G
+réaliste, il faut plus de **4 h 30**. Avec les valeurs de Gumroad, l'URL
+expirerait avant la fin et l'acheteur, qui a payé, verrait son téléchargement
+échouer.
+
+Nous retenons donc **12 800 o/s** et un plafond relevé à **6 heures**.
+L'arbitrage est explicite : une URL qui vit plus longtemps peut être partagée
+plus longtemps. On tranche en faveur de l'acheteur qui a payé.
+
+### 10.3 ➕ Deux chemins de distribution selon la taille
+
+Les petits fichiers passent par un CDN cacheable avec une signature HMAC ; les
+gros par une distribution signée par clé privée. Le seuil est la limite de cache
+du CDN. Les petits fichiers sont donc servis depuis le cache, sans toucher au
+stockage.
+
+### 10.4 ➕ La normalisation Unicode des noms de fichiers
+
+Avant de déclarer un fichier introuvable, le code cherche s'il existe sous une
+**autre forme de normalisation Unicode** du même nom : la base peut stocker en
+NFC pendant que le stockage a reçu du NFD écrit par un poste macOS.
+
+**Très concret pour Baobart** : les noms de fichiers français sont truffés
+d'accents — `créations-wax-été.zip`. C'est exactement le cas où NFC et NFD
+divergent, et où un acheteur se verrait répondre « fichier introuvable » pour un
+fichier bien présent.
+
+### 10.5 ❌ Sept types de consommation, pas trois — §3.9-D
+
+Le plan parle de « téléchargement, lecture, stream ». Les types réels sont :
+`download`, `download_all`, `folder_download`, `listen`, `read`, `view`, `watch`.
+
+La distinction compte pour les compteurs : « tout télécharger » n'est pas un
+téléchargement de fichier, et écouter n'est pas lire. Chaque événement porte
+aussi la **plateforme** déduite du user-agent et l'**adresse IP**.
+
+### 10.6 ➕ Le modèle de location
+
+`TIME_TO_WATCH_RENTED_PRODUCT_AFTER_PURCHASE = 30 jours` et
+`TIME_TO_WATCH_RENTED_PRODUCT_AFTER_FIRST_PLAY = 72 heures` : deux compteurs qui
+courent en parallèle — un mois pour commencer, trois jours une fois commencé.
+Hors périmètre Baobart pour l'instant, mais le double compteur est un motif
+réutilisable pour un accès à durée limitée.
+
+### 10.7 Conséquence pour Baobart
+
+Porté dans **`lib/domain/delivery.ts`** : la durée de validité calculée depuis
+la taille, la décision d'accès avec ses cinq motifs de refus, et les règles de
+quota du §13 — **un achat à l'unité ne décompte jamais**, et un
+**re-téléchargement non plus**, sinon une connexion coupée en route coûterait
+deux téléchargements à l'acheteur.
+
+L'ordre des refus est délibéré : d'abord ce qui relève du paiement, ensuite le
+droit d'accès, le quota en dernier — pour que le message affiché soit celui que
+l'acheteur peut corriger.
+
+---
+
+## 11. Ce qui reste à vérifier
 
 Ce relevé couvre le bloc commerce et les outils de croissance. N'ont pas encore
 été ouverts :
@@ -605,7 +692,6 @@ Ce relevé couvre le bloc commerce et les outils de croissance. N'ont pas encore
 - la découverte et les recommandations (§3.7-E) ;
 - l'assistant IA (§3.4-A) — le chiffre de « 84 endpoints » n'est pas vérifié ;
 - les workers (§3.6-B) — le chiffre de « 226 workers » n'est pas vérifié ;
-- la livraison des fichiers et les URLs signées (§3.9-C).
 
 Les chiffres cités par le plan dans ces sections doivent être considérés comme
 **non vérifiés** tant qu'ils ne figurent pas ici.

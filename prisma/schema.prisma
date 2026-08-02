@@ -247,10 +247,23 @@ enum MediaStatus {
   FAILED
 }
 
+/// Sept types, pas trois : le §3.9-D n'en voyait que « téléchargement, lecture,
+/// stream ». La distinction compte pour les compteurs — télécharger un dossier
+/// entier n'est pas télécharger un fichier, et écouter n'est pas lire.
 enum ConsumptionType {
   DOWNLOAD
-  STREAM
+  DOWNLOAD_ALL // « tout télécharger » (ZIP streamé)
+  FOLDER_DOWNLOAD
+  LISTEN
   READ
+  VIEW
+  WATCH
+}
+
+enum Plateforme {
+  ANDROID
+  IPHONE
+  AUTRE
 }
 
 // ============================================================================
@@ -898,16 +911,23 @@ model DownloadQuota {
   @@unique([subscriptionId, period])
 }
 
+/// Chaque consommation d'un fichier laisse une ligne. C'est ce qui alimente le
+/// compteur « 2 340 téléchargements » de la maquette, l'analytique créateur, et
+/// le décompte des quotas d'abonnement.
 model ConsumptionEvent {
-  id         String          @id @default(cuid())
-  userId     String?
-  productId  String
-  eventType  ConsumptionType
-  platform   String? // détecté depuis le user-agent
-  consumedAt DateTime        @default(now())
+  id            String          @id @default(cuid())
+  userId        String?
+  productId     String
+  productFileId String?
+  orderItemId   String?
+  eventType     ConsumptionType
+  platform      Plateforme      @default(AUTRE)
+  ipAddress     String?
+  consumedAt    DateTime        @default(now())
 
   @@index([productId, consumedAt])
   @@index([userId, consumedAt])
+  @@index([orderItemId])
 }
 
 model LicenseType {

@@ -5,7 +5,7 @@
 
 > ### ⚠️ Statut de vérification
 >
-> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-A, §3.6-D, §3.8, §3.9-A, §6.1, §10.1, §10.2, §10.4, §10.5** ont été
+> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-A, §3.6-D, §3.8, §3.9-A, §3.9-C, §3.9-D, §6.1, §10.1, §10.2, §10.4, §10.5, §13** ont été
 > **confrontées au code source** de `antiwork/gumroad` (commit `a475e3f`, 1er août 2026) et
 > corrigées. Chacune porte une note de vérification datée.
 >
@@ -567,11 +567,33 @@ Un système **mobile** (`walks_*`) : attestation App Store (anti-usage abusif), 
 
 #### C. Livraison sécurisée des fichiers — 🔴 (le cœur de la vente de ressources)
 
+> ✅➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §10. **Porté** dans
+> `lib/domain/delivery.ts`. Le principe est confirmé ; deux découvertes s'y ajoutent.
+>
+> **La durée de validité d'une URL dépend de la TAILLE du fichier**, pas d'une constante :
+> `taille / débit_supposé`, borné par un plancher et un plafond. Une durée fixe
+> condamnerait soit les gros fichiers (l'URL expire au milieu du téléchargement), soit la
+> sécurité des petits.
+>
+> **Et le débit supposé de Gumroad — ~50 Kio/s — est optimiste pour l'Afrique de l'Ouest.**
+> Un pack de 200 Mo à 12,8 Ko/s (plancher 3G réaliste) demande plus de 4 h 30, quand
+> Gumroad plafonne à 3 h : l'URL expirerait avant la fin, et l'acheteur qui a payé verrait
+> son téléchargement échouer. Baobart retient 12 800 o/s et un plafond de 6 heures.
+>
+> Autre détail à ne pas perdre : avant de déclarer un fichier introuvable, il faut chercher
+> une **autre normalisation Unicode** du nom. Les noms français sont pleins d'accents —
+> `créations-wax-été.zip` — et c'est exactement là que NFC et NFD divergent.
+
 **Ce que fait Gumroad** : `url_redirects_controller.rb` — chaque achat reçoit une **URL signée S3 avec expiration** (`signed_download_url_for_s3_key_and_filename`), pages de téléchargement/lecture/stream, avec états (expired, rental_expired, membership_inactive) et redirection propre vers la bibliothèque.
 
 **Ce que ça apporte à Baobart** : le **pattern de livraison** de vos packs : achat → génération d'URL signée → téléchargement sécurisé (jamais de lien public), expiration, pages d'erreur propres. Indispensable pour vendre des fichiers en FCFA sans les laisser fuir.
 
 #### D. Suivi de consommation des fichiers — 🟠 (le compteur « téléchargements »)
+
+> ❌ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §10.5. Il y a **sept** types de
+> consommation, pas trois : `download`, `download_all`, `folder_download`, `listen`,
+> `read`, `view`, `watch`. « Tout télécharger » n'est pas un téléchargement de fichier, et
+> écouter n'est pas lire — la distinction compte pour les compteurs.
 
 **Ce que fait Gumroad** : `consumption_event.rb` — chaque **téléchargement, lecture, stream** d'un fichier est un événement horodaté (avec plateforme détectée depuis le user-agent). C'est ce qui alimente les compteurs et l'analytics.
 
