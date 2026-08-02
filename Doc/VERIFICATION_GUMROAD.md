@@ -38,7 +38,7 @@ fichier sous licence tierce n'entre dans notre historique git.
 
 ## 1. Synthèse
 
-Sur les affirmations vérifiées : **9 confirmées, 6 erronées, 8 découvertes**.
+Sur les affirmations vérifiées : **10 confirmées, 8 erronées, 13 découvertes**.
 
 Les trois erreurs qui changent une décision :
 
@@ -369,13 +369,109 @@ du dépôt.
 
 ---
 
-## 8. Ce qui reste à vérifier
+## 8. Les versements — §3.9-A
+
+Vérifié dans `app/modules/user/payout_schedule.rb`,
+`app/business/payments/payouts/payout_rail_schedule.rb`, `app/models/payment.rb`
+et `app/services/instant_payouts_service.rb`.
+
+### 8.1 ✅ Jour de versement par rail — le plan est exact
+
+Les versements ne sont pas une seule exécution hebdomadaire : plusieurs jobs
+tournent des jours différents, chacun payant les vendeurs d'un rail donné.
+Banque philippine le mardi, britannique le mercredi, américaine le jeudi,
+PayPal le vendredi.
+
+**Détail de conception à retenir** : la table des jours est **dérivée du fichier
+cron lui-même**. La projection et l'exécution lisent la même source, donc elles
+ne peuvent pas diverger — ajouter un type de compte à un créneau cron déplace
+automatiquement la date annoncée. Le commentaire précise que cette table vivait
+avant uniquement dans le cron, et que tout ce qui voulait annoncer une date se
+trompait pour chaque rail non-vendredi.
+
+### 8.2 ➕ Il y a DEUX dates, pas une — le point central
+
+C'est la découverte structurante de cette section, et elle est absente du plan.
+
+| | Rôle |
+|---|---|
+| **Date de cycle** | Ancrée un vendredi. Décide **quelles ventes** entrent dans le versement. |
+| **Date de versement** | Le jour où le rail du créateur est exécuté, dans la semaine de ce cycle. C'est la date qu'on **montre**. |
+
+Un vendeur payé le mardi 28 juillet et un vendeur payé le vendredi 31 touchent
+**les mêmes ventes** — celles arrêtées au 24 — parce que la période est ancrée
+sur le cycle, jamais sur le jour de paiement.
+
+Le code documente le bug que la confusion produit : comparer un lot de
+versements à la date propre du vendeur fait paraître un lot exécuté plus tard
+dans la semaine — un job réessayé, par exemple — comme appartenant à la semaine
+suivante, et **saute tous les vendeurs qu'il contenait**.
+
+### 8.3 ❌ Quatre fréquences, pas deux — §3.9-A
+
+Le plan annonce « `weekly` ou `monthly` » plus l'instantané quotidien. Il y en a
+**quatre** : `DAILY`, `WEEKLY`, `MONTHLY`, **`QUARTERLY`**.
+
+### 8.4 ➕ Délai de rétention et seuil minimum
+
+- **`PAYOUT_DELAY_DAYS = 7`** : une vente n'est jamais versable avant sept
+  jours. C'est la marge qui absorbe impayés et litiges.
+- **Seuil minimum par vendeur** : en dessous, aucun versement — la somme
+  **roule** sur le cycle suivant et s'y cumule. Elle n'est jamais perdue, et le
+  vendeur reçoit une note expliquant le report.
+
+### 8.5 ➕ La projection utilise le même modèle que le versement réel
+
+`upcoming_payouts` construit des objets `Payment` **non sauvegardés**. La
+projection a donc exactement la forme de la chose projetée : même modèle, mêmes
+champs, mêmes soldes rattachés. Il n'existe pas de second modèle « prévision »
+qui pourrait diverger du vrai.
+
+### 8.6 ❌ Huit états de versement, pas cinq — blueprint §4.0
+
+États réels de `Payment` : `creating`, `processing`, `unclaimed`, `completed`,
+`cancelled`, `failed`, `reversed`, `returned`.
+
+Le blueprint en prévoyait cinq. Manquaient `unclaimed` (envoyé, en attente
+d'action du bénéficiaire), `cancelled`, et surtout **`returned`** — l'argent qui
+revient. Et `completed → returned` est une transition valide : **un versement
+réussi n'est pas définitif**, il peut rebondir ensuite.
+
+**La règle à ne pas perdre** : un versement qui passe en `cancelled` ou `failed`
+**remet ses soldes en `unpaid`**, pour qu'ils soient repris au cycle suivant.
+C'est ce qui referme la boucle entre l'état du solde et celui du versement ;
+sans elle, l'argent d'un créateur disparaît dans un versement raté.
+
+### 8.7 ➕ Versement instantané : plancher, plafond et découpage
+
+- un **montant minimum** (100 $) sous lequel la demande est refusée ;
+- un **montant maximum par versement** : au-delà, les soldes sont **découpés en
+  plusieurs versements** qui restent chacun sous le plafond ;
+- une éligibilité vérifiée avant tout (`instant_payouts_supported?`) ;
+- le versement quotidien vit **hors du cycle hebdomadaire** : il paie le solde
+  instantanément versable de la veille, demain.
+
+### 8.8 Conséquence pour Baobart
+
+Porté dans **`lib/payments/payout-schedule.ts`** : les deux dates, les quatre
+fréquences, le délai de rétention, le seuil qui fait rouler la somme, et la
+projection des prochaines échéances. Les rails deviennent les opérateurs mobile
+money et le virement bancaire par pays, chacun avec son jour — **à confirmer
+avec chaque opérateur**, puisque ce sont leurs fenêtres de compensation qui
+décident, pas nous.
+
+Le délai de sept jours, le seuil minimum et le jour d'ancrage sont regroupés
+dans une configuration explicite : ce sont des décisions commerciales, pas des
+constantes techniques.
+
+---
+
+## 9. Ce qui reste à vérifier
 
 Ce relevé couvre le bloc commerce et les outils de croissance. N'ont pas encore
 été ouverts :
 
 - le moteur de confiance (§3.8) — machine à états de risque, anti-fraude ;
-- les versements (§3.9-A) — fréquence, rails par pays, projection ;
 - la découverte et les recommandations (§3.7-E) ;
 - l'assistant IA (§3.4-A) — le chiffre de « 84 endpoints » n'est pas vérifié ;
 - les workers (§3.6-B) — le chiffre de « 226 workers » n'est pas vérifié ;

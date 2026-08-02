@@ -118,12 +118,38 @@ enum BalanceTransactionType {
   TIP
 }
 
+/// Cycle de vie d'un versement, porté de `payment.rb` (8 états, pas 5).
+///
+///   CREATING → PROCESSING → COMPLETED
+///                   ↓  ↘ UNCLAIMED → COMPLETED
+///                   ↓            ↘ CANCELLED
+///                   ├→ CANCELLED
+///                   ├→ FAILED
+///                   ├→ REVERSED
+///                   └→ RETURNED        (et COMPLETED → RETURNED : l'argent
+///                                       peut revenir APRÈS la réussite)
+///
+/// RÈGLE À NE PAS PERDRE : un versement qui passe en CANCELLED ou FAILED
+/// remet ses soldes en UNPAID, pour qu'ils soient repris au cycle suivant.
+/// Sans ça, l'argent d'un créateur disparaît d'un versement raté.
 enum PayoutStatus {
-  PENDING
-  ISSUING
-  PAID
+  CREATING
+  PROCESSING
+  UNCLAIMED // envoyé, en attente d'action du bénéficiaire
+  COMPLETED
+  CANCELLED
   FAILED
+  RETURNED // revenu (coordonnées invalides, compte fermé)
   REVERSED
+}
+
+/// Fréquence choisie par le créateur. Quatre valeurs, pas deux : le §3.9-A
+/// ne mentionnait pas le trimestriel.
+enum PayoutFrequency {
+  DAILY // versement instantané, hors cycle hebdomadaire
+  WEEKLY
+  MONTHLY
+  QUARTERLY
 }
 
 enum PayoutMethod {
@@ -240,9 +266,16 @@ model User {
   riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
   kycStatus       KycStatus     @default(NONE)
   defaultCurrency Currency      @default(XOF)
-  suspendedAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+
+  /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
+  /// détermine le JOUR de la semaine où ce créateur est payé — voir
+  /// lib/payments/payout-schedule.ts.
+  payoutFrequency PayoutFrequency @default(WEEKLY)
+  payoutRail      String?
+
+  suspendedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // identité
   profile  Profile?
@@ -763,8 +796,16 @@ model Payout {
   accountRef    String
   amount        Int
   currency      Currency     @default(XOF)
-  status        PayoutStatus @default(PENDING)
-  scheduledDate DateTime? // projection « quand serai-je payé » §3.9-A
+  status        PayoutStatus @default(CREATING)
+  scheduledDate DateTime? // le jour où le créateur reçoit l'argent
+  /// Le cycle auquel ce versement appartient — c'est LUI qui décide quelles
+  /// ventes sont incluses, pas `scheduledDate`. Deux créateurs de rails
+  /// différents payés des jours différents partagent le même cycle et donc
+  /// la même période de ventes. Confondre les deux fait sauter des créateurs
+  /// d'un lot entier. Voir lib/payments/payout-schedule.ts.
+  cycleDate     DateTime?    @db.Date
+  /// Dernière date de vente incluse (cycle − délai de rétention).
+  periodEnd     DateTime?    @db.Date
   processedAt   DateTime?
   isInstant     Boolean      @default(false)
   failureReason String?

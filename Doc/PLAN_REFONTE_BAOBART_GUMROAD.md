@@ -5,7 +5,7 @@
 
 > ### ⚠️ Statut de vérification
 >
-> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-D, §10.1, §10.2, §10.4, §10.5** ont été
+> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-D, §3.9-A, §6.1, §10.1, §10.2, §10.4, §10.5** ont été
 > **confrontées au code source** de `antiwork/gumroad` (commit `a475e3f`, 1er août 2026) et
 > corrigées. Chacune porte une note de vérification datée.
 >
@@ -503,8 +503,29 @@ Un système **mobile** (`walks_*`) : attestation App Store (anti-usage abusif), 
 
 #### A. Mouvement d'argent : fréquence & projection des payouts — 🔴
 
+> ✅❌➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §8. **Porté** dans
+> `lib/payments/payout-schedule.ts`. Le jour par rail est confirmé ; le reste demandait
+> des corrections, dont une structurante :
+>
+> **Il y a DEUX dates, pas une.** La **date de cycle** (ancrée un vendredi) décide *quelles
+> ventes* entrent dans le versement ; la **date de versement** est le jour où le rail du
+> créateur est exécuté dans cette semaine — c'est celle qu'on montre. Deux créateurs payés
+> mardi et jeudi touchent **les mêmes ventes**. Le code documente le bug que la confusion
+> produit : un lot exécuté plus tard dans la semaine (un job réessayé) paraît appartenir à
+> la semaine suivante et **saute tous les créateurs qu'il contenait**.
+>
+> Autres corrections : **quatre fréquences** et non deux (le **trimestriel** manquait) ·
+> **7 jours de rétention** avant qu'une vente soit versable · **un seuil minimum** en
+> dessous duquel la somme **roule** sur le cycle suivant au lieu d'être versée ·
+> **huit états de versement** et non cinq, dont `returned` — un versement réussi peut
+> rebondir ensuite · et la règle qui referme la boucle : **un versement annulé ou échoué
+> remet ses soldes en `unpaid`**, sinon l'argent du créateur disparaît.
+>
+> Versement instantané : montant minimum, **montant maximum par versement** au-delà duquel
+> les soldes sont découpés en plusieurs envois.
+
 **Ce que fait Gumroad** :
-- **Fréquence configurable par vendeur** : `weekly` ou `monthly` (`User::PayoutSchedule`), avec **payouts instantanés quotidiens** (`InstantPayoutsService`, `perform_daily_instant_payouts_worker`).
+- **Fréquence configurable par vendeur** : `daily` / `weekly` / `monthly` / **`quarterly`** (`User::PayoutSchedule`), avec **payouts instantanés quotidiens** (`InstantPayoutsService`, `perform_daily_instant_payouts_worker`).
 - **Jour de payout par type de compte** (`PayoutRailSchedule`) : chaque rail de paiement (type de compte bancaire par pays, PayPal, Stripe Connect) est payé **un jour précis de la semaine** (banque philippine mardi, UK mercredi, US jeudi, PayPal vendredi…), dérivé automatiquement du fichier cron pour ne jamais dériver.
 - **Projection** : le vendeur voit **quand il sera payé** (`next_payout_date`, `upcoming_payouts`) et **combien** (`payout_amount_for_payout_date`).
 
@@ -512,7 +533,7 @@ Un système **mobile** (`walks_*`) : attestation App Store (anti-usage abusif), 
 - **La promesse « quand serai-je payé »** est un argument de confiance énorme pour les créateurs africains (l'incertitude de paiement est LE frein).
 - Adapter : rails = **mobile money** (OM/MTN/Wave) + **virement bancaire** par pays + Stripe Connect. Ex. : payouts mobile money le mercredi, banque CI le jeudi, etc.
 - **Payouts instantanés** (moyennant frais) = différenciateur fort (un créateur à besoin de son argent tout de suite).
-- Pattern à traduire dans `lib/payments/payout-schedule.ts`.
+- Pattern **traduit** dans `lib/payments/payout-schedule.ts` (17 tests).
 
 #### B. Générateur IA de fiche produit (déjà opérationnel) — 🔴
 
