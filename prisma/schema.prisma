@@ -265,6 +265,9 @@ model User {
   passwordHash    String?
   riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
   kycStatus       KycStatus     @default(NONE)
+  /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
+  /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
+  refundsDisabled Boolean       @default(false)
   defaultCurrency Currency      @default(XOF)
 
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
@@ -316,6 +319,9 @@ model User {
   // médias & notifications
   mediaAssets   MediaAsset[]
   notifications Notification[]
+
+  // confiance
+  riskStateChanges RiskStateChange[]
 
   @@index([riskState])
   @@index([createdAt, id])
@@ -1310,6 +1316,30 @@ model BlockedObject {
 
   @@unique([objectType, objectValue])
   @@index([expiresAt])
+}
+
+/// Journal des décisions de risque.
+///
+/// Ce n'est pas de la traçabilité décorative : c'est la table que relit le
+/// contrôle de solde négatif pour savoir **qui** avait posé une probation et si
+/// **quelqu'un d'autre a tranché depuis**. Sans elle, la levée automatique ne
+/// peut pas distinguer sa propre décision de celle d'un administrateur — et
+/// finirait par défaire un jugement humain.
+model RiskStateChange {
+  id        String        @id @default(cuid())
+  userId    String
+  fromState UserRiskState
+  toState   UserRiskState
+  /// Qui a décidé : identifiant d'administrateur, ou nom du contrôle
+  /// automatique (voir AUTEUR_CONTROLE_SOLDE dans lib/domain/trust.ts).
+  author    String
+  reason    String?       @db.Text
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([userId, author, createdAt])
 }
 
 model ModerationLog {

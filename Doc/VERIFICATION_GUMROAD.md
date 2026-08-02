@@ -38,7 +38,7 @@ fichier sous licence tierce n'entre dans notre historique git.
 
 ## 1. Synthèse
 
-Sur les affirmations vérifiées : **10 confirmées, 8 erronées, 13 découvertes**.
+Sur les affirmations vérifiées : **13 confirmées, 9 erronées, 18 découvertes**.
 
 Les trois erreurs qui changent une décision :
 
@@ -466,12 +466,142 @@ constantes techniques.
 
 ---
 
-## 9. Ce qui reste à vérifier
+## 9. Le moteur de confiance — §3.8
+
+Vérifié dans `app/models/user.rb` (machine à états `user_risk_state`),
+`app/models/concerns/user/low_balance_fraud_check.rb`, `app/models/blocked_object.rb`
+et `app/services/radar/seller_risk_stats_service.rb`.
+
+**C'est la section du plan qui tient le mieux.** Le §3.8 est globalement exact ;
+les corrections portent sur des détails qui changent le comportement, pas sur la
+description générale.
+
+### 9.1 ✅ Machine à états et effets de suspension — §3.8-A
+
+Les 7 états et les 7 événements sont confirmés. Les effets à la suspension le
+sont aussi, **tous les six**, plus un que le plan mentionnait déjà :
+
+sessions invalidées · produits désactivés · IP bloquée · abonnés retirés ·
+domaine personnalisé supprimé · autres comptes du vendeur suspendus ·
+ajout au filtre anti-abus Gmail.
+
+À la réintégration : IP débloquée, produits et autres comptes réactivés, retrait
+du filtre anti-abus.
+
+**Détail non relevé par le plan** : à l'inscription, une validation refuse un
+e-mail qui est une **variante Gmail d'un compte suspendu** (les points et les
+`+alias` désignent la même boîte). C'est de l'anti-contournement, pas de la
+validation d'adresse.
+
+### 9.2 ➕ Le garde-fou est posé à l'entrée, pas à la sortie
+
+Le plan mentionne « une protection contre les lectures périmées ». Le mécanisme
+mérite d'être compris, parce qu'il est contre-intuitif.
+
+La garde `refuse_unauthorized_seller_suspension_clear` n'est pas posée sur la
+*sortie* d'un état suspendu, mais sur l'**entrée** dans les trois états qui
+réhabilitent : `compliant`, `on_probation` **et** `not_reviewed`.
+
+Deux raisons, toutes deux documentées dans le code :
+
+1. **La probation réhabilite autant que la conformité.** Elle remet les produits
+   en vente exactement comme `compliant`. On pourrait croire que seule la
+   conformité lève une suspension : c'est faux, et `not_reviewed` la lève aussi
+   en ramenant le compte à son état initial.
+2. **L'objet en mémoire peut être plus vieux que la ligne en base.** Le chemin
+   réaliste n'est pas un humain dans l'interface d'administration : c'est le
+   contrôle de solde négatif, qui décide d'agir en lisant `suspended?` sur une
+   copie en mémoire. Au moment où il écrit, la ligne a pu être suspendue par
+   quelqu'un d'autre. C'est précisément cette lecture périmée que la garde
+   existe pour rattraper.
+
+Lever une suspension exige donc de le dire explicitement (`clear_suspension:
+true`) : une revue de routine « ce compte a l'air correct » ne peut pas défaire
+une suspension qu'elle n'a jamais examinée.
+
+### 9.3 ❌ Le contrôle de solde négatif a deux seuils, pas un — §3.8-B
+
+**Ce que dit le plan** : « solde sous −100 $ → probation ; si le solde se
+rétablit → probation levée automatiquement ».
+
+**Ce que fait le code** : il faut descendre sous **−100 $** pour être
+sanctionné, mais remonter au-dessus de **+100 $** pour en sortir.
+
+Cet écart n'est pas un détail : avec un seuil unique, un solde qui oscille
+autour ferait entrer et sortir le créateur de probation en boucle. Le plan parle
+de « rétablissement » sans dire qu'il faut repasser franchement au positif.
+
+**Deuxième correction** : le plan écrit « probation (2 mois) », comme si la
+sanction durait deux mois. Ce n'est pas ça — c'est un **délai de carence** : le
+même contrôle ne peut pas re-sanctionner le même compte avant deux mois. La
+probation, elle, dure jusqu'à ce que le solde se rétablisse.
+
+### 9.4 ➕ Les conditions de la levée automatique
+
+Le plan dit « sous conditions ». Elles sont au nombre de trois, et chacune
+protège d'une erreur différente :
+
+1. **La probation doit avoir été posée par ce contrôle lui-même.** Une probation
+   décidée par un administrateur ne se lève pas toute seule.
+2. **Aucune décision de risque plus récente ne doit exister.** Si quelqu'un a
+   tranché depuis, le contrôle ne revient pas dessus.
+3. **Le compte ne doit pas être suspendu.** Une suspension survenue pendant que
+   le contrôle était en vol surclasse un rétablissement de solde : ce contrôle
+   ignore *pourquoi* le compte a été suspendu, donc il n'y touche jamais.
+
+Et la levée **restitue l'état d'avant** (`compliant` ou `not_reviewed`), relu
+dans l'historique. Faute de trace, elle retombe sur `not_reviewed` — jamais sur
+`compliant`, qui accorderait une confiance que personne n'a décidée.
+
+**Conséquence pour Baobart** : cela impose une table de journal des décisions de
+risque. Sans elle, la levée automatique ne peut pas distinguer sa propre
+décision de celle d'un humain. C'est `RiskStateChange` dans le schéma.
+
+### 9.5 ➕ Les deux écritures sont transactionnelles
+
+Couper les remboursements et poser la probation doivent réussir ou échouer
+ensemble. Le code le dit : sans transaction, un refus tardif de la probation
+laisserait le compte avec ses remboursements coupés **par un traitement censé
+ignorer les comptes suspendus** — donc des remboursements bloqués que personne
+n'a décidé de bloquer.
+
+### 9.6 ✅ Blocage d'IP à six mois — §3.6-A
+
+Confirmé, et la raison mérite d'être reprise telle quelle : **les adresses IP
+sont réattribuées**. Un blocage permanent finirait par punir quelqu'un qui n'a
+rien fait — et ferait grossir la liste indéfiniment.
+
+À noter : débloquer n'efface pas l'enregistrement, cela vide seulement la date
+de blocage. La trace reste.
+
+### 9.7 ➕ Statistiques de risque par vendeur
+
+Fenêtre glissante de **90 jours** : nombre de ventes réussies, alertes précoces
+de fraude ventilées par niveau de risque et par type, nombre de litiges et
+surtout **taux** de litiges. C'est le taux, pas le compte brut, qui distingue un
+gros vendeur d'un vendeur à problèmes.
+
+### 9.8 Conséquence pour Baobart
+
+Porté dans **`lib/domain/trust.ts`** : les 7 états, les transitions autorisées,
+le garde-fou à l'entrée des états réhabilitants, les effets de bord retournés
+sous forme de liste, et le contrôle de solde à deux seuils avec ses trois
+conditions de levée.
+
+Le module **ne touche à rien** : il décide et retourne les effets à exécuter.
+Pour du code capable de couper les revenus d'un créateur, pouvoir le tester sans
+base ni réseau n'est pas un confort.
+
+Les deux seuils sont une **décision Baobart** — seul le principe des deux seuils
+distincts est porté, pas les montants en dollars.
+
+---
+
+## 10. Ce qui reste à vérifier
 
 Ce relevé couvre le bloc commerce et les outils de croissance. N'ont pas encore
 été ouverts :
 
-- le moteur de confiance (§3.8) — machine à états de risque, anti-fraude ;
 - la découverte et les recommandations (§3.7-E) ;
 - l'assistant IA (§3.4-A) — le chiffre de « 84 endpoints » n'est pas vérifié ;
 - les workers (§3.6-B) — le chiffre de « 226 workers » n'est pas vérifié ;

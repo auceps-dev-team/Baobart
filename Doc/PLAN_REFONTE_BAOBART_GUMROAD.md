@@ -5,7 +5,7 @@
 
 > ### ⚠️ Statut de vérification
 >
-> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-D, §3.9-A, §6.1, §10.1, §10.2, §10.4, §10.5** ont été
+> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-A, §3.6-D, §3.8, §3.9-A, §6.1, §10.1, §10.2, §10.4, §10.5** ont été
 > **confrontées au code source** de `antiwork/gumroad` (commit `a475e3f`, 1er août 2026) et
 > corrigées. Chacune porte une note de vérification datée.
 >
@@ -459,6 +459,28 @@ not_reviewed ──► compliant (vérifié, peut vendre)
 - **Gardes de sécurité** : impossible de lever une suspension sans explicitement le vouloir (`clear_suspension: true`) ; protection contre les lectures périmées (stale reads).
 
 #### B. Anti-fraude automatique « LowBalanceFraudCheck » — 🔴
+
+> ✅❌➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §9. **Porté** dans
+> `lib/domain/trust.ts`. Le §3.8 est la section la plus exacte du plan ; trois précisions
+> changent néanmoins le comportement :
+>
+> **(a) Deux seuils, pas un.** On descend sous −100 $ pour être sanctionné, mais il faut
+> remonter au-dessus de **+100 $** pour en sortir. Avec un seuil unique, un solde qui
+> oscille ferait entrer et sortir le créateur de probation en boucle.
+>
+> **(b) Les « 2 mois » ne sont pas la durée de la probation** mais un **délai de carence** :
+> le même contrôle ne peut pas re-sanctionner avant deux mois. La probation, elle, dure
+> jusqu'au rétablissement du solde.
+>
+> **(c) Les « conditions » de la levée sont trois** : la probation doit avoir été posée par
+> ce contrôle, aucune décision plus récente ne doit exister, et le compte ne doit pas être
+> suspendu. Cela impose une **table de journal des décisions de risque** — sans elle, la
+> levée automatique ne sait pas distinguer sa propre décision de celle d'un humain.
+>
+> Le garde-fou anti-lecture-périmée est posé à l'**entrée** des états réhabilitants, et non
+> à la sortie des états suspendus — parce que la probation réhabilite autant que la
+> conformité, et parce que le vrai risque n'est pas un humain distrait mais ce contrôle
+> lui-même, qui décide sur une copie en mémoire pouvant être périmée.
 
 **Le mécanisme le plus astucieux** : `low_balance_fraud_check.rb`
 - Si le **solde d'un vendeur passe sous −100 $** (excès de remboursements/disputes) → **remboursements automatiquement désactivés** + le vendeur passe **en probation** (2 mois).
