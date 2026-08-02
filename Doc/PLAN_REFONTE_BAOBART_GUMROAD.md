@@ -5,14 +5,17 @@
 
 > ### ⚠️ Statut de vérification
 >
-> Les sections **§2.4, §2.8, §3.2, §3.4-C, §3.4-E, §3.6-A, §3.6-D, §3.8, §3.9-A, §3.9-C, §3.9-D, §6.1, §10.1, §10.2, §10.4, §10.5, §13** ont été
+> Les sections **§2.4, §2.8, §3.2, §3.4-A, §3.4-C, §3.4-E, §3.6-A à D, §3.7-E, §3.8, §3.9-A, §3.9-C, §3.9-D, §3.9-F, §3.10-B, §6.1, §9, §10.1, §10.2, §10.4, §10.5, §13** ont été
 > **confrontées au code source** de `antiwork/gumroad` (commit `a475e3f`, 1er août 2026) et
 > corrigées. Chacune porte une note de vérification datée.
 >
-> **Tout le reste de ce document décrit le dépôt sans l'avoir lu ligne à ligne.** Les chiffres
-> qui y figurent — « 84 endpoints » du Store Agent, « 226 workers Sidekiq », « 48 policies »,
-> « 25+ ressources API », « 19 contrôleurs mobile », « 21 mailers » — sont **non vérifiés**
-> tant qu'ils n'apparaissent pas dans `VERIFICATION_GUMROAD.md`.
+> **Les volumétries citées ont été recomptées** (relevé §11) : mailers (21), contrôleurs mobile
+> (19) et endpoints du Store Agent (83 pour 84 annoncés) sont exacts ; en revanche les workers
+> sont **244** et non 226, et les policies **69** et non 48 — le dépôt a grossi depuis
+> l'exploration initiale. Aucun de ces écarts ne renverse une priorité.
+>
+> Le reste du document décrit le dépôt sans l'avoir lu ligne à ligne. Sauf mention contraire
+> dans `VERIFICATION_GUMROAD.md`, une affirmation reste **non vérifiée**.
 >
 > Le relevé complet des écarts, avec ses sources fichier par fichier, vit dans
 > **`VERIFICATION_GUMROAD.md`**. Ce plan reste le document de décision ; c'est là-bas qu'on
@@ -225,6 +228,22 @@ Exploration systématique du dépôt au-delà du commerce de base. Chaque élém
 
 #### A. L'IA « Store Agent » — le copilote des créateurs 🔴
 
+> ✅➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §12. **83 endpoints** (37 lectures,
+> 46 écritures, 7 réservés au propriétaire), 10 portées OAuth — le chiffre de 84 était juste.
+>
+> Mais l'architecture importe plus que le nombre, et le plan la décrit incomplètement : le modèle
+> ne reçoit pas 83 outils, il en reçoit **deux** — lire et écrire — plus un catalogue déclaratif.
+> Il ne peut appeler qu'un identifiant existant, jamais fabriquer une URL. Et **chaque appel est
+> rejoué contre le vrai contrôleur d'API**, si bien que l'agent ne peut jamais dépasser ce que le
+> jeton d'API du créateur lui-même pourrait faire — il n'existe aucun chemin d'autorisation
+> parallèle à maintenir.
+>
+> Trois garde-fous à reprendre tels quels : les lectures s'exécutent seules mais **toute écriture
+> se confirme** ; une écriture doit être **précédée d'une lecture complète de la même cible dans
+> le même tour** ; et les paramètres acceptés forment une **liste blanche**, parce que l'API
+> ignore silencieusement les clés inconnues — une clé mal nommée ferait disparaître la valeur
+> sans la moindre erreur.
+
 **Ce que fait Gumroad** : un onglet « Agent » dans le dashboard où le vendeur **discute avec une IA qui peut agir sur sa boutique**. Architecture complète :
 - `AiConversation` / `AiMessage` — chat conversationnel avec **historique persisté** (survit au rafraîchissement), titré automatiquement.
 - `store_agent_api_catalog.rb` — **84 endpoints** exposés à l'IA en « function calling » : créer/modifier/supprimer des **produits**, variantes, **codes promo**, pages, médias, champs personnalisés, politiques de remboursement, custom HTML…
@@ -326,7 +345,7 @@ Groupement utile relevé : `SERVICE_TYPES = [commission, call, coffee]`, qui rec
 
 #### B. Jobs & workers — 🟠 (patterns d'infrastructure)
 
-**226 workers Sidekiq** — une bibliothèque de patterns éprouvés, tous transposables en jobs asynchrones Next.js (Inngest/BullMQ) :
+**244 workers Sidekiq** (recomptés le 2 août 2026 ; le plan annonçait 226) — une bibliothèque de patterns éprouvés, tous transposables en jobs asynchrones Next.js (Inngest/BullMQ) :
 
 | Catégorie | Workers | Usage pour Baobart |
 |---|---|---|
@@ -400,6 +419,31 @@ Groupement utile relevé : `SERVICE_TYPES = [commission, call, coffee]`, qui rec
 **Ce que ça apporte à Baobart** : protection du checkout et des followers contre les **bots et le spam** (comptes fake, fausses ventes), et une **délivrabilité email saine** (les adresses qui rebondissent sont automatiquement supprimées — vital pour les newsletters créateurs).
 
 #### E. Moteur de recommandations + recherche — 🔴 (le cœur du feed Baobart)
+
+> ❌➕ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §13. Trois corrections.
+>
+> **(a) L'éligibilité au feed est une barrière, pas un classement.** Un produit n'entre dans le
+> bassin de recommandation que si TOUTES ces conditions sont vraies : vivant, non archivé, avis
+> affichés, pas épuisé, **catégorie renseignée**, et **au moins une vente réalisée**.
+> Ce dernier point est un démarrage à froid pour un créateur qui débute — or nous promettons
+> justement de faire découvrir les nouveaux talents (§2.6). Il faudra une porte d'entrée
+> distincte : la sélection éditoriale du §3.10-A en est une, et c'est probablement pour cette
+> raison qu'elle existe chez eux aussi.
+>
+> **(b) Les recommandations partent de ce que l'acheteur possède déjà** — panier en cours et
+> achats passés — en excluant ces produits et ceux contenus dans les lots qu'il détient. Avec
+> une injection de diversité délibérée : au-delà de quatre graines, seule une **moitié tirée au
+> hasard** est utilisée, sinon un même panier produirait éternellement les mêmes suggestions.
+>
+> **(c) Les « suggestions de recherche » n'en sont pas.** C'est l'**historique personnel** de la
+> personne — rattaché à son compte, ou à son navigateur si elle n'est pas connectée — et
+> **effaçable une entrée à la fois**. En revanche chaque recherche enregistre la ressource
+> cliquée derrière : c'est la matière première d'un futur classement, pas un classement.
+>
+> ➕ **Et une question que le plan n'aborde nulle part** : le créateur choisit lui-même si des
+> produits **tiers** peuvent apparaître à côté des siens — rien, seulement les siens, ou ceux
+> dont il tire une commission. Afficher les créations d'un autre sur la page d'un créateur est
+> une décision qui lui appartient, pas à la plateforme.
 
 **Ce que fait Gumroad** : `recommended_products_controller.rb`, `product/recommendations.rb` (logique `recommendable?`), `discover_curated_products.rb` (**feed éditorial curé**), `discover_search.rb`, `discover_search_suggestion.rb` (**suggestions de recherche**), `search_autocomplete_controller.rb` (autocomplete), `create_discover_search.rb`.
 
@@ -641,7 +685,7 @@ Un système **mobile** (`walks_*`) : attestation App Store (anti-usage abusif), 
 
 #### B. Équipes multi-rôles — 🔴 (vos « espaces d'équipe »)
 
-**Ce que fait Gumroad** : `user/team.rb` + 48 `policies` — un vendeur peut **inviter des membres** avec des **rôles** : `admin`, `marketing`, `support`, `accountant` (comptable). Chaque rôle a des permissions fines (les policies contrôlent chaque action : qui peut créer un produit, voir les stats, gérer les remboursements…).
+**Ce que fait Gumroad** : `user/team.rb` + **69** `policies` (recomptées ; le plan annonçait 48) — un vendeur peut **inviter des membres** avec des **rôles** : `admin`, `marketing`, `support`, `accountant` (comptable). Chaque rôle a des permissions fines (les policies contrôlent chaque action : qui peut créer un produit, voir les stats, gérer les remboursements…).
 
 **Ce que ça apporte à Baobart** : vos **espaces d'équipe** (maquette : « Vos espaces d'équipe », invitations, commentaires ancrés) s'appuient directement sur ce pattern : membres + rôles + permissions. À combiner avec l'idée des **collections partagées** et des **commentaires ancrés** (déjà maquettés). C'est un **différenciateur majeur** pour les studios/agences.
 

@@ -38,7 +38,7 @@ fichier sous licence tierce n'entre dans notre historique git.
 
 ## 1. Synthèse
 
-Sur les affirmations vérifiées : **14 confirmées, 10 erronées, 22 découvertes**.
+Sur les affirmations vérifiées : **19 confirmées, 13 erronées, 29 découvertes**.
 
 Les trois erreurs qui changent une décision :
 
@@ -684,14 +684,161 @@ l'acheteur peut corriger.
 
 ---
 
-## 11. Ce qui reste à vérifier
+## 11. Les chiffres avancés par le plan
 
-Ce relevé couvre le bloc commerce et les outils de croissance. N'ont pas encore
-été ouverts :
+Le plan cite plusieurs volumétries pour justifier des priorités. Vérification par
+comptage direct sur le commit de référence :
 
-- la découverte et les recommandations (§3.7-E) ;
-- l'assistant IA (§3.4-A) — le chiffre de « 84 endpoints » n'est pas vérifié ;
-- les workers (§3.6-B) — le chiffre de « 226 workers » n'est pas vérifié ;
+| Affirmation | Plan | Réel | |
+|---|---|---|---|
+| Workers Sidekiq (§3.6-B) | 226 | **244** | ❌ sous-estimé |
+| Policies d'autorisation (§3.10-B) | 48 | **69** | ❌ sous-estimé |
+| Mailers transactionnels (§3.6-C) | 21 | **21** | ✅ exact |
+| Contrôleurs API v2 (§3.7-A) | « 25+ ressources » | **33** | ✅ cohérent |
+| Contrôleurs API mobile (§3.9-F) | 19 | **19** | ✅ exact |
+| Endpoints du Store Agent (§3.4-A) | 84 | **83** | ✅ à une unité près |
 
-Les chiffres cités par le plan dans ces sections doivent être considérés comme
-**non vérifiés** tant qu'ils ne figurent pas ici.
+Les deux écarts vont dans le même sens — le dépôt a grossi depuis l'exploration.
+Aucun ne change une décision : ils renforcent les priorités du plan au lieu de
+les contredire.
+
+---
+
+## 12. L'assistant IA — §3.4-A, §9
+
+Vérifié dans `app/services/ai/store_agent_api_catalog.rb` (308 lignes).
+
+### 12.1 ✅ Le catalogue d'actions existe — 83 endpoints
+
+37 en lecture, 46 en écriture, dont 7 réservés au propriétaire du compte.
+Dix portées OAuth distinctes : `view_profile`, `edit_profile`, `view_sales`,
+`edit_sales`, `edit_products`, `edit_emails`, `refund_sales`, `view_payouts`,
+`view_tax_data`, `mark_sales_as_shipped`.
+
+### 12.2 ➕ L'architecture est plus intéressante que le nombre
+
+Le §9 décrit « catalogue d'actions + LLM + exécuteur ». C'est juste, mais il
+manque les quatre décisions qui font la solidité du système.
+
+**Deux outils génériques, pas 83.** Le modèle ne reçoit pas 83 outils : il en
+reçoit **deux** — lire et écrire — et un catalogue déclaratif qui associe un
+identifiant stable à une méthode HTTP et un gabarit d'URL. Ajouter une capacité,
+c'est une ligne dans le catalogue, pas un outil de plus. Et le modèle ne peut
+appeler qu'un identifiant qui existe dans la liste : il ne peut pas fabriquer
+une URL.
+
+**Chaque appel est rejoué contre le vrai contrôleur.** L'agent ne dispose
+d'aucun chemin d'autorisation parallèle : la vérification de portée, les droits
+par rôle, la validation et la sérialisation sont celles de l'API publique,
+réutilisées telles quelles. La conséquence est nette — *l'agent ne peut jamais
+dépasser ce que le jeton d'API du créateur lui-même pourrait faire*.
+
+**Les lectures s'exécutent seules, les écritures se confirment.** Et une
+écriture doit être précédée d'une **lecture complète de la même cible dans le
+même tour** : on n'écrase pas ce qu'on n'a pas lu.
+
+**Les paramètres acceptés sont une liste blanche.** Pas par excès de prudence :
+l'API v2 ignore silencieusement les clés inconnues, donc une clé mal nommée
+— `price_cents` au lieu de `price` — ferait disparaître la valeur sans erreur.
+La liste blanche transforme un silence en refus.
+
+S'y ajoute une frontière de sécurité explicite sur les paramètres d'URL : toute
+valeur contenant `/`, `..` ou `%` est refusée, parce qu'elle est interpolée
+**après** le contrôle d'autorisation et pourrait rerouter l'appel vers un
+endpoint moins protégé.
+
+### 12.3 Conséquence pour Baobart
+
+Le §9 doit être révisé sur un point : ne pas exposer N outils au modèle, mais
+**deux** plus un catalogue. Et surtout, faire passer l'assistant par notre propre
+API plutôt que par un accès direct à la base — sinon nous entretiendrons deux
+chemins d'autorisation, dont l'un finira par diverger. C'est la garantie
+« l'assistant ne peut pas faire plus que le créateur » qui devient impossible à
+tenir autrement.
+
+---
+
+## 13. Découverte et recommandations — §3.7-E
+
+Vérifié dans `app/modules/product/recommendations.rb`,
+`app/services/recommended_products/`, `app/models/discover_search*.rb`.
+
+### 13.1 ➕ L'éligibilité au feed est une barrière, pas un classement
+
+`recommendable?` exige que **toutes** ces conditions soient vraies :
+
+vivant · non archivé · avis affichés · pas épuisé · **catégorie renseignée** ·
+**au moins une vente réalisée** · plus les conditions propres au vendeur.
+
+Ce n'est pas un score : c'est un seuil d'entrée. Un produit qui n'a jamais rien
+vendu, ou qui n'est pas catégorisé, n'entre pas dans le bassin de recommandation
+— indépendamment de sa qualité.
+
+**Conséquence pour Baobart** : « au moins une vente » est un démarrage à froid
+pour un créateur qui débute, et notre plan promet précisément de faire découvrir
+les nouveaux talents (badge « Nouveau talent », §2.6). Il faudra une porte
+d'entrée distincte — la sélection éditoriale du §3.10-A en est une, et c'est
+sans doute pour ça qu'elle existe chez eux aussi.
+
+Le drapeau est **dénormalisé dans l'index de recherche**, et le code prévient :
+tout facteur qui change doit déclencher une réindexation. C'est exactement le
+motif « compteurs dénormalisés + jobs asynchrones » du §8.2.
+
+### 13.2 ➕ Les recommandations partent de ce que vous avez déjà
+
+Les graines sont le **panier en cours** et les **produits déjà achetés**. Sont
+exclus : ces mêmes produits, et ceux contenus dans les lots que vous possédez —
+on ne recommande pas ce que l'acheteur a déjà, même indirectement.
+
+Détail à retenir : quand il y a au moins quatre graines, le service n'en tire
+qu'un **échantillon aléatoire de la moitié**. C'est une injection de diversité
+délibérée — sans elle, un même panier produirait éternellement les mêmes
+recommandations.
+
+Le nom du modèle de recommandation est stocké **en session** : plusieurs modèles
+coexistent et sont comparés.
+
+### 13.3 ➕ Le créateur décide si on recommande les produits des autres
+
+`User::RecommendationType` : `no_recommendations`, `own_products`,
+`gumroad_affiliates_products`, `directly_affiliated_products`.
+
+Le vendeur choisit ce qui peut apparaître à côté de ses propres produits — rien,
+seulement les siens, ou ceux dont il tire une commission d'affiliation.
+
+**C'est une question de consentement que le plan n'aborde nulle part.** Afficher
+les créations d'un tiers sur la page d'un créateur sans son accord est une
+décision qui lui appartient, pas à la plateforme.
+
+### 13.4 ❌ Les « suggestions de recherche » sont un historique — §3.7-E
+
+Le plan présente `discover_search_suggestion.rb` comme un moteur de suggestions.
+C'est en réalité **l'historique de recherche personnel** : les recherches
+récentes de la personne, rattachées à son compte ou, si elle n'est pas connectée,
+à son navigateur — et **effaçables une par une**.
+
+En revanche, `DiscoverSearch` enregistre bien la boucle de pertinence : chaque
+recherche, sa catégorie, et **la ressource qui a été cliquée** derrière. C'est la
+matière première d'un futur classement, pas un classement.
+
+À noter enfin : le feed curé annoncé comme un service
+(`discover_curated_products.rb`) est un **concern de contrôleur**, pas un service
+autonome.
+
+---
+
+## 14. Ce qui reste à vérifier
+
+Les grandes zones du plan ont toutes été ouvertes au moins une fois. Restent des
+sujets décrits mais jamais lus dans le détail :
+
+- **Baobart Shield** (§2.5) — sans équivalent chez Gumroad, rien à vérifier :
+  c'est du travail original, pas une traduction ;
+- **modération automatisée** (§3.6-A) — les stratégies et les motifs de blocage ;
+- **RGPD** (§3.7-C) — les services d'effacement et d'anonymisation ;
+- **intégrations tierces** (§3.7-B) — Discord, Zoom, Circle, Calendrier ;
+- **onboarding vendeur par pays** (§3.7-I) — les champs de conformité ;
+- **profils modulaires** (§3.9-G) et **stats d'avis dénormalisées** (§3.9-H).
+
+Sauf mention contraire dans ce document, une affirmation du plan reste **non
+vérifiée**.
