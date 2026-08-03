@@ -530,6 +530,22 @@ model Tag {
   name      String
   usesCount Int           @default(0)
   workItems WorkItemTag[]
+  products  ProductTag[]
+}
+
+/// Mots-clés d'une ressource vendable.
+///
+/// Les shots avaient déjà les leurs (`WorkItemTag`) ; l'écran « Publier une
+/// ressource » en demande aussi, et il n'y avait rien pour les recevoir.
+model ProductTag {
+  productId String
+  tagId     String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+  @@index([tagId])
 }
 
 model WorkItemTag {
@@ -662,6 +678,7 @@ model Product {
   workItem    WorkItem?     @relation(fields: [workItemId], references: [id])
   licenseType LicenseType?  @relation(fields: [licenseTypeId], references: [id])
   files       ProductFile[]
+  tags        ProductTag[]
   variants    Variant[]
   orderItems  OrderItem[]
   saves       Save[]

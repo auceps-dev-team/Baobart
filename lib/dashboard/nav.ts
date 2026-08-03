@@ -74,7 +74,7 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
     cle: "c_publier",
     label: "Ajouter un produit",
     glyph: "+",
-    href: null,
+    href: "/dashboard/produits/nouveau",
     desLAtelier: true,
   },
   { cle: "c_revenus", label: "Gains", glyph: "◎", href: null },
@@ -91,7 +91,7 @@ const PORTE_CREATION: EntreeNav = {
   cle: "c_publier",
   label: "Devenir vendeur",
   glyph: "★",
-  href: null,
+  href: "/dashboard/produits/nouveau",
   badge: "NEW",
 };
 

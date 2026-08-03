@@ -184,10 +184,13 @@ export function DashboardSidebar({
               );
             }
 
+            // `href` est une chaîne connue de notre table de navigation, mais
+            // typedRoutes ne peut pas le prouver depuis une variable : une
+            // ancre suffit, la navigation reste correcte.
             return (
-              <Link key={n.cle} href="/dashboard" style={style}>
+              <a key={n.cle} href={n.href} style={style}>
                 {contenu}
-              </Link>
+              </a>
             );
           })}
         </div>
