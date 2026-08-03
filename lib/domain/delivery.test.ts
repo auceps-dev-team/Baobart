@@ -208,3 +208,55 @@ describe("plateforme", () => {
     expect(plateformeDepuisUserAgent(null)).toBe("AUTRE");
   });
 });
+
+describe("litige et retrait d'accès", () => {
+  const achat = { source: "ACHAT" as const, achatAbouti: true };
+
+  it("coupe l'accès pendant une contestation non tranchée", () => {
+    expect(decideAcces({ ...achat, litigeEnCours: true })).toEqual({
+      autorise: false,
+      raison: "LITIGE",
+    });
+  });
+
+  it("coupe l'accès retiré par le vendeur", () => {
+    expect(decideAcces({ ...achat, accesRetire: true })).toEqual({
+      autorise: false,
+      raison: "ACCES_RETIRE",
+    });
+  });
+
+  it("annonce d'abord le remboursement, ensuite le litige, ensuite le retrait", () => {
+    // L'ordre décide du message affiché : on donne celui que la personne peut
+    // faire lever, du plus proche d'elle au plus lointain.
+    expect(
+      decideAcces({
+        ...achat,
+        rembourseIntegralement: true,
+        litigeEnCours: true,
+        accesRetire: true,
+      }),
+    ).toMatchObject({ raison: "REMBOURSE" });
+
+    expect(
+      decideAcces({ ...achat, litigeEnCours: true, accesRetire: true }),
+    ).toMatchObject({ raison: "LITIGE" });
+  });
+
+  it("laisse passer quand rien n'est signalé", () => {
+    expect(
+      decideAcces({ ...achat, litigeEnCours: false, accesRetire: false }),
+    ).toEqual({ autorise: true, consommeQuota: false });
+  });
+
+  it("s'applique aussi à l'abonnement", () => {
+    expect(
+      decideAcces({
+        source: "ABONNEMENT",
+        achatAbouti: true,
+        litigeEnCours: true,
+        quota: { utilises: 0, limite: 10 },
+      }),
+    ).toMatchObject({ raison: "LITIGE" });
+  });
+});

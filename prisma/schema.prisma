@@ -812,6 +812,18 @@ model OrderItem {
   /// PARTIEL, qu'un simple statut « remboursé » ne sait pas exprimer.
   refundedAmount Int @default(0)
 
+  /// Paiement contesté auprès de la banque ou de l'opérateur : l'argent est
+  /// repris sans qu'on ait rien remboursé. Distinct du remboursement, qui est
+  /// un geste du vendeur (url_redirects_controller.rb §295 chez Gumroad).
+  chargebackAt         DateTime?
+  /// Contestation tranchée en faveur du vendeur : l'accès revient.
+  chargebackReversedAt DateTime?
+
+  /// Accès coupé à la main par le vendeur — revente en masse, abus. Séparé du
+  /// remboursement : on peut retirer l'accès sans rendre l'argent, et rendre
+  /// l'argent sans retirer l'accès.
+  accessRevokedAt DateTime?
+
   createdAt DateTime @default(now())
 
   order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)

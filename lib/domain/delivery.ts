@@ -102,6 +102,10 @@ export type SourceAcces =
 export type RefusAcces =
   | "COMMANDE_NON_PAYEE"
   | "REMBOURSE"
+  /** Paiement contesté auprès de la banque, contestation non tranchée. */
+  | "LITIGE"
+  /** Accès coupé à la main par le vendeur. */
+  | "ACCES_RETIRE"
   | "ABONNEMENT_INACTIF"
   | "ACCES_EXPIRE"
   | "QUOTA_EPUISE";
@@ -112,6 +116,15 @@ export interface AccesInput {
   achatAbouti: boolean;
   /** Remboursement INTÉGRAL. Un remboursement partiel ne retire pas l'accès. */
   rembourseIntegralement?: boolean;
+  /**
+   * Contestation bancaire ouverte et non tranchée.
+   *
+   * Distincte du remboursement : l'argent est repris sans geste du vendeur, et
+   * une contestation tranchée en sa faveur rend l'accès.
+   */
+  litigeEnCours?: boolean;
+  /** Accès coupé par le vendeur, indépendamment de l'argent. */
+  accesRetire?: boolean;
   /** Pour un produit à abonnement : l'abonnement est-il encore actif ? */
   abonnementActif?: boolean;
   /** Fin d'accès éventuelle (location, accès limité dans le temps). */
@@ -144,6 +157,8 @@ export function decideAcces(input: AccesInput): DecisionAcces {
     source,
     achatAbouti,
     rembourseIntegralement = false,
+    litigeEnCours = false,
+    accesRetire = false,
     abonnementActif = true,
     accesExpireLe = null,
     dejaTelecharge = false,
@@ -157,6 +172,16 @@ export function decideAcces(input: AccesInput): DecisionAcces {
 
   if (rembourseIntegralement) {
     return { autorise: false, raison: "REMBOURSE" };
+  }
+
+  // Le litige passe avant le retrait manuel : c'est le motif que l'acheteur
+  // peut faire lever en retirant sa contestation.
+  if (litigeEnCours) {
+    return { autorise: false, raison: "LITIGE" };
+  }
+
+  if (accesRetire) {
+    return { autorise: false, raison: "ACCES_RETIRE" };
   }
 
   if (!abonnementActif) {

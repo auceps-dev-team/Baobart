@@ -84,7 +84,15 @@ export async function droitDeTelecharger(
       state: { in: ["SUCCESSFUL", "NOT_CHARGED"] },
       order: { buyerId: userId },
     },
-    select: { id: true, price: true, quantity: true, refundedAmount: true },
+    select: {
+      id: true,
+      price: true,
+      quantity: true,
+      refundedAmount: true,
+      chargebackAt: true,
+      chargebackReversedAt: true,
+      accessRevokedAt: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -93,6 +101,13 @@ export async function droitDeTelecharger(
   // Un remboursement intégral retire le droit ; un remboursement partiel non.
   const totalPaye = achat.price * achat.quantity;
   if (totalPaye > 0 && achat.refundedAmount >= totalPaye) {
+    return { etat: "A_ACHETER" };
+  }
+
+  // Les mêmes motifs que la route de livraison, sans quoi le bouton
+  // proposerait un téléchargement qu'elle refusera au clic.
+  const litige = achat.chargebackAt !== null && achat.chargebackReversedAt === null;
+  if (litige || achat.accessRevokedAt !== null) {
     return { etat: "A_ACHETER" };
   }
 

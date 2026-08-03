@@ -401,6 +401,76 @@ describe("téléchargement", () => {
     expect(await db.consumptionEvent.count()).toBe(1);
   });
 
+  it("coupe l'accès pendant un litige, et le rend si la contestation est levée", async () => {
+    const createur = await creerCreateur("-v14");
+    const acheteur = await creerCreateur("-a14");
+    const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+
+    await db.orderItem.update({
+      where: { id: ligne.id },
+      data: { chargebackAt: new Date() },
+    });
+
+    const pendant = await autoriserTelechargement({
+      userId: acheteur.id,
+      productFileId: fichier.id,
+    });
+    expect(pendant.decision).toEqual({ autorise: false, raison: "LITIGE" });
+    expect(await db.consumptionEvent.count()).toBe(0);
+
+    // Contestation tranchée en faveur du vendeur : le fichier revient.
+    await db.orderItem.update({
+      where: { id: ligne.id },
+      data: { chargebackReversedAt: new Date() },
+    });
+
+    const apres = await autoriserTelechargement({
+      userId: acheteur.id,
+      productFileId: fichier.id,
+    });
+    expect(apres.decision).toMatchObject({ autorise: true });
+  });
+
+  it("coupe l'accès retiré à la main, même sans rembourser", async () => {
+    const createur = await creerCreateur("-v15");
+    const acheteur = await creerCreateur("-a15");
+    const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+
+    await db.orderItem.update({
+      where: { id: ligne.id },
+      data: { accessRevokedAt: new Date() },
+    });
+
+    const r = await autoriserTelechargement({
+      userId: acheteur.id,
+      productFileId: fichier.id,
+    });
+
+    // L'argent n'a pas bougé : ce n'est pas un remboursement, et le motif
+    // affiché ne doit pas le laisser croire.
+    expect(r.decision).toEqual({ autorise: false, raison: "ACCES_RETIRE" });
+    const relu = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
+    expect(relu.refundedAmount).toBe(0);
+  });
+
+  it("la base refuse un litige tranché avant d'avoir été ouvert", async () => {
+    const createur = await creerCreateur("-v16");
+    const acheteur = await creerCreateur("-a16");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+
+    await expect(
+      db.orderItem.update({
+        where: { id: ligne.id },
+        data: { chargebackReversedAt: new Date() },
+      }),
+    ).rejects.toThrow();
+  });
+
   it("refuse de livrer un aperçu comme s'il était le fichier vendu", async () => {
     const createur = await creerCreateur("-v13");
     const acheteur = await creerCreateur("-a13");

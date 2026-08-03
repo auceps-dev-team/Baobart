@@ -25,6 +25,10 @@ const MESSAGES: Record<string, string> = {
     "Cette ressource n'est pas dans tes achats. Achète-la pour la télécharger.",
   REMBOURSE:
     "Cette commande a été remboursée : le fichier n'est plus accessible.",
+  LITIGE:
+    "Le paiement de cette commande est contesté. L'accès reprendra si la contestation est levée.",
+  ACCES_RETIRE:
+    "L'accès à cette ressource a été retiré par son créateur. Écris-lui si tu penses que c'est une erreur.",
   ABONNEMENT_INACTIF:
     "Ton abonnement n'est plus actif. Renouvelle-le pour reprendre tes téléchargements.",
   ACCES_EXPIRE: "Ton accès à cette ressource est arrivé à terme.",

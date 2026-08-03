@@ -132,6 +132,11 @@ export async function autoriserTelechargement(
         achatAbouti: true,
         rembourseIntegralement:
           totalPaye > 0 && achat.refundedAmount >= totalPaye,
+        // Une contestation tranchée en faveur du vendeur rend l'accès : c'est
+        // la date de renversement qui la referme, pas sa disparition.
+        litigeEnCours:
+          achat.chargebackAt !== null && achat.chargebackReversedAt === null,
+        accesRetire: achat.accessRevokedAt !== null,
         dejaTelecharge: dejaTelecharge !== null,
         now,
       });

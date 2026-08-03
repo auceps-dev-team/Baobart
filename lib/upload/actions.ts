@@ -128,6 +128,19 @@ function prefixePour(role: RoleFichier, nomFichier: string): string {
   return "produits/";
 }
 
+/**
+ * La clé range-t-elle bien le fichier sous ce produit ?
+ *
+ * Les deux préfixes possibles finissent par `<produitId>/` — c'est ce segment
+ * qui fait foi, pas ce que le navigateur redemande à la confirmation.
+ */
+function cleAppartientAu(cle: string, produitId: string): boolean {
+  return (
+    cle.startsWith(`produits/${produitId}/`) ||
+    cle.startsWith(`${PREFIXE_PUBLIC}extraits/${produitId}/`)
+  );
+}
+
 export async function reserverFichier(
   produitId: string,
   fichier: { nom: string; taille: number; mime: string },
@@ -240,6 +253,13 @@ export async function confirmerFichier(
   }
   if (reservation.status === "uploaded") {
     return { ok: false, message: "Cet envoi a déjà été enregistré." };
+  }
+
+  // La réservation a été signée pour **ce** produit : sa clé le porte. Confirmer
+  // ailleurs rangerait le fichier sous le préfixe d'une autre ressource, et
+  // supprimer celle-ci emporterait un fichier qui ne lui appartient pas.
+  if (!cleAppartientAu(reservation.s3Key, produitId)) {
+    return { ok: false, message: "Cet envoi ne concerne pas cette ressource." };
   }
 
   // Relu de la réservation, pas reçu du navigateur : la clé — publique ou
