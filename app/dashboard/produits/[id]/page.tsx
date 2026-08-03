@@ -82,6 +82,7 @@ export default async function ProduitDuTableauDeBord({
       previewKind: true,
       tags: { select: { tag: { select: { name: true } } } },
       files: {
+        where: { deletedAt: null },
         orderBy: { position: "asc" },
         select: {
           id: true,

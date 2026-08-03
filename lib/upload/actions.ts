@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { produireApercu } from "@/lib/upload/apercu";
+import { retirerFichierDe } from "@/lib/upload/service";
 import {
   natureApercu,
   nomSur,
@@ -74,7 +75,10 @@ async function produitDe(produitId: string) {
       sellerId: true,
       coverUrl: true,
       previewUrl: true,
-      files: { select: { id: true, role: true } },
+      files: {
+        where: { deletedAt: null },
+        select: { id: true, role: true },
+      },
     },
   });
 
@@ -390,71 +394,16 @@ export async function retirerFichier(
   produitId: string,
   fichierId: string,
 ): Promise<{ ok: boolean; message?: string }> {
-  const contexte = await produitDe(produitId);
-  if (!contexte) return { ok: false, message: "Ressource introuvable." };
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) return { ok: false, message: "Connecte-toi pour continuer." };
 
-  const fichier = await db.productFile.findUnique({
-    where: { id: fichierId },
-    select: {
-      id: true,
-      productId: true,
-      media: { select: { id: true, s3Key: true } },
-    },
+  const resultat = await retirerFichierDe({
+    userId: utilisateur.id,
+    produitId,
+    fichierId,
   });
 
-  if (!fichier || fichier.productId !== produitId) {
-    return { ok: false, message: "Fichier introuvable." };
-  }
-
-  await db.productFile.delete({ where: { id: fichier.id } });
-
-  // Le média n'est supprimé que s'il ne sert plus à rien d'autre : le même
-  // fichier peut être attaché ailleurs.
-  const encoreUtilise = await db.productFile.count({
-    where: { mediaId: fichier.media.id },
-  });
-
-  if (encoreUtilise === 0) {
-    await db.mediaAsset.delete({ where: { id: fichier.media.id } });
-    await supprimerObjet(fichier.media.s3Key);
-    await supprimerObjet(`${PREFIXE_PUBLIC}apercus/${fichier.media.id}.webp`);
-  }
-
-  // Retirer l'extrait, c'est retirer le lecteur de la fiche.
-  if (contexte.produit.previewUrl === urlPublique(fichier.media.s3Key)) {
-    await db.product.update({
-      where: { id: produitId },
-      data: { previewUrl: null, previewKind: null },
-    });
-  }
-
-  // Si c'était la couverture, on reprend celle du fichier suivant qui en a une,
-  // en donnant la main à un aperçu déposé exprès sur une vignette dérivée.
-  const cleApercuRetiree = urlPublique(
-    `${PREFIXE_PUBLIC}apercus/${fichier.media.id}.webp`,
-  );
-
-  if (contexte.produit.coverUrl === cleApercuRetiree) {
-    const suivant = await db.productFile.findFirst({
-      where: { productId: produitId, media: { width: { not: null } } },
-      // `desc` sur le rôle : l'énumération liste SOURCE avant PREVIEW, et c'est
-      // l'aperçu choisi à la main qui doit l'emporter.
-      orderBy: [{ role: "desc" }, { position: "asc" }],
-      select: { media: { select: { id: true } } },
-    });
-
-    const remplacante = suivant
-      ? urlPublique(`${PREFIXE_PUBLIC}apercus/${suivant.media.id}.webp`)
-      : null;
-
-    await db.product.update({
-      where: { id: produitId },
-      data: {
-        coverUrl: remplacante,
-        coverImageId: suivant?.media.id ?? null,
-      },
-    });
-  }
+  if (!resultat.ok) return resultat;
 
   revalidatePath(`/dashboard/produits/${produitId}`);
   revalidatePath("/");

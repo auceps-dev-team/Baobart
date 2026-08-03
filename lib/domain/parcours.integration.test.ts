@@ -217,6 +217,34 @@ describe("remboursement", () => {
     expect(await db.refund.count({ where: { orderItemId: ligne.id } })).toBe(2);
   });
 
+  it("une suite de remboursements ne débite jamais le créateur plus que son net", async () => {
+    // Le défaut anticipé : arrondir chaque remboursement isolément faisait
+    // payer au créateur la monnaie de la division. Franc par franc, il rendait
+    // 100 pour un net de 71.
+    const createur = await creerCreateur("-v17");
+    const acheteur = await creerCreateur("-a17");
+    const { produit } = await creerProduitAvecFichier(createur.id, 100);
+    const ligne = await creerCommande(acheteur.id, produit.id, 100);
+
+    const { frais } = await encaisserLigne({
+      orderItemId: ligne.id,
+      regime: "DIRECT",
+    });
+
+    let rendu = 0;
+    for (let i = 0; i < 100; i += 1) {
+      const r = await rembourserLigne({ orderItemId: ligne.id, amount: 1 });
+      rendu += r.partNette;
+    }
+
+    expect(rendu).toBe(frais.sellerNet);
+
+    // Le solde revient exactement à zéro : ni dette, ni cadeau.
+    const soldes = await db.balance.findMany({ where: { userId: createur.id } });
+    const total = soldes.reduce((s, b) => s + b.holdingAmount, 0);
+    expect(total).toBe(0);
+  });
+
   it("refuse de rembourser plus que ce qui a été encaissé", async () => {
     const createur = await creerCreateur("-v4");
     const acheteur = await creerCreateur("-a4");

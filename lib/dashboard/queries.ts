@@ -200,7 +200,7 @@ export async function historiqueDesTelechargements(
       price: true,
       coverUrl: true,
       files: {
-        where: { role: "SOURCE" },
+        where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
         select: { id: true, filename: true },
       },

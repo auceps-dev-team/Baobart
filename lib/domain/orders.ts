@@ -12,7 +12,11 @@
 import type { Currency } from "@prisma/client";
 
 import { crediterSolde } from "@/lib/domain/balances";
-import { computeFees, type FeeRegime } from "@/lib/domain/fees";
+import {
+  computeFees,
+  partNetteRemboursee,
+  type FeeRegime,
+} from "@/lib/domain/fees";
 import { db } from "@/lib/db";
 
 export class LigneDejaEncaisseeError extends Error {
@@ -174,11 +178,16 @@ export async function rembourserLigne(input: {
 
     // Le créateur rend ce qu'il avait touché sur la part remboursée, au prorata
     // de son net — il ne rend pas la commission de la plateforme, qu'il n'a
-    // jamais reçue.
-    const partNette = encaisse === 0 ? 0 : Math.round(
-      (amount * (encaisse - ligne.platformFee - ligne.processorFee - ligne.affiliateFee)) /
-        encaisse,
-    );
+    // jamais reçue. La part se calcule par différence sur le cumul : arrondir
+    // chaque remboursement isolément lui ferait payer la monnaie de la
+    // division, jusqu'à 29 F sur une vente de 100 remboursée franc par franc.
+    const partNette = partNetteRemboursee({
+      brut: encaisse,
+      net:
+        encaisse - ligne.platformFee - ligne.processorFee - ligne.affiliateFee,
+      dejaRembourse,
+      montant: amount,
+    });
 
     const { mouvement } = await crediterSolde(tx, {
       userId: ligne.product.sellerId,

@@ -244,3 +244,41 @@ export function minimumViablePrice(
 
   return Math.ceil(fixed / remainingShare);
 }
+
+// ─────────────────────────────────────────────────────── remboursement ──────
+
+/**
+ * Ce que le créateur rend sur un remboursement partiel.
+ *
+ * Il ne rend que sa part nette : la commission de la plateforme et les frais
+ * du processeur ne sont jamais entrés dans son solde. Même arithmétique que
+ * `purchase.rb` chez Gumroad, qui écrit `decrement − (fee/price × decrement)`
+ * — soit `decrement × net/brut`.
+ *
+ * L'arrondi est celui qui compte. Un `round` par remboursement peut, sur une
+ * suite de remboursements partiels totalisant la vente entière, débiter le
+ * créateur d'un franc de plus que ce qu'il a touché. Un franc n'est rien ; un
+ * franc pris à quelqu'un sans raison est un défaut. On calcule donc chaque
+ * part **par différence sur le cumul**, ce qui fait tomber l'écart à zéro par
+ * construction.
+ */
+export function partNetteRemboursee(input: {
+  /** Brut encaissé sur la ligne : prix unitaire × quantité. */
+  brut: number;
+  /** Net déjà crédité au créateur pour cette ligne. */
+  net: number;
+  /** Cumul déjà remboursé avant ce remboursement-ci. */
+  dejaRembourse: number;
+  /** Montant du remboursement en cours. */
+  montant: number;
+}): number {
+  const { brut, net, dejaRembourse, montant } = input;
+  if (brut <= 0) return 0;
+
+  const avant = Math.round((dejaRembourse * net) / brut);
+  const apres = Math.round(
+    (Math.min(brut, dejaRembourse + montant) * net) / brut,
+  );
+
+  return Math.max(0, apres - avant);
+}

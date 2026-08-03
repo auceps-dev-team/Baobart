@@ -60,10 +60,14 @@ export async function autoriserTelechargement(
       include: { product: true },
     });
 
-    // Un aperçu n'est pas une livraison. Il est déjà public : le servir ici
-    // gonflerait le compteur de téléchargements et, pour un abonné,
-    // consommerait un quota pour une vignette.
-    if (fichier.role !== "SOURCE") {
+    // Un fichier retiré n'est plus servi, y compris à qui l'a acheté. La ligne
+    // survit pour que rien ne soit détruit — pas pour continuer à livrer.
+    // C'est aussi ce que fait `alive_product_files` chez Gumroad.
+    //
+    // Un aperçu n'est pas une livraison non plus : il est déjà public, et le
+    // servir ici gonflerait le compteur de téléchargements tout en consommant
+    // un quota d'abonné pour une vignette.
+    if (fichier.deletedAt !== null || fichier.role !== "SOURCE") {
       return {
         decision: { autorise: false, raison: "COMMANDE_NON_PAYEE" } as const,
         dureeUrlSecondes: null,

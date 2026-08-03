@@ -28,7 +28,9 @@ export default async function MesProduitsPage() {
       currency: true,
       family: true,
       downloadsCount: true,
-      _count: { select: { files: { where: { role: "SOURCE" } } } },
+      _count: {
+        select: { files: { where: { role: "SOURCE", deletedAt: null } } },
+      },
     },
   });
 

@@ -740,12 +740,18 @@ model ProductFile {
   sizeBytes Int
   role      ProductFileRole @default(SOURCE)
   position  Int             @default(0)
+  /// Retiré d'une ressource **déjà vendue** : la ligne et l'objet au stockage
+  /// restent. Un retrait par erreur serait sinon irrécupérable, et ce sont des
+  /// acheteurs qui auraient payé pour rien. Reprend le `Deletable` de Gumroad —
+  /// qui ne sert pas non plus un fichier retiré, mais n'en détruit jamais les
+  /// octets. Sur un brouillon jamais vendu, la ligne part pour de bon.
+  deletedAt DateTime?
   createdAt DateTime        @default(now())
 
   product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   media   MediaAsset @relation(fields: [mediaId], references: [id])
 
-  @@index([productId, role])
+  @@index([productId, role, deletedAt])
   @@index([mediaId])
 }
 

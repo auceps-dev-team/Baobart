@@ -57,7 +57,7 @@ export async function droitDeTelecharger(
     select: {
       price: true,
       files: {
-        where: { role: "SOURCE" },
+        where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
         select: { id: true, filename: true },
       },
@@ -153,7 +153,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
       files: {
         // Le format et les dimensions annoncés décrivent ce que l'acheteur
         // reçoit : l'aperçu n'a rien à y faire.
-        where: { role: "SOURCE" },
+        where: { role: "SOURCE", deletedAt: null },
         orderBy: { sizeBytes: "desc" },
         take: 1,
         select: {
