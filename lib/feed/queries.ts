@@ -220,3 +220,35 @@ export async function rechercher(q: string) {
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
   }));
 }
+
+/** Compte réel de ressources publiées par famille — pour la grille « Gratuit, tout de suite ». */
+export async function compterParFamille() {
+  const groupes = await db.product.groupBy({
+    by: ["family"],
+    where: { status: "PUBLISHED", family: { not: null } },
+    _count: { _all: true },
+  });
+
+  return groupes
+    .filter((g) => g.family !== null)
+    .map((g) => ({
+      famille: LIBELLE_PAR_FAMILLE[g.family as ProductFamily],
+      total: g._count._all,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+/** Créateurs à suivre, pour le bloc « Créatifs à suivre » des espaces d'équipe. */
+export async function listerCreateurs(limit = 3) {
+  const profils = await db.profile.findMany({
+    orderBy: [{ workCount: "desc" }, { createdAt: "desc" }],
+    take: limit,
+    select: { username: true, displayName: true, city: true },
+  });
+
+  return profils.map((p) => ({
+    username: p.username,
+    nom: p.displayName,
+    lieu: p.city,
+  }));
+}
