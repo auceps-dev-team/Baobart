@@ -29,3 +29,31 @@ export function forceMotDePasse(motDePasse: string): 0 | 1 | 2 | 3 {
 
   return Math.min(points, 3) as 0 | 1 | 2 | 3;
 }
+
+/**
+ * Ce que dit la jauge, en toutes lettres.
+ *
+ * Une barre de couleur seule n'aide pas : elle ne dit ni ce qui manque, ni
+ * quand c'est suffisant. Et pour qui ne distingue pas le rouge du jaune, elle
+ * ne dit rien du tout.
+ */
+export const LIBELLES_FORCE = [
+  "Trop court",
+  "Acceptable",
+  "Bien",
+  "Solide",
+] as const;
+
+export function libelleForce(motDePasse: string): string {
+  return LIBELLES_FORCE[forceMotDePasse(motDePasse)];
+}
+
+/** Ce qu'il manque encore, ou `null` si le mot de passe est acceptable. */
+export function manqueAuMotDePasse(motDePasse: string): string | null {
+  if (motDePasse.length === 0) return null;
+  if (motDePasse.length < LONGUEUR_MOT_DE_PASSE_MIN) {
+    const reste = LONGUEUR_MOT_DE_PASSE_MIN - motDePasse.length;
+    return `Encore ${reste} caractère${reste > 1 ? "s" : ""}.`;
+  }
+  return null;
+}

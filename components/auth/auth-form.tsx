@@ -11,7 +11,13 @@ import {
   ORANGE,
 } from "@/components/shell/nav-data";
 import type { EtatFormulaire } from "@/lib/auth/actions";
-import { LONGUEUR_MOT_DE_PASSE_MIN, forceMotDePasse } from "@/lib/auth/strength";
+import type { FournisseurPublic } from "@/lib/auth/providers";
+import {
+  LONGUEUR_MOT_DE_PASSE_MIN,
+  forceMotDePasse,
+  libelleForce,
+  manqueAuMotDePasse,
+} from "@/lib/auth/strength";
 
 /**
  * Formulaire d'authentification, traduit de « Baobart Auth.dc.html ».
@@ -44,8 +50,8 @@ export function AuthForm({
   lienBas,
   libelleLienBas,
   avecTypeDeCompte = false,
-  avecSocial = true,
   avecMotDePasseOublie = false,
+  fournisseurs = [],
 }: {
   mode: "connexion" | "inscription" | "oubli";
   titre: string;
@@ -58,8 +64,9 @@ export function AuthForm({
   lienBas: string;
   libelleLienBas: string;
   avecTypeDeCompte?: boolean;
-  avecSocial?: boolean;
   avecMotDePasseOublie?: boolean;
+  /** Moyens secondaires. Ceux qui ne sont pas configurés restent affichés. */
+  fournisseurs?: FournisseurPublic[];
 }) {
   const [etat, envoyer, enCours] = useActionState(action, {});
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
@@ -68,8 +75,14 @@ export function AuthForm({
     "acheteur",
   );
 
+  const [bientot, setBientot] = useState<string | null>(null);
+
   const force = forceMotDePasse(motDePasse);
-  const couleursJauge = [ORANGE, JAUNE, BLANC];
+  // La maquette dessine la jauge en orange / jaune / blanc, mais elle la montre
+  // FIGÉE. En mouvement, un troisième segment blanc ne se distingue pas d'un
+  // segment vide — la jauge plafonnerait visuellement à deux niveaux sur trois.
+  // Le niveau fort passe donc à l'encre.
+  const couleursJauge = [ORANGE, JAUNE, ENCRE];
 
   const onglet = (href: string, label: string, actif: boolean) => (
     <a
@@ -322,9 +335,23 @@ export function AuthForm({
                         marginLeft: 4,
                       }}
                     >
-                      {LONGUEUR_MOT_DE_PASSE_MIN} CAR. MIN.
+                      {motDePasse.length > 0
+                        ? libelleForce(motDePasse).toUpperCase()
+                        : `${LONGUEUR_MOT_DE_PASSE_MIN} CAR. MIN.`}
                     </span>
                   </div>
+                ) : null}
+                {f.jauge && manqueAuMotDePasse(motDePasse) ? (
+                  <p
+                    style={{
+                      margin: "6px 0 0",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#B34A1F",
+                    }}
+                  >
+                    {manqueAuMotDePasse(motDePasse)}
+                  </p>
                 ) : null}
               </div>
             );
@@ -429,7 +456,7 @@ export function AuthForm({
         </button>
       </form>
 
-      {avecSocial ? (
+      {fournisseurs.length > 0 ? (
         <>
           <div
             style={{
@@ -453,6 +480,7 @@ export function AuthForm({
             </span>
             <span style={{ flex: "1 1 auto", height: 2.5, background: ENCRE }} />
           </div>
+
           <div
             style={{
               display: "grid",
@@ -460,14 +488,17 @@ export function AuthForm({
               gap: 10,
             }}
           >
-            {[
-              { label: "Google", glyph: "G" },
-              { label: "Apple", glyph: "" },
-              { label: "Figma", glyph: "F" },
-            ].map((s) => (
-              <span
-                key={s.label}
-                title="Bientôt disponible"
+            {fournisseurs.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() =>
+                  f.actif
+                    ? (window.location.href = `/api/auth/${f.id}`)
+                    : setBientot(f.label)
+                }
+                aria-disabled={!f.actif}
+                title={f.actif ? undefined : "Bientôt disponible"}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -476,19 +507,45 @@ export function AuthForm({
                   padding: "12px 8px",
                   border: CADRE,
                   borderRadius: 14,
-                  background: BLANC,
+                  background: f.actif ? BLANC : LAVANDE_CLAIR,
                   fontSize: 13,
                   fontWeight: 800,
-                  opacity: 0.45,
+                  cursor: "pointer",
+                  // Un moyen non branché reste lisible : il est estompé, pas
+                  // effacé. La personne doit pouvoir le voir et comprendre
+                  // pourquoi il ne répond pas.
+                  opacity: f.actif ? 1 : 0.62,
                 }}
               >
-                <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 14 }}>
-                  {s.glyph}
+                <span
+                  style={{ fontFamily: "'Space Mono', monospace", fontSize: 14 }}
+                >
+                  {f.glyph}
                 </span>
-                {s.label}
-              </span>
+                {f.label}
+              </button>
             ))}
           </div>
+
+          {bientot ? (
+            <div
+              role="status"
+              style={{
+                marginTop: 14,
+                padding: "13px 15px",
+                border: CADRE,
+                borderRadius: 14,
+                background: ENCRE,
+                color: BLANC,
+                fontSize: 13,
+                fontWeight: 700,
+                animation: "popin .16s ease-out",
+              }}
+            >
+              {bientot} — bientôt disponible. En attendant, l&apos;e-mail et le
+              mot de passe fonctionnent.
+            </div>
+          ) : null}
         </>
       ) : null}
 

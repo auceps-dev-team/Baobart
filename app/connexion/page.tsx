@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth/auth-form";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { connecter } from "@/lib/auth/actions";
+import { listerFournisseurs } from "@/lib/auth/providers";
 import { sessionCourante } from "@/lib/auth/session";
 
 export const metadata = { title: "Se connecter — Baobart." };
@@ -36,6 +37,7 @@ export default async function ConnexionPage() {
         cta="Se connecter"
         libelleCase="Rester connecté sur cet appareil"
         action={connecter}
+        fournisseurs={listerFournisseurs()}
         avecMotDePasseOublie
         champs={[
           {

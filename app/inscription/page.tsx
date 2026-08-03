@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth/auth-form";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { inscrire } from "@/lib/auth/actions";
+import { listerFournisseurs } from "@/lib/auth/providers";
 import { sessionCourante } from "@/lib/auth/session";
 import { BAREME_XOF } from "@/lib/domain/fees";
 
@@ -39,6 +40,7 @@ export default async function InscriptionPage() {
         cta="Créer mon compte gratuit"
         libelleCase="J'accepte les conditions générales et les règles de publication"
         action={inscrire}
+        fournisseurs={listerFournisseurs()}
         avecTypeDeCompte
         champs={[
           {

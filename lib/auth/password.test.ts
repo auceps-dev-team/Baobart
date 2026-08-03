@@ -5,7 +5,11 @@ import {
   hacherMotDePasse,
   verifierMotDePasse,
 } from "./password";
-import { forceMotDePasse } from "./strength";
+import {
+  forceMotDePasse,
+  libelleForce,
+  manqueAuMotDePasse,
+} from "./strength";
 
 describe("hachage", () => {
   it("accepte le bon mot de passe et refuse les autres", async () => {
@@ -78,5 +82,21 @@ describe("force affichée", () => {
 
   it("ne dépasse jamais trois — la jauge n'a que trois segments", () => {
     expect(forceMotDePasse("Un!MotDePasse1TresTresTresLong2026")).toBe(3);
+  });
+});
+
+describe("ce que dit la jauge", () => {
+  it("nomme chaque niveau, pour ne pas dépendre de la couleur seule", () => {
+    expect(libelleForce("court")).toBe("Trop court");
+    expect(libelleForce("motdepasse")).toBe("Acceptable");
+    expect(libelleForce("MotDePasse1")).toBe("Bien");
+    expect(libelleForce("MotDePasse1!supplement")).toBe("Solide");
+  });
+
+  it("dit combien de caractères il manque, et se tait quand il n'en manque plus", () => {
+    expect(manqueAuMotDePasse("")).toBeNull();
+    expect(manqueAuMotDePasse("abc")).toBe("Encore 5 caractères.");
+    expect(manqueAuMotDePasse("abcdefg")).toBe("Encore 1 caractère.");
+    expect(manqueAuMotDePasse("abcdefgh")).toBeNull();
   });
 });

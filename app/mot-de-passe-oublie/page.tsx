@@ -29,7 +29,6 @@ export default function MotDePasseOubliePage() {
         cta="Envoyer le lien"
         libelleCase="Je confirme que cette adresse est la mienne"
         action={demanderReinitialisation}
-        avecSocial={false}
         champs={[
           {
             nom: "email",
