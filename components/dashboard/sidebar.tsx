@@ -27,10 +27,13 @@ export function DashboardSidebar({
   etape,
   nom,
   email,
+  actif,
 }: {
   etape: EtapeCompte;
   nom: string;
   email: string;
+  /** Clé de l'écran ouvert, pour le marquer dans la liste. */
+  actif?: string;
 }) {
   const groupes = navigationPour(etape);
 
@@ -147,13 +150,20 @@ export function DashboardSidebar({
               </>
             );
 
+            const courant = actif === n.cle;
+
             const style = {
               display: "flex",
               alignItems: "center",
               gap: 11,
               padding: "9px 10px",
               borderRadius: 12,
-              background: n.badge ? JAUNE : "transparent",
+              // L'écran ouvert se repère au fond lavande de la maquette.
+              background: courant
+                ? LAVANDE
+                : n.badge
+                  ? JAUNE
+                  : "transparent",
               // Verrouillée : estompée mais lisible. Illisible, elle
               // n'apprendrait rien ; absente, elle ne promettrait rien.
               opacity: n.actif ? 1 : 0.45,

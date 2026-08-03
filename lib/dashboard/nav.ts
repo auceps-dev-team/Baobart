@@ -36,12 +36,17 @@ export interface EntreeNavRendue extends EntreeNav {
 const ACHETEUR: EntreeNav[] = [
   { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard" },
   { cle: "profil", label: "Profil", glyph: "☺", href: null },
-  { cle: "achats", label: "Historique des achats", glyph: "▤", href: null },
+  {
+    cle: "achats",
+    label: "Historique des achats",
+    glyph: "▤",
+    href: "/dashboard/achats",
+  },
   {
     cle: "telechargements",
     label: "Historique des téléchargements",
     glyph: "↓",
-    href: null,
+    href: "/dashboard/telechargements",
   },
   { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: null },
   { cle: "collections", label: "Mes collections", glyph: "⌸", href: null },
