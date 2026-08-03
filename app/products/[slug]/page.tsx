@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DetailProduit, EnTeteFiche } from "@/components/product/detail";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
+import { sessionCourante } from "@/lib/auth/session";
 import { obtenirProduit } from "@/lib/products/queries";
 
 export const dynamic = "force-dynamic";
@@ -36,13 +37,16 @@ export default async function FicheProduitPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const produit = await obtenirProduit(slug);
+  const [produit, utilisateur] = await Promise.all([
+    obtenirProduit(slug),
+    sessionCourante(),
+  ]);
 
   if (!produit) notFound();
 
   return (
     <>
-      <Header />
+      <Header utilisateur={utilisateur} />
       <main
         style={{
           minHeight: "100vh",

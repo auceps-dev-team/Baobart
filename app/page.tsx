@@ -10,6 +10,7 @@ import {
 } from "@/components/home/sections";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
+import { sessionCourante } from "@/lib/auth/session";
 import { BAREME_XOF } from "@/lib/domain/fees";
 import {
   compterCommunaute,
@@ -29,6 +30,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AccueilPage() {
+  const utilisateur = await sessionCourante();
   const [page, alaUne, familles, createurs, chiffres] = await Promise.all([
     listerFeed(),
     listerAlaUne(),
@@ -45,7 +47,7 @@ export default async function AccueilPage() {
 
   return (
     <>
-      <Header />
+      <Header utilisateur={utilisateur} />
       <HomeShell chiffres={chiffres}>
         <Categories familles={familles} />
         <Feed

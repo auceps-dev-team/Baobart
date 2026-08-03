@@ -202,3 +202,21 @@
     padding-left: 0 !important;
   }
 }
+
+/* Authentification : deux volets côte à côte, empilés sur petit écran. */
+.auth-volets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+}
+
+@media (max-width: 900px) {
+  .auth-volets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Le formulaire passe devant : c'est la raison d'être de la page. */
+  .auth-argumentaire {
+    order: 2;
+    border-right: none !important;
+    border-top: 3px solid #121212;
+  }
+}

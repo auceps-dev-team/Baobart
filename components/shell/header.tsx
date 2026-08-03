@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { deconnecter } from "@/lib/auth/actions";
+
 import {
   BLANC,
   ENCRE,
@@ -28,7 +30,18 @@ interface Suggestion {
   slug: string;
 }
 
-export function Header({ cartCount = 0 }: { cartCount?: number }) {
+export interface UtilisateurEnTete {
+  nom: string;
+  username: string | null;
+}
+
+export function Header({
+  cartCount = 0,
+  utilisateur = null,
+}: {
+  cartCount?: number;
+  utilisateur?: UtilisateurEnTete | null;
+}) {
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -388,7 +401,9 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
                   background: `repeating-linear-gradient(135deg,${JAUNE} 0 5px,${BLANC} 5px 11px)`,
                 }}
               />
-              <span style={{ fontSize: 12.5, fontWeight: 800 }}>Invité</span>
+              <span style={{ fontSize: 12.5, fontWeight: 800 }}>
+                {utilisateur ? utilisateur.nom : "Invité"}
+              </span>
             </div>
             {compteOuvert ? (
               <div
@@ -406,21 +421,72 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
                   animation: "popin .14s ease-out",
                 }}
               >
-                <div
-                  style={{
-                    padding: 10,
-                    border: `2.5px solid ${ENCRE}`,
-                    borderRadius: 14,
-                    background: LAVANDE_CLAIR,
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                  }}
-                >
-                  Pas encore de compte —{" "}
-                  <span style={{ borderBottom: `2.5px solid ${ENCRE}` }}>
-                    l&apos;authentification arrive
-                  </span>
-                </div>
+                {utilisateur ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <a
+                      href="/dashboard"
+                      style={{
+                        padding: "9px 10px",
+                        borderRadius: 11,
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Tableau de bord
+                    </a>
+                    <form action={deconnecter}>
+                      <button
+                        type="submit"
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "9px 10px",
+                          borderRadius: 11,
+                          border: "none",
+                          background: "none",
+                          fontFamily: "inherit",
+                          fontSize: 13.5,
+                          fontWeight: 700,
+                          color: ORANGE,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Se déconnecter
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <a
+                      href="/connexion"
+                      style={{
+                        padding: "11px 12px",
+                        border: `2.5px solid ${ENCRE}`,
+                        borderRadius: 13,
+                        background: JAUNE,
+                        textAlign: "center",
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                      }}
+                    >
+                      Se connecter
+                    </a>
+                    <a
+                      href="/inscription"
+                      style={{
+                        padding: "11px 12px",
+                        border: `2.5px solid ${ENCRE}`,
+                        borderRadius: 13,
+                        background: LAVANDE_CLAIR,
+                        textAlign: "center",
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                      }}
+                    >
+                      Créer un compte
+                    </a>
+                  </div>
+                )}
               </div>
             ) : null}
           </div>

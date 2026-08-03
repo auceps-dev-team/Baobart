@@ -1,5 +1,6 @@
 import { Feed } from "@/components/feed/feed";
 import { Header } from "@/components/shell/header";
+import { sessionCourante } from "@/lib/auth/session";
 import { Rail } from "@/components/shell/rail";
 import { listerAlaUne, listerFeed } from "@/lib/feed/queries";
 import { FILTRES, type Filtre } from "@/lib/feed/types";
@@ -24,6 +25,7 @@ export default async function ExplorerPage({
       ? (demande as Filtre)
       : "Tous";
 
+  const utilisateur = await sessionCourante();
   const [page, alaUne] = await Promise.all([
     listerFeed({ filtre }),
     listerAlaUne(),
@@ -31,7 +33,7 @@ export default async function ExplorerPage({
 
   return (
     <>
-      <Header />
+      <Header utilisateur={utilisateur} />
       <div
         data-root="1"
         style={{

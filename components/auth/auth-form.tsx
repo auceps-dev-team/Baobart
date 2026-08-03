@@ -1,0 +1,518 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState, useState } from "react";
+
+import {
+  BLANC,
+  ENCRE,
+  JAUNE,
+  LAVANDE_CLAIR,
+  ORANGE,
+} from "@/components/shell/nav-data";
+import type { EtatFormulaire } from "@/lib/auth/actions";
+import { LONGUEUR_MOT_DE_PASSE_MIN, forceMotDePasse } from "@/lib/auth/strength";
+
+/**
+ * Formulaire d'authentification, traduit de « Baobart Auth.dc.html ».
+ *
+ * Les onglets sont de vrais liens vers `/connexion` et `/inscription` plutôt
+ * qu'un état local : une page d'authentification doit être partageable, et le
+ * bouton retour du navigateur doit fonctionner.
+ */
+
+const CADRE = `2.5px solid ${ENCRE}`;
+
+export interface ChampAuth {
+  nom: string;
+  label: string;
+  placeholder: string;
+  type: "text" | "email" | "password";
+  pleineLargeur: boolean;
+  jauge?: boolean;
+}
+
+export function AuthForm({
+  mode,
+  titre,
+  sousTitre,
+  cta,
+  libelleCase,
+  champs,
+  action,
+  texteBas,
+  lienBas,
+  libelleLienBas,
+  avecTypeDeCompte = false,
+  avecSocial = true,
+  avecMotDePasseOublie = false,
+}: {
+  mode: "connexion" | "inscription" | "oubli";
+  titre: string;
+  sousTitre: string;
+  cta: string;
+  libelleCase: string;
+  champs: ChampAuth[];
+  action: (etat: EtatFormulaire, donnees: FormData) => Promise<EtatFormulaire>;
+  texteBas: string;
+  lienBas: string;
+  libelleLienBas: string;
+  avecTypeDeCompte?: boolean;
+  avecSocial?: boolean;
+  avecMotDePasseOublie?: boolean;
+}) {
+  const [etat, envoyer, enCours] = useActionState(action, {});
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
+  const [motDePasse, setMotDePasse] = useState("");
+  const [typeCompte, setTypeCompte] = useState<"acheteur" | "createur">(
+    "acheteur",
+  );
+
+  const force = forceMotDePasse(motDePasse);
+  const couleursJauge = [ORANGE, JAUNE, BLANC];
+
+  const onglet = (href: string, label: string, actif: boolean) => (
+    <a
+      href={href}
+      style={{
+        flex: "1 1 0",
+        textAlign: "center",
+        padding: "11px 8px",
+        borderRadius: 11,
+        fontSize: 13.5,
+        fontWeight: 800,
+        background: actif ? ENCRE : "transparent",
+        color: actif ? BLANC : ENCRE,
+      }}
+    >
+      {label}
+    </a>
+  );
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          padding: 5,
+          border: CADRE,
+          borderRadius: 16,
+          background: LAVANDE_CLAIR,
+        }}
+      >
+        {onglet("/connexion", "Se connecter", mode === "connexion")}
+        {onglet("/inscription", "Créer un compte", mode === "inscription")}
+      </div>
+
+      <h2
+        style={{
+          fontFamily: "'Archivo Black', sans-serif",
+          fontSize: "clamp(26px,3vw,36px)",
+          lineHeight: 1,
+          letterSpacing: "-1.4px",
+          margin: "22px 0 0",
+          textTransform: "uppercase",
+        }}
+      >
+        {titre}
+      </h2>
+      <p
+        style={{
+          fontSize: 14.5,
+          fontWeight: 500,
+          lineHeight: 1.45,
+          margin: "8px 0 0",
+          opacity: 0.75,
+        }}
+      >
+        {sousTitre}
+      </p>
+
+      <form action={envoyer}>
+        {avecTypeDeCompte ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+              gap: 12,
+              marginTop: 20,
+            }}
+          >
+            {(
+              [
+                {
+                  k: "acheteur",
+                  label: "Acheteur",
+                  glyph: "▣",
+                  hint: "Télécharger, collectionner, travailler en équipe.",
+                },
+                {
+                  k: "createur",
+                  label: "Créateur",
+                  glyph: "✦",
+                  hint: "Publier tes ressources et vendre tes services.",
+                },
+              ] as const
+            ).map((a) => (
+              <button
+                key={a.k}
+                type="button"
+                onClick={() => setTypeCompte(a.k)}
+                aria-pressed={typeCompte === a.k}
+                style={{
+                  border: CADRE,
+                  borderRadius: 18,
+                  padding: 14,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  background: typeCompte === a.k ? JAUNE : LAVANDE_CLAIR,
+                  boxShadow: typeCompte === a.k ? `4px 4px 0 ${ENCRE}` : "none",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span
+                    style={{
+                      width: 30,
+                      height: 30,
+                      border: `2px solid ${ENCRE}`,
+                      borderRadius: 9,
+                      background: BLANC,
+                      display: "grid",
+                      placeItems: "center",
+                      fontSize: 13,
+                    }}
+                  >
+                    {a.glyph}
+                  </span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800 }}>{a.label}</span>
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    lineHeight: 1.4,
+                    marginTop: 8,
+                    opacity: 0.75,
+                  }}
+                >
+                  {a.hint}
+                </span>
+              </button>
+            ))}
+            <input type="hidden" name="typeCompte" value={typeCompte} />
+          </div>
+        ) : null}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+            gap: 12,
+            marginTop: 20,
+          }}
+        >
+          {champs.map((f) => {
+            const estMotDePasse = f.type === "password";
+            const enErreur = etat.champ === f.nom;
+
+            return (
+              <div
+                key={f.nom}
+                style={{
+                  gridColumn: f.pleineLargeur ? "1 / span 2" : "auto",
+                  minWidth: 0,
+                }}
+              >
+                <label
+                  htmlFor={f.nom}
+                  style={{
+                    display: "block",
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 10.5,
+                    textTransform: "uppercase",
+                    letterSpacing: ".12em",
+                    opacity: 0.6,
+                    marginBottom: 6,
+                  }}
+                >
+                  {f.label}
+                </label>
+                <div
+                  style={{ position: "relative", display: "flex", alignItems: "center" }}
+                >
+                  <input
+                    id={f.nom}
+                    name={f.nom}
+                    type={
+                      estMotDePasse && motDePasseVisible ? "text" : f.type
+                    }
+                    placeholder={f.placeholder}
+                    autoComplete={
+                      f.type === "email"
+                        ? "email"
+                        : estMotDePasse
+                          ? mode === "inscription"
+                            ? "new-password"
+                            : "current-password"
+                          : "on"
+                    }
+                    onChange={
+                      f.jauge ? (e) => setMotDePasse(e.target.value) : undefined
+                    }
+                    aria-invalid={enErreur || undefined}
+                    style={{
+                      width: "100%",
+                      minWidth: 0,
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      padding: "13px 15px",
+                      border: enErreur
+                        ? `2.5px solid ${ORANGE}`
+                        : CADRE,
+                      borderRadius: 14,
+                      background: LAVANDE_CLAIR,
+                      outline: "none",
+                    }}
+                  />
+                  {estMotDePasse ? (
+                    <button
+                      type="button"
+                      onClick={() => setMotDePasseVisible((v) => !v)}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        padding: "5px 9px",
+                        border: `2px solid ${ENCRE}`,
+                        borderRadius: 9,
+                        background: BLANC,
+                        fontFamily: "'Space Mono', monospace",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {motDePasseVisible ? "MASQUER" : "VOIR"}
+                    </button>
+                  ) : null}
+                </div>
+
+                {f.jauge ? (
+                  <div style={{ display: "flex", gap: 5, marginTop: 8 }}>
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        style={{
+                          flex: "1 1 0",
+                          height: 8,
+                          border: `2px solid ${ENCRE}`,
+                          borderRadius: 99,
+                          background: i < force ? couleursJauge[i] : BLANC,
+                        }}
+                      />
+                    ))}
+                    <span
+                      style={{
+                        flex: "0 0 auto",
+                        fontFamily: "'Space Mono', monospace",
+                        fontSize: 10,
+                        opacity: 0.6,
+                        marginLeft: 4,
+                      }}
+                    >
+                      {LONGUEUR_MOT_DE_PASSE_MIN} CAR. MIN.
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginTop: 18,
+          }}
+        >
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              cursor: "pointer",
+              maxWidth: 340,
+            }}
+          >
+            <input
+              type="checkbox"
+              name="conditions"
+              style={{
+                width: 24,
+                height: 24,
+                flex: "0 0 auto",
+                accentColor: JAUNE,
+                border: CADRE,
+                borderRadius: 8,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                lineHeight: 1.35,
+                opacity: 0.85,
+              }}
+            >
+              {libelleCase}
+            </span>
+          </label>
+          {avecMotDePasseOublie ? (
+            <Link
+              href="/mot-de-passe-oublie"
+              style={{
+                fontSize: 12.5,
+                fontWeight: 800,
+                color: ORANGE,
+                textDecoration: "underline",
+              }}
+            >
+              Mot de passe oublié ?
+            </Link>
+          ) : null}
+        </div>
+
+        {etat.erreur ? (
+          <div
+            role="alert"
+            style={{
+              marginTop: 14,
+              padding: "13px 15px",
+              border: CADRE,
+              borderRadius: 14,
+              background: ORANGE,
+              color: BLANC,
+              fontSize: 13,
+              fontWeight: 700,
+              animation: "popin .16s ease-out",
+            }}
+          >
+            {etat.erreur}
+          </div>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={enCours}
+          className="sticker-press"
+          style={{
+            width: "100%",
+            marginTop: 20,
+            padding: 16,
+            border: CADRE,
+            borderRadius: 16,
+            background: JAUNE,
+            boxShadow: `5px 5px 0 ${ENCRE}`,
+            textAlign: "center",
+            fontSize: 15.5,
+            fontWeight: 800,
+            cursor: enCours ? "wait" : "pointer",
+          }}
+        >
+          {enCours ? "Un instant…" : cta}
+        </button>
+      </form>
+
+      {avecSocial ? (
+        <>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              margin: "22px 0 16px",
+            }}
+          >
+            <span style={{ flex: "1 1 auto", height: 2.5, background: ENCRE }} />
+            <span
+              style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 10.5,
+                textTransform: "uppercase",
+                letterSpacing: ".12em",
+                opacity: 0.6,
+              }}
+            >
+              ou continuer avec
+            </span>
+            <span style={{ flex: "1 1 auto", height: 2.5, background: ENCRE }} />
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3,minmax(0,1fr))",
+              gap: 10,
+            }}
+          >
+            {[
+              { label: "Google", glyph: "G" },
+              { label: "Apple", glyph: "" },
+              { label: "Figma", glyph: "F" },
+            ].map((s) => (
+              <span
+                key={s.label}
+                title="Bientôt disponible"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: "12px 8px",
+                  border: CADRE,
+                  borderRadius: 14,
+                  background: BLANC,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  opacity: 0.45,
+                }}
+              >
+                <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 14 }}>
+                  {s.glyph}
+                </span>
+                {s.label}
+              </span>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 600,
+          textAlign: "center",
+          marginTop: 20,
+          opacity: 0.8,
+        }}
+      >
+        {texteBas}{" "}
+        <a
+          href={lienBas}
+          style={{
+            fontWeight: 800,
+            color: ORANGE,
+            textDecoration: "underline",
+          }}
+        >
+          {libelleLienBas}
+        </a>
+      </div>
+    </>
+  );
+}

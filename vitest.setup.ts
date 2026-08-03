@@ -32,6 +32,9 @@ process.env.SLOW_QUERY_MS = "10000";
 const { db } = await import("./lib/db");
 
 const TABLES_A_VIDER = [
+  "Session",
+  "Account",
+  "Passkey",
   "ConsumptionEvent",
   "DownloadQuota",
   "Subscription",
