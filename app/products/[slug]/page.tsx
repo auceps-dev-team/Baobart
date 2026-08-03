@@ -4,7 +4,7 @@ import { DetailProduit, EnTeteFiche } from "@/components/product/detail";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
-import { obtenirProduit } from "@/lib/products/queries";
+import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +44,8 @@ export default async function FicheProduitPage({
 
   if (!produit) notFound();
 
+  const droit = await droitDeTelecharger(produit.id, utilisateur?.id ?? null);
+
   return (
     <>
       <Header utilisateur={utilisateur} />
@@ -65,7 +67,7 @@ export default async function FicheProduitPage({
           }}
         >
           <EnTeteFiche titre={produit.titre} />
-          <DetailProduit produit={produit} />
+          <DetailProduit produit={produit} droit={droit} />
         </div>
         <Footer />
       </main>

@@ -60,7 +60,54 @@ export async function autoriserTelechargement(
       include: { product: true },
     });
 
-    // 1. Un achat à l'unité prime : il donne un droit permanent, hors quota.
+    // Un aperçu n'est pas une livraison. Il est déjà public : le servir ici
+    // gonflerait le compteur de téléchargements et, pour un abonné,
+    // consommerait un quota pour une vignette.
+    if (fichier.role !== "SOURCE") {
+      return {
+        decision: { autorise: false, raison: "COMMANDE_NON_PAYEE" } as const,
+        dureeUrlSecondes: null,
+        fichier: null,
+      };
+    }
+
+    // 1. Une ressource offerte se retire sans commande — voir `SourceAcces`.
+    if (fichier.product.price === 0) {
+      const decision = decideAcces({
+        source: "GRATUIT",
+        achatAbouti: true,
+        now,
+      });
+
+      await tx.consumptionEvent.create({
+        data: {
+          userId,
+          productId: fichier.productId,
+          productFileId,
+          eventType,
+          platform: plateformeDepuisUserAgent(userAgent),
+          ipAddress,
+          consumedAt: now,
+        },
+      });
+
+      await tx.product.update({
+        where: { id: fichier.productId },
+        data: { downloadsCount: { increment: 1 } },
+      });
+
+      return {
+        decision,
+        dureeUrlSecondes: dureeUrlSignee(fichier.sizeBytes),
+        fichier: {
+          id: fichier.id,
+          filename: fichier.filename,
+          sizeBytes: fichier.sizeBytes,
+        },
+      };
+    }
+
+    // 2. Un achat à l'unité prime : il donne un droit permanent, hors quota.
     const achat = await tx.orderItem.findFirst({
       where: {
         productId: fichier.productId,
@@ -89,7 +136,7 @@ export async function autoriserTelechargement(
         now,
       });
     } else {
-      // 2. Sinon, un abonnement actif et son quota du mois.
+      // 3. Sinon, un abonnement actif et son quota du mois.
       const abonnement = await tx.subscription.findFirst({
         where: { userId, status: "ACTIVE" },
         include: { plan: true },

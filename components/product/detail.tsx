@@ -10,7 +10,10 @@ import {
   ORANGE,
 } from "@/components/shell/nav-data";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
-import type { FicheProduit } from "@/lib/products/queries";
+import type {
+  DroitTelechargement,
+  FicheProduit,
+} from "@/lib/products/queries";
 
 /**
  * Contenu de la fiche ressource, traduit du bloc « DÉTAIL RESSOURCE » de
@@ -35,7 +38,78 @@ function formatPoids(octets: number): string {
   return `${Math.round(octets / 1024)} Ko`;
 }
 
-export function DetailProduit({ produit }: { produit: FicheProduit }) {
+/**
+ * Le bouton de retrait, dans les trois situations possibles.
+ *
+ * Un bouton grisé sur une ressource qu'on possède, ou actif sur une qu'on n'a
+ * pas achetée, sont deux mensonges symétriques. Chaque état dit ce qu'il fait.
+ */
+function BoutonTelechargement({ droit }: { droit: DroitTelechargement }) {
+  const base = {
+    display: "block",
+    padding: 14,
+    marginTop: 14,
+    border: CADRE,
+    borderRadius: 14,
+    textAlign: "center" as const,
+    fontSize: 14.5,
+    fontWeight: 800,
+  };
+
+  if (droit.etat === "TELECHARGEABLE") {
+    // Plusieurs fichiers : autant de liens, chacun nommé. Un ZIP à la volée
+    // demanderait de streamer côté serveur ce qui part déjà tout seul.
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {droit.fichiers.map((f, rang) => (
+          <a
+            key={f.id}
+            href={`/api/telechargement/${f.id}`}
+            download
+            className="sticker-press"
+            style={{
+              ...base,
+              marginTop: rang === 0 ? 14 : 0,
+              background: ENCRE,
+              color: BLANC,
+              boxShadow: `4px 4px 0 ${ORANGE}`,
+            }}
+          >
+            {droit.fichiers.length === 1 ? "Télécharger" : `Télécharger ${f.nom}`}
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  if (droit.etat === "A_CONNECTER") {
+    return (
+      <a
+        href="/connexion"
+        className="sticker-press"
+        style={{ ...base, background: JAUNE, color: ENCRE }}
+      >
+        Se connecter pour télécharger
+      </a>
+    );
+  }
+
+  // Le paiement n'existe pas encore : annoncer « Acheter » promettrait un
+  // écran qui n'ouvrirait sur rien.
+  return (
+    <div style={{ ...base, background: ENCRE, color: BLANC, opacity: 0.6 }}>
+      Télécharger
+    </div>
+  );
+}
+
+export function DetailProduit({
+  produit,
+  droit,
+}: {
+  produit: FicheProduit;
+  droit: DroitTelechargement;
+}) {
   const visuel = produit.coverUrl
     ? `center / cover no-repeat url(${produit.coverUrl})`
     : trameDe(produit.id);
@@ -330,22 +404,7 @@ export function DetailProduit({ produit }: { produit: FicheProduit }) {
               licence commerciale
             </div>
           </div>
-          <div
-            style={{
-              padding: 14,
-              marginTop: 14,
-              border: CADRE,
-              borderRadius: 14,
-              background: ENCRE,
-              color: BLANC,
-              textAlign: "center",
-              fontSize: 14.5,
-              fontWeight: 800,
-              opacity: 0.6,
-            }}
-          >
-            Télécharger
-          </div>
+          <BoutonTelechargement droit={droit} />
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             {["♥ J'aime", "⌸ Collection"].map((l) => (
               <span

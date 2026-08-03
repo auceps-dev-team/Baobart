@@ -87,6 +87,15 @@ export function dureeUrlSignee(
 export type SourceAcces =
   /** Achat à l'unité : ne consomme jamais de quota (PLAN §13). */
   | "ACHAT"
+  /**
+   * Ressource offerte par son créateur.
+   *
+   * Une ressource à 0 F n'a pas de commande derrière elle : exiger un achat
+   * abouti la rendrait intéléchargeable, ce qui vide le mot « gratuit » de son
+   * sens. On l'énonce comme source à part plutôt que de simuler un achat —
+   * simuler l'achat inscrirait une vente qui n'a pas eu lieu.
+   */
+  | "GRATUIT"
   /** Téléchargement au titre d'un abonnement : soumis au quota mensuel. */
   | "ABONNEMENT";
 
@@ -159,8 +168,9 @@ export function decideAcces(input: AccesInput): DecisionAcces {
   }
 
   // Un achat à l'unité donne un droit permanent : il ne touche pas au quota,
-  // ni en le consommant, ni en s'y heurtant.
-  if (source === "ACHAT") {
+  // ni en le consommant, ni en s'y heurtant. Le gratuit non plus — décompter
+  // un quota pour un fichier offert le rendrait payant en jetons.
+  if (source === "ACHAT" || source === "GRATUIT") {
     return { autorise: true, consommeQuota: false };
   }
 

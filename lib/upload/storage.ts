@@ -154,6 +154,33 @@ export async function signerDepot(input: {
   };
 }
 
+/**
+ * URL signée pour **retirer** un fichier vendu.
+ *
+ * Deux choses s'y jouent. La durée vient de `dureeUrlSignee` : elle tient
+ * compte du poids, parce qu'un lien de dix minutes sur un pack de 180 Mo
+ * expirerait en cours de route. Et le nom d'origine est réimposé par
+ * `Content-Disposition` — la clé de stockage porte un identifiant technique,
+ * et personne ne veut retrouver « 9f3a…-pack.zip » dans son dossier.
+ */
+export async function signerTelechargement(input: {
+  cle: string;
+  nomFichier: string;
+  dureeSecondes: number;
+}): Promise<string> {
+  return getSignedUrl(
+    s3(),
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: input.cle,
+      ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(
+        input.nomFichier,
+      )}`,
+    }),
+    { expiresIn: input.dureeSecondes },
+  );
+}
+
 export interface ObjetDepose {
   taille: number;
   contentType: string;

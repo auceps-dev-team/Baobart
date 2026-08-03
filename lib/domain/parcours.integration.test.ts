@@ -338,7 +338,9 @@ describe("téléchargement", () => {
   it("décompte le quota d'un abonné, puis le laisse re-télécharger gratuitement", async () => {
     const createur = await creerCreateur("-v10");
     const abonne = await creerCreateur("-abonne");
-    const { fichier } = await creerProduitAvecFichier(createur.id, 0);
+    // Une ressource payante : c'est là que l'abonnement sert. Sur une ressource
+    // offerte, il n'y aurait pas de quota à décompter.
+    const { fichier } = await creerProduitAvecFichier(createur.id, 10_000);
 
     const plan = await db.plan.upsert({
       where: { code: "EXPLORER" },
@@ -377,6 +379,68 @@ describe("téléchargement", () => {
 
     const quotaApres = await db.downloadQuota.findFirstOrThrow({});
     expect(quotaApres.used).toBe(1);
+  });
+
+  it("livre une ressource offerte sans commande ni quota", async () => {
+    const createur = await creerCreateur("-v12");
+    const passant = await creerCreateur("-passant");
+    const { produit, fichier } = await creerProduitAvecFichier(createur.id, 0);
+
+    const r = await autoriserTelechargement({
+      userId: passant.id,
+      productFileId: fichier.id,
+    });
+
+    expect(r.decision).toEqual({ autorise: true, consommeQuota: false });
+    expect(r.fichier?.filename).toBe("pack-motifs-wax.zip");
+
+    // Elle compte quand même comme téléchargement : c'est ce que la maquette
+    // affiche sur la carte, et c'est vrai que le fichier est parti.
+    const relu = await db.product.findUniqueOrThrow({ where: { id: produit.id } });
+    expect(relu.downloadsCount).toBe(1);
+    expect(await db.consumptionEvent.count()).toBe(1);
+  });
+
+  it("refuse de livrer un aperçu comme s'il était le fichier vendu", async () => {
+    const createur = await creerCreateur("-v13");
+    const acheteur = await creerCreateur("-a13");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+
+    const media = await db.mediaAsset.create({
+      data: {
+        ownerId: createur.id,
+        purpose: "preview",
+        s3Key: `public/extraits/${produit.id}/extrait.mp3`,
+        checksum: "def",
+        sizeBytes: 2 * MO,
+        contentType: "audio/mpeg",
+        status: "READY",
+      },
+    });
+    const apercu = await db.productFile.create({
+      data: {
+        productId: produit.id,
+        mediaId: media.id,
+        filename: "extrait.mp3",
+        sizeBytes: 2 * MO,
+        role: "PREVIEW",
+      },
+    });
+
+    // L'acheteur a pourtant tous les droits sur cette ressource : c'est bien le
+    // rôle du fichier qui l'arrête, pas son titre d'accès.
+    const r = await autoriserTelechargement({
+      userId: acheteur.id,
+      productFileId: apercu.id,
+    });
+
+    expect(r.decision.autorise).toBe(false);
+    expect(await db.consumptionEvent.count()).toBe(0);
+
+    const relu = await db.product.findUniqueOrThrow({ where: { id: produit.id } });
+    expect(relu.downloadsCount).toBe(0);
   });
 });
 

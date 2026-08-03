@@ -34,6 +34,70 @@ export interface FicheProduit {
   duMemeCreateur: Array<{ slug: string; titre: string; coverUrl: string | null }>;
 }
 
+/** Ce que le bouton doit proposer à la personne qui regarde la fiche. */
+export type DroitTelechargement =
+  | { etat: "TELECHARGEABLE"; fichiers: Array<{ id: string; nom: string }> }
+  | { etat: "A_ACHETER" }
+  | { etat: "A_CONNECTER" };
+
+/**
+ * Le visiteur peut-il retirer cette ressource ?
+ *
+ * Question posée à l'affichage, pour ne pas montrer un bouton qui refusera au
+ * clic. La route de téléchargement reprend la décision de zéro : ce qu'on
+ * calcule ici sert l'écran, jamais l'autorisation.
+ */
+export async function droitDeTelecharger(
+  produitId: string,
+  userId: string | null,
+): Promise<DroitTelechargement> {
+  const produit = await db.product.findUnique({
+    where: { id: produitId },
+    select: {
+      price: true,
+      files: {
+        where: { role: "SOURCE" },
+        orderBy: { position: "asc" },
+        select: { id: true, filename: true },
+      },
+    },
+  });
+
+  if (!produit || produit.files.length === 0) return { etat: "A_ACHETER" };
+
+  const fichiers = produit.files.map((f) => ({ id: f.id, nom: f.filename }));
+
+  // Une ressource offerte se retire dès qu'on est connecté : demander de
+  // « l'acheter » à 0 F n'aurait aucun sens.
+  if (produit.price === 0) {
+    return userId
+      ? { etat: "TELECHARGEABLE", fichiers }
+      : { etat: "A_CONNECTER" };
+  }
+
+  if (!userId) return { etat: "A_ACHETER" };
+
+  const achat = await db.orderItem.findFirst({
+    where: {
+      productId: produitId,
+      state: { in: ["SUCCESSFUL", "NOT_CHARGED"] },
+      order: { buyerId: userId },
+    },
+    select: { id: true, price: true, quantity: true, refundedAmount: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!achat) return { etat: "A_ACHETER" };
+
+  // Un remboursement intégral retire le droit ; un remboursement partiel non.
+  const totalPaye = achat.price * achat.quantity;
+  if (totalPaye > 0 && achat.refundedAmount >= totalPaye) {
+    return { etat: "A_ACHETER" };
+  }
+
+  return { etat: "TELECHARGEABLE", fichiers };
+}
+
 function formatDeContenu(contentType: string, filename: string): string {
   const extension = filename.split(".").pop();
   if (extension && extension.length <= 5) return extension.toUpperCase();
