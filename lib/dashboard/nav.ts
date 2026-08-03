@@ -48,9 +48,14 @@ const ACHETEUR: EntreeNav[] = [
     glyph: "↓",
     href: "/dashboard/telechargements",
   },
-  { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: null },
+  { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: "/dashboard/suivis" },
   { cle: "collections", label: "Mes collections", glyph: "⌸", href: null },
-  { cle: "abonnements_suivis", label: "Abonnements", glyph: "☍", href: null },
+  {
+    cle: "abonnements_suivis",
+    label: "Abonnements",
+    glyph: "☍",
+    href: "/dashboard/abonnements",
+  },
   { cle: "abonnement", label: "Forfait & pass d'accès", glyph: "◉", href: null },
 ];
 

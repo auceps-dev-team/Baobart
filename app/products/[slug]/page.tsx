@@ -5,6 +5,7 @@ import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
+import { commentairesDe, etatSocial } from "@/lib/social/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,15 @@ export default async function FicheProduitPage({
 
   if (!produit) notFound();
 
-  const droit = await droitDeTelecharger(produit.id, utilisateur?.id ?? null);
+  const [droit, social, commentaires] = await Promise.all([
+    droitDeTelecharger(produit.id, utilisateur?.id ?? null),
+    etatSocial({
+      produitId: produit.id,
+      createurId: produit.auteur.id,
+      userId: utilisateur?.id ?? null,
+    }),
+    commentairesDe(produit.id, utilisateur?.id ?? null, produit.auteur.id),
+  ]);
 
   return (
     <>
@@ -67,7 +76,12 @@ export default async function FicheProduitPage({
           }}
         >
           <EnTeteFiche titre={produit.titre} />
-          <DetailProduit produit={produit} droit={droit} />
+          <DetailProduit
+            produit={produit}
+            droit={droit}
+            social={{ ...social, connecte: utilisateur !== null }}
+            commentaires={commentaires}
+          />
         </div>
         <Footer />
       </main>

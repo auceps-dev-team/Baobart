@@ -92,6 +92,10 @@ function ActionsSurvol({
         aria-label={aime ? "Retirer le like" : "Aimer"}
         aria-pressed={aime}
         onClick={(e) => {
+          // `preventDefault` autant que `stopPropagation` : la carte entière
+          // est un lien, et arrêter la propagation n'annule pas l'action par
+          // défaut de l'ancre. Sans lui, aimer une carte ouvre sa fiche.
+          e.preventDefault();
           e.stopPropagation();
           onLike();
         }}
@@ -104,6 +108,7 @@ function ActionsSurvol({
         aria-label={epingle ? "Retirer du tableau" : "Épingler"}
         aria-pressed={epingle}
         onClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
           onSave();
         }}
@@ -114,7 +119,10 @@ function ActionsSurvol({
       <button
         type="button"
         aria-label="Télécharger"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
         style={bouton("#FFFFFF")}
       >
         ↓

@@ -12,6 +12,7 @@ import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { BAREME_XOF } from "@/lib/domain/fees";
+import { aimesParmi } from "@/lib/social/feed";
 import {
   compterCommunaute,
   compterParFamille,
@@ -39,6 +40,13 @@ export default async function AccueilPage() {
     compterCommunaute(),
   ]);
 
+  // Une seule requête pour toute la page : un `like` par carte ferait
+  // vingt-cinq allers-retours pour dessiner un cœur.
+  const aimes = await aimesParmi(
+    utilisateur?.id ?? null,
+    [...page.items, ...alaUne].map((r) => r.id),
+  );
+
   // La maquette annonçait « garde 80 % » — un taux de 20 % que la lecture du
   // dépôt Gumroad nous a fait abandonner (VERIFICATION_GUMROAD §2.1). On dérive
   // la promesse du barème réel plutôt que de laisser deux chiffres se
@@ -54,6 +62,8 @@ export default async function AccueilPage() {
           itemsInitiaux={page.items}
           curseurInitial={page.nextCursor}
           alaUne={alaUne}
+          aimesInitiaux={aimes}
+          connecte={utilisateur !== null}
         />
         <CollectionsTrieesMain />
         <EspacesEquipe createurs={createurs} />

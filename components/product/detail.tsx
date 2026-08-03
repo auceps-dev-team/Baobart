@@ -10,10 +10,13 @@ import {
   ORANGE,
 } from "@/components/shell/nav-data";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
+import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
+import { Commentaires } from "@/components/social/commentaires";
 import type {
   DroitTelechargement,
   FicheProduit,
 } from "@/lib/products/queries";
+import type { CommentaireRendu } from "@/lib/social/queries";
 
 /**
  * Contenu de la fiche ressource, traduit du bloc « DÉTAIL RESSOURCE » de
@@ -103,12 +106,26 @@ function BoutonTelechargement({ droit }: { droit: DroitTelechargement }) {
   );
 }
 
+export interface SocialFiche {
+  jaime: boolean;
+  likes: number;
+  suit: boolean;
+  abonnes: number;
+  chezSoi: boolean;
+  commentaires: number;
+  connecte: boolean;
+}
+
 export function DetailProduit({
   produit,
   droit,
+  social,
+  commentaires,
 }: {
   produit: FicheProduit;
   droit: DroitTelechargement;
+  social: SocialFiche;
+  commentaires: CommentaireRendu[];
 }) {
   const visuel = produit.coverUrl
     ? `center / cover no-repeat url(${produit.coverUrl})`
@@ -224,60 +241,12 @@ export function DetailProduit({
           </div>
         ) : null}
 
-        <div
-          style={{
-            border: CADRE,
-            borderRadius: 20,
-            background: BLANC,
-            padding: 18,
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 800 }}>Commentaires (0)</div>
-          <p
-            style={{
-              fontSize: 13.5,
-              fontWeight: 500,
-              opacity: 0.65,
-              margin: "12px 0 0",
-            }}
-          >
-            Personne n&apos;a encore réagi. Les commentaires arrivent avec les
-            comptes.
-          </p>
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <input
-              disabled
-              placeholder="Ajouter un commentaire…"
-              aria-label="Ajouter un commentaire"
-              style={{
-                flex: "1 1 auto",
-                minWidth: 0,
-                fontFamily: "Poppins, sans-serif",
-                fontSize: 13.5,
-                fontWeight: 500,
-                padding: "11px 14px",
-                border: CADRE,
-                borderRadius: 13,
-                outline: "none",
-                background: LAVANDE_CLAIR,
-                opacity: 0.6,
-              }}
-            />
-            <span
-              style={{
-                padding: "11px 18px",
-                border: CADRE,
-                borderRadius: 13,
-                background: JAUNE,
-                fontSize: 13,
-                fontWeight: 800,
-                opacity: 0.6,
-              }}
-            >
-              Publier
-            </span>
-          </div>
-        </div>
+        <Commentaires
+          produitId={produit.id}
+          commentaires={commentaires}
+          total={social.commentaires}
+          connecte={social.connecte}
+        />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -364,19 +333,12 @@ export function DetailProduit({
                 {produit.auteur.role}
               </span>
             </span>
-            <span
-              style={{
-                padding: "7px 13px",
-                border: `2px solid ${ENCRE}`,
-                borderRadius: 10,
-                background: LAVANDE,
-                fontSize: 12,
-                fontWeight: 800,
-                opacity: 0.6,
-              }}
-            >
-              Suivre
-            </span>
+            <BoutonSuivre
+              createurId={produit.auteur.id}
+              actifInitial={social.suit}
+              totalInitial={social.abonnes}
+              chezSoi={social.chezSoi}
+            />
           </div>
         </div>
 
@@ -406,24 +368,30 @@ export function DetailProduit({
           </div>
           <BoutonTelechargement droit={droit} />
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            {["♥ J'aime", "⌸ Collection"].map((l) => (
-              <span
-                key={l}
-                style={{
-                  flex: "1 1 auto",
-                  padding: 11,
-                  border: CADRE,
-                  borderRadius: 13,
-                  textAlign: "center",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  background: BLANC,
-                  opacity: 0.6,
-                }}
-              >
-                {l}
-              </span>
-            ))}
+            <BoutonJaime
+              produitId={produit.id}
+              actifInitial={social.jaime}
+              totalInitial={social.likes}
+              pleineLargeur
+            />
+            {/* Les collections restent à faire : le bouton l'annonce plutôt
+                que de faire semblant. */}
+            <span
+              title="Les collections arrivent bientôt."
+              style={{
+                flex: "1 1 auto",
+                padding: 11,
+                border: CADRE,
+                borderRadius: 13,
+                textAlign: "center",
+                fontSize: 13,
+                fontWeight: 800,
+                background: BLANC,
+                opacity: 0.45,
+              }}
+            >
+              ⌸ Collection
+            </span>
           </div>
         </div>
 

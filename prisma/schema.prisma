@@ -308,6 +308,12 @@ model User {
   payoutFrequency PayoutFrequency @default(WEEKLY)
   payoutRail      String?
 
+  /// Compteurs dénormalisés du suivi. La maquette les affiche partout —
+  /// en-tête de profil, tableau de bord, carte créateur — et un COUNT() par
+  /// affichage sur une table qui grossit sans fin ne tiendrait pas (PLAN §8.2).
+  followersCount Int @default(0)
+  followingCount Int @default(0)
+
   suspendedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -559,35 +565,53 @@ model WorkItemTag {
   @@index([tagId])
 }
 
+/// Un like porte soit sur un shot du portfolio, soit sur une ressource vendable.
+/// Même forme polymorphe que `Save`, pour la même raison : une ressource déposée
+/// par le formulaire « Publier » n'a pas de `WorkItem`, et lui en fabriquer un
+/// fantôme pour pouvoir l'aimer serait un détour coûteux.
+/// Une contrainte SQL impose qu'exactement une des deux cibles soit renseignée —
+/// ce que Prisma ne sait pas exprimer.
 model Like {
   id         String   @id @default(cuid())
   userId     String
-  workItemId String
+  workItemId String?
+  productId  String?
   createdAt  DateTime @default(now())
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workItem WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workItemId])
+  @@unique([userId, productId])
   @@index([workItemId])
+  @@index([productId])
+  @@index([userId, createdAt])
 }
 
+/// Même polymorphisme que `Like` : on commente un shot ou une ressource.
 model Comment {
   id         String   @id @default(cuid())
   authorId   String
-  workItemId String
+  workItemId String?
+  productId  String?
   parentId   String? // réponses threadées
   body       String   @db.Text
   likesCount Int      @default(0)
   isFlagged  Boolean  @default(false)
+  /// Un commentaire retiré laisse sa place dans le fil : effacer la ligne
+  /// emporterait les réponses qui s'y accrochent.
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
 
   author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  workItem WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  workItem WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
   parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentThread")
 
   @@index([workItemId, createdAt])
+  @@index([productId, createdAt])
   @@index([authorId])
 }
 
@@ -674,6 +698,8 @@ model Product {
   // compteurs dénormalisés
   salesCount     Int     @default(0)
   downloadsCount Int     @default(0)
+  likesCount     Int     @default(0)
+  commentsCount  Int     @default(0)
   ratingAvg      Decimal @default(0) @db.Decimal(3, 2)
   ratingCount    Int     @default(0)
 
@@ -688,6 +714,8 @@ model Product {
   variants    Variant[]
   orderItems  OrderItem[]
   saves       Save[]
+  likes       Like[]
+  comments    Comment[]
 
   @@index([status, createdAt, id]) // curseur feed
   @@index([status, family, createdAt, id]) // curseur feed filtré par famille

@@ -19,6 +19,7 @@ export interface FicheProduit {
   telechargements: number;
   publieLe: Date;
   auteur: {
+    id: string;
     nom: string;
     username: string | null;
     role: string;
@@ -182,6 +183,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
     telechargements: p.downloadsCount,
     publieLe: p.createdAt,
     auteur: {
+      id: p.sellerId,
       nom: p.seller.profile?.displayName ?? "Créateur Baobart",
       username: p.seller.profile?.username ?? null,
       role: p.seller.profile?.city ?? "Afrique",

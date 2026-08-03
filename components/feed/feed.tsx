@@ -5,6 +5,7 @@ import { useCallback, useState, useTransition } from "react";
 
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
 import { FILTRES, type CarteRessource, type Filtre } from "@/lib/feed/types";
+import { basculerLike } from "@/lib/social/actions";
 
 /**
  * Le feed « Découvre aujourd'hui ».
@@ -26,6 +27,9 @@ export interface FeedProps {
   alaUne: CarteRessource[];
   /** Famille pré-sélectionnée, quand on arrive depuis un lien du rail. */
   filtreInitial?: Filtre;
+  /** Identifiants des ressources déjà aimées par le visiteur. */
+  aimesInitiaux?: string[];
+  connecte?: boolean;
 }
 
 export function Feed({
@@ -33,13 +37,17 @@ export function Feed({
   curseurInitial,
   alaUne,
   filtreInitial = "Tous",
+  aimesInitiaux = [],
+  connecte = false,
 }: FeedProps) {
   const [items, setItems] = useState(itemsInitiaux);
   const [curseur, setCurseur] = useState(curseurInitial);
   const [filtre, setFiltre] = useState<Filtre>(filtreInitial);
   const [styleCarte, setStyleCarte] = useState<StyleCarte>("Sticker");
   const [survolee, setSurvolee] = useState<string | null>(null);
-  const [likes, setLikes] = useState<Record<string, boolean>>({});
+  const [likes, setLikes] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(aimesInitiaux.map((id) => [id, true])),
+  );
   const [epingles, setEpingles] = useState<Record<string, boolean>>({});
   const [chargement, demarrer] = useTransition();
 
@@ -67,6 +75,32 @@ export function Feed({
     });
   }, [curseur, filtre]);
 
+  /**
+   * Le cœur bascule tout de suite, puis le serveur tranche.
+   *
+   * Sans visiteur connecté, on envoie vers la connexion plutôt que de laisser
+   * un cœur se remplir pour rien : il se viderait au premier rechargement.
+   */
+  const aimer = useCallback(
+    (produitId: string) => {
+      if (!connecte) {
+        window.location.href = "/connexion";
+        return;
+      }
+
+      setLikes((l) => ({ ...l, [produitId]: !l[produitId] }));
+
+      void basculerLike(produitId).then((reponse) => {
+        // Le serveur a le dernier mot : un refus remet le cœur comme il était.
+        setLikes((l) => ({
+          ...l,
+          [produitId]: reponse.ok ? reponse.actif : !l[produitId],
+        }));
+      });
+    },
+    [connecte],
+  );
+
   const proprietesCarte = (r: CarteRessource) => ({
     ressource: r,
     style: styleCarte,
@@ -75,7 +109,7 @@ export function Feed({
     epingle: epingles[r.id] === true,
     onEnter: () => setSurvolee(r.id),
     onLeave: () => setSurvolee((actuel) => (actuel === r.id ? null : actuel)),
-    onLike: () => setLikes((l) => ({ ...l, [r.id]: !l[r.id] })),
+    onLike: () => aimer(r.id),
     onSave: () => setEpingles((s) => ({ ...s, [r.id]: !s[r.id] })),
     // Rien ici : la carte est enveloppée dans un lien, ce qui permet à Next
     // d'intercepter la route et d'ouvrir la fiche en modale.

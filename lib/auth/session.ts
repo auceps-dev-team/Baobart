@@ -31,6 +31,8 @@ export interface UtilisateurConnecte {
   email: string;
   nom: string;
   username: string | null;
+  /** Compteur dénormalisé, affiché tel quel par le tableau de bord. */
+  abonnes: number;
   /** Où en est le compte sur le chemin acheteur → créateur. */
   progression: Progression;
 }
@@ -75,6 +77,7 @@ export async function sessionCourante(): Promise<UtilisateurConnecte | null> {
           id: true,
           email: true,
           suspendedAt: true,
+          followersCount: true,
           profile: { select: { displayName: true, username: true } },
           _count: {
             select: {
@@ -109,6 +112,7 @@ export async function sessionCourante(): Promise<UtilisateurConnecte | null> {
     email: session.user.email,
     nom: session.user.profile?.displayName ?? session.user.email,
     username: session.user.profile?.username ?? null,
+    abonnes: session.user.followersCount,
     progression: deduireProgression({
       produits: session.user._count.products,
       produitsPublies,
