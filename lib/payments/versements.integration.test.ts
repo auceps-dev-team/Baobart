@@ -8,6 +8,7 @@ import {
   finDePeriodePourVersement,
   projeterVersements,
 } from "@/lib/payments/payout-schedule";
+import { preparerLeCycle } from "@/lib/payments/cycle";
 import {
   confirmerVersement,
   echouerVersement,
@@ -438,5 +439,269 @@ describe("exécution d'un versement", () => {
 
     const voisin = await db.balance.findMany({ where: { userId: autre } });
     expect(voisin.every((b) => b.state === "UNPAID")).toBe(true);
+  });
+});
+
+describe("le passage hebdomadaire", () => {
+  const CYCLE = new Date("2026-07-31T00:00:00Z"); // un vendredi
+
+  async function creerCreateurPayable(input: {
+    email: string;
+    provider?: string;
+    riskState?: "COMPLIANT" | "FLAGGED_FRAUD" | "SUSPENDED_TOS" | "NOT_REVIEWED";
+    suspendu?: boolean;
+    versementsSuspendus?: boolean;
+    frequence?: "WEEKLY" | "MONTHLY";
+    avecCompte?: boolean;
+  }) {
+    const u = await db.user.create({
+      data: {
+        email: input.email,
+        defaultCurrency: "XOF",
+        riskState: input.riskState ?? "COMPLIANT",
+        suspendedAt: input.suspendu ? new Date() : null,
+        payoutsPausedAt: input.versementsSuspendus ? new Date() : null,
+        payoutFrequency: input.frequence ?? "WEEKLY",
+        ...(input.avecCompte === false
+          ? {}
+          : {
+              payoutAccounts: {
+                create: {
+                  method: "MOBILE_MONEY",
+                  provider: input.provider ?? "wave",
+                  accountRef: "+221770000001",
+                },
+              },
+            }),
+      },
+      select: { id: true },
+    });
+
+    const p = await db.product.create({
+      data: {
+        sellerId: u.id,
+        slug: `cy-${Math.random().toString(36).slice(2, 9)}`,
+        name: "Pack",
+        price: 10_000,
+        currency: "XOF",
+        status: "PUBLISHED",
+      },
+      select: { id: true },
+    });
+
+    const o = await db.order.create({
+      data: {
+        buyerId: acheteur,
+        currency: "XOF",
+        total: 10_000,
+        status: "COMPLETED",
+        items: {
+          create: {
+            productId: p.id,
+            price: 10_000,
+            quantity: 1,
+            state: "IN_PROGRESS",
+          },
+        },
+      },
+      select: { items: { select: { id: true } } },
+    });
+
+    await encaisserLigne({
+      orderItemId: o.items[0]!.id,
+      regime: "DIRECT",
+      date: new Date("2026-07-20T10:00:00Z"),
+    });
+
+    return u.id;
+  }
+
+  it("prépare un versement par créateur éligible", async () => {
+    const a = await creerCreateurPayable({ email: "a@cycle.test" });
+    const b = await creerCreateurPayable({ email: "b@cycle.test" });
+
+    const r = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+
+    expect(r.prepares.map((p) => p.userId).sort()).toEqual([a, b].sort());
+    expect(await db.payout.count()).toBe(2);
+
+    // Les soldes sont réservés, pas encore payés : rien n'est parti chez un
+    // opérateur.
+    const soldes = await db.balance.findMany({ where: { payoutId: { not: null } } });
+    expect(soldes.every((s) => s.state === "PROCESSING")).toBe(true);
+    const versements = await db.payout.findMany();
+    expect(versements.every((v) => v.status === "CREATING")).toBe(true);
+  });
+
+  it("n'appelle que les rails du jour", async () => {
+    await creerCreateurPayable({ email: "wave@cycle.test", provider: "wave" });
+    const jeudi = await creerCreateurPayable({
+      email: "bank@cycle.test",
+      provider: "bank",
+    });
+
+    // Un créateur payé le jeudi n'a rien à faire dans le passage du mardi.
+    const r = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+    expect(r.prepares.map((p) => p.userId)).not.toContain(jeudi);
+    expect(await db.payout.count()).toBe(1);
+  });
+
+  it("écarte les comptes suspendus, signalés, ou aux versements arrêtés", async () => {
+    await creerCreateurPayable({ email: "sus@cycle.test", suspendu: true });
+    await creerCreateurPayable({
+      email: "flag@cycle.test",
+      riskState: "FLAGGED_FRAUD",
+    });
+    await creerCreateurPayable({
+      email: "pause@cycle.test",
+      versementsSuspendus: true,
+    });
+
+    const r = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+
+    expect(r.prepares).toHaveLength(0);
+    expect(r.ecartes.map((e) => e.raison).sort()).toEqual([
+      "SOUS_ENQUETE",
+      "SUSPENDU",
+      "VERSEMENTS_SUSPENDUS",
+    ]);
+    expect(await db.payout.count()).toBe(0);
+  });
+
+  it("laisse le solde intact quand un créateur est écarté", async () => {
+    const flag = await creerCreateurPayable({
+      email: "flag2@cycle.test",
+      riskState: "FLAGGED_FRAUD",
+    });
+
+    await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+
+    // Le message promet que l'argent est conservé : il doit l'être.
+    const soldes = await db.balance.findMany({ where: { userId: flag } });
+    expect(soldes.every((s) => s.state === "UNPAID")).toBe(true);
+    expect(soldes.reduce((t, s) => t + s.holdingAmount, 0)).toBeGreaterThan(0);
+  });
+
+  it("ne retient pas un créateur mensuel sur un cycle qui n'est pas le sien", async () => {
+    const mensuel = await creerCreateurPayable({
+      email: "mois@cycle.test",
+      frequence: "MONTHLY",
+    });
+
+    // 24 juillet 2026 est un vendredi, mais pas le dernier du mois.
+    const tot = await preparerLeCycle({
+      cycleDate: new Date("2026-07-24T00:00:00Z"),
+      rails: ["wave"],
+    });
+    expect(tot.prepares.map((p) => p.userId)).not.toContain(mensuel);
+
+    // 31 juillet est le dernier vendredi de juillet : c'est son cycle.
+    const bon = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+    expect(bon.prepares.map((p) => p.userId)).toContain(mensuel);
+  });
+
+  it("ne prépare rien en simulation", async () => {
+    await creerCreateurPayable({ email: "sim@cycle.test" });
+
+    const r = await preparerLeCycle({
+      cycleDate: CYCLE,
+      rails: ["wave"],
+      simulation: true,
+    });
+
+    expect(r.prepares).toHaveLength(1);
+    expect(await db.payout.count()).toBe(0);
+    const soldes = await db.balance.findMany();
+    expect(soldes.every((s) => s.state === "UNPAID")).toBe(true);
+  });
+
+  it("ne repasse pas deux fois sur le même cycle", async () => {
+    await creerCreateurPayable({ email: "double@cycle.test" });
+
+    const premier = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+    expect(premier.prepares).toHaveLength(1);
+
+    // Les soldes sont pris : le second passage n'a plus rien à verser.
+    const second = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+    expect(second.prepares).toHaveLength(0);
+    expect(await db.payout.count()).toBe(1);
+  });
+
+  it("un créateur en échec n'emporte pas les suivants", async () => {
+    // Le rail enregistré n'existe plus : ce créateur sera écarté, les autres
+    // doivent quand même être payés.
+    await creerCreateurPayable({ email: "casse@cycle.test", provider: "disparu" });
+    const bon = await creerCreateurPayable({ email: "bon@cycle.test" });
+
+    const r = await preparerLeCycle({
+      cycleDate: CYCLE,
+      rails: ["wave", "disparu"],
+    });
+
+    expect(r.prepares.map((p) => p.userId)).toContain(bon);
+    expect(r.ecartes.some((e) => e.raison === "RAIL_INCONNU")).toBe(true);
+  });
+
+  it("ignore un créateur sans compte de versement", async () => {
+    await creerCreateurPayable({ email: "sanscompte@cycle.test", avecCompte: false });
+
+    const r = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+
+    // Filtré en base : il n'apparaît même pas dans les écartés, et surtout on
+    // ne lit pas tous les comptes de la plateforme pour le découvrir.
+    expect(r.prepares).toHaveLength(0);
+    expect(r.ecartes).toHaveLength(0);
+  });
+
+  it("écarte un solde sous le seuil sans le perdre", async () => {
+    const petit = await db.user.create({
+      data: {
+        email: "petit@cycle.test",
+        defaultCurrency: "XOF",
+        payoutAccounts: {
+          create: {
+            method: "MOBILE_MONEY",
+            provider: "wave",
+            accountRef: "+221770000009",
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    const p = await db.product.create({
+      data: {
+        sellerId: petit.id,
+        slug: `pt-${Math.random().toString(36).slice(2, 9)}`,
+        name: "Petit",
+        price: 600,
+        currency: "XOF",
+        status: "PUBLISHED",
+      },
+      select: { id: true },
+    });
+    const o = await db.order.create({
+      data: {
+        buyerId: acheteur,
+        currency: "XOF",
+        total: 600,
+        status: "COMPLETED",
+        items: {
+          create: { productId: p.id, price: 600, quantity: 1, state: "IN_PROGRESS" },
+        },
+      },
+      select: { items: { select: { id: true } } },
+    });
+    await encaisserLigne({
+      orderItemId: o.items[0]!.id,
+      regime: "DIRECT",
+      date: new Date("2026-07-20T10:00:00Z"),
+    });
+
+    const r = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+
+    expect(r.ecartes.some((e) => e.raison === "SOUS_LE_SEUIL")).toBe(true);
+    const soldes = await db.balance.findMany({ where: { userId: petit.id } });
+    expect(soldes.every((s) => s.state === "UNPAID")).toBe(true);
   });
 });

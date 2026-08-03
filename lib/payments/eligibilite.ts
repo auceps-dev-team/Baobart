@@ -1,0 +1,126 @@
+import type { RiskState } from "@/lib/domain/trust";
+import { estSuspendu } from "@/lib/domain/trust";
+
+/**
+ * Qui peut être payé, et sinon pourquoi.
+ *
+ * Traduit `Payouts.is_user_payable` du dépôt de référence. Module pur : la
+ * question « peut-on payer cette personne » se répond sur huit valeurs, et
+ * doit pouvoir s'éprouver sans monter une base.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * L'ORDRE DES REFUS N'EST PAS ARBITRAIRE
+ *
+ * On annonce d'abord ce que la personne peut corriger elle-même — ajouter un
+ * compte, atteindre le seuil — et en dernier ce qui dépend de nous. Gumroad
+ * fait le contraire par endroits et le regrette dans ses commentaires : un
+ * créateur à qui l'on répond « compte en cours d'examen » alors qu'il lui
+ * manque surtout un numéro de téléphone perd son temps à attendre.
+ *
+ * Une exception : la suspension passe avant tout. Elle n'est pas un obstacle
+ * à contourner, et laisser croire qu'ajouter un compte suffirait serait
+ * malhonnête.
+ */
+
+export type RefusVersement =
+  /** Compte suspendu : rien ne sort. */
+  | "SUSPENDU"
+  /** Signalé, enquête en cours. Le solde est conservé, pas perdu. */
+  | "SOUS_ENQUETE"
+  /** Versements arrêtés à la main, sans que la boutique soit coupée. */
+  | "VERSEMENTS_SUSPENDUS"
+  /** Aucun compte de destination enregistré. */
+  | "PAS_DE_COMPTE"
+  /** Le rail du compte n'est pas un rail connu. */
+  | "RAIL_INCONNU"
+  /** Rien à verser sur la période. */
+  | "RIEN_A_VERSER"
+  /** En dessous du minimum : la somme roule sur le cycle suivant. */
+  | "SOUS_LE_SEUIL";
+
+export type DecisionVersement =
+  | { payable: true }
+  | { payable: false; raison: RefusVersement; message: string };
+
+const MESSAGES: Record<RefusVersement, string> = {
+  SUSPENDU:
+    "Ton compte est suspendu : les versements sont arrêtés. Écris-nous pour comprendre pourquoi.",
+  SOUS_ENQUETE:
+    "Un contrôle est en cours sur ton compte. Ton solde est conservé et te sera versé une fois le contrôle terminé.",
+  VERSEMENTS_SUSPENDUS:
+    "Tes versements sont momentanément suspendus. Ton solde reste acquis.",
+  PAS_DE_COMPTE:
+    "Ajoute un compte de versement — mobile money ou bancaire — pour être payé.",
+  RAIL_INCONNU:
+    "Le moyen de versement enregistré n'est plus proposé. Choisis-en un autre.",
+  RIEN_A_VERSER: "Rien à verser sur cette période.",
+  SOUS_LE_SEUIL:
+    "Ton solde n'atteint pas encore le minimum de versement. Il roulera sur la prochaine échéance.",
+};
+
+export interface EligibiliteInput {
+  riskState: RiskState;
+  suspenduLe: Date | null;
+  versementsSuspendusLe: Date | null;
+  /** Compte de destination, ou `null` si aucun n'est enregistré. */
+  compte: { provider: string; accountRef: string } | null;
+  /** Rails que la plateforme sait exécuter. */
+  railsConnus: readonly string[];
+  soldeVersable: number;
+  minimum: number;
+  /** Versement déclenché à la main par un administrateur. */
+  parAdministrateur?: boolean;
+}
+
+/**
+ * Ce créateur peut-il être payé sur cette période ?
+ *
+ * `parAdministrateur` lève le seuil minimum et l'enquête en cours — un
+ * versement décidé à la main l'est en connaissance de cause. Il ne lève **pas**
+ * la suspension ni l'absence de compte : la première est une décision qu'on ne
+ * contourne pas par un clic, la seconde rendrait le virement impossible.
+ */
+export function peutEtrePaye(input: EligibiliteInput): DecisionVersement {
+  const {
+    riskState,
+    suspenduLe,
+    versementsSuspendusLe,
+    compte,
+    railsConnus,
+    soldeVersable,
+    minimum,
+    parAdministrateur = false,
+  } = input;
+
+  const refus = (raison: RefusVersement): DecisionVersement => ({
+    payable: false,
+    raison,
+    message: MESSAGES[raison],
+  });
+
+  // La suspension passe avant tout : ce n'est pas un obstacle à contourner.
+  if (suspenduLe !== null || estSuspendu(riskState)) return refus("SUSPENDU");
+
+  if (compte === null) return refus("PAS_DE_COMPTE");
+  if (!railsConnus.includes(compte.provider)) return refus("RAIL_INCONNU");
+
+  if (!parAdministrateur) {
+    if (versementsSuspendusLe !== null) return refus("VERSEMENTS_SUSPENDUS");
+
+    // Signalé sans être suspendu : on retient le versement le temps du
+    // contrôle. Le solde n'est pas perdu, et le message le dit.
+    if (riskState === "FLAGGED_FRAUD" || riskState === "FLAGGED_TOS") {
+      return refus("SOUS_ENQUETE");
+    }
+  }
+
+  // Un solde nul ou négatif ne se verse pas, même sur ordre : on ne réclame
+  // pas d'argent à un créateur.
+  if (soldeVersable <= 0) return refus("RIEN_A_VERSER");
+
+  if (!parAdministrateur && soldeVersable < minimum) {
+    return refus("SOUS_LE_SEUIL");
+  }
+
+  return { payable: true };
+}

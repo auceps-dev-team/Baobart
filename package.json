@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -20,7 +20,8 @@
     "stack:down": "docker compose down",
     "test:unite": "vitest run --project unite",
     "db:test:setup": "node scripts/setup-test-db.mjs",
-    "db:seed:demo": "tsx prisma/seed-demo.ts"
+    "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "versements": "tsx --conditions=react-server --env-file=.env scripts/versements-du-cycle.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

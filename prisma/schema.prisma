@@ -308,6 +308,15 @@ model User {
   payoutFrequency PayoutFrequency @default(WEEKLY)
   payoutRail      String?
 
+  /// Versements suspendus sans que le compte le soit.
+  ///
+  /// Une enquête en cours, un litige avec un acheteur : on arrête de payer
+  /// sans couper la boutique. Confondre les deux obligerait à suspendre un
+  /// créateur — donc à retirer ses produits de la vente — pour retenir un
+  /// virement, ce qui est disproportionné (`payouts_paused?` chez Gumroad).
+  payoutsPausedAt     DateTime?
+  payoutsPausedReason String?
+
   /// Compteurs dénormalisés du suivi. La maquette les affiche partout —
   /// en-tête de profil, tableau de bord, carte créateur — et un COUNT() par
   /// affichage sur une table qui grossit sans fin ne tiendrait pas (PLAN §8.2).
@@ -319,8 +328,9 @@ model User {
   updatedAt   DateTime  @updatedAt
 
   // identité
-  profile  Profile?
-  billing  BillingInfo?
+  profile        Profile?
+  billing        BillingInfo?
+  payoutAccounts PayoutAccount[]
   accounts Account[]
   sessions Session[]
   passkeys Passkey[]
@@ -408,6 +418,41 @@ model Profile {
 /// Les mélanger ferait qu'un `select` distrait sur le profil exposerait
 /// l'adresse postale de quelqu'un. L'écran « Profil » du tableau de bord
 /// acheteur les présente ensemble, mais c'est une vue, pas un modèle.
+/// Où envoyer l'argent d'un créateur.
+///
+/// Un modèle à part, pas un champ sur `User` : un numéro de mobile money
+/// change, et savoir QUAND il a changé est ce qui permet de repérer le schéma
+/// classique — changer le numéro juste avant un versement. Gumroad garde de
+/// même l'historique de ses comptes bancaires.
+model PayoutAccount {
+  id      String       @id @default(cuid())
+  userId  String
+  method  PayoutMethod
+  /// Rail d'acheminement : `wave`, `om`, `mtn`, `moov`, `bank`. C'est lui qui
+  /// décide du jour de la semaine où ce créateur est payé.
+  provider String
+  /// Numéro mobile money ou identifiant bancaire.
+  accountRef String
+  /// Nom du titulaire, tel que l'opérateur le connaît. Un écart avec le nom du
+  /// compte est le premier motif de rejet d'un virement.
+  holderName String?
+
+  /// Vérifié par un contrôle d'identité. Enregistré mais **pas encore exigé** :
+  /// aucun KYC n'existe, et l'exiger aujourd'hui ne paierait personne. À rendre
+  /// obligatoire le jour où le contrôle sera en place.
+  verifiedAt DateTime?
+
+  /// Compte retiré. Jamais supprimé : un versement passé le référence, et son
+  /// historique doit rester lisible.
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deletedAt])
+}
+
 model BillingInfo {
   id           String  @id @default(cuid())
   userId       String  @unique

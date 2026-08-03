@@ -43,6 +43,7 @@ const TABLES_A_VIDER = [
   "BalanceTransaction",
   "Balance",
   "Payout",
+  "PayoutAccount",
   "Refund",
   "LicenseKey",
   "OrderItem",
