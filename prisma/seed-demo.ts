@@ -98,7 +98,7 @@ async function main() {
     const createur = createurs[index % createurs.length]!;
     const createdAt = new Date(depart + index * 3_600_000);
 
-    await db.product.upsert({
+    const produit = await db.product.upsert({
       where: { slug: slugifier(r.name) },
       update: {},
       create: {
@@ -115,6 +115,40 @@ async function main() {
         createdAt,
       },
     });
+
+    // Un fichier par ressource : sans lui, le panneau « Détails » de la fiche
+    // n'a ni format, ni dimensions, ni poids à afficher.
+    const dejaLa = await db.productFile.findFirst({
+      where: { productId: produit.id },
+      select: { id: true },
+    });
+
+    if (!dejaLa) {
+      const extension = r.cover?.endsWith(".jpg") ? "jpg" : "png";
+      const media = await db.mediaAsset.create({
+        data: {
+          ownerId: createur.id,
+          purpose: "product",
+          s3Key: `demo/${produit.slug}.${extension}`,
+          checksum: produit.id,
+          sizeBytes: 4_000_000 + index * 1_500_000,
+          contentType: `image/${extension === "jpg" ? "jpeg" : "png"}`,
+          width: 2400,
+          height: 1600,
+          status: "READY",
+        },
+      });
+
+      await db.productFile.create({
+        data: {
+          productId: produit.id,
+          mediaId: media.id,
+          filename: `${produit.slug}.${extension}`,
+          sizeBytes: media.sizeBytes,
+        },
+      });
+    }
+
     index += 1;
   }
 

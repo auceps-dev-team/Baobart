@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState, useTransition } from "react";
 
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
@@ -76,9 +77,9 @@ export function Feed({
     onLeave: () => setSurvolee((actuel) => (actuel === r.id ? null : actuel)),
     onLike: () => setLikes((l) => ({ ...l, [r.id]: !l[r.id] })),
     onSave: () => setEpingles((s) => ({ ...s, [r.id]: !s[r.id] })),
-    onOpen: () => {
-      window.location.href = `/products/${r.slug}`;
-    },
+    // Rien ici : la carte est enveloppée dans un lien, ce qui permet à Next
+    // d'intercepter la route et d'ouvrir la fiche en modale.
+    onOpen: () => {},
   });
 
   return (
@@ -200,14 +201,23 @@ export function Feed({
           }}
         >
           {alaUne.map((r) => (
-            <CarteAlaUne key={r.id} {...proprietesCarte(r)} />
+            <Link key={r.id} href={`/products/${r.slug}`} scroll={false}>
+              <CarteAlaUne {...proprietesCarte(r)} />
+            </Link>
           ))}
         </div>
       ) : null}
 
       <div data-masonry="1" style={{ columns: "250px", columnGap: 20 }}>
         {items.map((r) => (
-          <CarteMosaique key={r.id} {...proprietesCarte(r)} />
+          <Link
+            key={r.id}
+            href={`/products/${r.slug}`}
+            scroll={false}
+            style={{ display: "block", breakInside: "avoid" }}
+          >
+            <CarteMosaique {...proprietesCarte(r)} />
+          </Link>
         ))}
       </div>
 
