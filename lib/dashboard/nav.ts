@@ -144,15 +144,26 @@ export function navigationPour(etape: EtapeCompte): Groupe[] {
   ];
 }
 
-/** Texte d'accompagnement affiché en tête du tableau de bord. */
-export function messageProgression(etape: EtapeCompte): string {
-  switch (etape) {
+/**
+ * Texte d'accompagnement affiché en tête du tableau de bord.
+ *
+ * Prend la progression entière, pas seulement le palier : un compte qui a vendu
+ * puis tout retiré est au palier BOUTIQUE — son historique le lui garde — mais
+ * n'a plus rien en vente. Lui annoncer « ta boutique est en ligne » serait faux.
+ */
+export function messageProgression(progression: {
+  etape: EtapeCompte;
+  aPublie: boolean;
+}): string {
+  switch (progression.etape) {
     case "ACHETEUR":
       return "Dépose un premier produit quand tu veux — ton espace vendeur s'ouvrira tout seul.";
     case "ATELIER":
-      return `Ton atelier est ouvert. ${RAISON_BOUTIQUE.replace("Disponible une", "Le reste s'active une")}`;
+      return "Ton atelier est ouvert. Le reste s'activera à ta première publication.";
     case "BOUTIQUE":
-      return "Ta boutique est en ligne.";
+      return progression.aPublie
+        ? "Ta boutique est en ligne."
+        : "Plus rien en vente pour le moment — tes gains et ton historique restent accessibles.";
   }
 }
 

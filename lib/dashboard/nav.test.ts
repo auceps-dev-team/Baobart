@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { navigationPour } from "./nav";
+import { messageProgression, navigationPour } from "./nav";
 
 const entrees = (etape: Parameters<typeof navigationPour>[0]) =>
   navigationPour(etape).flatMap((g) => g.entrees);
@@ -92,5 +92,28 @@ describe("continuité entre les paliers", () => {
       const cles = entrees(etape).map((e) => e.cle);
       expect(new Set(cles).size, etape).toBe(cles.length);
     }
+  });
+});
+
+describe("message d'accompagnement", () => {
+  it("annonce la boutique en ligne quand quelque chose est publié", () => {
+    expect(
+      messageProgression({ etape: "BOUTIQUE", aPublie: true }),
+    ).toContain("en ligne");
+  });
+
+  it("ne prétend pas qu'une boutique vide est en ligne", () => {
+    // Le cas du compte qui a vendu puis tout retiré : il garde son palier
+    // grâce à son historique, mais il n'a plus rien en vente.
+    const m = messageProgression({ etape: "BOUTIQUE", aPublie: false });
+
+    expect(m).not.toContain("en ligne");
+    expect(m).toContain("Plus rien en vente");
+  });
+
+  it("promet la suite à qui vient de déposer un brouillon", () => {
+    expect(messageProgression({ etape: "ATELIER", aPublie: false })).toContain(
+      "première publication",
+    );
   });
 });

@@ -56,7 +56,7 @@ export default async function DashboardPage() {
                 maxWidth: 560,
               }}
             >
-              {messageProgression(etape)}
+              {messageProgression(utilisateur.progression)}
             </p>
           </div>
 
