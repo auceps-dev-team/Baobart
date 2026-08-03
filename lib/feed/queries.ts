@@ -252,3 +252,32 @@ export async function listerCreateurs(limit = 3) {
     lieu: p.city,
   }));
 }
+
+/**
+ * Chiffres de preuve sociale du hero.
+ *
+ * Comptés en base plutôt qu'écrits en dur : la maquette annonçait
+ * « 170+ ressources · 12 400 créatifs · 4.9 », des nombres qu'on n'a pas encore.
+ * Afficher une note de satisfaction sans le moindre avis serait un mensonge —
+ * elle vaut donc `null` tant que personne n'a noté, et le bloc la masque.
+ */
+export async function compterCommunaute() {
+  const [ressources, createurs, notes] = await Promise.all([
+    db.product.count({ where: { status: "PUBLISHED" } }),
+    db.profile.count(),
+    db.profile.aggregate({
+      where: { ratingCount: { gt: 0 } },
+      _avg: { ratingAvg: true },
+      _count: { _all: true },
+    }),
+  ]);
+
+  return {
+    ressources,
+    createurs,
+    note:
+      notes._count._all > 0 && notes._avg.ratingAvg
+        ? Number(notes._avg.ratingAvg)
+        : null,
+  };
+}

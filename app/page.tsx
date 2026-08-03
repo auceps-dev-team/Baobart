@@ -12,6 +12,7 @@ import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { BAREME_XOF } from "@/lib/domain/fees";
 import {
+  compterCommunaute,
   compterParFamille,
   listerAlaUne,
   listerCreateurs,
@@ -28,11 +29,12 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AccueilPage() {
-  const [page, alaUne, familles, createurs] = await Promise.all([
+  const [page, alaUne, familles, createurs, chiffres] = await Promise.all([
     listerFeed(),
     listerAlaUne(),
     compterParFamille(),
     listerCreateurs(),
+    compterCommunaute(),
   ]);
 
   // La maquette annonçait « garde 80 % » — un taux de 20 % que la lecture du
@@ -44,7 +46,7 @@ export default async function AccueilPage() {
   return (
     <>
       <Header />
-      <HomeShell>
+      <HomeShell chiffres={chiffres}>
         <Categories familles={familles} />
         <Feed
           itemsInitiaux={page.items}

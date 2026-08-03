@@ -2,24 +2,26 @@
 
 import { useState, type ReactNode } from "react";
 
-import { HeroA, HeroB, SelecteurHero, type VarianteHero } from "@/components/home/hero";
+import { HeroB, type ChiffresCommunaute } from "@/components/home/hero";
 import { Rail } from "@/components/shell/rail";
 
 /**
  * Enveloppe de l'accueil.
  *
- * La maquette lie trois choses à la variante de hero : le hero lui-même, la
- * présence du rail latéral, et le décalage à gauche de toute la page
- * (`padLeft`). C'est ici qu'on tient cet état commun.
+ * Le rail est une navigation permanente : la maquette le liait à la variante de
+ * hero, mais ce couplage n'avait de sens que pour comparer deux directions.
  *
- * Le décalage suit l'ouverture du rail — 112 px replié, 268 px ouvert — et
- * retombe à zéro en variante A, où il n'y a pas de rail.
+ * Le décalage de la page suit l'ouverture du rail — 112 px replié, 268 px
+ * ouvert — comme dans la maquette.
  */
-export function HomeShell({ children }: { children: ReactNode }) {
-  const [variante, setVariante] = useState<VarianteHero>("B");
+export function HomeShell({
+  chiffres,
+  children,
+}: {
+  chiffres: ChiffresCommunaute;
+  children: ReactNode;
+}) {
   const [railOuvert, setRailOuvert] = useState(false);
-
-  const decalage = variante === "B" ? (railOuvert ? 268 : 112) : 0;
 
   return (
     <div
@@ -29,14 +31,11 @@ export function HomeShell({ children }: { children: ReactNode }) {
         background: "#EADFF9",
         overflowX: "hidden",
         transition: "padding-left .18s ease",
-        paddingLeft: decalage,
+        paddingLeft: railOuvert ? 268 : 112,
       }}
     >
-      {variante === "B" ? <Rail onOuvertureChange={setRailOuvert} /> : null}
-
-      <SelecteurHero variante={variante} onChange={setVariante} />
-      {variante === "A" ? <HeroA /> : <HeroB />}
-
+      <Rail onOuvertureChange={setRailOuvert} />
+      <HeroB chiffres={chiffres} />
       {children}
     </div>
   );
