@@ -42,6 +42,18 @@ enum UserRiskState {
   SUSPENDED_TOS
 }
 
+/// Ce que la personne est venue faire, déclaré à l'inscription.
+///
+/// ⚠️ Ce n'est PAS une permission. Chez Gumroad il n'existe aucune colonne de
+/// rôle : `is_buyer?` se dérive du comportement — pas de produit publié, au
+/// moins un achat. On garde ce principe : la capacité de vendre vient de la
+/// publication, jamais d'un champ. Cette intention ne sert qu'à choisir le
+/// tableau de bord d'arrivée et l'accompagnement.
+enum IntentionCompte {
+  ACHETEUR
+  CREATEUR
+}
+
 enum KycStatus {
   NONE
   PENDING
@@ -49,7 +61,11 @@ enum KycStatus {
   REJECTED
 }
 
+/// Cinq rôles, pas quatre : le propriétaire est lui aussi une ligne d'équipe
+/// (vérifié dans `team_membership.rb`). Sans OWNER, on ne peut pas exprimer
+/// « qui possède la boutique » autrement qu'en le devinant.
 enum TeamRole {
+  OWNER
   ADMIN
   MARKETING
   SUPPORT
@@ -286,17 +302,19 @@ enum Plateforme {
 // ============================================================================
 
 model User {
-  id              String        @id @default(cuid())
-  email           String        @unique
+  id              String          @id @default(cuid())
+  email           String          @unique
   emailVerified   DateTime?
-  phone           String?       @unique // mobile money (OTP = mode principal en Afrique)
+  phone           String?         @unique // mobile money (OTP = mode principal en Afrique)
   passwordHash    String?
-  riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
-  kycStatus       KycStatus     @default(NONE)
+  riskState       UserRiskState   @default(NOT_REVIEWED) // machine à états §3.8
+  kycStatus       KycStatus       @default(NONE)
+  /// Déclarée à l'inscription. Oriente, n'autorise rien — voir IntentionCompte.
+  intention       IntentionCompte @default(ACHETEUR)
   /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
   /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
-  refundsDisabled Boolean       @default(false)
-  defaultCurrency Currency      @default(XOF)
+  refundsDisabled Boolean         @default(false)
+  defaultCurrency Currency        @default(XOF)
 
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
   /// détermine le JOUR de la semaine où ce créateur est payé — voir
@@ -310,6 +328,7 @@ model User {
 
   // identité
   profile  Profile?
+  billing  BillingInfo?
   accounts Account[]
   sessions Session[]
   passkeys Passkey[]
@@ -356,27 +375,64 @@ model User {
 }
 
 model Profile {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  username      String   @unique
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  username      String  @unique
   displayName   String
-  bio           String?  @db.Text
+  bio           String? @db.Text
   city          String?
   country       String? // ISO 3166-1 alpha-2
   avatarUrl     String?
   bannerUrl     String?
-  isVerified    Boolean  @default(false) // badge « Créateur vérifié »
+  isVerified    Boolean @default(false) // badge « Créateur vérifié »
   // compteurs dénormalisés (§3.9-H : jamais d'AVG() ni de COUNT() live)
-  ratingAvg     Decimal  @default(0) @db.Decimal(3, 2)
-  ratingCount   Int      @default(0)
-  workCount     Int      @default(0)
-  followerCount Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  ratingAvg     Decimal @default(0) @db.Decimal(3, 2)
+  ratingCount   Int     @default(0)
+  workCount     Int     @default(0)
+  followerCount Int     @default(0)
+
+  /// Vitrine du créateur — écran « Profil public » du tableau de bord.
+  /// Tous facultatifs : un acheteur n'a aucune raison de les remplir.
+  speciality        String?
+  portfolioUrl      String?
+  instagram         String?
+  behance           String?
+  /// Texte libre plutôt qu'un booléen : la maquette attend « Oui, sous
+  /// 2 semaines », qui dit à la fois la disponibilité et le délai.
+  openToCommissions String?
+  /// Tarif journalier indicatif, en unité mineure XOF comme tout montant.
+  dailyRate         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([username])
+}
+
+/// Informations de facturation.
+///
+/// Séparées de `Profile` À DESSEIN : le profil est public, ceci ne l'est pas.
+/// Les mélanger ferait qu'un `select` distrait sur le profil exposerait
+/// l'adresse postale de quelqu'un. L'écran « Profil » du tableau de bord
+/// acheteur les présente ensemble, mais c'est une vue, pas un modèle.
+model BillingInfo {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  firstName    String?
+  lastName     String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  postalCode   String?
+  /// ISO 3166-1 alpha-2.
+  country      String?
+  region       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TeamMembership {

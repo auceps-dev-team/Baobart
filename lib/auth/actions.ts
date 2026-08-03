@@ -82,6 +82,10 @@ export async function inscrire(
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
   const motDePasse = String(donnees.get("motDePasse") ?? "");
   const conditions = donnees.get("conditions") === "on";
+  // Le choix « Acheteur / Créateur » de la maquette. Il oriente l'accueil ;
+  // il n'accorde aucune capacité (voir lib/auth/roles.ts).
+  const intention =
+    donnees.get("typeCompte") === "createur" ? "CREATEUR" : "ACHETEUR";
 
   if (!prenom || !nom) {
     return { erreur: "Indique ton prénom et ton nom.", champ: "nom" };
@@ -129,9 +133,13 @@ export async function inscrire(
     data: {
       email,
       passwordHash,
+      intention,
       profile: {
         create: { username, displayName: `${prenom} ${nom}`.trim() },
       },
+      // Le prénom et le nom servent aux factures, pas à la vitrine : ils vont
+      // dans les informations de facturation, pas dans le profil public.
+      billing: { create: { firstName: prenom, lastName: nom } },
     },
     select: { id: true },
   });

@@ -15,6 +15,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { hacherMotDePasse, verifierMotDePasse } from "@/lib/auth/password";
+import { capacitesDe } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 
 const MOT_DE_PASSE = "MotDePasse2026!";
@@ -150,5 +151,91 @@ describe("session", () => {
     await db.session.deleteMany({ where: { userId: compte.id } });
 
     expect(await db.session.count({ where: { userId: compte.id } })).toBe(0);
+  });
+});
+
+describe("rôle dérivé, contre la base", () => {
+  it("publier fait basculer les capacités, sans toucher à un champ", async () => {
+    const compte = await creerCompte("createur@baobart.test", "compte-createur");
+
+    const avant = await capacitesDe(compte.id);
+    expect(avant).toMatchObject({ estCreateur: false, estAcheteur: false });
+
+    await db.product.create({
+      data: {
+        sellerId: compte.id,
+        slug: "premiere-ressource",
+        name: "Première ressource",
+        price: 5_000,
+        status: "PUBLISHED",
+      },
+    });
+
+    const apres = await capacitesDe(compte.id);
+    expect(apres.estCreateur).toBe(true);
+    expect(apres.vueParDefaut).toBe("createur");
+  });
+
+  it("un brouillon ne fait pas de vous un créateur", async () => {
+    const compte = await creerCompte("brouillon@baobart.test", "compte-brouillon");
+
+    await db.product.create({
+      data: {
+        sellerId: compte.id,
+        slug: "pas-encore-prete",
+        name: "Pas encore prête",
+        price: 0,
+        status: "DRAFT",
+      },
+    });
+
+    expect((await capacitesDe(compte.id)).estCreateur).toBe(false);
+  });
+
+  it("l'intention déclarée oriente l'accueil sans rien autoriser", async () => {
+    const compte = await db.user.create({
+      data: {
+        email: "intention@baobart.test",
+        passwordHash: await hacherMotDePasse(MOT_DE_PASSE),
+        intention: "CREATEUR",
+        profile: { create: { username: "compte-intention", displayName: "Kofi" } },
+      },
+      select: { id: true },
+    });
+
+    const c = await capacitesDe(compte.id);
+    expect(c.vueParDefaut).toBe("createur");
+    expect(c.estCreateur).toBe(false);
+  });
+
+  it("sépare le profil public des informations de facturation", async () => {
+    const compte = await db.user.create({
+      data: {
+        email: "facturation@baobart.test",
+        passwordHash: await hacherMotDePasse(MOT_DE_PASSE),
+        profile: { create: { username: "compte-fact", displayName: "Awa Diallo" } },
+        billing: {
+          create: {
+            firstName: "Awa",
+            lastName: "Diallo",
+            addressLine1: "12 rue de la Corniche",
+            city: "Dakar",
+            country: "SN",
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    // Le profil public ne porte aucune adresse : la lire demande de viser
+    // explicitement la facturation.
+    const profil = await db.profile.findUnique({ where: { userId: compte.id } });
+    expect(profil).not.toHaveProperty("addressLine1");
+
+    const facturation = await db.billingInfo.findUnique({
+      where: { userId: compte.id },
+      select: { addressLine1: true },
+    });
+    expect(facturation?.addressLine1).toBe("12 rue de la Corniche");
   });
 });

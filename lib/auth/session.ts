@@ -4,7 +4,10 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { cookies } from "next/headers";
 
+import type { IntentionCompte } from "@prisma/client";
+
 import { db } from "@/lib/db";
+import { deduireCapacites } from "@/lib/auth/roles";
 
 /**
  * Sessions par cookie.
@@ -31,6 +34,9 @@ export interface UtilisateurConnecte {
   nom: string;
   username: string | null;
   estCreateur: boolean;
+  intention: IntentionCompte;
+  /** Tableau de bord d'arrivée — voir lib/auth/roles.ts. */
+  vueParDefaut: "acheteur" | "createur";
 }
 
 /** Ouvre une session et pose le cookie. */
@@ -73,8 +79,14 @@ export async function sessionCourante(): Promise<UtilisateurConnecte | null> {
           id: true,
           email: true,
           suspendedAt: true,
+          intention: true,
           profile: { select: { displayName: true, username: true } },
-          _count: { select: { products: true } },
+          _count: {
+            select: {
+              products: { where: { status: "PUBLISHED" } },
+              orders: true,
+            },
+          },
         },
       },
     },
@@ -91,12 +103,20 @@ export async function sessionCourante(): Promise<UtilisateurConnecte | null> {
   // encore frais — la suspension doit prendre effet immédiatement.
   if (session.user.suspendedAt) return null;
 
+  const capacites = deduireCapacites({
+    produitsPublies: session.user._count.products,
+    achatsReussis: session.user._count.orders,
+    intention: session.user.intention,
+  });
+
   return {
     id: session.user.id,
     email: session.user.email,
     nom: session.user.profile?.displayName ?? session.user.email,
     username: session.user.profile?.username ?? null,
-    estCreateur: session.user._count.products > 0,
+    estCreateur: capacites.estCreateur,
+    intention: capacites.intention,
+    vueParDefaut: capacites.vueParDefaut,
   };
 }
 

@@ -38,7 +38,7 @@ fichier sous licence tierce n'entre dans notre historique git.
 
 ## 1. Synthèse
 
-Sur les affirmations vérifiées : **19 confirmées, 13 erronées, 29 découvertes**.
+Sur les affirmations vérifiées : **19 confirmées, 14 erronées, 30 découvertes**.
 
 Les trois erreurs qui changent une décision :
 
@@ -827,7 +827,47 @@ autonome.
 
 ---
 
-## 14. Ce qui reste à vérifier
+## 14. Les rôles — blueprint §4.1
+
+Vérifié dans `app/models/user.rb` et `app/models/team_membership.rb`.
+
+### 14.1 ➕ Il n'existe aucune colonne de rôle
+
+C'est la découverte structurante de cette section. Gumroad ne stocke **pas** si
+un compte est acheteur ou vendeur. La qualité se **dérive** :
+
+```ruby
+def is_buyer?
+  !links.exists? && purchases.successful.exists?
+end
+```
+
+« Un acheteur est quelqu'un qui n'a publié aucun produit et qui a déjà acheté. »
+La définition est **exclusive** : publier fait sortir de la catégorie.
+
+**Conséquence pour Baobart** : la capacité de vendre vient de la publication,
+jamais d'un champ qu'un administrateur pourrait cocher. Personne ne peut donc
+« être créateur » sans l'être vraiment, et il n'y a pas de rôle à maintenir
+cohérent avec les faits.
+
+Reste que nos maquettes demandent de choisir à l'inscription. Ce choix est réel
+— il décide du tableau de bord d'arrivée — mais c'est une **intention**, pas une
+permission. Les deux vivent côte à côte : `User.intention` oriente,
+`lib/auth/roles.ts` autorise. Et le fait l'emporte : qui a publié voit sa
+boutique, quoi qu'il ait déclaré.
+
+### 14.2 ❌ Cinq rôles d'équipe, pas quatre — blueprint §4.0
+
+`TeamMembership::ROLES = %w(owner accountant admin marketing support)`.
+
+Le blueprint en listait quatre : **`owner` manquait**. Sans lui, on ne peut pas
+exprimer qui possède la boutique autrement qu'en le devinant — par exemple en
+supposant que c'est le vendeur lui-même, ce qui cesse d'être vrai dès qu'une
+boutique change de mains.
+
+---
+
+## 15. Ce qui reste à vérifier
 
 Les grandes zones du plan ont toutes été ouvertes au moins une fois. Restent des
 sujets décrits mais jamais lus dans le détail :

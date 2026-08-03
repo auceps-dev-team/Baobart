@@ -13,10 +13,46 @@ import { PrismaClient, type ProductFamily } from "@prisma/client";
 const db = new PrismaClient();
 
 const CREATEURS = [
-  { username: "awa-diallo", displayName: "Awa Diallo", city: "Dakar" },
-  { username: "kwame-mensah", displayName: "Kwame Mensah", city: "Accra" },
-  { username: "fatoumata-gnahore", displayName: "Fatoumata Gnahoré", city: "Abidjan" },
-  { username: "chidi-okonkwo", displayName: "Chidi Okonkwo", city: "Lagos" },
+  {
+    username: "awa-diallo",
+    displayName: "Awa Diallo",
+    city: "Dakar",
+    speciality: "Illustration & motifs",
+    portfolioUrl: "awadiallo.com",
+    instagram: "@awa.draws",
+    openToCommissions: "Oui, sous 2 semaines",
+    dailyRate: 45_000,
+  },
+  {
+    username: "kwame-mensah",
+    displayName: "Kwame Mensah",
+    city: "Accra",
+    speciality: "Motion design",
+    portfolioUrl: "kwame.studio",
+    instagram: "@kwame.motion",
+    openToCommissions: "Complet jusqu'en septembre",
+    dailyRate: 60_000,
+  },
+  {
+    username: "fatoumata-gnahore",
+    displayName: "Fatoumata Gnahoré",
+    city: "Abidjan",
+    speciality: "Direction artistique",
+    portfolioUrl: "fatou.africa",
+    instagram: "@fatou.da",
+    openToCommissions: "Oui, sous 1 mois",
+    dailyRate: 75_000,
+  },
+  {
+    username: "chidi-okonkwo",
+    displayName: "Chidi Okonkwo",
+    city: "Lagos",
+    speciality: "Typographie",
+    portfolioUrl: "chidi.type",
+    instagram: "@chidi.type",
+    openToCommissions: "Oui, immédiatement",
+    dailyRate: 50_000,
+  },
 ];
 
 /**
@@ -75,6 +111,7 @@ async function main() {
         email: `${c.username}@baobart.demo`,
         riskState: "COMPLIANT",
         kycStatus: "VERIFIED",
+        intention: "CREATEUR",
         profile: {
           create: {
             username: c.username,
@@ -82,6 +119,11 @@ async function main() {
             city: c.city,
             country: "SN",
             isVerified: true,
+            speciality: c.speciality,
+            portfolioUrl: c.portfolioUrl,
+            instagram: c.instagram,
+            openToCommissions: c.openToCommissions,
+            dailyRate: c.dailyRate,
           },
         },
       },

@@ -33,6 +33,7 @@ const { db } = await import("./lib/db");
 
 const TABLES_A_VIDER = [
   "Session",
+  "BillingInfo",
   "Account",
   "Passkey",
   "ConsumptionEvent",

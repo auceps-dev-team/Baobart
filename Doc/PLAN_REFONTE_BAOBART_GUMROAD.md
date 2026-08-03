@@ -5,7 +5,7 @@
 
 > ### ⚠️ Statut de vérification
 >
-> Les sections **§2.4, §2.8, §3.2, §3.4-A, §3.4-C, §3.4-E, §3.6-A à D, §3.7-E, §3.8, §3.9-A, §3.9-C, §3.9-D, §3.9-F, §3.10-B, §6.1, §9, §10.1, §10.2, §10.4, §10.5, §13** ont été
+> Les sections **§2.4, §2.8, §3.2, §3.4-A, §3.4-C, §3.4-E, §3.6-A à D, §3.7-E, §3.8, §3.9-A, §3.9-C, §3.9-D, §3.9-F, §3.10-B, §6.1, §6.3, §9, §10.1, §10.2, §10.4, §10.5, §13** ont été
 > **confrontées au code source** de `antiwork/gumroad` (commit `a475e3f`, 1er août 2026) et
 > corrigées. Chacune porte une note de vérification datée.
 >
