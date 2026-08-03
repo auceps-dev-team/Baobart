@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { FileUploader } from "@/components/dashboard/file-uploader";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/i18n/money";
+import { extensionDe, formatPoids } from "@/lib/upload/formats";
 import {
   depublierRessource,
   publierRessource,
@@ -20,6 +22,13 @@ const JAUNE = "#FFD84A";
 const ORANGE = "#E2622C";
 const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
+
+const MESSAGES_ERREUR: Record<string, string> = {
+  vendue:
+    "Cette ressource a déjà été vendue : elle ne peut plus être supprimée. Retire-la de la vente — les acheteurs gardent ce qu'ils ont payé.",
+  "sans-fichier":
+    "Attache au moins un fichier avant de publier : sans lui, un acheteur paierait sans rien recevoir.",
+};
 
 export default async function ProduitDuTableauDeBord({
   params,
@@ -46,7 +55,17 @@ export default async function ProduitDuTableauDeBord({
       family: true,
       description: true,
       sellerId: true,
+      coverUrl: true,
       tags: { select: { tag: { select: { name: true } } } },
+      files: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          filename: true,
+          sizeBytes: true,
+          media: { select: { width: true, height: true } },
+        },
+      },
       _count: { select: { files: true, orderItems: true } },
     },
   });
@@ -58,6 +77,29 @@ export default async function ProduitDuTableauDeBord({
   const enLigne = produit.status === "PUBLISHED";
   const dejaVendue = produit._count.orderItems > 0;
   const sansFichier = produit._count.files === 0;
+
+  // Ces trois lignes sont des faits, pas des déclarations : la maquette les
+  // présente comme des champs de saisie, mais un poids annoncé et un poids réel
+  // ne peuvent pas diverger sans tromper l'acheteur. On les lit des fichiers.
+  const sources =
+    [
+      ...new Set(
+        produit.files
+          .map((f) => extensionDe(f.filename).toUpperCase())
+          .filter((e) => e.length > 0),
+      ),
+    ].join(", ") || "—";
+
+  const poidsTotal = produit.files.reduce((somme, f) => somme + f.sizeBytes, 0);
+
+  const plusGrande = produit.files
+    .map((f) => f.media)
+    .filter((m) => m.width !== null && m.height !== null)
+    .sort((a, b) => (b.width ?? 0) * (b.height ?? 0) - (a.width ?? 0) * (a.height ?? 0))[0];
+
+  const dimensions = plusGrande
+    ? `${plusGrande.width} × ${plusGrande.height}`
+    : "—";
 
   const publier = publierRessource.bind(null, produit.id);
   const depublier = depublierRessource.bind(null, produit.id);
@@ -108,7 +150,7 @@ export default async function ProduitDuTableauDeBord({
           {produit.name}
         </h1>
 
-        {erreur === "vendue" ? (
+        {MESSAGES_ERREUR[erreur ?? ""] ? (
           <div
             role="alert"
             style={{
@@ -123,9 +165,7 @@ export default async function ProduitDuTableauDeBord({
               fontWeight: 700,
             }}
           >
-            Cette ressource a déjà été vendue : elle ne peut plus être
-            supprimée. Retire-la de la vente — les acheteurs gardent ce
-            qu&apos;ils ont payé.
+            {MESSAGES_ERREUR[erreur ?? ""]}
           </div>
         ) : null}
 
@@ -151,7 +191,9 @@ export default async function ProduitDuTableauDeBord({
               produit.tags.map((t) => t.tag.name).join(", ") || "—",
             ],
             ["Description", produit.description ?? "—"],
-            ["Fichiers", sansFichier ? "aucun" : String(produit._count.files)],
+            ["Fichiers sources", sources],
+            ["Dimensions", dimensions],
+            ["Poids total", sansFichier ? "—" : formatPoids(poidsTotal)],
           ].map(([cle, valeur]) => (
             <div
               key={cle}
@@ -167,20 +209,27 @@ export default async function ProduitDuTableauDeBord({
           ))}
         </div>
 
-        {sansFichier ? (
-          <p
-            style={{
-              marginTop: 16,
-              maxWidth: 640,
-              fontSize: 13,
-              fontWeight: 700,
-              color: ORANGE_SOMBRE,
-            }}
-          >
-            Aucun fichier n&apos;est encore attaché : un acheteur n&apos;aurait
-            rien à télécharger. L&apos;envoi arrive avec le module d&apos;upload.
-          </p>
-        ) : null}
+        <h2
+          style={{
+            fontFamily: "'Archivo Black', sans-serif",
+            fontSize: 17,
+            letterSpacing: "-.4px",
+            margin: "28px 0 12px",
+            textTransform: "uppercase",
+          }}
+        >
+          Fichier &amp; aperçu
+        </h2>
+
+        <FileUploader
+          produitId={produit.id}
+          couvertureInitiale={produit.coverUrl}
+          fichiersInitiaux={produit.files.map((f) => ({
+            id: f.id,
+            nom: f.filename,
+            taille: f.sizeBytes,
+          }))}
+        />
 
         <div
           style={{
@@ -214,17 +263,24 @@ export default async function ProduitDuTableauDeBord({
             <form action={publier}>
               <button
                 type="submit"
-                className="sticker-press"
+                className={sansFichier ? undefined : "sticker-press"}
+                disabled={sansFichier}
+                title={
+                  sansFichier
+                    ? "Attache au moins un fichier avant de publier."
+                    : undefined
+                }
                 style={{
                   padding: "14px 24px",
                   border: CADRE,
                   borderRadius: 14,
-                  background: ENCRE,
-                  color: BLANC,
-                  boxShadow: `4px 4px 0 ${ORANGE}`,
+                  background: sansFichier ? BLANC : ENCRE,
+                  color: sansFichier ? ENCRE : BLANC,
+                  boxShadow: sansFichier ? "none" : `4px 4px 0 ${ORANGE}`,
                   fontSize: 14,
                   fontWeight: 800,
-                  cursor: "pointer",
+                  opacity: sansFichier ? 0.45 : 1,
+                  cursor: sansFichier ? "not-allowed" : "pointer",
                 }}
               >
                 Publier la ressource
