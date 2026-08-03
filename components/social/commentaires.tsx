@@ -188,6 +188,26 @@ function Bulle({
             <span style={{ fontWeight: 600, opacity: 0.55 }}>
               {ilYA(commentaire.publieLe)}
             </span>
+            {/* Visible du seul créateur : dire publiquement « signalé »
+                accuserait son auteur sur la foi d'une liste de mots. */}
+            {commentaire.signale ? (
+              <span
+                title="Repéré par la détection automatique. À toi de juger."
+                style={{
+                  marginLeft: 8,
+                  padding: "1px 7px",
+                  border: `2px solid ${ENCRE}`,
+                  borderRadius: 999,
+                  background: JAUNE,
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: 9.5,
+                  textTransform: "uppercase",
+                  letterSpacing: ".08em",
+                }}
+              >
+                signalé
+              </span>
+            ) : null}
           </div>
           <div
             style={{

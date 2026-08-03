@@ -366,6 +366,44 @@ describe("commentaires", () => {
     expect(etat.commentaires).toBe(2);
   });
 
+
+  it("signale une insulte au créateur, sans la bloquer ni l'exposer", async () => {
+    const c = await publierCommentaireDe({
+      userId: visiteur,
+      produitId: produit,
+      corps: "espèce de c.o.n.n.a.r.d",
+    });
+
+    // Publié : une liste de mots ne fait pas taire quelqu'un.
+    expect(c.ok).toBe(true);
+
+    const ligne = await db.comment.findFirstOrThrow({
+      where: { productId: produit },
+    });
+    expect(ligne.isFlagged).toBe(true);
+
+    // La marque n'est visible que du créateur : l'annoncer publiquement
+    // accuserait son auteur sur la foi d'une liste.
+    const vuParLeCreateur = await commentairesDe(produit, vendeur, vendeur);
+    expect(vuParLeCreateur[0]?.signale).toBe(true);
+
+    const vuParUnPassant = await commentairesDe(produit, visiteur, vendeur);
+    expect(vuParUnPassant[0]?.signale).toBe(false);
+  });
+
+  it("ne signale pas un commentaire ordinaire", async () => {
+    await publierCommentaireDe({
+      userId: visiteur,
+      produitId: produit,
+      corps: "Belle conception d'ensemble, bravo.",
+    });
+
+    const ligne = await db.comment.findFirstOrThrow({
+      where: { productId: produit },
+    });
+    expect(ligne.isFlagged).toBe(false);
+  });
+
   it("la base refuse un commentaire sans cible", async () => {
     await expect(
       db.comment.create({ data: { authorId: visiteur, body: "orphelin" } }),

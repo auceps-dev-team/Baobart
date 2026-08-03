@@ -8,6 +8,13 @@ import {
   finDePeriodePourVersement,
   projeterVersements,
 } from "@/lib/payments/payout-schedule";
+import {
+  confirmerVersement,
+  echouerVersement,
+  marquerVersementEnvoye,
+  preparerVersement,
+  retournerVersement,
+} from "@/lib/payments/versements";
 
 /**
  * La projection des versements, alimentée par de vrais soldes.
@@ -245,18 +252,191 @@ describe("ce qu'on annonce au créateur", () => {
   });
 });
 
-describe("ce qui manque encore", () => {
-  it("aucun versement n'est exécuté : le modèle existe, le geste non", async () => {
-    await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+describe("exécution d'un versement", () => {
+  const CYCLE = new Date("2026-07-31T00:00:00Z"); // un vendredi
+  const rail = RAILS_BAOBART.wave!;
 
-    // Le solde est bien porté au crédit du créateur…
+  const preparer = (forcer = false) =>
+    preparerVersement({
+      userId: createur,
+      cycleDate: CYCLE,
+      rail,
+      method: "MOBILE_MONEY",
+      accountRef: "+221770000000",
+      forcer,
+    });
+
+  it("réserve les soldes de la période et fige leur montant", async () => {
+    const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    // Postérieure à la fin de période : elle reste pour le cycle suivant.
+    await vendre(10_000, new Date("2026-07-28T10:00:00Z"));
+
+    const { versement, periodEnd } = await preparer();
+
+    expect(periodEnd.toISOString().slice(0, 10)).toBe("2026-07-24");
+    expect(versement.amount).toBe(a.net);
+
     const soldes = await db.balance.findMany({ where: { userId: createur } });
-    expect(soldes.length).toBeGreaterThan(0);
-    expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+    const pris = soldes.filter((b) => b.payoutId === versement.id);
+    expect(pris).toHaveLength(1);
+    expect(pris.every((b) => b.state === "PROCESSING")).toBe(true);
+    // Celle d'après reste versable.
+    expect(soldes.some((b) => b.state === "UNPAID")).toBe(true);
+  });
 
-    // …mais rien ne le fait passer en versement. Ce test n'est pas une
-    // vérification : c'est un constat, qui échouera le jour où l'exécution
-    // arrivera, et rappellera de l'éprouver pour de bon.
+  it("mène un versement de bout en bout et solde les balances", async () => {
+    await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    const { versement } = await preparer();
+
+    await marquerVersementEnvoye(versement.id, "WAVE-REF-42");
+    const envoye = await db.payout.findUniqueOrThrow({ where: { id: versement.id } });
+    expect(envoye.status).toBe("PROCESSING");
+    expect(envoye.providerRef).toBe("WAVE-REF-42");
+
+    await confirmerVersement(versement.id);
+
+    const fini = await db.payout.findUniqueOrThrow({ where: { id: versement.id } });
+    expect(fini.status).toBe("COMPLETED");
+    expect(fini.processedAt).not.toBeNull();
+
+    const soldes = await db.balance.findMany({ where: { payoutId: versement.id } });
+    expect(soldes.every((b) => b.state === "PAID")).toBe(true);
+  });
+
+  it("rend exactement les soldes pris quand le versement échoue", async () => {
+    // La raison d'être de cette machine : rendre « tout ce qui n'est pas
+    // versé » rendrait aussi les ventes arrivées entre-temps, et le créateur
+    // serait payé deux fois pour elles.
+    const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    const { versement } = await preparer();
+
+    // Une vente survient pendant que le versement est en cours.
+    const b = await vendre(10_000, new Date("2026-07-23T10:00:00Z"));
+
+    await marquerVersementEnvoye(versement.id, "WAVE-REF-43");
+    await echouerVersement(versement.id, "numéro invalide");
+
+    const relu = await db.payout.findUniqueOrThrow({ where: { id: versement.id } });
+    expect(relu.status).toBe("FAILED");
+    expect(relu.failureReason).toBe("numéro invalide");
+
+    // Tout est redevenu versable, et rien n'est resté accroché au versement.
+    const soldes = await db.balance.findMany({ where: { userId: createur } });
+    expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+    expect(soldes.every((b) => b.payoutId === null)).toBe(true);
+
+    // Le total rendu est bien celui des deux ventes, ni plus ni moins.
+    const total = soldes.reduce((s, x) => s + x.holdingAmount, 0);
+    expect(total).toBe(a.net + b.net);
+  });
+
+  it("rend les soldes aussi quand l'argent revient après coup", async () => {
+    await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    const { versement } = await preparer();
+    await marquerVersementEnvoye(versement.id, "WAVE-REF-44");
+    await confirmerVersement(versement.id);
+
+    await retournerVersement(versement.id, "compte fermé");
+
+    const soldes = await db.balance.findMany({ where: { userId: createur } });
+    expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+  });
+
+  it("refuse les transitions qui n'ont pas de sens", async () => {
+    await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    const { versement } = await preparer();
+
+    // Confirmer sans avoir envoyé.
+    await expect(confirmerVersement(versement.id)).rejects.toThrow(/interdit/);
+
+    await marquerVersementEnvoye(versement.id, "REF");
+    await confirmerVersement(versement.id);
+
+    // Un versement terminé ne se réenvoie pas.
+    await expect(
+      marquerVersementEnvoye(versement.id, "REF-2"),
+    ).rejects.toThrow(/interdit/);
+    // Ni ne se confirme deux fois.
+    await expect(confirmerVersement(versement.id)).rejects.toThrow(/interdit/);
+  });
+
+  it("ne verse pas deux fois les mêmes soldes", async () => {
+    await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    await preparer();
+
+    // Les soldes sont pris : il ne reste rien à verser.
+    await expect(preparer()).rejects.toThrow(/Aucun solde versable/);
+    expect(await db.payout.count()).toBe(1);
+  });
+
+  it("refuse de verser sous le seuil, sauf ordre explicite", async () => {
+    // 600 F bruts : le net tombe sous le minimum de 1 000 F.
+    await vendre(600, new Date("2026-07-20T10:00:00Z"));
+
+    await expect(preparer()).rejects.toThrow(/Aucun solde versable/);
+
+    const { versement } = await preparer(true);
+    expect(versement.amount).toBeGreaterThan(0);
+  });
+
+  it("ne réclame jamais d'argent au créateur", async () => {
+    // Tout remboursé : le solde net de la période retombe à zéro.
+    const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    await rembourserLigne({
+      orderItemId: a.ligneId,
+      amount: 10_000,
+      date: new Date("2026-07-21T10:00:00Z"),
+    });
+
+    await expect(preparer(true)).rejects.toThrow(/Aucun solde versable/);
     expect(await db.payout.count()).toBe(0);
+  });
+
+  it("n'emporte pas les soldes d'un autre créateur", async () => {
+    const autre = await compte("voisin@vers.test");
+    const produitVoisin = await db.product.create({
+      data: {
+        sellerId: autre,
+        slug: `w-${Math.random().toString(36).slice(2, 9)}`,
+        name: "Voisin",
+        price: 10_000,
+        currency: "XOF",
+        status: "PUBLISHED",
+      },
+      select: { id: true },
+    });
+    const o = await db.order.create({
+      data: {
+        buyerId: acheteur,
+        currency: "XOF",
+        total: 10_000,
+        status: "COMPLETED",
+        items: {
+          create: {
+            productId: produitVoisin.id,
+            price: 10_000,
+            quantity: 1,
+            state: "IN_PROGRESS",
+          },
+        },
+      },
+      select: { items: { select: { id: true } } },
+    });
+    await encaisserLigne({
+      orderItemId: o.items[0]!.id,
+      regime: "DIRECT",
+      date: new Date("2026-07-20T10:00:00Z"),
+    });
+
+    await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+    const { versement } = await preparer();
+
+    const prisAilleurs = await db.balance.count({
+      where: { payoutId: versement.id, userId: { not: createur } },
+    });
+    expect(prisAilleurs).toBe(0);
+
+    const voisin = await db.balance.findMany({ where: { userId: autre } });
+    expect(voisin.every((b) => b.state === "UNPAID")).toBe(true);
   });
 });

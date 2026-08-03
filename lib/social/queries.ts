@@ -74,6 +74,13 @@ export interface CommentaireRendu {
   publieLe: Date;
   corps: string;
   retire: boolean;
+  /**
+   * Marqué par la détection automatique.
+   *
+   * Montré au seul créateur : dire publiquement « ce commentaire est signalé »
+   * accuserait son auteur sur la foi d'une liste de mots.
+   */
+  signale: boolean;
   /** Le visiteur peut-il le retirer ? Calculé ici, pas dans le composant. */
   retirable: boolean;
   reponses: CommentaireRendu[];
@@ -101,6 +108,7 @@ export async function commentairesDe(
       parentId: true,
       body: true,
       deletedAt: true,
+      isFlagged: true,
       createdAt: true,
       author: {
         select: { profile: { select: { displayName: true, username: true } } },
@@ -118,6 +126,7 @@ export async function commentairesDe(
     publieLe: l.createdAt,
     corps: l.body,
     retire: l.deletedAt !== null,
+    signale: l.isFlagged && visiteurId === proprietaireId,
     retirable:
       l.deletedAt === null &&
       visiteurId !== null &&

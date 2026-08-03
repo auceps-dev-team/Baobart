@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { meriteSignalement } from "@/lib/social/moderation";
 import {
   peutRetirerCommentaire,
   verifierCommentaire,
@@ -208,6 +209,11 @@ export async function publierCommentaireDe(input: {
       productId: input.produitId,
       parentId,
       body: verdict.corps,
+      // Signalé, pas bloqué. Une liste de mots est un instrument grossier :
+      // taire quelqu'un sur cette base ferait plus de tort que le commentaire.
+      // Le créateur voit la marque et tranche — il a déjà le droit de retirer
+      // ce qui est déposé chez lui.
+      isFlagged: meriteSignalement(verdict.corps),
     },
     select: { id: true },
   });

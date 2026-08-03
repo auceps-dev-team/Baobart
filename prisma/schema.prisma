@@ -969,6 +969,10 @@ model Payout {
   periodEnd     DateTime?    @db.Date
   processedAt   DateTime?
   isInstant     Boolean      @default(false)
+  /// Référence rendue par l'opérateur. C'est elle qui permet de retrouver
+  /// l'ordre chez lui le jour où le créateur dit n'avoir rien reçu — sans
+  /// elle, une réclamation n'a aucune prise.
+  providerRef   String?
   failureReason String?
   createdAt     DateTime     @default(now())
 
