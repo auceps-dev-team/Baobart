@@ -199,3 +199,76 @@ describe("forme des cartes", () => {
     expect((await listerFeed()).items[0]!.author).toBe("Créateur Baobart");
   });
 });
+
+describe("le feed pendant qu'il bouge", () => {
+  let sellerId: string;
+
+  beforeEach(async () => {
+    sellerId = (await creerCreateur()).id;
+  });
+
+  it("ne saute pas de carte quand une ressource est dépubliée en cours de parcours", async () => {
+    // Le cas que la pagination par curseur rend possible : entre deux pages, le
+    // créateur retire une ressource. Avec un OFFSET, toutes les cartes suivantes
+    // glisseraient d'un rang et une passerait à la trappe.
+    for (let i = 0; i < 9; i += 1) {
+      await publier(sellerId, i, { createdAt: new Date(Date.UTC(2026, 6, 1 + i)) });
+    }
+
+    const page1 = await listerFeed({ limit: 3 });
+    expect(page1.items).toHaveLength(3);
+
+    const dejaVus = page1.items.map((i) => i.slug);
+
+    // On dépublie une ressource que le parcours n'a pas encore atteinte.
+    const suivante = await db.product.findFirst({
+      where: { status: "PUBLISHED", slug: { notIn: dejaVus } },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: { id: true, slug: true },
+    });
+    await db.product.update({
+      where: { id: suivante!.id },
+      data: { status: "DRAFT" },
+    });
+
+    const page2 = await listerFeed({ limit: 3, cursor: page1.nextCursor });
+
+    // La dépubliée n'apparaît pas…
+    expect(page2.items.map((i) => i.slug)).not.toContain(suivante!.slug);
+    // …et aucune de celles déjà vues ne revient.
+    for (const item of page2.items) {
+      expect(dejaVus).not.toContain(item.slug);
+    }
+  });
+
+  it("ne renvoie jamais deux fois la même carte, même en publiant pendant le parcours", async () => {
+    for (let i = 0; i < 6; i += 1) {
+      await publier(sellerId, i, { createdAt: new Date(Date.UTC(2026, 6, 1 + i)) });
+    }
+
+    const vus = new Set<string>();
+    let curseur: string | null = null;
+    let pages = 0;
+
+    do {
+      const page = await listerFeed({ limit: 2, cursor: curseur });
+      for (const item of page.items) {
+        // Une carte vue deux fois est le symptôme classique d'un curseur sans
+        // départage : deux ressources publiées la même milliseconde.
+        expect(vus.has(item.slug), item.slug).toBe(false);
+        vus.add(item.slug);
+      }
+
+      // On publie une nouveauté au milieu du parcours : plus récente que le
+      // curseur, elle ne doit pas s'insérer dans les pages restantes.
+      if (pages === 0) {
+        await publier(sellerId, 100, { createdAt: new Date(Date.UTC(2026, 7, 1)) });
+      }
+
+      curseur = page.nextCursor;
+      pages += 1;
+    } while (curseur && pages < 10);
+
+    expect(vus.size).toBe(6);
+  });
+});

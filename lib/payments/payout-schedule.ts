@@ -289,6 +289,17 @@ export function projeterVersements(
   let dejaProjete = 0;
   let garde = 0;
 
+  /**
+   * Solde brut observé au cycle précédent.
+   *
+   * Sert à savoir quand s'arrêter. Une échéance sous le seuil n'est pas une
+   * fin : la somme roule, et le cycle suivant lui ajoutera les ventes de la
+   * période. Mais si le solde n'a pas bougé d'un cycle à l'autre, plus rien
+   * n'arrive — continuer à avancer poserait une requête par cycle pour lire
+   * chaque fois le même chiffre.
+   */
+  let soldePrecedent: number | null = null;
+
   while (resultats.length < limite && garde < limite + 24) {
     garde += 1;
 
@@ -304,17 +315,20 @@ export function projeterVersements(
     }
 
     const periodEnd = finDePeriodePourVersement(payoutDate, rail, config);
-    const amount = soldeVersableJusqua(periodEnd) - dejaProjete;
+    const brut = soldeVersableJusqua(periodEnd);
+    const amount = brut - dejaProjete;
 
-    // Sous le seuil : la somme n'est pas perdue, elle roule sur le cycle
-    // suivant, où elle se cumulera avec les ventes de la période.
     if (amount < config.minimumAmount) {
+      // Rien de neuf depuis le cycle précédent : les suivants diront pareil.
+      if (soldePrecedent === brut) break;
+      soldePrecedent = brut;
       cycleDate = cycleSuivant(cycleDate, frequency, config);
       continue;
     }
 
     resultats.push({ payoutDate, cycleDate, periodEnd, amount });
     dejaProjete += amount;
+    soldePrecedent = brut;
     cycleDate = cycleSuivant(cycleDate, frequency, config);
   }
 

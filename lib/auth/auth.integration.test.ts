@@ -17,6 +17,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { hacherMotDePasse, verifierMotDePasse } from "@/lib/auth/password";
 import { progressionDe } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import {
+  fermerToutesLesSessions,
+  resoudreSession,
+} from "@/lib/auth/session";
 
 const MOT_DE_PASSE = "MotDePasse2026!";
 
@@ -240,5 +244,90 @@ describe("progression dérivée, contre la base", () => {
       select: { addressLine1: true },
     });
     expect(facturation?.addressLine1).toBe("12 rue de la Corniche");
+  });
+});
+
+describe("durée de vie d'une session", () => {
+  let n = 0;
+  const nouveauCompte = () => {
+    n += 1;
+    return creerCompte(`session-${n}@baobart.test`, `session-${n}`);
+  };
+
+  async function ouvrir(userId: string, expiresAt: Date) {
+    const jeton = randomBytes(32).toString("base64url");
+    await db.session.create({
+      data: {
+        userId,
+        token: createHash("sha256").update(jeton).digest("hex"),
+        expiresAt,
+      },
+    });
+    return jeton;
+  }
+
+  it("reconnaît une session valide", async () => {
+    const compte = await nouveauCompte();
+    const jeton = await ouvrir(compte.id, new Date(Date.now() + 86_400_000));
+
+    const vu = await resoudreSession(jeton);
+    expect(vu?.id).toBe(compte.id);
+  });
+
+  it("refuse une session expirée et la retire de la table", async () => {
+    // Sans ce ménage, la table grossit indéfiniment de jetons morts.
+    const compte = await nouveauCompte();
+    const jeton = await ouvrir(compte.id, new Date(Date.now() - 1_000));
+
+    expect(await resoudreSession(jeton)).toBeNull();
+    expect(await db.session.count({ where: { userId: compte.id } })).toBe(0);
+  });
+
+  it("refuse au moment exact de l'expiration, pas une seconde après", async () => {
+    const compte = await nouveauCompte();
+    const jeton = await ouvrir(compte.id, new Date(Date.now()));
+    expect(await resoudreSession(jeton)).toBeNull();
+  });
+
+  it("coupe l'accès d'un compte suspendu, jeton frais ou non", async () => {
+    // La suspension doit prendre effet tout de suite : attendre l'expiration
+    // laisserait un compte suspendu naviguer une semaine de plus.
+    const compte = await nouveauCompte();
+    const jeton = await ouvrir(compte.id, new Date(Date.now() + 86_400_000));
+    expect(await resoudreSession(jeton)).not.toBeNull();
+
+    await db.user.update({
+      where: { id: compte.id },
+      data: { suspendedAt: new Date() },
+    });
+
+    expect(await resoudreSession(jeton)).toBeNull();
+    // La ligne survit : lever la suspension doit rendre l'accès sans
+    // obliger la personne à se reconnecter.
+    expect(await db.session.count({ where: { userId: compte.id } })).toBe(1);
+
+    await db.user.update({
+      where: { id: compte.id },
+      data: { suspendedAt: null },
+    });
+    expect(await resoudreSession(jeton)).not.toBeNull();
+  });
+
+  it("ne reconnaît pas un jeton inventé", async () => {
+    const compte = await nouveauCompte();
+    await ouvrir(compte.id, new Date(Date.now() + 86_400_000));
+    expect(await resoudreSession("jeton-invente")).toBeNull();
+    expect(await resoudreSession("")).toBeNull();
+  });
+
+  it("fermer toutes les sessions coupe chaque appareil", async () => {
+    const compte = await nouveauCompte();
+    const telephone = await ouvrir(compte.id, new Date(Date.now() + 86_400_000));
+    const bureau = await ouvrir(compte.id, new Date(Date.now() + 86_400_000));
+
+    await fermerToutesLesSessions(compte.id);
+
+    expect(await resoudreSession(telephone)).toBeNull();
+    expect(await resoudreSession(bureau)).toBeNull();
   });
 });

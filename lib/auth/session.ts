@@ -67,6 +67,20 @@ export async function sessionCourante(): Promise<UtilisateurConnecte | null> {
   const jeton = magasin.get(NOM_COOKIE)?.value;
   if (!jeton) return null;
 
+  return resoudreSession(jeton);
+}
+
+/**
+ * Le même travail, à partir d'un jeton explicite.
+ *
+ * Séparé du cookie pour être exerçable : l'expiration et l'effet immédiat
+ * d'une suspension sont des règles qu'on ne peut pas affirmer correctes sans
+ * les éprouver, et une fonction qui lit `cookies()` elle-même n'est appelable
+ * par aucun test.
+ */
+export async function resoudreSession(
+  jeton: string,
+): Promise<UtilisateurConnecte | null> {
   const session = await db.session.findUnique({
     where: { token: empreinte(jeton) },
     select: {

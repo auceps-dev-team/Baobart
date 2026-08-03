@@ -14,8 +14,8 @@ import {
   confirmerFichier,
   retirerFichier,
   reserverFichier,
-  type RoleFichier,
 } from "@/lib/upload/actions";
+import type { RoleFichier } from "@/lib/upload/types";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
