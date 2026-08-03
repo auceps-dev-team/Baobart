@@ -85,6 +85,81 @@ export const EXTENSIONS_ANNONCEES = [
   "ZIP",
 ] as const;
 
+/**
+ * Ce qu'on accepte comme aperçu.
+ *
+ * Produire l'aperçu d'un PSD, d'une police ou d'un ZIP demanderait un moteur de
+ * rendu par format. Plutôt que ce chantier, on laisse le créateur déposer
+ * lui-même ce qu'il veut montrer — il sait mieux que n'importe quel script quel
+ * détail vend son fichier.
+ */
+export type NatureApercu = "image" | "video" | "audio";
+
+/** L'image de la grille : une vignette, pas une source. */
+const APERCU_IMAGE = ["png", "jpg", "jpeg", "webp", "gif"];
+
+/** Un extrait joué sur la fiche — ce qu'une image ne peut pas montrer. */
+const APERCU_VIDEO = ["mp4", "webm"];
+const APERCU_AUDIO = ["mp3", "wav"];
+
+/**
+ * Un extrait n'est pas une livraison : vingt-cinq mégaoctets suffisent
+ * largement, et l'inverse ferait payer au visiteur le poids d'un fichier
+ * qu'il n'a pas demandé.
+ */
+export const TAILLE_MAX_APERCU = 25 * 1024 * 1024;
+
+/** De quelle nature est cet aperçu, ou `null` s'il n'en est pas un. */
+export function natureApercu(nomFichier: string): NatureApercu | null {
+  const extension = extensionDe(nomFichier);
+  if (APERCU_IMAGE.includes(extension)) return "image";
+  if (APERCU_VIDEO.includes(extension)) return "video";
+  if (APERCU_AUDIO.includes(extension)) return "audio";
+  return null;
+}
+
+export const EXTENSIONS_APERCU = [
+  ...APERCU_IMAGE,
+  ...APERCU_VIDEO,
+  ...APERCU_AUDIO,
+]
+  .map((e) => e.toUpperCase())
+  .filter((e, i, tout) => tout.indexOf(e) === i);
+
+/**
+ * Décide si un fichier peut servir d'aperçu.
+ *
+ * Plus strict que `verifierEnvoi` : l'aperçu est **servi publiquement**, donc
+ * il doit s'ouvrir dans un navigateur sans rien installer. Un PSD ou un ZIP
+ * déposé ici ne montrerait rien à personne.
+ */
+export function verifierApercu(input: {
+  nom: string;
+  taille: number;
+  mimeDeclare?: string;
+}): VerdictEnvoi {
+  const general = verifierEnvoi(input);
+  if (!general.accepte) return general;
+
+  if (natureApercu(input.nom) === null) {
+    return {
+      accepte: false,
+      refus: "EXTENSION_INCONNUE",
+      message: `Un aperçu doit s'afficher dans un navigateur. Formats acceptés : ${EXTENSIONS_APERCU.join(", ")}.`,
+    };
+  }
+
+  if (input.taille > TAILLE_MAX_APERCU) {
+    return {
+      accepte: false,
+      refus: "TROP_LOURD",
+      message: "Un aperçu ne peut pas dépasser 25 Mo — c'est un extrait, pas la livraison.",
+    };
+  }
+
+  return general;
+}
+
 export function extensionDe(nomFichier: string): string {
   const point = nomFichier.lastIndexOf(".");
   if (point <= 0 || point === nomFichier.length - 1) return "";

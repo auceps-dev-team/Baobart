@@ -77,6 +77,53 @@ export function DetailProduit({ produit }: { produit: FicheProduit }) {
           )}
         </div>
 
+        {/*
+          L'extrait, quand il existe. Une nappe sonore ou un motion design ne se
+          juge pas sur une vignette : sans lui, l'acheteur paierait à l'aveugle.
+          `preload="metadata"` — on ne télécharge pas l'extrait de toutes les
+          fiches ouvertes, seulement sa durée.
+        */}
+        {produit.extrait ? (
+          <div
+            style={{
+              border: CADRE,
+              borderRadius: 20,
+              boxShadow: `5px 5px 0 ${ENCRE}`,
+              background: BLANC,
+              padding: 14,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: ".08em",
+                opacity: 0.65,
+                marginBottom: 10,
+              }}
+            >
+              Extrait
+            </div>
+
+            {produit.extrait.nature === "video" ? (
+              <video
+                src={produit.extrait.url}
+                controls
+                preload="metadata"
+                style={{ width: "100%", borderRadius: 12, display: "block" }}
+              />
+            ) : (
+              <audio
+                src={produit.extrait.url}
+                controls
+                preload="metadata"
+                style={{ width: "100%" }}
+              />
+            )}
+          </div>
+        ) : null}
+
         {produit.duMemeCreateur.length > 0 ? (
           <div
             style={{

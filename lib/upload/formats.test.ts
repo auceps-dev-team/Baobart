@@ -4,10 +4,13 @@ import {
   FORMATS,
   NOM_MAX,
   TAILLE_MAX,
+  TAILLE_MAX_APERCU,
   extensionDe,
   formatDe,
   formatPoids,
+  natureApercu,
   nomSur,
+  verifierApercu,
   verifierEnvoi,
 } from "./formats";
 
@@ -131,6 +134,63 @@ describe("acceptation d'un envoi", () => {
   it("donne toujours un message lisible avec un refus", () => {
     const v = verifierEnvoi({ ...bon, nom: "truc.exe" });
     expect((v.message ?? "").length).toBeGreaterThan(10);
+  });
+});
+
+describe("acceptation d'un aperçu", () => {
+  it("reconnaît les trois natures", () => {
+    expect(natureApercu("vignette.png")).toBe("image");
+    expect(natureApercu("extrait.mp4")).toBe("video");
+    expect(natureApercu("extrait.mp3")).toBe("audio");
+  });
+
+  it("n'en reconnaît aucune pour ce qui ne s'ouvre pas dans un navigateur", () => {
+    for (const nom of ["a.psd", "a.ai", "a.ttf", "a.zip", "a.tif"]) {
+      expect(natureApercu(nom), nom).toBeNull();
+    }
+  });
+
+  it("accepte une image, un extrait vidéo, un extrait audio", () => {
+    for (const nom of ["v.png", "v.jpg", "v.webp", "e.mp4", "e.webm", "e.mp3"]) {
+      expect(
+        verifierApercu({ nom, taille: 2048 }),
+        nom,
+      ).toMatchObject({ accepte: true });
+    }
+  });
+
+  it("refuse comme aperçu ce qu'il accepterait comme source", () => {
+    // Un PSD est un fichier vendable parfaitement valide — mais il ne montre
+    // rien à personne, et c'est précisément pourquoi cette zone existe.
+    for (const nom of ["maquette.psd", "police.ttf", "pack.zip", "vecteur.ai"]) {
+      expect(verifierEnvoi({ nom, taille: 2048 }), nom).toMatchObject({
+        accepte: true,
+      });
+      expect(verifierApercu({ nom, taille: 2048 }), nom).toMatchObject({
+        accepte: false,
+        refus: "EXTENSION_INCONNUE",
+      });
+    }
+  });
+
+  it("plafonne l'aperçu à 25 Mo, bien en deçà d'une source", () => {
+    const gros = { nom: "extrait.mp4", taille: TAILLE_MAX_APERCU + 1 };
+    expect(verifierApercu(gros)).toMatchObject({
+      accepte: false,
+      refus: "TROP_LOURD",
+    });
+    // La même taille reste parfaitement acceptable pour un fichier vendu.
+    expect(verifierEnvoi(gros)).toMatchObject({ accepte: true });
+    expect(TAILLE_MAX_APERCU).toBeLessThan(TAILLE_MAX);
+  });
+
+  it("applique aussi les règles générales", () => {
+    expect(
+      verifierApercu({ nom: "faux.png", taille: 10, mimeDeclare: "application/zip" }),
+    ).toMatchObject({ accepte: false, refus: "TYPE_INCOHERENT" });
+    expect(verifierApercu({ nom: "v.png", taille: 0 })).toMatchObject({
+      accepte: false,
+    });
   });
 });
 

@@ -655,6 +655,12 @@ model Product {
   /// URL CDN de la couverture, dénormalisée : le feed en affiche des dizaines
   /// par page et ne doit pas résoudre un MediaAsset par carte (PLAN §8.2).
   coverUrl      String?
+  /// Extrait public écoutable ou visionnable, pour ce qu'une image ne montre
+  /// pas : une nappe sonore, un motion design. Déposé par le créateur — on ne
+  /// transcode rien.
+  previewUrl    String?
+  /// « audio » ou « video » : décide du lecteur à poser sur la fiche.
+  previewKind   String?
   price         Int // unité mineure — voir lib/i18n/money.ts
   currency      Currency       @default(XOF)
   licenseTypeId String?
@@ -689,19 +695,29 @@ model Product {
   @@index([isStaffPicked, staffPickedAt])
 }
 
+/// Deux natures de fichier, pas une. Le fichier source est ce que l'acheteur
+/// reçoit : il reste privé, derrière une URL signée. L'aperçu est ce que tout
+/// le monde voit : il vit sous le préfixe public du stockage. Les confondre
+/// rendrait le payant téléchargeable gratuitement.
+enum ProductFileRole {
+  SOURCE
+  PREVIEW
+}
+
 model ProductFile {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   productId String
   mediaId   String
   filename  String
   sizeBytes Int
-  position  Int      @default(0)
-  createdAt DateTime @default(now())
+  role      ProductFileRole @default(SOURCE)
+  position  Int             @default(0)
+  createdAt DateTime        @default(now())
 
   product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   media   MediaAsset @relation(fields: [mediaId], references: [id])
 
-  @@index([productId])
+  @@index([productId, role])
   @@index([mediaId])
 }
 

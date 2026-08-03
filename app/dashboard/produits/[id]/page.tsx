@@ -23,6 +23,28 @@ const ORANGE = "#E2622C";
 const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
+/** Titre de section avec sa ligne d'explication, répété pour les deux dépôts. */
+function Section({ titre, aide }: { titre: string; aide: string }) {
+  return (
+    <div style={{ margin: "28px 0 12px", maxWidth: 640 }}>
+      <h2
+        style={{
+          fontFamily: "'Archivo Black', sans-serif",
+          fontSize: 17,
+          letterSpacing: "-.4px",
+          margin: 0,
+          textTransform: "uppercase",
+        }}
+      >
+        {titre}
+      </h2>
+      <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 500, opacity: 0.7 }}>
+        {aide}
+      </p>
+    </div>
+  );
+}
+
 const MESSAGES_ERREUR: Record<string, string> = {
   vendue:
     "Cette ressource a déjà été vendue : elle ne peut plus être supprimée. Retire-la de la vente — les acheteurs gardent ce qu'ils ont payé.",
@@ -56,6 +78,8 @@ export default async function ProduitDuTableauDeBord({
       description: true,
       sellerId: true,
       coverUrl: true,
+      previewUrl: true,
+      previewKind: true,
       tags: { select: { tag: { select: { name: true } } } },
       files: {
         orderBy: { position: "asc" },
@@ -63,10 +87,11 @@ export default async function ProduitDuTableauDeBord({
           id: true,
           filename: true,
           sizeBytes: true,
+          role: true,
           media: { select: { width: true, height: true } },
         },
       },
-      _count: { select: { files: true, orderItems: true } },
+      _count: { select: { orderItems: true } },
     },
   });
 
@@ -74,9 +99,14 @@ export default async function ProduitDuTableauDeBord({
   // dire « accès refusé » confirmerait qu'elle existe.
   if (!produit || produit.sellerId !== utilisateur.id) notFound();
 
+  // Le récapitulatif ne décrit que ce que l'acheteur reçoit. Un extrait de
+  // vingt secondes n'a pas à peser dans le « poids total » annoncé.
+  const fichiersSources = produit.files.filter((f) => f.role === "SOURCE");
+  const fichiersApercu = produit.files.filter((f) => f.role === "PREVIEW");
+
   const enLigne = produit.status === "PUBLISHED";
   const dejaVendue = produit._count.orderItems > 0;
-  const sansFichier = produit._count.files === 0;
+  const sansFichier = fichiersSources.length === 0;
 
   // Ces trois lignes sont des faits, pas des déclarations : la maquette les
   // présente comme des champs de saisie, mais un poids annoncé et un poids réel
@@ -84,15 +114,15 @@ export default async function ProduitDuTableauDeBord({
   const sources =
     [
       ...new Set(
-        produit.files
+        fichiersSources
           .map((f) => extensionDe(f.filename).toUpperCase())
           .filter((e) => e.length > 0),
       ),
     ].join(", ") || "—";
 
-  const poidsTotal = produit.files.reduce((somme, f) => somme + f.sizeBytes, 0);
+  const poidsTotal = fichiersSources.reduce((somme, f) => somme + f.sizeBytes, 0);
 
-  const plusGrande = produit.files
+  const plusGrande = fichiersSources
     .map((f) => f.media)
     .filter((m) => m.width !== null && m.height !== null)
     .sort((a, b) => (b.width ?? 0) * (b.height ?? 0) - (a.width ?? 0) * (a.height ?? 0))[0];
@@ -100,6 +130,14 @@ export default async function ProduitDuTableauDeBord({
   const dimensions = plusGrande
     ? `${plusGrande.width} × ${plusGrande.height}`
     : "—";
+
+  const extrait =
+    produit.previewUrl && produit.previewKind
+      ? {
+          url: produit.previewUrl,
+          nature: produit.previewKind as "audio" | "video",
+        }
+      : null;
 
   const publier = publierRessource.bind(null, produit.id);
   const depublier = depublierRessource.bind(null, produit.id);
@@ -209,22 +247,37 @@ export default async function ProduitDuTableauDeBord({
           ))}
         </div>
 
-        <h2
-          style={{
-            fontFamily: "'Archivo Black', sans-serif",
-            fontSize: 17,
-            letterSpacing: "-.4px",
-            margin: "28px 0 12px",
-            textTransform: "uppercase",
-          }}
-        >
-          Fichier &amp; aperçu
-        </h2>
+        <Section
+          titre="Fichiers"
+          aide="Ce que l'acheteur télécharge après paiement. Personne d'autre n'y accède."
+        />
 
         <FileUploader
           produitId={produit.id}
+          role="SOURCE"
           couvertureInitiale={produit.coverUrl}
-          fichiersInitiaux={produit.files.map((f) => ({
+          fichiersInitiaux={fichiersSources.map((f) => ({
+            id: f.id,
+            nom: f.filename,
+            taille: f.sizeBytes,
+          }))}
+        />
+
+        <Section
+          titre="Aperçu"
+          aide={
+            "Ce que les gens voient dans la grille et sur ta fiche. Une image pour tous " +
+            "les formats — un PSD, une police ou un ZIP ne se montrent pas tout seuls. " +
+            "Pour la vidéo et l'audio, dépose aussi un extrait : il sera jouable avant achat."
+          }
+        />
+
+        <FileUploader
+          produitId={produit.id}
+          role="PREVIEW"
+          couvertureInitiale={produit.coverUrl}
+          extraitInitial={extrait}
+          fichiersInitiaux={fichiersApercu.map((f) => ({
             id: f.id,
             nom: f.filename,
             taille: f.sizeBytes,

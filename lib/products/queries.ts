@@ -14,6 +14,8 @@ export interface FicheProduit {
   prix: number;
   devise: Currency;
   coverUrl: string | null;
+  /** Extrait jouable avant achat, quand une image ne suffit pas à juger. */
+  extrait: { url: string; nature: "audio" | "video" } | null;
   telechargements: number;
   publieLe: Date;
   auteur: {
@@ -50,6 +52,8 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
       price: true,
       currency: true,
       coverUrl: true,
+      previewUrl: true,
+      previewKind: true,
       downloadsCount: true,
       createdAt: true,
       status: true,
@@ -67,6 +71,9 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
         },
       },
       files: {
+        // Le format et les dimensions annoncés décrivent ce que l'acheteur
+        // reçoit : l'aperçu n'a rien à y faire.
+        where: { role: "SOURCE" },
         orderBy: { sizeBytes: "desc" },
         take: 1,
         select: {
@@ -104,6 +111,10 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
     prix: p.price,
     devise: p.currency,
     coverUrl: p.coverUrl,
+    extrait:
+      p.previewUrl && p.previewKind
+        ? { url: p.previewUrl, nature: p.previewKind as "audio" | "video" }
+        : null,
     telechargements: p.downloadsCount,
     publieLe: p.createdAt,
     auteur: {

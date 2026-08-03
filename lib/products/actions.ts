@@ -151,7 +151,9 @@ async function ressourceDe(userId: string, produitId: string) {
       id: true,
       sellerId: true,
       status: true,
-      _count: { select: { files: true } },
+      // Seuls les fichiers sources comptent : publier avec un aperçu et rien
+      // à télécharger reste une vente impossible à honorer.
+      _count: { select: { files: { where: { role: "SOURCE" } } } },
     },
   });
 

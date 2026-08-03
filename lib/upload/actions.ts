@@ -7,7 +7,12 @@ import { revalidatePath } from "next/cache";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { produireApercu } from "@/lib/upload/apercu";
-import { nomSur, verifierEnvoi } from "@/lib/upload/formats";
+import {
+  natureApercu,
+  nomSur,
+  verifierApercu,
+  verifierEnvoi,
+} from "@/lib/upload/formats";
 import {
   PREFIXE_PUBLIC,
   lireObjet,
@@ -31,6 +36,18 @@ import {
 
 /** Au-delà, ce n'est plus une ressource mais une bibliothèque. */
 const FICHIERS_MAX = 20;
+
+/** Une image de grille, un extrait vidéo, un extrait audio : trois suffisent. */
+const APERCUS_MAX = 3;
+
+/**
+ * Deux natures de dépôt.
+ *
+ * `SOURCE` est ce que l'acheteur reçoit : privé, servi plus tard contre une URL
+ * signée. `PREVIEW` est ce que tout le monde voit : l'image de la grille, ou
+ * l'extrait qu'on écoute avant d'acheter.
+ */
+export type RoleFichier = "SOURCE" | "PREVIEW";
 
 export type Refus = { ok: false; message: string };
 export type Reservation = {
@@ -56,12 +73,17 @@ async function produitDe(produitId: string) {
       id: true,
       sellerId: true,
       coverUrl: true,
-      _count: { select: { files: true } },
+      previewUrl: true,
+      files: { select: { id: true, role: true } },
     },
   });
 
   if (!produit || produit.sellerId !== utilisateur.id) return null;
-  return { produit, utilisateur };
+
+  const sources = produit.files.filter((f) => f.role === "SOURCE").length;
+  const apercus = produit.files.length - sources;
+
+  return { produit, utilisateur, sources, apercus };
 }
 
 /**
@@ -91,9 +113,25 @@ async function balayerLesAbandons(ownerId: string): Promise<void> {
   });
 }
 
+/**
+ * Où l'objet atterrit — et donc qui peut le lire.
+ *
+ * Un extrait vidéo ou audio est servi tel quel au visiteur : il doit être
+ * public. Une image d'aperçu, elle, reste privée comme les sources — c'est la
+ * vignette dérivée qu'on publie, jamais l'originale, qui est souvent le fichier
+ * vendu à peine recadré.
+ */
+function prefixePour(role: RoleFichier, nomFichier: string): string {
+  if (role === "PREVIEW" && natureApercu(nomFichier) !== "image") {
+    return `${PREFIXE_PUBLIC}extraits/`;
+  }
+  return "produits/";
+}
+
 export async function reserverFichier(
   produitId: string,
   fichier: { nom: string; taille: number; mime: string },
+  role: RoleFichier = "SOURCE",
 ): Promise<Reservation | Refus> {
   if (!stockageConfigure()) return HORS_SERVICE;
 
@@ -107,14 +145,22 @@ export async function reserverFichier(
   // est une requête indexée qui ne renvoie rien.
   await balayerLesAbandons(contexte.utilisateur.id).catch(() => {});
 
-  if (contexte.produit._count.files >= FICHIERS_MAX) {
+  const apercu = role === "PREVIEW";
+
+  if (apercu && contexte.apercus >= APERCUS_MAX) {
+    return {
+      ok: false,
+      message: `Trois aperçus au maximum : une image, un extrait vidéo, un extrait audio.`,
+    };
+  }
+  if (!apercu && contexte.sources >= FICHIERS_MAX) {
     return {
       ok: false,
       message: `Une ressource ne peut pas dépasser ${FICHIERS_MAX} fichiers. Regroupe-les dans une archive ZIP.`,
     };
   }
 
-  const verdict = verifierEnvoi({
+  const verdict = (apercu ? verifierApercu : verifierEnvoi)({
     nom: fichier.nom,
     taille: fichier.taille,
     mimeDeclare: fichier.mime,
@@ -127,7 +173,7 @@ export async function reserverFichier(
   const propre = nomSur(fichier.nom);
   // L'identifiant précède le nom : deux fichiers homonymes ne s'écrasent pas,
   // et la clé reste lisible quand on ouvre le stockage à la main.
-  const cle = `produits/${produitId}/${randomUUID()}-${propre}`;
+  const cle = `${prefixePour(role, fichier.nom)}${produitId}/${randomUUID()}-${propre}`;
 
   try {
     const depot = await signerDepot({ cle, contentType: verdict.format.mime });
@@ -135,7 +181,9 @@ export async function reserverFichier(
     const reservation = await db.uploadReservation.create({
       data: {
         ownerId: contexte.utilisateur.id,
-        purpose: "product",
+        // Le rôle est retenu ici, pas redemandé au navigateur à la
+        // confirmation : la clé publique ou privée est déjà scellée.
+        purpose: apercu ? "preview" : "product",
         filename: fichier.nom.trim().slice(0, 180),
         byteSize: fichier.taille,
         // La somme de contrôle n'existe qu'après le dépôt : le stockage la
@@ -162,8 +210,9 @@ export async function reserverFichier(
 export type Confirmation =
   | {
       ok: true;
-      fichier: { id: string; nom: string; taille: number };
+      fichier: { id: string; nom: string; taille: number; role: RoleFichier };
       couverture: string | null;
+      extrait: { url: string; nature: "audio" | "video" } | null;
     }
   | Refus;
 
@@ -180,6 +229,7 @@ export async function confirmerFichier(
       id: true,
       ownerId: true,
       status: true,
+      purpose: true,
       filename: true,
       s3Key: true,
     },
@@ -192,6 +242,11 @@ export async function confirmerFichier(
     return { ok: false, message: "Cet envoi a déjà été enregistré." };
   }
 
+  // Relu de la réservation, pas reçu du navigateur : la clé — publique ou
+  // privée — a été scellée au moment de signer, le rôle doit s'accorder avec.
+  const role: RoleFichier =
+    reservation.purpose === "preview" ? "PREVIEW" : "SOURCE";
+
   // La vérité est au stockage, pas dans ce que le navigateur a annoncé.
   const depose = await lireObjet(reservation.s3Key);
   if (!depose) {
@@ -202,7 +257,7 @@ export async function confirmerFichier(
   }
 
   // Deuxième passage du contrôle, avec les vraies valeurs cette fois.
-  const verdict = verifierEnvoi({
+  const verdict = (role === "PREVIEW" ? verifierApercu : verifierEnvoi)({
     nom: reservation.filename,
     taille: depose.taille,
     mimeDeclare: depose.contentType,
@@ -220,7 +275,7 @@ export async function confirmerFichier(
   const media = await db.mediaAsset.create({
     data: {
       ownerId: contexte.utilisateur.id,
-      purpose: "product",
+      purpose: role === "PREVIEW" ? "preview" : "product",
       s3Key: reservation.s3Key,
       checksum: depose.etag,
       sizeBytes: depose.taille,
@@ -235,7 +290,8 @@ export async function confirmerFichier(
       mediaId: media.id,
       filename: reservation.filename,
       sizeBytes: depose.taille,
-      position: contexte.produit._count.files,
+      role,
+      position: role === "PREVIEW" ? contexte.apercus : contexte.sources,
     },
     select: { id: true, filename: true, sizeBytes: true },
   });
@@ -245,14 +301,21 @@ export async function confirmerFichier(
     data: { status: "uploaded", checksum: depose.etag },
   });
 
-  // L'aperçu peut échouer sans que l'envoi échoue : la ressource existe, elle
+  const nature = natureApercu(reservation.filename);
+  const estExtrait = role === "PREVIEW" && nature !== null && nature !== "image";
+
+  // Un extrait vidéo ou audio se sert tel quel : rien à rendre, rien à
+  // redimensionner. Tout le reste passe par la fabrique de vignettes, qui
+  // peut échouer sans faire échouer l'envoi — la ressource existe, elle
   // affichera la trame en attendant.
-  const apercu = await produireApercu({
-    mediaId: media.id,
-    cleSource: reservation.s3Key,
-    nomFichier: reservation.filename,
-    taille: depose.taille,
-  });
+  const apercu = estExtrait
+    ? null
+    : await produireApercu({
+        mediaId: media.id,
+        cleSource: reservation.s3Key,
+        nomFichier: reservation.filename,
+        taille: depose.taille,
+      });
 
   await db.mediaAsset.update({
     where: { id: media.id },
@@ -263,22 +326,44 @@ export async function confirmerFichier(
     },
   });
 
-  // Le premier aperçu produit devient la couverture. Les suivants ne la
-  // remplacent pas : la vitrine ne doit pas changer dans le dos du créateur.
   let couverture = contexte.produit.coverUrl;
-  if (apercu && !couverture) {
+  let extrait: { url: string; nature: "audio" | "video" } | null = null;
+
+  if (estExtrait) {
+    const url = urlPublique(reservation.s3Key);
     await db.product.update({
       where: { id: produitId },
-      data: { coverUrl: apercu.url, coverImageId: media.id },
+      data: { previewUrl: url, previewKind: nature },
     });
-    couverture = apercu.url;
+    extrait = { url, nature: nature as "audio" | "video" };
+  } else if (apercu) {
+    // Une image déposée comme aperçu **remplace** la couverture : c'est un
+    // choix explicite du créateur. Une vignette tirée d'un fichier source ne
+    // fait que combler un vide — la vitrine ne doit pas changer dans son dos.
+    if (role === "PREVIEW" || !couverture) {
+      await db.product.update({
+        where: { id: produitId },
+        data: { coverUrl: apercu.url, coverImageId: media.id },
+      });
+      couverture = apercu.url;
+    }
   }
 
   revalidatePath(`/dashboard/produits/${produitId}`);
   revalidatePath("/");
   revalidatePath("/explore");
 
-  return { ok: true, fichier: { id: fichier.id, nom: fichier.filename, taille: fichier.sizeBytes }, couverture };
+  return {
+    ok: true,
+    fichier: {
+      id: fichier.id,
+      nom: fichier.filename,
+      taille: fichier.sizeBytes,
+      role,
+    },
+    couverture,
+    extrait,
+  };
 }
 
 export async function retirerFichier(
@@ -315,7 +400,16 @@ export async function retirerFichier(
     await supprimerObjet(`${PREFIXE_PUBLIC}apercus/${fichier.media.id}.webp`);
   }
 
-  // Si c'était la couverture, on reprend celle du fichier suivant qui en a une.
+  // Retirer l'extrait, c'est retirer le lecteur de la fiche.
+  if (contexte.produit.previewUrl === urlPublique(fichier.media.s3Key)) {
+    await db.product.update({
+      where: { id: produitId },
+      data: { previewUrl: null, previewKind: null },
+    });
+  }
+
+  // Si c'était la couverture, on reprend celle du fichier suivant qui en a une,
+  // en donnant la main à un aperçu déposé exprès sur une vignette dérivée.
   const cleApercuRetiree = urlPublique(
     `${PREFIXE_PUBLIC}apercus/${fichier.media.id}.webp`,
   );
@@ -323,7 +417,9 @@ export async function retirerFichier(
   if (contexte.produit.coverUrl === cleApercuRetiree) {
     const suivant = await db.productFile.findFirst({
       where: { productId: produitId, media: { width: { not: null } } },
-      orderBy: { position: "asc" },
+      // `desc` sur le rôle : l'énumération liste SOURCE avant PREVIEW, et c'est
+      // l'aperçu choisi à la main qui doit l'emporter.
+      orderBy: [{ role: "desc" }, { position: "asc" }],
       select: { media: { select: { id: true } } },
     });
 

@@ -5,13 +5,16 @@ import { useRef, useState, useTransition } from "react";
 
 import {
   EXTENSIONS_ANNONCEES,
+  EXTENSIONS_APERCU,
   formatPoids,
+  verifierApercu,
   verifierEnvoi,
 } from "@/lib/upload/formats";
 import {
   confirmerFichier,
   retirerFichier,
   reserverFichier,
+  type RoleFichier,
 } from "@/lib/upload/actions";
 
 const ENCRE = "#121212";
@@ -29,6 +32,11 @@ export interface FichierAttache {
   taille: number;
 }
 
+export interface Extrait {
+  url: string;
+  nature: "audio" | "video";
+}
+
 /** Un envoi en cours : il n'a pas encore d'identifiant en base. */
 interface EnCours {
   cle: string;
@@ -38,7 +46,12 @@ interface EnCours {
 }
 
 /**
- * Zone de dépôt des fichiers d'une ressource.
+ * Zone de dépôt, dans les deux rôles qu'elle peut jouer.
+ *
+ * `SOURCE` reçoit ce que l'acheteur télécharge : ça reste privé. `PREVIEW`
+ * reçoit ce que tout le monde voit — l'image de la grille, ou l'extrait qu'on
+ * écoute avant d'acheter. Deux zones séparées à l'écran, parce que confondre
+ * les deux dépôts revient à publier gratuitement ce qui est vendu.
  *
  * Le fichier part **directement au stockage** : il ne traverse pas Next. C'est
  * ce qui permet d'annoncer 200 Mo sans faire tomber le serveur, et ce qui donne
@@ -46,16 +59,23 @@ interface EnCours {
  */
 export function FileUploader({
   produitId,
+  role = "SOURCE",
   fichiersInitiaux,
   couvertureInitiale,
+  extraitInitial = null,
 }: {
   produitId: string;
+  role?: RoleFichier;
   fichiersInitiaux: FichierAttache[];
   couvertureInitiale: string | null;
+  extraitInitial?: Extrait | null;
 }) {
+  const apercu = role === "PREVIEW";
+
   const [fichiers, setFichiers] = useState<FichierAttache[]>(fichiersInitiaux);
   const [enCours, setEnCours] = useState<EnCours[]>([]);
   const [couverture, setCouverture] = useState(couvertureInitiale);
+  const [extrait, setExtrait] = useState<Extrait | null>(extraitInitial);
   const [erreurs, setErreurs] = useState<string[]>([]);
   const [survol, setSurvol] = useState(false);
   const [suppression, demarrerSuppression] = useTransition();
@@ -68,9 +88,9 @@ export function FileUploader({
   // Comparé sur une signature, pas sur la référence : le serveur reconstruit le
   // tableau à chaque rendu, et une simple égalité de référence remettrait l'état
   // à zéro pour rien.
-  const signatureServeur = `${couvertureInitiale ?? ""}|${fichiersInitiaux
-    .map((f) => f.id)
-    .join(",")}`;
+  const signatureServeur = `${couvertureInitiale ?? ""}|${
+    extraitInitial?.url ?? ""
+  }|${fichiersInitiaux.map((f) => f.id).join(",")}`;
 
   const [derniereVueServeur, setDerniereVueServeur] = useState(signatureServeur);
 
@@ -78,6 +98,7 @@ export function FileUploader({
     setDerniereVueServeur(signatureServeur);
     setFichiers(fichiersInitiaux);
     setCouverture(couvertureInitiale);
+    setExtrait(extraitInitial);
   }
 
   const champ = useRef<HTMLInputElement>(null);
@@ -100,7 +121,7 @@ export function FileUploader({
     // Premier filtre côté navigateur : refuser tout de suite évite un aller-retour
     // et une attente pour rien. Le serveur revérifiera, il ne fait confiance à
     // personne.
-    const verdict = verifierEnvoi({
+    const verdict = (apercu ? verifierApercu : verifierEnvoi)({
       nom: fichier.name,
       taille: fichier.size,
       mimeDeclare: fichier.type,
@@ -120,11 +141,11 @@ export function FileUploader({
     const retirerDeLaListe = () =>
       setEnCours((liste) => liste.filter((e) => e.cle !== cle));
 
-    const reservation = await reserverFichier(produitId, {
-      nom: fichier.name,
-      taille: fichier.size,
-      mime: fichier.type,
-    });
+    const reservation = await reserverFichier(
+      produitId,
+      { nom: fichier.name, taille: fichier.size, mime: fichier.type },
+      role,
+    );
 
     if (!reservation.ok) {
       retirerDeLaListe();
@@ -158,6 +179,7 @@ export function FileUploader({
 
     setFichiers((liste) => [...liste, confirmation.fichier]);
     if (confirmation.couverture) setCouverture(confirmation.couverture);
+    if (confirmation.extrait) setExtrait(confirmation.extrait);
     rafraichirLeRecapitulatif();
   }
 
@@ -179,9 +201,11 @@ export function FileUploader({
 
       setFichiers((liste) => liste.filter((f) => f.id !== fichierId));
 
-      // La couverture disparaît avec le dernier aperçu. Le serveur en désigne
-      // peut-être un autre : c'est le rafraîchissement qui tranche.
+      // La couverture et l'extrait disparaissent avec le fichier retiré. Le
+      // serveur en désigne peut-être d'autres : c'est le rafraîchissement qui
+      // tranche.
       setCouverture(null);
+      setExtrait(null);
       rafraichirLeRecapitulatif();
     });
   }
@@ -227,20 +251,28 @@ export function FileUploader({
           glisse tes fichiers ici
         </div>
 
-        <div
-          style={{
-            height: 120,
-            marginTop: 16,
-            border: CADRE,
-            borderRadius: 14,
-            background: couverture
-              ? `center / cover no-repeat url(${couverture})`
-              : TRAME,
-          }}
-        />
+        {/*
+          Le bandeau montre ce que la grille affichera. Il n'a sa place que dans
+          la zone d'aperçu : c'est elle qui en décide.
+        */}
+        {apercu ? (
+          <div
+            style={{
+              height: 120,
+              marginTop: 16,
+              border: CADRE,
+              borderRadius: 14,
+              background: couverture
+                ? `center / cover no-repeat url(${couverture})`
+                : TRAME,
+            }}
+          />
+        ) : null}
 
         <div style={{ fontSize: 13, fontWeight: 700, marginTop: 14 }}>
-          {EXTENSIONS_ANNONCEES.join(" · ")} — 200 Mo max
+          {apercu
+            ? `${EXTENSIONS_APERCU.join(" · ")} — 25 Mo max`
+            : `${EXTENSIONS_ANNONCEES.join(" · ")} — 200 Mo max`}
         </div>
       </div>
 
@@ -340,6 +372,30 @@ export function FileUploader({
         </div>
       ))}
 
+      {/* L'extrait s'écoute ici même : le déposer sans pouvoir le vérifier
+          reviendrait à publier à l'aveugle. */}
+      {extrait ? (
+        <div
+          style={{
+            marginTop: 14,
+            border: CADRE,
+            borderRadius: 14,
+            background: BLANC,
+            padding: 12,
+          }}
+        >
+          {extrait.nature === "video" ? (
+            <video
+              src={extrait.url}
+              controls
+              style={{ width: "100%", borderRadius: 8, display: "block" }}
+            />
+          ) : (
+            <audio src={extrait.url} controls style={{ width: "100%" }} />
+          )}
+        </div>
+      ) : null}
+
       {fichiers.length > 0 ? (
         <>
           <div
@@ -420,12 +476,12 @@ export function FileUploader({
           >
             {fichiers.length} fichier{fichiers.length > 1 ? "s" : ""} ·{" "}
             {formatPoids(poidsTotal)}
-            {couverture ? "" : " · aucun aperçu"}
+            {apercu || couverture ? "" : " · aucun aperçu"}
           </p>
         </>
       ) : null}
 
-      {fichiers.length === 0 && enCours.length === 0 ? (
+      {!apercu && fichiers.length === 0 && enCours.length === 0 ? (
         <p
           style={{
             marginTop: 12,
