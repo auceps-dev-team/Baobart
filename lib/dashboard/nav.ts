@@ -1,0 +1,159 @@
+import type { EtapeCompte } from "@/lib/auth/roles";
+
+/**
+ * Navigation du tableau de bord, reprise de « Baobart Dashboard.dc.html »
+ * (constante `NAV`), et rendue **progressive**.
+ *
+ * Trois états, une seule liste :
+ *
+ *   ACHETEUR   les entrées acheteur, plus une seule porte vers la création.
+ *   ATELIER    les entrées créateur apparaissent, grisées — sauf celles qui
+ *              servent à travailler le brouillon qu'on vient de créer. Les
+ *              griser sans exception rendrait ce brouillon inatteignable.
+ *   BOUTIQUE   tout est ouvert.
+ *
+ * Montrer les entrées grisées plutôt que de les cacher est un choix : elles
+ * apprennent le produit. Quelqu'un qui vient de déposer un brouillon voit ce
+ * que la publication va lui ouvrir.
+ */
+
+export interface EntreeNav {
+  cle: string;
+  label: string;
+  glyph: string;
+  href: string | null;
+  /** Pastille de la maquette (« NEW », un compteur…). */
+  badge?: string;
+}
+
+export interface EntreeNavRendue extends EntreeNav {
+  actif: boolean;
+  /** Ce qui débloquera l'entrée. `null` quand elle est déjà active. */
+  raisonVerrou: string | null;
+}
+
+/** Entrées acheteur — présentes à tous les paliers. */
+const ACHETEUR: EntreeNav[] = [
+  { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard" },
+  { cle: "profil", label: "Profil", glyph: "☺", href: null },
+  { cle: "achats", label: "Historique des achats", glyph: "▤", href: null },
+  {
+    cle: "telechargements",
+    label: "Historique des téléchargements",
+    glyph: "↓",
+    href: null,
+  },
+  { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: null },
+  { cle: "collections", label: "Mes collections", glyph: "⌸", href: null },
+  { cle: "abonnements_suivis", label: "Abonnements", glyph: "☍", href: null },
+  { cle: "abonnement", label: "Forfait & pass d'accès", glyph: "◉", href: null },
+];
+
+/**
+ * Entrées créateur.
+ *
+ * `desLAtelier` marque celles qui restent utilisables dès le premier brouillon :
+ * sans elles, on ne pourrait pas atteindre ce qu'on vient de créer.
+ */
+const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
+  {
+    cle: "c_apercu",
+    label: "Tableau de bord",
+    glyph: "◈",
+    href: null,
+    desLAtelier: true,
+  },
+  {
+    cle: "c_produits",
+    label: "Produits",
+    glyph: "▦",
+    href: null,
+    desLAtelier: true,
+  },
+  {
+    cle: "c_publier",
+    label: "Ajouter un produit",
+    glyph: "+",
+    href: null,
+    desLAtelier: true,
+  },
+  { cle: "c_revenus", label: "Gains", glyph: "◎", href: null },
+  { cle: "c_commandes", label: "Commandes", glyph: "▤", href: null },
+  { cle: "c_ventes", label: "Ventes", glyph: "◫", href: null },
+  { cle: "c_commissions", label: "Commissions", glyph: "%", href: null },
+  { cle: "c_stats", label: "Statistiques", glyph: "▲", href: null },
+  { cle: "c_profil", label: "Profil de la boutique", glyph: "☺", href: null },
+  { cle: "c_avis", label: "Créateur feedback", glyph: "✎", href: null },
+];
+
+/** La porte unique offerte à un acheteur qui n'a encore rien créé. */
+const PORTE_CREATION: EntreeNav = {
+  cle: "c_publier",
+  label: "Devenir vendeur",
+  glyph: "★",
+  href: null,
+  badge: "NEW",
+};
+
+export interface Groupe {
+  titre: string | null;
+  entrees: EntreeNavRendue[];
+}
+
+const RAISON_ATELIER =
+  "Disponible dès que tu déposes un premier produit, même en brouillon.";
+const RAISON_BOUTIQUE = "Disponible une fois ton premier produit publié.";
+
+export function navigationPour(etape: EtapeCompte): Groupe[] {
+  const acheteur: EntreeNavRendue[] = ACHETEUR.map((e) => ({
+    ...e,
+    actif: true,
+    raisonVerrou: null,
+  }));
+
+  if (etape === "ACHETEUR") {
+    // Une seule porte, en évidence : rien ne sert de montrer douze entrées
+    // grisées à quelqu'un qui n'a pas encore l'idée de vendre.
+    return [
+      { titre: null, entrees: acheteur },
+      {
+        titre: "Vendre",
+        entrees: [{ ...PORTE_CREATION, actif: true, raisonVerrou: null }],
+      },
+    ];
+  }
+
+  const ouvertePartout = etape === "BOUTIQUE";
+
+  const createur: EntreeNavRendue[] = CREATEUR.map((e) => {
+    const actif = ouvertePartout || e.desLAtelier === true;
+    return {
+      cle: e.cle,
+      label: e.label,
+      glyph: e.glyph,
+      href: e.href,
+      ...(e.badge ? { badge: e.badge } : {}),
+      actif,
+      raisonVerrou: actif ? null : RAISON_BOUTIQUE,
+    };
+  });
+
+  return [
+    { titre: null, entrees: acheteur },
+    { titre: "Ma boutique", entrees: createur },
+  ];
+}
+
+/** Texte d'accompagnement affiché en tête du tableau de bord. */
+export function messageProgression(etape: EtapeCompte): string {
+  switch (etape) {
+    case "ACHETEUR":
+      return "Dépose un premier produit quand tu veux — ton espace vendeur s'ouvrira tout seul.";
+    case "ATELIER":
+      return `Ton atelier est ouvert. ${RAISON_BOUTIQUE.replace("Disponible une", "Le reste s'active une")}`;
+    case "BOUTIQUE":
+      return "Ta boutique est en ligne.";
+  }
+}
+
+export { RAISON_ATELIER, RAISON_BOUTIQUE };

@@ -1,96 +1,75 @@
 import { describe, expect, it } from "vitest";
 
-import { deduireCapacites } from "./roles";
+import { deduireProgression } from "./roles";
 
-/**
- * La règle vérifiée dans `user.rb#is_buyer?` : on est acheteur quand on a
- * acheté SANS jamais publier. Publier fait basculer, quoi qu'on ait déclaré.
- */
+const compte = (
+  produits: number,
+  produitsPublies: number,
+  ecrituresAuGrandLivre = 0,
+) => deduireProgression({ produits, produitsPublies, ecrituresAuGrandLivre });
 
-describe("dérivation des capacités", () => {
-  it("un compte neuf n'est ni l'un ni l'autre", () => {
-    const c = deduireCapacites({
-      produitsPublies: 0,
-      achatsReussis: 0,
-      intention: "ACHETEUR",
-    });
-
-    expect(c.estCreateur).toBe(false);
-    expect(c.estAcheteur).toBe(false);
+describe("les trois paliers", () => {
+  it("un compte neuf est un acheteur", () => {
+    expect(compte(0, 0).etape).toBe("ACHETEUR");
   });
 
-  it("acheter sans publier fait l'acheteur", () => {
-    const c = deduireCapacites({
-      produitsPublies: 0,
-      achatsReussis: 3,
-      intention: "ACHETEUR",
-    });
+  it("créer un brouillon ouvre l'atelier, pas la boutique", () => {
+    const p = compte(1, 0);
 
-    expect(c).toMatchObject({ estAcheteur: true, estCreateur: false });
+    expect(p.etape).toBe("ATELIER");
+    expect(p.aDesProduits).toBe(true);
+    expect(p.aPublie).toBe(false);
   });
 
-  it("publier fait le créateur", () => {
-    const c = deduireCapacites({
-      produitsPublies: 1,
-      achatsReussis: 0,
-      intention: "ACHETEUR",
-    });
-
-    expect(c).toMatchObject({ estCreateur: true, estAcheteur: false });
+  it("publier ouvre la boutique", () => {
+    expect(compte(1, 1).etape).toBe("BOUTIQUE");
   });
 
-  it("publier ET acheter : on n'est plus « acheteur » au sens de Gumroad", () => {
-    // La définition est exclusive : `!links.exists? && purchases.exists?`.
-    const c = deduireCapacites({
-      produitsPublies: 2,
-      achatsReussis: 5,
-      intention: "ACHETEUR",
-    });
-
-    expect(c.estCreateur).toBe(true);
-    expect(c.estAcheteur).toBe(false);
+  it("plusieurs brouillons ne valent pas une publication", () => {
+    expect(compte(5, 0).etape).toBe("ATELIER");
   });
 });
 
-describe("vue par défaut", () => {
-  it("suit l'intention déclarée tant que rien n'a été publié", () => {
-    expect(
-      deduireCapacites({
-        produitsPublies: 0,
-        achatsReussis: 0,
-        intention: "CREATEUR",
-      }).vueParDefaut,
-    ).toBe("createur");
-
-    expect(
-      deduireCapacites({
-        produitsPublies: 0,
-        achatsReussis: 0,
-        intention: "ACHETEUR",
-      }).vueParDefaut,
-    ).toBe("acheteur");
+describe("le profil public", () => {
+  it("n'existe pas tant que rien n'est publié", () => {
+    expect(compte(0, 0).profilPublicVisible).toBe(false);
+    expect(compte(3, 0).profilPublicVisible).toBe(false);
   });
 
-  it("le fait l'emporte sur l'intention", () => {
-    // Quelqu'un inscrit « acheteur » qui publie doit voir sa boutique, pas un
-    // tableau de bord qui ignore ses ventes.
-    expect(
-      deduireCapacites({
-        produitsPublies: 1,
-        achatsReussis: 0,
-        intention: "ACHETEUR",
-      }).vueParDefaut,
-    ).toBe("createur");
+  it("apparaît à la première publication", () => {
+    expect(compte(1, 1).profilPublicVisible).toBe(true);
+  });
+});
+
+describe("la régression", () => {
+  it("supprimer son unique brouillon ramène à l'état acheteur", () => {
+    expect(compte(1, 0).etape).toBe("ATELIER");
+    expect(compte(0, 0).etape).toBe("ACHETEUR");
   });
 
-  it("l'intention ne donne aucune capacité", () => {
-    const c = deduireCapacites({
-      produitsPublies: 0,
-      achatsReussis: 0,
-      intention: "CREATEUR",
-    });
+  it("dépublier ramène à l'atelier tant qu'il n'y a rien eu à vendre", () => {
+    expect(compte(1, 0).etape).toBe("ATELIER");
+  });
 
-    // Se déclarer créateur ne suffit pas : il faut avoir publié.
-    expect(c.estCreateur).toBe(false);
+  it("mais l'historique bloque toute régression", () => {
+    // Quelqu'un qui a vendu puis tout retiré garde sa boutique : lui masquer
+    // « Gains » alors qu'on lui doit de l'argent serait une faute.
+    const p = compte(0, 0, 12);
+
+    expect(p.etape).toBe("BOUTIQUE");
+    expect(p.aUnHistorique).toBe(true);
+  });
+
+  it("l'historique l'emporte même sans aucun produit restant", () => {
+    expect(compte(0, 0, 1).etape).toBe("BOUTIQUE");
+  });
+
+  it("le profil public suit la publication, pas l'historique", () => {
+    // Plus rien de publié : la vitrine se referme, même si les gains restent
+    // consultables.
+    const p = compte(0, 0, 12);
+
+    expect(p.etape).toBe("BOUTIQUE");
+    expect(p.profilPublicVisible).toBe(false);
   });
 });

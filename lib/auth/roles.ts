@@ -1,82 +1,88 @@
 import "server-only";
 
-import type { IntentionCompte } from "@prisma/client";
-
 import { db } from "@/lib/db";
 
 /**
- * Ce qu'un compte peut faire.
+ * Progression d'un compte, d'acheteur à créateur.
  *
- * Traduit `user.rb#is_buyer?` du dépôt Gumroad :
+ * Il n'existe **aucune colonne de rôle** — c'est le principe vérifié dans
+ * `user.rb#is_buyer?` chez Gumroad :
  *
  *     def is_buyer?
  *       !links.exists? && purchases.successful.exists?
  *     end
  *
- * Autrement dit : **aucune colonne de rôle**. On est acheteur parce qu'on a
- * acheté sans jamais publier ; on est créateur parce qu'on a publié. La capacité
- * se lit dans ce qu'on a fait, pas dans un champ qu'un administrateur pourrait
- * cocher — et personne ne peut donc « être créateur » sans l'être vraiment.
+ * On ne devient pas créateur parce qu'on l'a déclaré, mais parce qu'on a fait
+ * quelque chose. Deux gestes, deux paliers :
  *
- * L'intention déclarée à l'inscription vit à côté : elle oriente l'accueil,
- * elle n'autorise rien.
+ *   ACHETEUR   rien créé. Le tableau de bord acheteur, plus une seule porte :
+ *              « Ajouter un produit ».
+ *   ATELIER    au moins un produit, aucun publié. Les entrées créateur
+ *              apparaissent, grisées, sauf celles qui servent à travailler le
+ *              brouillon — sinon on ne pourrait pas atteindre ce qu'on vient
+ *              de créer.
+ *   BOUTIQUE   au moins un produit publié. Tout est ouvert, et le profil
+ *              public existe.
+ *
+ * La progression peut REVENIR en arrière : supprimer son unique brouillon
+ * ramène à l'état acheteur, plutôt que de laisser une interface morte.
+ *
+ * ⚠️ Sauf s'il y a de l'argent en jeu. Un compte qui a vendu puis tout retiré
+ * garde sa boutique : masquer « Gains » à quelqu'un à qui l'on doit de l'argent
+ * serait une faute, pas une simplification. C'est le seul cas où la régression
+ * ne s'applique pas.
  */
 
-export interface Capacites {
-  /** A publié au moins une ressource. */
-  estCreateur: boolean;
-  /** A acheté sans jamais publier — la définition de Gumroad. */
-  estAcheteur: boolean;
-  /** Ce que la personne a déclaré vouloir faire en s'inscrivant. */
-  intention: IntentionCompte;
-  /** Tableau de bord d'arrivée. */
-  vueParDefaut: "acheteur" | "createur";
+export type EtapeCompte = "ACHETEUR" | "ATELIER" | "BOUTIQUE";
+
+export interface Progression {
+  etape: EtapeCompte;
+  /** A au moins un produit, publié ou non. */
+  aDesProduits: boolean;
+  /** A au moins un produit publié. */
+  aPublie: boolean;
+  /**
+   * A vendu, ou a de l'argent au grand livre. Empêche toute régression :
+   * l'historique ne se cache pas.
+   */
+  aUnHistorique: boolean;
+  /** Le profil public n'existe qu'une fois quelque chose publié. */
+  profilPublicVisible: boolean;
 }
 
-export async function capacitesDe(userId: string): Promise<Capacites> {
-  const [compte, produitsPublies, achatsReussis] = await Promise.all([
-    db.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { intention: true },
-    }),
-    db.product.count({
-      where: { sellerId: userId, status: "PUBLISHED" },
-    }),
-    db.orderItem.count({
-      where: {
-        state: { in: ["SUCCESSFUL", "NOT_CHARGED"] },
-        order: { buyerId: userId },
-      },
-    }),
+export function deduireProgression(input: {
+  produits: number;
+  produitsPublies: number;
+  ecrituresAuGrandLivre: number;
+}): Progression {
+  const aDesProduits = input.produits > 0;
+  const aPublie = input.produitsPublies > 0;
+  const aUnHistorique = input.ecrituresAuGrandLivre > 0;
+
+  const etape: EtapeCompte =
+    aPublie || aUnHistorique
+      ? "BOUTIQUE"
+      : aDesProduits
+        ? "ATELIER"
+        : "ACHETEUR";
+
+  return {
+    etape,
+    aDesProduits,
+    aPublie,
+    aUnHistorique,
+    // Une vitrine vide dessert le créateur autant que le visiteur : le profil
+    // public n'apparaît qu'avec quelque chose à montrer.
+    profilPublicVisible: aPublie,
+  };
+}
+
+export async function progressionDe(userId: string): Promise<Progression> {
+  const [produits, produitsPublies, ecrituresAuGrandLivre] = await Promise.all([
+    db.product.count({ where: { sellerId: userId } }),
+    db.product.count({ where: { sellerId: userId, status: "PUBLISHED" } }),
+    db.balanceTransaction.count({ where: { userId } }),
   ]);
 
-  const estCreateur = produitsPublies > 0;
-
-  return {
-    estCreateur,
-    estAcheteur: !estCreateur && achatsReussis > 0,
-    intention: compte.intention,
-    // Qui a publié voit sa boutique, quoi qu'il ait déclaré à l'inscription :
-    // le fait l'emporte sur l'intention. Sinon un créateur inscrit « acheteur »
-    // atterrirait sur un tableau de bord qui ignore ses ventes.
-    vueParDefaut:
-      estCreateur || compte.intention === "CREATEUR" ? "createur" : "acheteur",
-  };
-}
-
-/** Version sans requête, pour les cas où l'on a déjà les compteurs. */
-export function deduireCapacites(input: {
-  produitsPublies: number;
-  achatsReussis: number;
-  intention: IntentionCompte;
-}): Capacites {
-  const estCreateur = input.produitsPublies > 0;
-
-  return {
-    estCreateur,
-    estAcheteur: !estCreateur && input.achatsReussis > 0,
-    intention: input.intention,
-    vueParDefaut:
-      estCreateur || input.intention === "CREATEUR" ? "createur" : "acheteur",
-  };
+  return deduireProgression({ produits, produitsPublies, ecrituresAuGrandLivre });
 }

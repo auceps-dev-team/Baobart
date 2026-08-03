@@ -41,7 +41,6 @@ export default async function InscriptionPage() {
         libelleCase="J'accepte les conditions générales et les règles de publication"
         action={inscrire}
         fournisseurs={listerFournisseurs()}
-        avecTypeDeCompte
         champs={[
           {
             nom: "prenom",

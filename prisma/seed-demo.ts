@@ -111,7 +111,6 @@ async function main() {
         email: `${c.username}@baobart.demo`,
         riskState: "COMPLIANT",
         kycStatus: "VERIFIED",
-        intention: "CREATEUR",
         profile: {
           create: {
             username: c.username,

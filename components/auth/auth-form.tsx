@@ -49,7 +49,6 @@ export function AuthForm({
   texteBas,
   lienBas,
   libelleLienBas,
-  avecTypeDeCompte = false,
   avecMotDePasseOublie = false,
   fournisseurs = [],
 }: {
@@ -63,7 +62,6 @@ export function AuthForm({
   texteBas: string;
   lienBas: string;
   libelleLienBas: string;
-  avecTypeDeCompte?: boolean;
   avecMotDePasseOublie?: boolean;
   /** Moyens secondaires. Ceux qui ne sont pas configurés restent affichés. */
   fournisseurs?: FournisseurPublic[];
@@ -71,9 +69,6 @@ export function AuthForm({
   const [etat, envoyer, enCours] = useActionState(action, {});
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [motDePasse, setMotDePasse] = useState("");
-  const [typeCompte, setTypeCompte] = useState<"acheteur" | "createur">(
-    "acheteur",
-  );
 
   const [bientot, setBientot] = useState<string | null>(null);
 
@@ -143,81 +138,6 @@ export function AuthForm({
       </p>
 
       <form action={envoyer}>
-        {avecTypeDeCompte ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-              gap: 12,
-              marginTop: 20,
-            }}
-          >
-            {(
-              [
-                {
-                  k: "acheteur",
-                  label: "Acheteur",
-                  glyph: "▣",
-                  hint: "Télécharger, collectionner, travailler en équipe.",
-                },
-                {
-                  k: "createur",
-                  label: "Créateur",
-                  glyph: "✦",
-                  hint: "Publier tes ressources et vendre tes services.",
-                },
-              ] as const
-            ).map((a) => (
-              <button
-                key={a.k}
-                type="button"
-                onClick={() => setTypeCompte(a.k)}
-                aria-pressed={typeCompte === a.k}
-                style={{
-                  border: CADRE,
-                  borderRadius: 18,
-                  padding: 14,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  background: typeCompte === a.k ? JAUNE : LAVANDE_CLAIR,
-                  boxShadow: typeCompte === a.k ? `4px 4px 0 ${ENCRE}` : "none",
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <span
-                    style={{
-                      width: 30,
-                      height: 30,
-                      border: `2px solid ${ENCRE}`,
-                      borderRadius: 9,
-                      background: BLANC,
-                      display: "grid",
-                      placeItems: "center",
-                      fontSize: 13,
-                    }}
-                  >
-                    {a.glyph}
-                  </span>
-                  <span style={{ fontSize: 14.5, fontWeight: 800 }}>{a.label}</span>
-                </span>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    lineHeight: 1.4,
-                    marginTop: 8,
-                    opacity: 0.75,
-                  }}
-                >
-                  {a.hint}
-                </span>
-              </button>
-            ))}
-            <input type="hidden" name="typeCompte" value={typeCompte} />
-          </div>
-        ) : null}
-
         <div
           style={{
             display: "grid",

@@ -15,7 +15,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { hacherMotDePasse, verifierMotDePasse } from "@/lib/auth/password";
-import { capacitesDe } from "@/lib/auth/roles";
+import { progressionDe } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 
 const MOT_DE_PASSE = "MotDePasse2026!";
@@ -154,12 +154,11 @@ describe("session", () => {
   });
 });
 
-describe("rôle dérivé, contre la base", () => {
-  it("publier fait basculer les capacités, sans toucher à un champ", async () => {
+describe("progression dérivée, contre la base", () => {
+  it("créer puis publier fait franchir les deux paliers", async () => {
     const compte = await creerCompte("createur@baobart.test", "compte-createur");
 
-    const avant = await capacitesDe(compte.id);
-    expect(avant).toMatchObject({ estCreateur: false, estAcheteur: false });
+    expect((await progressionDe(compte.id)).etape).toBe("ACHETEUR");
 
     await db.product.create({
       data: {
@@ -171,12 +170,12 @@ describe("rôle dérivé, contre la base", () => {
       },
     });
 
-    const apres = await capacitesDe(compte.id);
-    expect(apres.estCreateur).toBe(true);
-    expect(apres.vueParDefaut).toBe("createur");
+    const apres = await progressionDe(compte.id);
+    expect(apres.etape).toBe("BOUTIQUE");
+    expect(apres.profilPublicVisible).toBe(true);
   });
 
-  it("un brouillon ne fait pas de vous un créateur", async () => {
+  it("un brouillon ouvre l'atelier sans ouvrir la vitrine", async () => {
     const compte = await creerCompte("brouillon@baobart.test", "compte-brouillon");
 
     await db.product.create({
@@ -189,23 +188,27 @@ describe("rôle dérivé, contre la base", () => {
       },
     });
 
-    expect((await capacitesDe(compte.id)).estCreateur).toBe(false);
+    const p = await progressionDe(compte.id);
+    expect(p.etape).toBe("ATELIER");
+    expect(p.profilPublicVisible).toBe(false);
   });
 
-  it("l'intention déclarée oriente l'accueil sans rien autoriser", async () => {
-    const compte = await db.user.create({
-      data: {
-        email: "intention@baobart.test",
-        passwordHash: await hacherMotDePasse(MOT_DE_PASSE),
-        intention: "CREATEUR",
-        profile: { create: { username: "compte-intention", displayName: "Kofi" } },
-      },
-      select: { id: true },
-    });
+  it("supprimer son unique brouillon ramène à l'état acheteur", async () => {
+    const compte = await creerCompte("regression@baobart.test", "compte-regression");
 
-    const c = await capacitesDe(compte.id);
-    expect(c.vueParDefaut).toBe("createur");
-    expect(c.estCreateur).toBe(false);
+    const brouillon = await db.product.create({
+      data: {
+        sellerId: compte.id,
+        slug: "a-supprimer",
+        name: "À supprimer",
+        price: 0,
+        status: "DRAFT",
+      },
+    });
+    expect((await progressionDe(compte.id)).etape).toBe("ATELIER");
+
+    await db.product.delete({ where: { id: brouillon.id } });
+    expect((await progressionDe(compte.id)).etape).toBe("ACHETEUR");
   });
 
   it("sépare le profil public des informations de facturation", async () => {

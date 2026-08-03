@@ -42,18 +42,6 @@ enum UserRiskState {
   SUSPENDED_TOS
 }
 
-/// Ce que la personne est venue faire, déclaré à l'inscription.
-///
-/// ⚠️ Ce n'est PAS une permission. Chez Gumroad il n'existe aucune colonne de
-/// rôle : `is_buyer?` se dérive du comportement — pas de produit publié, au
-/// moins un achat. On garde ce principe : la capacité de vendre vient de la
-/// publication, jamais d'un champ. Cette intention ne sert qu'à choisir le
-/// tableau de bord d'arrivée et l'accompagnement.
-enum IntentionCompte {
-  ACHETEUR
-  CREATEUR
-}
-
 enum KycStatus {
   NONE
   PENDING
@@ -302,19 +290,17 @@ enum Plateforme {
 // ============================================================================
 
 model User {
-  id              String          @id @default(cuid())
-  email           String          @unique
+  id              String        @id @default(cuid())
+  email           String        @unique
   emailVerified   DateTime?
-  phone           String?         @unique // mobile money (OTP = mode principal en Afrique)
+  phone           String?       @unique // mobile money (OTP = mode principal en Afrique)
   passwordHash    String?
-  riskState       UserRiskState   @default(NOT_REVIEWED) // machine à états §3.8
-  kycStatus       KycStatus       @default(NONE)
-  /// Déclarée à l'inscription. Oriente, n'autorise rien — voir IntentionCompte.
-  intention       IntentionCompte @default(ACHETEUR)
+  riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
+  kycStatus       KycStatus     @default(NONE)
   /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
   /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
-  refundsDisabled Boolean         @default(false)
-  defaultCurrency Currency        @default(XOF)
+  refundsDisabled Boolean       @default(false)
+  defaultCurrency Currency      @default(XOF)
 
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
   /// détermine le JOUR de la semaine où ce créateur est payé — voir
