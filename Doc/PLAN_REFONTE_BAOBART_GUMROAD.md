@@ -1,7 +1,11 @@
 # Refonte de Baobart — Plan directeur
 
 **Baobart = Dribbble × Pinterest × monétisation, pour l'Afrique créative**
-**Document v10.1 — 2 août 2026** (v10 : exploration finale — admin produits, policies, équipes multi-rôles, Staff Picked, lib/helpers · **v10.1 : corrections issues de la lecture du code**)
+**Document v11 — 4 août 2026** (v10 : exploration finale — admin produits, policies, équipes multi-rôles, Staff Picked, lib/helpers · v10.1 : corrections issues de la lecture du code · **v11 : journal d'avancement, §0-bis**)
+
+> **Où en est-on ?** Le §0-bis, juste en dessous, tient le journal de ce qui
+> existe réellement dans le dépôt — par opposition au reste du document, qui
+> décrit ce qu'on veut construire. C'est là qu'il faut regarder en premier.
 
 > ### ⚠️ Statut de vérification
 >
@@ -20,6 +24,111 @@
 > Le relevé complet des écarts, avec ses sources fichier par fichier, vit dans
 > **`VERIFICATION_GUMROAD.md`**. Ce plan reste le document de décision ; c'est là-bas qu'on
 > retrouve *sur quoi* chaque correction s'appuie.
+
+---
+
+## 0-bis. État d'avancement — 4 août 2026
+
+> Cette section est le **journal de ce qui existe réellement dans le dépôt**, par
+> opposition au reste du document, qui décrit ce qu'on veut construire. Elle est
+> tenue à jour à chaque jalon ; le détail des écarts avec Gumroad vit toujours
+> dans `VERIFICATION_GUMROAD.md`.
+>
+> **Version applicative : 1.15.0** · 34 commits · **259 tests unitaires, 140 tests
+> d'intégration** contre une vraie base PostgreSQL.
+
+### Ce qui fonctionne de bout en bout
+
+| Bloc | État | Éprouvé par |
+|---|---|---|
+| **Socle** — Next.js 15, Prisma 6, Tailwind v4, Docker (Postgres 5433, MinIO, Redis) | ✅ | build de production propre |
+| **Feed & découverte** — accueil, explorateur, rail, filtres, pagination par curseur | ✅ | 13 tests d'intégration |
+| **Fiche produit** — page complète + modale interceptée, URL partageable | ✅ | vérifié au navigateur |
+| **Authentification** — inscription, connexion, sessions, 9 fournisseurs déclarés (API vides) | ✅ | 20 tests |
+| **Rôles progressifs** — acheteur → atelier → boutique, dérivés jamais stockés | ✅ | 11 tests unitaires + intégration |
+| **Dépôt d'une ressource** — formulaire, brouillon, publication, retrait, suppression | ✅ | vérifié au navigateur |
+| **Envoi de fichiers** — 24 formats, URL signée, dépôt direct au stockage, 200 Mo | ✅ | 13 tests + bout en bout MinIO |
+| **Aperçus** — vignette dérivée publique, source privée, extrait audio/vidéo | ✅ | aperçu 200 / source 403 vérifiés |
+| **Livraison après achat** — décision, URL signée, journal de consommation | ✅ | 8 tests, octets vérifiés |
+| **Frais & grand livre** — barème deux régimes, écritures immuables, remboursements partiels | ✅ | 24 + 21 tests |
+| **Versements** — calendrier, éligibilité, exécution, passage hebdomadaire | ✅ | 27 tests |
+| **Écran Gains** — soldes, prochaine date, historique, compte de versement | ✅ | 14 tests |
+| **Social** — j'aime, suivi, commentaires à deux niveaux, modération par signalement | ✅ | 20 + 27 tests |
+| **Tableau de bord acheteur** — achats, téléchargements, éléments suivis, abonnements | ✅ | 12 tests |
+
+### Ce qui manque pour ouvrir au public
+
+Par ordre de blocage.
+
+**1. Le paiement.** Rien n'encaisse. Le panier, le passage en caisse, l'appel à
+un agrégateur mobile money (Wave, Orange Money, CinetPay…) et le webhook de
+confirmation n'existent pas. Toute la comptabilité en aval est prête et
+éprouvée — c'est l'entrée d'argent qui manque.
+
+**2. L'envoi effectif des versements.** La préparation, la réservation des
+soldes et la machine à états sont complètes ; l'appel à l'opérateur qui ferait
+passer un versement de `CREATING` à `PROCESSING` n'est pas branché. Le script
+`pnpm versements` prépare et s'arrête là, ce qui est sans danger : un versement
+préparé s'annule et rend ses soldes.
+
+**3. Aucun ordonnanceur.** Le passage hebdomadaire attend un cron ou une tâche
+planifiée d'hébergeur. À brancher au déploiement.
+
+**4. Les courriels.** Aucun message transactionnel : ni confirmation d'achat,
+ni lien de téléchargement, ni avis de versement, ni réinitialisation de mot de
+passe. Gumroad en compte 21 (§3.6-C).
+
+**5. Le changement de mot de passe.** La page « mot de passe oublié » est une
+coquille. `fermerToutesLesSessions` existe et fonctionne, mais rien ne l'appelle
+faute de flux.
+
+### Écrans du tableau de bord encore inertes
+
+**Acheteur** : Profil, Mes collections, Forfait & pass d'accès.
+**Créateur** : Tableau de bord, Commandes, Ventes, Commissions, Statistiques,
+Profil de la boutique, Créateur feedback.
+
+Il n'existe pas non plus de **profil public de créateur** : le bouton « Suivre »
+fonctionne, mais on ne peut pas visiter la page de quelqu'un qu'on suit.
+
+### Micro-services non commencés
+
+Job board, Services listés, CMS événements & blogs, Dashboard admin. Les
+maquettes existent dans `Baobart Design/`, le schéma porte déjà leurs tables en
+clés étrangères scalaires (voir l'en-tête de `schema.prisma`).
+
+### Décisions prises en cours de route, qui divergent du plan
+
+Chacune est documentée dans le code, à l'endroit où elle s'applique.
+
+- **La commission est de 10 % en direct, 30 % en découverte** — et non les 20 %
+  du §2.4 ni les « 80 % » qu'affichait la maquette. Le taux vient du barème
+  (`lib/domain/fees.ts`), et l'écran Gains le dérive plutôt que de l'écrire.
+- **`Like` et `Comment` sont polymorphes** (shot *ou* ressource), avec une
+  contrainte SQL « exactement une cible ». Le §5 les attachait au seul `WorkItem`,
+  ce qui rendait une ressource vendable impossible à aimer.
+- **Un fichier retiré d'une ressource vendue est marqué, jamais effacé.** Le
+  détruire priverait définitivement des acheteurs de ce qu'ils ont payé.
+- **Deux façons de perdre l'accès s'ajoutent au remboursement** : le paiement
+  contesté auprès de la banque et le retrait d'accès décidé par le vendeur.
+- **Les commentaires sont signalés, jamais bloqués** : une liste de mots est un
+  instrument grossier, et la marque n'est visible que du créateur.
+- **La modération de contenu adulte n'est pas reprise** de Gumroad : sa liste
+  vise un catalogue anglophone, quand le tort concret sur un fil de commentaires
+  est l'insulte adressée à un créateur.
+
+### Dette assumée
+
+- **Aucun test de bout en bout navigateur automatisé.** Les vérifications
+  d'interface ont été faites à la main, à chaque jalon. Un Playwright serait le
+  prochain filet utile.
+- **Pas de tâche de fond.** Les aperçus sont produits en ligne, dans la requête
+  de confirmation. Passable jusqu'à ce qu'un créateur envoie vingt fichiers.
+- **Les formats non-image n'ont pas d'aperçu automatique** (PSD, AI, TTF, MP4,
+  ZIP) : le créateur dépose lui-même sa vignette. C'est un choix — rastériser
+  chaque format demanderait un moteur de rendu par format.
+- **`UploadReservation` s'accumule.** Un balayage retire les objets abandonnés
+  du stockage, mais les lignes « uploaded » restent comme journal.
 
 ---
 

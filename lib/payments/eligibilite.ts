@@ -42,6 +42,22 @@ export type DecisionVersement =
   | { payable: true }
   | { payable: false; raison: RefusVersement; message: string };
 
+/**
+ * Forme courte du refus, pour une légende sous un chiffre.
+ *
+ * Le message complet explique et conseille ; il n'a pas sa place en légende
+ * d'un indicateur, où il serait lu deux fois dans le même écran.
+ */
+export const REFUS_COURT: Record<RefusVersement, string> = {
+  SUSPENDU: "compte suspendu",
+  SOUS_ENQUETE: "contrôle en cours",
+  VERSEMENTS_SUSPENDUS: "versements suspendus",
+  PAS_DE_COMPTE: "aucun compte enregistré",
+  RAIL_INCONNU: "moyen de versement à revoir",
+  RIEN_A_VERSER: "rien à verser",
+  SOUS_LE_SEUIL: "sous le minimum de versement",
+};
+
 const MESSAGES: Record<RefusVersement, string> = {
   SUSPENDU:
     "Ton compte est suspendu : les versements sont arrêtés. Écris-nous pour comprendre pourquoi.",

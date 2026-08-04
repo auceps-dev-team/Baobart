@@ -87,7 +87,7 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
     href: "/dashboard/produits/nouveau",
     desLAtelier: true,
   },
-  { cle: "c_revenus", label: "Gains", glyph: "◎", href: null },
+  { cle: "c_revenus", label: "Gains", glyph: "◎", href: "/dashboard/gains" },
   { cle: "c_commandes", label: "Commandes", glyph: "▤", href: null },
   { cle: "c_ventes", label: "Ventes", glyph: "◫", href: null },
   { cle: "c_commissions", label: "Commissions", glyph: "%", href: null },
