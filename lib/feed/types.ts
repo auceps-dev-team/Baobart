@@ -7,7 +7,7 @@
  * build ne dit rien, et la page casse à l'exécution.
  */
 
-import type { Currency, ProductFamily, ProductType } from "@prisma/client";
+import type { Currency, ProductFamily, ProductType } from "@/lib/domain/prisma-types";
 
 /**
  * La barre de filtres, dans l'ordre exact des maquettes

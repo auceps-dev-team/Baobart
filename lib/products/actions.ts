@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
-import type { LicenseCode, ProductFamily } from "@prisma/client";
+import type { LicenseCode, ProductFamily } from "@/lib/domain/prisma-types";
 
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -42,6 +42,15 @@ async function slugDisponible(base: string): Promise<string> {
 
   // Après cinquante homonymes, on tranche par l'horloge plutôt que de boucler.
   return `${racine}-${Date.now()}`;
+}
+
+function estCollisionUnique(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
 }
 
 export async function creerBrouillon(
@@ -95,7 +104,7 @@ export async function creerBrouillon(
     return { erreur: resultatPrix.erreur, champ: "prix", saisie };
   }
 
-  const slug = await slugDisponible(slugifier(titre));
+  const baseSlug = slugifier(titre);
 
   // Prisma refuse de mélanger une clé étrangère brute (`sellerId`) et une
   // relation imbriquée dans la même création : on résout la licence avant.
@@ -110,33 +119,48 @@ export async function creerBrouillon(
     select: { id: true },
   });
 
-  const produit = await db.product.create({
-    data: {
-      sellerId: utilisateur.id,
-      slug,
-      name: titre,
-      description: description.length > 0 ? description : null,
-      family: famille as ProductFamily,
-      price: resultatPrix.prix,
-      currency: "XOF",
-      // Toujours un brouillon : la publication est un second geste.
-      status: "DRAFT",
-      licenseTypeId: typeDeLicence.id,
-      tags: {
-        create: motsCles.map((nom) => ({
-          tag: {
-            connectOrCreate: {
-              where: { slug: slugifier(nom) },
-              create: { slug: slugifier(nom), name: nom },
-            },
-          },
-        })),
-      },
-    },
-    select: { id: true },
-  });
+  for (let tentative = 0; tentative < 3; tentative += 1) {
+    const slug = await slugDisponible(
+      tentative === 0 ? baseSlug : `${baseSlug}-${Date.now()}-${tentative}`,
+    );
 
-  redirect(`/dashboard/produits/${produit.id}`);
+    try {
+      const produit: { id: string } = await db.product.create({
+        data: {
+          sellerId: utilisateur.id,
+          slug,
+          name: titre,
+          description: description.length > 0 ? description : null,
+          family: famille as ProductFamily,
+          price: resultatPrix.prix,
+          currency: "XOF",
+          // Toujours un brouillon : la publication est un second geste.
+          status: "DRAFT",
+          licenseTypeId: typeDeLicence.id,
+          tags: {
+            create: motsCles.map((nom) => ({
+              tag: {
+                connectOrCreate: {
+                  where: { slug: slugifier(nom) },
+                  create: { slug: slugifier(nom), name: nom },
+                },
+              },
+            })),
+          },
+        },
+        select: { id: true },
+      });
+
+      redirect(`/dashboard/produits/${produit.id}`);
+    } catch (error) {
+      // `slugDisponible` évite les collisions ordinaires, mais deux créations
+      // concurrentes peuvent encore choisir le même slug entre la lecture et le
+      // create. On laisse la contrainte unique trancher, puis on retente.
+      if (!estCollisionUnique(error) || tentative === 2) throw error;
+    }
+  }
+
+  return { erreur: "Impossible de réserver une URL unique. Réessaie." };
 }
 
 /**
@@ -145,9 +169,14 @@ export async function creerBrouillon(
  * à publier ou supprimer le travail de quelqu'un d'autre.
  */
 async function ressourceDe(userId: string, produitId: string) {
-  const produit = await db.product.findUnique({
+  const produit: {
+    id: string;
+    sellerId: string;
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    _count: { files: number };
+  } | null = await db.product.findUnique({
     where: { id: produitId },
-    select: { id: true, sellerId: true, status: true },
+    select: { id: true, sellerId: true, status: true, _count: { select: { files: true } } },
   });
 
   return produit && produit.sellerId === userId ? produit : null;
@@ -160,6 +189,9 @@ export async function publierRessource(produitId: string): Promise<void> {
 
   const produit = await ressourceDe(utilisateur.id, produitId);
   if (!produit) notFound();
+  if (produit._count.files === 0) {
+    redirect(`/dashboard/produits/${produit.id}?erreur=sans-fichier`);
+  }
 
   await db.product.update({
     where: { id: produit.id },

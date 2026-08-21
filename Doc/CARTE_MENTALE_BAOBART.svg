@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Carte mentale Baobart</title>
+  <desc id="desc">Carte graphique du projet Baobart, organisée par produit, application, domaine, données, design, qualité et risques.</desc>
+  <defs>
+    <style>
+      .bg{fill:#EADFF9}.ink{stroke:#121212;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.box{fill:#fff;stroke:#121212;stroke-width:4}.central{fill:#FFD84A;stroke:#121212;stroke-width:5}.branch{fill:#C9A8F5;stroke:#121212;stroke-width:4}.risk{fill:#E2622C;stroke:#121212;stroke-width:4}.ok{fill:#BDECC7;stroke:#121212;stroke-width:4}.txt{font-family:Poppins,Arial,sans-serif;fill:#121212;font-size:23px;font-weight:800}.small{font-size:18px;font-weight:650}.tiny{font-size:15px;font-weight:600}.mono{font-family:'Space Mono',monospace;font-size:15px;font-weight:700}.title{font-family:'Archivo Black','Arial Black',sans-serif;font-size:34px;letter-spacing:-1px}.shadow{filter:url(#shadow)}
+    </style>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="8" dy="8" stdDeviation="0" flood-color="#121212"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#121212"/></marker>
+  </defs>
+  <rect class="bg" width="1800" height="1200"/>
+  <text x="60" y="70" class="title">BAOBART — carte mentale du dépôt</text>
+  <text x="60" y="105" class="mono">Audit complet du 2026-08-21 · Next.js 15 · Prisma/Postgres · marketplace créatif</text>
+
+  <rect x="700" y="480" width="400" height="180" rx="32" class="central shadow"/>
+  <text x="900" y="545" text-anchor="middle" class="title">Baobart.</text>
+  <text x="900" y="582" text-anchor="middle" class="small">Studio partagé de</text>
+  <text x="900" y="610" text-anchor="middle" class="small">l'Afrique créative</text>
+
+  <path d="M700 535 C560 500 440 420 330 300" class="ink" fill="none" marker-end="url(#arrow)"/>
+  <path d="M760 480 C650 330 570 250 455 160" class="ink" fill="none" marker-end="url(#arrow)"/>
+  <path d="M900 480 C900 340 900 250 900 150" class="ink" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1040 480 C1160 330 1240 250 1365 160" class="ink" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1100 550 C1280 520 1420 460 1560 340" class="ink" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1095 645 C1280 720 1390 790 1530 930" class="ink" fill="none" marker-end="url(#arrow)"/>
+  <path d="M720 660 C570 750 470 830 300 980" class="ink" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="70" y="190" width="360" height="230" rx="24" class="branch shadow"/>
+  <text x="95" y="235" class="txt">Produit</text>
+  <text x="95" y="275" class="small">• Core loop : découvrir → fiche</text>
+  <text x="95" y="303" class="small">  → télécharger/acheter → publier</text>
+  <text x="95" y="331" class="small">  → être payé</text>
+  <text x="95" y="365" class="small">• Pinterest × Dribbble × Gumroad</text>
+  <text x="95" y="393" class="small">• FCFA, Mobile Money, créateurs</text>
+
+  <rect x="240" y="70" width="430" height="250" rx="24" class="box shadow"/>
+  <text x="270" y="115" class="txt">App Next.js</text>
+  <text x="270" y="155" class="small">app/ : /, /explore, auth, dashboard</text>
+  <text x="270" y="183" class="small">products/[slug] + modal interceptée</text>
+  <text x="270" y="211" class="small">api/feed · api/recherche</text>
+  <text x="270" y="245" class="small">components/ : shell, home, feed,</text>
+  <text x="270" y="273" class="small">auth, dashboard, product, ui</text>
+
+  <rect x="720" y="60" width="360" height="250" rx="24" class="box shadow"/>
+  <text x="750" y="105" class="txt">Domaine lib/</text>
+  <text x="750" y="145" class="small">• Auth : scrypt, cookies hashés</text>
+  <text x="750" y="173" class="small">• Feed : filtres + curseur composite</text>
+  <text x="750" y="201" class="small">• Produits : validation/actions</text>
+  <text x="750" y="229" class="small">• Argent : frais, soldes, ledger</text>
+  <text x="750" y="257" class="small">• Livraison, Trust, Payouts</text>
+
+  <rect x="1130" y="65" width="565" height="255" rx="24" class="box shadow"/>
+  <text x="1160" y="110" class="txt">Données Prisma</text>
+  <text x="1160" y="150" class="small">67 modèles · 29 enums · Postgres</text>
+  <text x="1160" y="178" class="small">Users/Profiles/Teams/Sessions/Passkeys</text>
+  <text x="1160" y="206" class="small">WorkItems/Products/Orders/Refunds</text>
+  <text x="1160" y="234" class="small">Balances/Transactions/Payouts/Plans</text>
+  <text x="1160" y="262" class="small">Community/Forum/Affiliates/Audit/Media</text>
+  <text x="1160" y="290" class="small">Triggers : solde figé + ledger immuable</text>
+
+  <rect x="1405" y="350" width="330" height="250" rx="24" class="box shadow"/>
+  <text x="1435" y="395" class="txt">Design</text>
+  <text x="1435" y="435" class="small">Sticker System</text>
+  <text x="1435" y="463" class="small">Lavande · jaune · orange</text>
+  <text x="1435" y="491" class="small">Encre · blanc</text>
+  <text x="1435" y="525" class="small">Contours 2.5px</text>
+  <text x="1435" y="553" class="small">Ombres dures 45°</text>
+  <text x="1435" y="581" class="small">Maquettes .dc.html + assets</text>
+
+  <rect x="1330" y="820" width="405" height="265" rx="24" class="ok shadow"/>
+  <text x="1360" y="865" class="txt">Qualité vérifiée</text>
+  <text x="1360" y="905" class="small">✓ ESLint : OK</text>
+  <text x="1360" y="933" class="small">✓ Tests unitaires purs : 140 OK</text>
+  <text x="1360" y="961" class="small">⚠ Typecheck : bloqué par Prisma</text>
+  <text x="1360" y="989" class="small">⚠ Intégration : Docker/Postgres absents</text>
+  <text x="1360" y="1017" class="small">⚠ Audit deps : 7 vulnérabilités</text>
+  <text x="1360" y="1045" class="small">⚠ Build non validé sans client Prisma</text>
+
+  <rect x="70" y="820" width="490" height="270" rx="24" class="risk shadow"/>
+  <text x="100" y="865" class="txt">Risques prioritaires</text>
+  <text x="100" y="905" class="small">P0 · Prisma generate indisponible</text>
+  <text x="100" y="933" class="small">P0 · Vulnérabilités Next/PostCSS/sharp</text>
+  <text x="100" y="961" class="small">P1 · Courses argent/remboursements/quotas</text>
+  <text x="100" y="989" class="small">P1 · APIs sans rate limiting</text>
+  <text x="100" y="1017" class="small">P1 · Paiement, upload, emails, workers absents</text>
+  <text x="100" y="1045" class="small">P2 · UI volumineuse et très inline</text>
+
+  <rect x="620" y="820" width="560" height="260" rx="24" class="box shadow"/>
+  <text x="650" y="865" class="txt">Documentation & artefacts</text>
+  <text x="650" y="905" class="small">Doc/ : plan directeur, blueprint, specs</text>
+  <text x="650" y="933" class="small">Shield, licences, gamification, admin, auth</text>
+  <text x="650" y="961" class="small">déploiement, produits physiques, livraison</text>
+  <text x="650" y="995" class="small">Baobart Design/ : maquettes source</text>
+  <text x="650" y="1023" class="small">public/img : logos + médias démo</text>
+
+  <text x="60" y="1160" class="mono">Lecture intégrale du dépôt hors .git/node_modules : code, schéma, migrations, tests, docs, configuration et inventaire des médias.</text>
+</svg>

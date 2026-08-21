@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import type { Currency, ProductFamily } from "@/lib/domain/prisma-types";
 import { formatPrice } from "@/lib/i18n/money";
 import {
   depublierRessource,
@@ -34,7 +35,19 @@ export default async function ProduitDuTableauDeBord({
   const { id } = await params;
   const { erreur } = await searchParams;
 
-  const produit = await db.product.findUnique({
+  const produit: {
+    id: string;
+    name: string;
+    slug: string;
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    price: number;
+    currency: Currency;
+    family: ProductFamily | null;
+    description: string | null;
+    sellerId: string;
+    tags: Array<{ tag: { name: string } }>;
+    _count: { files: number; orderItems: number };
+  } | null = await db.product.findUnique({
     where: { id },
     select: {
       id: true,
@@ -108,7 +121,7 @@ export default async function ProduitDuTableauDeBord({
           {produit.name}
         </h1>
 
-        {erreur === "vendue" ? (
+        {erreur === "vendue" || erreur === "sans-fichier" ? (
           <div
             role="alert"
             style={{
@@ -123,9 +136,9 @@ export default async function ProduitDuTableauDeBord({
               fontWeight: 700,
             }}
           >
-            Cette ressource a déjà été vendue : elle ne peut plus être
-            supprimée. Retire-la de la vente — les acheteurs gardent ce
-            qu&apos;ils ont payé.
+            {erreur === "vendue"
+              ? "Cette ressource a déjà été vendue : elle ne peut plus être supprimée. Retire-la de la vente — les acheteurs gardent ce qu'ils ont payé."
+              : "Ajoute au moins un fichier avant de publier : une ressource en ligne doit toujours livrer quelque chose à l'acheteur."}
           </div>
         ) : null}
 

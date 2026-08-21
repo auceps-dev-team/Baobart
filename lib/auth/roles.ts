@@ -1,7 +1,5 @@
 import "server-only";
 
-import { db } from "@/lib/db";
-
 /**
  * Progression d'un compte, d'acheteur à créateur.
  *
@@ -78,6 +76,11 @@ export function deduireProgression(input: {
 }
 
 export async function progressionDe(userId: string): Promise<Progression> {
+  // Import différé : les tests unitaires de `deduireProgression` restent purs et
+  // n'instancient pas Prisma avant `prisma generate`. Le câblage DB est testé en
+  // intégration, pas au chargement du module.
+  const { db } = await import("@/lib/db");
+
   const [produits, produitsPublies, ecrituresAuGrandLivre] = await Promise.all([
     db.product.count({ where: { sellerId: userId } }),
     db.product.count({ where: { sellerId: userId, status: "PUBLISHED" } }),

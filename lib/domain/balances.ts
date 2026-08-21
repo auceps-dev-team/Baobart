@@ -13,11 +13,12 @@
  * erreur de contrainte à cinq niveaux de profondeur.
  */
 
+import type { Prisma } from "@prisma/client";
+
 import type {
   BalanceTransactionType,
   Currency,
-  Prisma,
-} from "@prisma/client";
+} from "@/lib/domain/prisma-types";
 
 import { jour } from "@/lib/payments/payout-schedule";
 

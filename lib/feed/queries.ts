@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { ProductFamily } from "@prisma/client";
+import type {
+  Currency,
+  ProductFamily,
+  ProductType,
+} from "@/lib/domain/prisma-types";
 
 import { db } from "@/lib/db";
 import {
@@ -26,6 +30,31 @@ function clauseFamille(filtre: Filtre) {
 }
 
 const TAILLE_PAGE = 24;
+
+type ProduitFeed = {
+  id: string;
+  slug: string;
+  name: string;
+  type: ProductType;
+  family: ProductFamily | null;
+  price: number;
+  currency: Currency;
+  coverUrl: string | null;
+  isStaffPicked: boolean;
+  createdAt: Date;
+  seller: { profile: { displayName: string; username: string | null } | null };
+};
+
+type SuggestionProduit = {
+  slug: string;
+  name: string;
+  family: ProductFamily | null;
+};
+
+type CompteFamille = {
+  family: ProductFamily | null;
+  _count: { _all: number };
+};
 
 /**
  * Hauteurs de visuel de la mosaïque.
@@ -90,7 +119,7 @@ export async function listerFeed(
       }
     : {};
 
-  const lignes = await db.product.findMany({
+  const lignes: ProduitFeed[] = await db.product.findMany({
     where: {
       status: "PUBLISHED",
       ...clauseFamille(filtre),
@@ -148,7 +177,7 @@ export async function listerFeed(
 export async function listerAlaUne(
   limit = 2,
 ): Promise<import("@/lib/feed/types").CarteRessource[]> {
-  const lignes = await db.product.findMany({
+  const lignes: ProduitFeed[] = await db.product.findMany({
     where: { status: "PUBLISHED", isStaffPicked: true },
     orderBy: [{ staffPickedAt: "desc" }, { id: "desc" }],
     take: limit,
@@ -204,7 +233,7 @@ export async function rechercher(q: string) {
   const terme = q.trim();
   if (terme.length === 0) return [];
 
-  const lignes = await db.product.findMany({
+  const lignes: SuggestionProduit[] = await db.product.findMany({
     where: {
       status: "PUBLISHED",
       name: { contains: terme, mode: "insensitive" },
@@ -223,7 +252,7 @@ export async function rechercher(q: string) {
 
 /** Compte réel de ressources publiées par famille — pour la grille « Gratuit, tout de suite ». */
 export async function compterParFamille() {
-  const groupes = await db.product.groupBy({
+  const groupes: CompteFamille[] = await db.product.groupBy({
     by: ["family"],
     where: { status: "PUBLISHED", family: { not: null } },
     _count: { _all: true },
@@ -240,7 +269,7 @@ export async function compterParFamille() {
 
 /** Créateurs à suivre, pour le bloc « Créatifs à suivre » des espaces d'équipe. */
 export async function listerCreateurs(limit = 3) {
-  const profils = await db.profile.findMany({
+  const profils: Array<{ username: string; displayName: string; city: string | null }> = await db.profile.findMany({
     orderBy: [{ workCount: "desc" }, { createdAt: "desc" }],
     take: limit,
     select: { username: true, displayName: true, city: true },
