@@ -1,0 +1,108 @@
+mindmap
+  root((Baobart\nStudio partagé de l'Afrique créative))
+    Produit
+      Core loop
+        Découvrir le feed
+        Ouvrir fiche ressource
+        Télécharger ou acheter
+        Publier une ressource
+        Être payé
+      Positionnement
+        Pinterest visuel
+        Dribbble portfolios
+        Gumroad commerce
+        Mobile Money FCFA
+    App Next.js
+      app/
+        Accueil /
+        Explorer /explore
+        Auth connexion inscription oubli
+        Dashboard
+          Aperçu
+          Produits liste détail nouveau
+        Produits /products/[slug]
+        API
+          /api/feed
+          /api/recherche
+        Modal interceptée @modal
+      components/
+        shell Header Rail Footer
+        home Hero Sections HomeShell
+        feed Feed ResourceCard
+        auth AuthShell AuthForm
+        dashboard Sidebar ProductForm
+        product Detail Modal
+        ui Button Card Input Pill
+    Domaine lib/
+      Auth
+        Password scrypt
+        Sessions cookies token hashé
+        Providers déclaratifs
+        Progression ACHETEUR ATELIER BOUTIQUE
+      Feed
+        Curseur base64 createdAt id
+        Filtres familles
+        Recherche suggestions
+      Produits
+        Validation slug prix mots-clés
+        Actions brouillon publier dépublier supprimer
+        Queries fiche publique
+      Argent
+        Frais DIRECT DECOUVERTE
+        Encaissement ligne
+        Remboursement partiel
+        Soldes journaliers
+        Grand livre immuable
+      Livraison
+        Décision d'accès
+        Quotas abonnement
+        URL signée selon taille
+        ConsumptionEvent
+      Trust
+        Machine risque
+        Low balance hysteresis
+      Payouts
+        Cycles UTC
+        Rails Wave OM MTN Moov Bank
+        Projections
+    Données Prisma
+      67 modèles
+        Users profiles teams sessions passkeys
+        WorkItems tags likes saves follows
+        Products files variants orders refunds
+        Balances transactions payouts exchange
+        Plans subscriptions licences quotas
+        Jobs events commissions calls
+        Community forum notifications
+        Affiliates promos upsells posts
+        Moderation audit media uploads
+      29 enums
+      Migrations
+        init socle M0
+        argent triggers
+        calendrier versements
+        confiance livraison familles rôles mots-clés
+    Design
+      Sticker System
+        Lavande jaune orange encre blanc
+        Contours 2.5px
+        Ombres dures 45 degrés
+        Archivo Black Poppins Space Mono
+      Maquettes Baobart Design
+        Accueil Auth Dashboard Logo Design System
+      Assets
+        public/img
+        images demo
+    Qualité
+      Tests unitaires 140 OK
+      ESLint OK
+      TypeScript bloqué par Prisma generate
+      Integration bloquée sans Docker/Postgres
+      Audit dépendances 7 vulnérabilités
+    Risques prioritaires
+      P0 Prisma generate indisponible
+      P0 Vulnérabilités Next/PostCSS/sharp/nanoid/deepmerge-ts
+      P1 Courses argent remboursements quotas slugs
+      P1 APIs sans rate limiting
+      P1 Upload paiement e-mail workers absents
+      P2 UI inline styles composants volumineux

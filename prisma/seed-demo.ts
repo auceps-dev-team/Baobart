@@ -8,7 +8,9 @@
  *   pnpm db:seed:demo
  */
 
-import { PrismaClient, type ProductFamily } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+
+import type { ProductFamily } from "../lib/domain/prisma-types";
 
 const db = new PrismaClient();
 
