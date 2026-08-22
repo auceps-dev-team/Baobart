@@ -173,10 +173,9 @@ async function ressourceDe(userId: string, produitId: string) {
     id: string;
     sellerId: string;
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-    _count: { files: number };
   } | null = await db.product.findUnique({
     where: { id: produitId },
-    select: { id: true, sellerId: true, status: true, _count: { select: { files: true } } },
+    select: { id: true, sellerId: true, status: true },
   });
 
   return produit && produit.sellerId === userId ? produit : null;
@@ -189,9 +188,6 @@ export async function publierRessource(produitId: string): Promise<void> {
 
   const produit = await ressourceDe(utilisateur.id, produitId);
   if (!produit) notFound();
-  if (produit._count.files === 0) {
-    redirect(`/dashboard/produits/${produit.id}?erreur=sans-fichier`);
-  }
 
   await db.product.update({
     where: { id: produit.id },

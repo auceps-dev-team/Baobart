@@ -121,7 +121,7 @@ export default async function ProduitDuTableauDeBord({
           {produit.name}
         </h1>
 
-        {erreur === "vendue" || erreur === "sans-fichier" ? (
+        {erreur === "vendue" ? (
           <div
             role="alert"
             style={{
@@ -136,9 +136,9 @@ export default async function ProduitDuTableauDeBord({
               fontWeight: 700,
             }}
           >
-            {erreur === "vendue"
-              ? "Cette ressource a déjà été vendue : elle ne peut plus être supprimée. Retire-la de la vente — les acheteurs gardent ce qu'ils ont payé."
-              : "Ajoute au moins un fichier avant de publier : une ressource en ligne doit toujours livrer quelque chose à l'acheteur."}
+            Cette ressource a déjà été vendue : elle ne peut plus être
+            supprimée. Retire-la de la vente — les acheteurs gardent ce
+            qu&apos;ils ont payé.
           </div>
         ) : null}
 

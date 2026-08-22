@@ -315,6 +315,8 @@ Le domaine argent est l'une des parties les mieux pensées :
 - Seeds plans/licences/badges + données démo.
 - Décideurs métier : frais, livraison, trust, payout schedule.
 
+**Règle produit sans fichier à préserver tant que l'upload n'existe pas :** la fiche vendeur signale clairement qu'une ressource sans fichier ne livrerait rien à l'acheteur, mais la publication reste autorisée. Bloquer la publication maintenant casserait la boucle créateur `ATELIER → BOUTIQUE`, puisque le module d'upload produit n'est pas encore livré. La contrainte serveur devra être activée seulement en même temps que l'upload réel.
+
 ### 9.2 Présentes dans le schéma/specs mais pas encore dans l'app
 
 - Checkout complet.
