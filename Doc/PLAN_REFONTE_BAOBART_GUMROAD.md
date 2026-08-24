@@ -34,8 +34,13 @@
 > tenue à jour à chaque jalon ; le détail des écarts avec Gumroad vit toujours
 > dans `VERIFICATION_GUMROAD.md`.
 >
-> **Version applicative : 1.15.0** · 34 commits · **259 tests unitaires, 140 tests
+> **Version applicative : 1.17.0** · 40 commits · **259 tests unitaires, 140 tests
 > d'intégration** contre une vraie base PostgreSQL.
+>
+> *Mise à jour du 24 août 2026 : le dépôt distant a été rejoint (durcissement de
+> la concurrence sur l'argent, contrainte `Save`, overrides de sécurité), et le
+> lot local du tableau de bord a été repris. Les dix-huit écrans du tableau de
+> bord répondent.*
 
 ### Ce qui fonctionne de bout en bout
 
@@ -82,13 +87,19 @@ passe. Gumroad en compte 21 (§3.6-C).
 coquille. `fermerToutesLesSessions` existe et fonctionne, mais rien ne l'appelle
 faute de flux.
 
-### Écrans du tableau de bord encore inertes
+### Écrans du tableau de bord
 
-**Acheteur** : Profil, Mes collections, Forfait & pass d'accès.
-**Créateur** : Tableau de bord, Commandes, Ventes, Commissions, Statistiques,
-Profil de la boutique, Créateur feedback.
+Les dix-huit entrées de la barre latérale mènent désormais à un écran qui lit
+la base — plus aucune n'est fermée. Ce qui reste, ce n'est plus l'absence
+d'écran mais **l'absence d'édition** : Profil, Profil de la boutique et
+Commissions donnent à lire, jamais à modifier. Les formulaires viendront avec
+les paramètres de compte.
 
-Il n'existe pas non plus de **profil public de créateur** : le bouton « Suivre »
+Trois écrans montrent des données qu'aucun parcours ne produit encore :
+Commandes et Ventes attendent le paiement, Commissions attend le type de
+produit « commission ».
+
+Il n'existe pas de **profil public de créateur** : le bouton « Suivre »
 fonctionne, mais on ne peut pas visiter la page de quelqu'un qu'on suit.
 
 ### Micro-services non commencés
@@ -129,6 +140,17 @@ Chacune est documentée dans le code, à l'endroit où elle s'applique.
   chaque format demanderait un moteur de rendu par format.
 - **`UploadReservation` s'accumule.** Un balayage retire les objets abandonnés
   du stockage, mais les lignes « uploaded » restent comme journal.
+- **Deux styles de tableau de bord cohabitent.** `EcranDashboard` (indicateurs,
+  lignes filtrables, états vides) porte les écrans branchés sur des règles ;
+  `DashboardFrame` (panneaux, cartes de métrique) porte ceux repris du lot
+  local. Les deux respectent le Sticker System, mais un lecteur qui passe de
+  l'un à l'autre le sent. À unifier quand l'un des deux aura clairement gagné à
+  l'usage — pas avant.
+- **Des boutons d'action vivent dans l'ancre de la carte du feed.** Le clic est
+  correct — `preventDefault` l'arrête —, mais `<button>` dans `<a>` reste du
+  HTML invalide, et un lecteur d'écran annonce les actions comme faisant partie
+  du lien. La correction propre est de sortir la barre d'actions de l'ancre,
+  sans perdre le clic-milieu.
 
 ---
 
