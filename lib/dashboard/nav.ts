@@ -35,7 +35,7 @@ export interface EntreeNavRendue extends EntreeNav {
 /** Entrées acheteur — présentes à tous les paliers. */
 const ACHETEUR: EntreeNav[] = [
   { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard" },
-  { cle: "profil", label: "Profil", glyph: "☺", href: null },
+  { cle: "profil", label: "Profil", glyph: "☺", href: "/dashboard/profil" },
   {
     cle: "achats",
     label: "Historique des achats",
@@ -49,14 +49,14 @@ const ACHETEUR: EntreeNav[] = [
     href: "/dashboard/telechargements",
   },
   { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: "/dashboard/suivis" },
-  { cle: "collections", label: "Mes collections", glyph: "⌸", href: null },
+  { cle: "collections", label: "Mes collections", glyph: "⌸", href: "/dashboard/collections" },
   {
     cle: "abonnements_suivis",
     label: "Abonnements",
     glyph: "☍",
     href: "/dashboard/abonnements",
   },
-  { cle: "abonnement", label: "Forfait & pass d'accès", glyph: "◉", href: null },
+  { cle: "abonnement", label: "Forfait & pass d'accès", glyph: "◉", href: "/dashboard/forfait" },
 ];
 
 /**
@@ -70,7 +70,7 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
     cle: "c_apercu",
     label: "Tableau de bord",
     glyph: "◈",
-    href: null,
+    href: "/dashboard",
     desLAtelier: true,
   },
   {
@@ -88,12 +88,12 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
     desLAtelier: true,
   },
   { cle: "c_revenus", label: "Gains", glyph: "◎", href: "/dashboard/gains" },
-  { cle: "c_commandes", label: "Commandes", glyph: "▤", href: null },
-  { cle: "c_ventes", label: "Ventes", glyph: "◫", href: null },
-  { cle: "c_commissions", label: "Commissions", glyph: "%", href: null },
-  { cle: "c_stats", label: "Statistiques", glyph: "▲", href: null },
-  { cle: "c_profil", label: "Profil de la boutique", glyph: "☺", href: null },
-  { cle: "c_avis", label: "Créateur feedback", glyph: "✎", href: null },
+  { cle: "c_commandes", label: "Commandes", glyph: "▤", href: "/dashboard/commandes" },
+  { cle: "c_ventes", label: "Ventes", glyph: "◫", href: "/dashboard/ventes" },
+  { cle: "c_commissions", label: "Commissions", glyph: "%", href: "/dashboard/commissions" },
+  { cle: "c_stats", label: "Statistiques", glyph: "▲", href: "/dashboard/statistiques" },
+  { cle: "c_profil", label: "Profil de la boutique", glyph: "☺", href: "/dashboard/boutique" },
+  { cle: "c_avis", label: "Créateur feedback", glyph: "✎", href: "/dashboard/avis" },
 ];
 
 /** La porte unique offerte à un acheteur qui n'a encore rien créé. */

@@ -40,6 +40,8 @@ type ProduitFeed = {
   price: number;
   currency: Currency;
   coverUrl: string | null;
+  downloadsCount: number;
+  salesCount: number;
   isStaffPicked: boolean;
   createdAt: Date;
   seller: { profile: { displayName: string; username: string | null } | null };
@@ -49,11 +51,6 @@ type SuggestionProduit = {
   slug: string;
   name: string;
   family: ProductFamily | null;
-};
-
-type CompteFamille = {
-  family: ProductFamily | null;
-  _count: { _all: number };
 };
 
 /**
@@ -138,6 +135,8 @@ export async function listerFeed(
       price: true,
       currency: true,
       coverUrl: true,
+      downloadsCount: true,
+      salesCount: true,
       isStaffPicked: true,
       createdAt: true,
       seller: {
@@ -161,6 +160,8 @@ export async function listerFeed(
       price: p.price,
       currency: p.currency,
       coverUrl: p.coverUrl,
+      downloadsCount: p.downloadsCount,
+      salesCount: p.salesCount,
       visualHeight: hauteurPour(p.id),
       isStaffPicked: p.isStaffPicked,
       createdAt: p.createdAt,
@@ -190,6 +191,8 @@ export async function listerAlaUne(
       price: true,
       currency: true,
       coverUrl: true,
+      downloadsCount: true,
+      salesCount: true,
       isStaffPicked: true,
       createdAt: true,
       seller: {
@@ -209,6 +212,8 @@ export async function listerAlaUne(
     price: p.price,
     currency: p.currency,
     coverUrl: p.coverUrl,
+    downloadsCount: p.downloadsCount,
+    salesCount: p.salesCount,
     visualHeight: 280,
     isStaffPicked: p.isStaffPicked,
     createdAt: p.createdAt,

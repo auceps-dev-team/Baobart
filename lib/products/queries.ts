@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import type { Currency, ProductFamily } from "@/lib/domain/prisma-types";
+import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
 
 type RessourceLiee = { slug: string; name: string; coverUrl: string | null };

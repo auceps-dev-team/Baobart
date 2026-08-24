@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 
 import type { CarteRessource } from "@/lib/feed/types";
-import { formatPrice } from "@/lib/i18n/money";
+import { formatCount, formatPrice } from "@/lib/i18n/money";
 
 /**
  * Carte de ressource du feed.
@@ -131,6 +131,33 @@ function ActionsSurvol({
   );
 }
 
+/**
+ * Pastille de sélection éditoriale.
+ *
+ * `isStaffPicked` vivait dans les données et dans le feed sans jamais
+ * atteindre l'écran : une distinction qu'on accorde à un créateur doit se voir.
+ */
+function PastilleSelection({ compacte }: { compacte: boolean }) {
+  return (
+    <span
+      style={{
+        position: "absolute",
+        left: compacte ? 10 : 14,
+        top: compacte ? 10 : 14,
+        padding: compacte ? "5px 9px" : "6px 11px",
+        border: `2px solid ${ENCRE}`,
+        borderRadius: 999,
+        background: "#FFD84A",
+        fontFamily: "'Space Mono', monospace",
+        fontSize: compacte ? 10 : 11,
+        fontWeight: 800,
+      }}
+    >
+      ★ {compacte ? "Sélection" : "Sélection éditoriale"}
+    </span>
+  );
+}
+
 export interface CarteProps {
   ressource: CarteRessource;
   style: StyleCarte;
@@ -176,11 +203,13 @@ export function CarteMosaique(props: CarteProps) {
           placeItems: "center",
           padding: 8,
           height: r.visualHeight,
+          position: "relative",
           background: r.coverUrl
             ? `center / cover no-repeat url(${r.coverUrl})`
             : trameDe(r.id),
         }}
       >
+        {r.isStaffPicked ? <PastilleSelection compacte /> : null}
         <span
           style={{
             padding: "6px 12px",
@@ -212,6 +241,17 @@ export function CarteMosaique(props: CarteProps) {
             </div>
             <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.65 }}>
               {r.author}
+              {r.famille ? ` · ${r.famille}` : ""}
+            </div>
+            <div
+              style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 10.5,
+                opacity: 0.55,
+                marginTop: 2,
+              }}
+            >
+              {formatCount(r.downloadsCount)} dl · {formatCount(r.salesCount)} ventes
             </div>
           </div>
           <div
@@ -273,11 +313,13 @@ export function CarteAlaUne(props: CarteProps) {
           borderBottom: d.bd,
           display: "grid",
           placeItems: "center",
+          position: "relative",
           background: r.coverUrl
             ? `center / cover no-repeat url(${r.coverUrl})`
             : trameDe(r.id),
         }}
       >
+        {r.isStaffPicked ? <PastilleSelection compacte={false} /> : null}
         <span
           style={{
             padding: "7px 14px",
@@ -309,6 +351,17 @@ export function CarteAlaUne(props: CarteProps) {
             <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}>
               par {r.author}
               {r.famille ? ` · ${r.famille}` : ""}
+            </div>
+            <div
+              style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 11,
+                opacity: 0.58,
+                marginTop: 4,
+              }}
+            >
+              {formatCount(r.downloadsCount)} téléchargements ·{" "}
+              {formatCount(r.salesCount)} ventes
             </div>
           </div>
           <div

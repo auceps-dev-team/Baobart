@@ -63,6 +63,9 @@ export interface CarteRessource {
   price: number;
   currency: Currency;
   coverUrl: string | null;
+  /** Compteurs dénormalisés affichés sur la carte — jamais un COUNT() par carte. */
+  downloadsCount: number;
+  salesCount: number;
   /** Hauteur du visuel dans la mosaïque — variée pour éviter l'effet damier. */
   visualHeight: number;
   isStaffPicked: boolean;
