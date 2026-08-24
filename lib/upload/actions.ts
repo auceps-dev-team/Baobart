@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
 
+import { estOuverte } from "@/lib/config/fonctionnalites";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
@@ -88,6 +89,9 @@ export async function reserverFichier(
   fichier: { nom: string; taille: number; mime: string },
   role: RoleFichier = "SOURCE",
 ): Promise<Reservation | Refus> {
+  // Fermé par l'exploitant, ou stockage indisponible : même refus côté
+  // vendeur. Distinguer les deux ne lui apprendrait rien qu'il puisse corriger.
+  if (!estOuverte("envoi_fichiers")) return HORS_SERVICE;
   if (!stockageConfigure()) return HORS_SERVICE;
 
   const utilisateur = await sessionCourante();

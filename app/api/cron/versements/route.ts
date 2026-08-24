@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { estOuverte } from "@/lib/config/fonctionnalites";
+import { journal } from "@/lib/observabilite/journal";
 import { preparerLeCycle } from "@/lib/payments/cycle";
 import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
 
@@ -66,6 +68,18 @@ export async function GET(requete: Request) {
     return new NextResponse("Not found", { status: 404 });
   }
 
+  // Un cycle fermé par l'exploitant répond 200 : l'ordonnanceur de Vercel
+  // réessaie sur erreur, et réessayer une fermeture volontaire ne sert à rien.
+  if (!estOuverte("versements")) {
+    journal.avertissement("cycle de versements fermé par configuration");
+    return NextResponse.json({
+      cycle: null,
+      rails: [],
+      prepares: 0,
+      message: "Préparation fermée par FEATURE_VERSEMENTS.",
+    });
+  }
+
   const aujourdhui = new Date();
   const rails = railsDuJour(aujourdhui);
 
@@ -87,6 +101,23 @@ export async function GET(requete: Request) {
     parMotif[e.raison] = (parMotif[e.raison] ?? 0) + 1;
   }
 
+  const erreurs = resultat.ecartes.filter((e) => e.raison === "ERREUR");
+
+  // Le corps de la réponse ne va qu'à l'ordonnanceur, qui ne le lit pas. Sans
+  // cette trace, un cycle qui échoue pour trente créateurs passe inaperçu.
+  journal.info("cycle de versements préparé", {
+    cycle: resultat.cycleDate.toISOString().slice(0, 10),
+    rails,
+    prepares: resultat.prepares.length,
+    ecartes: parMotif,
+  });
+  if (erreurs.length > 0) {
+    journal.erreur("versements en échec pendant le cycle", {
+      nombre: erreurs.length,
+      details: erreurs.map((e) => ({ userId: e.userId, message: e.message })),
+    });
+  }
+
   return NextResponse.json({
     cycle: resultat.cycleDate.toISOString().slice(0, 10),
     rails,
@@ -95,8 +126,6 @@ export async function GET(requete: Request) {
     ecartes: parMotif,
     // Les erreurs techniques se lisent en entier : les résumer les ferait
     // passer pour des refus ordinaires et personne n'enquêterait.
-    erreurs: resultat.ecartes
-      .filter((e) => e.raison === "ERREUR")
-      .map((e) => ({ userId: e.userId, message: e.message })),
+    erreurs: erreurs.map((e) => ({ userId: e.userId, message: e.message })),
   });
 }

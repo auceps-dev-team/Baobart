@@ -235,6 +235,68 @@ request et la production sur `main` — il n'y a pas de workflow de déploiement
 
 ---
 
+## 7 bis. Surveiller une fois en ligne
+
+### Le point de santé
+
+```
+GET /api/health
+```
+
+Public, sans secret, et volontairement avare : il ne nomme ni hôte, ni bucket,
+ni version. Il répond **200** tant que la base répond, **503** sinon — c'est ce
+code que les sondes lisent.
+
+```json
+{
+  "etat": "ok",
+  "base": "ok",
+  "stockage": "configure",
+  "fonctionnalites": { "envoi_fichiers": "ouverte", "versements": "ouverte" }
+}
+```
+
+Un stockage absent ne fait pas basculer en 503 : on ne peut plus envoyer de
+fichiers, mais parcourir, se connecter et télécharger l'existant fonctionne
+toujours. Sortir l'application du service pour autant priverait tout le monde
+de ce qui marche encore.
+
+À brancher sur la sonde de l'hébergeur, avec la réserve habituelle : une seule
+sonde depuis une seule région ne prouve rien de plus que la santé de cette
+région.
+
+### Les journaux
+
+Un événement, une ligne JSON, filtrable par champ dans l'interface de Vercel.
+Les champs dont le nom évoque un secret sortent en `[caviardé]`, à tous les
+niveaux d'imbrication : un agrégateur de logs conserve des mois, et bien plus
+de gens le lisent que la base.
+
+Avertissements et erreurs partent sur `stderr` — beaucoup d'hébergeurs ne
+déclenchent d'alerte que sur ce canal.
+
+### Les interrupteurs
+
+Quand le stockage se met à répondre de travers un dimanche soir, on ferme sans
+redéployer :
+
+```env
+FEATURE_ENVOI_FICHIERS=0    # coupe l'envoi de fichiers
+FEATURE_VERSEMENTS=0        # suspend la préparation des versements
+```
+
+Ferment aussi : `false`, `off`, `non`. **Absente, une variable laisse ouvert** —
+l'inverse ferait qu'un oubli coupe une fonctionnalité en silence.
+
+Un drapeau ne sait que fermer. `FEATURE_QUELQUE_CHOSE=1` n'ouvrira jamais un
+module qui n'est pas écrit ; l'état renvoyé par `/api/health` dit alors pourquoi.
+
+Et **la livraison n'a pas d'interrupteur**, délibérément : le couper retirerait
+à des acheteurs ce qu'ils ont déjà payé. Un test empêche d'en ajouter un sans
+que la question soit posée.
+
+---
+
 ## 8. Ce qu'il reste à faire hors du dépôt
 
 Tout ce qui précède est versionné. Ce qui suit ne l'est pas, et ne peut pas
