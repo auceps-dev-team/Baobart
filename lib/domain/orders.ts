@@ -9,7 +9,9 @@
  * et pas de l'autre.
  */
 
-import type { Currency } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+import type { Currency } from "@/lib/domain/prisma-types";
 
 import { crediterSolde } from "@/lib/domain/balances";
 import {
@@ -25,6 +27,15 @@ export class LigneDejaEncaisseeError extends Error {
       `La ligne ${orderItemId} est déjà en état ${state} : on ne l'encaisse pas deux fois.`,
     );
     this.name = "LigneDejaEncaisseeError";
+  }
+}
+
+export class RemboursementInterditError extends Error {
+  constructor(orderItemId: string, state: string) {
+    super(
+      `La ligne ${orderItemId} est en état ${state} : elle ne peut pas être remboursée.`,
+    );
+    this.name = "RemboursementInterditError";
   }
 }
 
@@ -60,7 +71,7 @@ export async function encaisserLigne(input: EncaissementInput) {
     date = new Date(),
   } = input;
 
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Prisma.TransactionClient) => {
     const ligne = await tx.orderItem.findUniqueOrThrow({
       where: { id: orderItemId },
       include: {
@@ -86,8 +97,12 @@ export async function encaisserLigne(input: EncaissementInput) {
     // rien ne transite. `NOT_CHARGED` dit exactement cela.
     const etat = frais.gross === 0 ? "NOT_CHARGED" : "SUCCESSFUL";
 
-    const ligneEncaissee = await tx.orderItem.update({
-      where: { id: orderItemId },
+    // Garde anti double-encaissement : le test de l'état vit dans le WHERE de
+    // l'écriture, pas seulement dans la lecture précédente. Deux webhooks de
+    // paiement concurrents peuvent lire IN_PROGRESS ; un seul doit réussir à
+    // faire la transition.
+    const transition = await tx.orderItem.updateMany({
+      where: { id: orderItemId, state: "IN_PROGRESS" },
       data: {
         state: etat,
         platformFee: frais.platformFee,
@@ -95,6 +110,21 @@ export async function encaisserLigne(input: EncaissementInput) {
         affiliateFee: frais.affiliateCredit,
         taxAmount: frais.taxAmount,
       },
+    });
+
+    if (transition.count !== 1) {
+      const etatActuel = await tx.orderItem.findUnique({
+        where: { id: orderItemId },
+        select: { state: true },
+      });
+      throw new LigneDejaEncaisseeError(
+        orderItemId,
+        etatActuel?.state ?? "INCONNU",
+      );
+    }
+
+    const ligneEncaissee = await tx.orderItem.findUniqueOrThrow({
+      where: { id: orderItemId },
     });
 
     if (frais.gross === 0) {
@@ -115,7 +145,7 @@ export async function encaisserLigne(input: EncaissementInput) {
     });
 
     return { ligne: ligneEncaissee, frais, mouvement };
-  });
+  }, { isolationLevel: "Serializable" });
 }
 
 /**
@@ -147,17 +177,46 @@ export async function rembourserLigne(input: {
     throw new RangeError(`Montant de remboursement invalide : ${amount}`);
   }
 
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Prisma.TransactionClient) => {
     const ligne = await tx.orderItem.findUniqueOrThrow({
       where: { id: orderItemId },
       include: { order: true, product: { include: { seller: true } } },
     });
+
+    if (ligne.state !== "SUCCESSFUL" && ligne.state !== "NOT_CHARGED") {
+      throw new RemboursementInterditError(orderItemId, ligne.state);
+    }
 
     const encaisse = ligne.price * ligne.quantity;
     const dejaRembourse = ligne.refundedAmount;
     if (dejaRembourse + amount > encaisse) {
       throw new RangeError(
         `Remboursement de ${amount} impossible : ${dejaRembourse} déjà remboursés sur ${encaisse}.`,
+      );
+    }
+
+    // Même protection que pour l'encaissement : le plafond de remboursement est
+    // contrôlé par l'UPDATE lui-même. Deux remboursements concurrents ne peuvent
+    // donc pas dépasser le montant encaissé en s'appuyant sur la même lecture.
+    const increment = await tx.orderItem.updateMany({
+      where: {
+        id: orderItemId,
+        state: { in: ["SUCCESSFUL", "NOT_CHARGED"] },
+        refundedAmount: { lte: encaisse - amount },
+      },
+      data: { refundedAmount: { increment: amount } },
+    });
+
+    if (increment.count !== 1) {
+      const courant = await tx.orderItem.findUnique({
+        where: { id: orderItemId },
+        select: { refundedAmount: true, state: true },
+      });
+      if (!courant || (courant.state !== "SUCCESSFUL" && courant.state !== "NOT_CHARGED")) {
+        throw new RemboursementInterditError(orderItemId, courant?.state ?? "INCONNU");
+      }
+      throw new RangeError(
+        `Remboursement de ${amount} impossible : ${courant.refundedAmount} déjà remboursés sur ${encaisse}.`,
       );
     }
 
@@ -169,11 +228,6 @@ export async function rembourserLigne(input: {
         reason,
         refundedById,
       },
-    });
-
-    await tx.orderItem.update({
-      where: { id: orderItemId },
-      data: { refundedAmount: { increment: amount } },
     });
 
     // Le créateur rend ce qu'il avait touché sur la part remboursée, au prorata
@@ -204,5 +258,5 @@ export async function rembourserLigne(input: {
     });
 
     return { remboursement, mouvement, partNette };
-  });
+  }, { isolationLevel: "Serializable" });
 }

@@ -50,6 +50,14 @@ export default defineConfig({
           environment: "node",
           include: ["lib/**/*.integration.test.ts"],
           setupFiles: ["./vitest.setup.ts"],
+          // Le nettoyage entre deux tests vide une quarantaine de tables, et
+          // chaque TRUNCATE force une écriture disque. Sous Docker Windows,
+          // cela dépasse régulièrement les dix secondes par défaut — c'est le
+          // système de fichiers qui est lent, pas le code. Le délai de test
+          // suit, parce qu'une transaction Serializable sur un disque lent
+          // n'est pas plus rapide que le disque.
+          hookTimeout: 60_000,
+          testTimeout: 30_000,
         },
       },
     ],

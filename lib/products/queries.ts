@@ -1,8 +1,10 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import type { Currency, ProductFamily } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
-import type { Currency } from "@/lib/i18n/money";
+
+type RessourceLiee = { slug: string; name: string; coverUrl: string | null };
 
 /** Tout ce qu'affiche la fiche d'une ressource. */
 export interface FicheProduit {
@@ -169,7 +171,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
   // elle n'existait pas, plutôt que de révéler qu'un brouillon porte ce slug.
   if (!p || p.status !== "PUBLISHED") return null;
 
-  const autres = await db.product.findMany({
+  const autres: RessourceLiee[] = await db.product.findMany({
     where: {
       sellerId: p.sellerId,
       status: "PUBLISHED",
@@ -224,7 +226,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
 
 /** Slugs publiés — pour la génération statique éventuelle et les tests. */
 export async function listerSlugsPublies(limit = 500) {
-  const lignes = await db.product.findMany({
+  const lignes: Array<{ slug: string }> = await db.product.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { createdAt: "desc" },
     take: limit,

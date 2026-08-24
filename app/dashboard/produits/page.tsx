@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import type { Currency, ProductFamily } from "@/lib/domain/prisma-types";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
 
 export const metadata = { title: "Produits — Baobart." };
@@ -16,7 +17,16 @@ export default async function MesProduitsPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
-  const produits = await db.product.findMany({
+  const produits: Array<{
+    id: string;
+    name: string;
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    price: number;
+    currency: Currency;
+    family: ProductFamily | null;
+    downloadsCount: number;
+    _count: { files: number };
+  }> = await db.product.findMany({
     where: { sellerId: utilisateur.id },
     // Les brouillons d'abord : ce sont eux qui attendent une action.
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],

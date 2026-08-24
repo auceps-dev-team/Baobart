@@ -11,7 +11,7 @@
  * l'acheteur.
  */
 
-import type { ConsumptionType } from "@prisma/client";
+import type { ConsumptionType } from "@/lib/domain/delivery";
 
 import { db } from "@/lib/db";
 import {
@@ -54,7 +54,7 @@ export async function autoriserTelechargement(
     now = new Date(),
   } = input;
 
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: import("@prisma/client").Prisma.TransactionClient) => {
     const fichier = await tx.productFile.findUniqueOrThrow({
       where: { id: productFileId },
       include: { product: true },
@@ -128,6 +128,7 @@ export async function autoriserTelechargement(
 
     let decision: DecisionAcces;
     let quotaId: string | null = null;
+    let quotaLimite: number | null = null;
 
     if (achat) {
       const totalPaye = achat.price * achat.quantity;
@@ -181,6 +182,7 @@ export async function autoriserTelechargement(
         });
       }
       quotaId = quota?.id ?? null;
+      quotaLimite = quota?.limit ?? null;
 
       decision = decideAcces({
         source: "ABONNEMENT",
@@ -196,6 +198,24 @@ export async function autoriserTelechargement(
       return { decision, dureeUrlSecondes: null, fichier: null };
     }
 
+    if (decision.consommeQuota && quotaId) {
+      // Le quota est protégé par l'écriture, pas seulement par la lecture qui a
+      // produit la décision. Deux téléchargements concurrents ne peuvent donc
+      // pas franchir la limite mensuelle en lisant le même compteur `used`.
+      const debitQuota = await tx.downloadQuota.updateMany({
+        where: { id: quotaId, used: { lt: quotaLimite ?? 0 } },
+        data: { used: { increment: 1 } },
+      });
+
+      if (debitQuota.count !== 1) {
+        return {
+          decision: { autorise: false, raison: "QUOTA_EPUISE" } as const,
+          dureeUrlSecondes: null,
+          fichier: null,
+        };
+      }
+    }
+
     await tx.consumptionEvent.create({
       data: {
         userId,
@@ -208,13 +228,6 @@ export async function autoriserTelechargement(
         consumedAt: now,
       },
     });
-
-    if (decision.consommeQuota && quotaId) {
-      await tx.downloadQuota.update({
-        where: { id: quotaId },
-        data: { used: { increment: 1 } },
-      });
-    }
 
     // Compteur dénormalisé : c'est lui qu'affiche la maquette (« 2 340 dl »),
     // jamais un COUNT() sur la table d'événements (PLAN §8.2).
@@ -232,5 +245,5 @@ export async function autoriserTelechargement(
         sizeBytes: fichier.sizeBytes,
       },
     };
-  });
+  }, { isolationLevel: "Serializable" });
 }
