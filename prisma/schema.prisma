@@ -25,7 +25,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  /// Connexion applicative. En production elle passe par un pooler
+  /// (PgBouncer, Neon, Supabase) : une fonction serverless ouvre une connexion
+  /// par invocation, et sans pooler Postgres s'épuise (PLAN §8.2-4).
+  url       = env("DATABASE_URL")
+  /// Connexion directe, sans pooler, pour les migrations. Un pooler en mode
+  /// transaction ne sait pas jouer un `CREATE TYPE` suivi d'un `ALTER TABLE`
+  /// dans la même session : les migrations échouent en silence ou à moitié.
+  /// En développement, c'est la même URL que ci-dessus.
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================================

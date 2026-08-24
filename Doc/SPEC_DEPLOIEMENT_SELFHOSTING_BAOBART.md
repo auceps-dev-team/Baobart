@@ -62,6 +62,12 @@
 
 ## 3. Configuration 12-factor (env vars) — LE fichier de portabilité
 
+> **Cette liste est la cible, pas l'état du code.** Le `.env.example` du dépôt
+> sépare désormais ce qui est **réellement lu** de ce qui est seulement **prévu** :
+> paiements, courriels, Redis, IA et observabilité n'ont pas de module qui les
+> interroge. Les renseigner ne branche rien. Référez-vous au fichier, pas au
+> tableau ci-dessous, pour savoir quoi poser chez un hébergeur.
+
 `.env.example` (référence — les secrets en prod via le secret manager du fournisseur) :
 
 ```bash
@@ -256,27 +262,25 @@ docker compose exec app npx prisma migrate deploy
 
 **Pourquoi Vercel par défaut** : zéro ops, ISR/SSR optimisés, previews par PR, scaling auto. Parfait pour démarrer vite.
 
-**Configuration `vercel.json`** :
-```json
-{
-  "framework": "nextjs",
-  "crons": [
-    { "path": "/api/cron/daily-analytics", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/payouts", "schedule": "0 5 * * 3" }
-  ]
-}
-```
+> **La procédure détaillée est dans `DEPLOIEMENT_VERCEL.md`** — variables réellement
+> lues par le code, politique du bucket, CORS, ordre des opérations. Ce qui suit
+> n'en garde que les décisions structurantes.
+
+Le `vercel.json` du dépôt déclare le framework, les commandes, la région `cdg1`
+et un seul ordonnanceur : `/api/cron/versements`, du lundi au vendredi à 6 h. Les
+routes d'analytique et de paiement envisagées à la rédaction de ce document
+n'existent pas ; elles seront ajoutées avec les modules correspondants.
 
 **Points d'attention Vercel** :
-- **Pooling DB** : Vercel serverless = connexions éphémères → utiliser le **pooler** (Neon/Supabase) ou PgBouncer. `DATABASE_URL` + `DIRECT_URL` (Prisma).
-- **Médias** : jamais de fichiers locaux (serverless sans disque) → **tout via S3/R2** (déjà le cas).
-- **Jobs** : Vercel n'héberge pas de worker persistant → **Inngest Cloud** (il appelle vos fonctions) ou BullMQ sur Upstash + un worker externe. Notre abstraction `JOBS_DRIVER` gère.
-- **Migrations** : les faire en CI (job) avant déploiement, pas à la volée.
-- **Env vars** : tout dans le tableau de bord Vercel (mêmes clés que `.env`).
+- **Pooling DB** : Vercel serverless = connexions éphémères → utiliser le **pooler** (Neon/Supabase) ou PgBouncer. `DATABASE_URL` **et** `DIRECT_URL` sont désormais tous deux obligatoires : le schéma Prisma déclare `directUrl`, et `prisma validate` échoue sans lui.
+- **`prisma generate` dans le build** : `node_modules` est mis en cache, donc un `postinstall` peut être sauté alors que le schéma a changé. La commande de build le rejoue.
+- **`BUILD_STANDALONE` doit rester vide** sur Vercel : cette sortie ne sert qu'à l'image Docker de la section 4.
+- **Médias** : jamais de fichiers locaux (serverless sans disque) → **tout via S3/R2** (déjà le cas). MinIO en `localhost` ne convient pas ; il faut un stockage joignable publiquement, avec CORS pour l'envoi direct depuis le navigateur.
+- **Jobs** : Vercel n'héberge pas de worker persistant. En l'état, la seule tâche planifiée est la préparation des versements, protégée par `CRON_SECRET` — la route répond 404 sans le jeton. La fabrique d'aperçus, elle, travaille encore dans la requête.
+- **Migrations** : les faire depuis un poste ou une étape dédiée avant de basculer le trafic, jamais pendant le build — plusieurs builds parallèles joueraient la même migration.
+- **Env vars** : tout dans le tableau de bord Vercel, en distinguant les trois environnements.
 
 **Estimation coûts Vercel** : plan **Pro ~20 $/mois** + usage (bande passante, fonctions). À volume modéré, ~30-80 $/mois tout compris (hors DB/Redis/médias).
-
----
 
 ## 7. Déploiement self-hosting — Hostinger / VPS
 

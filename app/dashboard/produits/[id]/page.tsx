@@ -16,6 +16,17 @@ import {
 export const metadata = { title: "Ressource — Baobart." };
 export const dynamic = "force-dynamic";
 
+/**
+ * Cette page héberge les actions d'envoi de fichiers.
+ *
+ * Confirmer un envoi rapatrie l'image et en tire une vignette : sur une
+ * photographie de trente mégaoctets, c'est plus long que les dix secondes
+ * qu'une fonction serverless s'accorde par défaut. Le dépassement se
+ * traduirait par un fichier accepté au stockage mais jamais rattaché à la
+ * ressource.
+ */
+export const maxDuration = 60;
+
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";

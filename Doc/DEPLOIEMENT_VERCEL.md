@@ -1,0 +1,234 @@
+# Déploiement sur Vercel — mode opératoire
+
+**Août 2026 · application v1.17.0**
+
+> `SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md` décrit la stratégie et le
+> self-hosting Docker. Ce document-ci est la **procédure**, avec les valeurs qui
+> existent aujourd'hui dans le dépôt. Là où les deux divergent, c'est celui-ci
+> qui décrit le code.
+
+---
+
+## 1. Ce que le dépôt apporte déjà
+
+| Fichier | Rôle |
+|---|---|
+| `vercel.json` | framework, commandes d'installation et de build, région, ordonnanceur |
+| `.github/workflows/ci.yml` | trois jobs : qualité, intégration, migrations rejouées |
+| `.env.example` | variables **triées par ce qui est réellement lu** |
+| `app/api/cron/versements/route.ts` | le passage hebdomadaire, appelé par Vercel |
+
+### Pourquoi `buildCommand` contient `prisma generate`
+
+Le client Prisma est un paquet **généré**, pas installé. Vercel met
+`node_modules` en cache : un `postinstall` peut donc être sauté sur un
+déploiement où les dépendances n'ont pas bougé, alors que le schéma, lui, a
+changé. Le build servirait un client périmé, et l'erreur ne se verrait qu'à
+l'exécution, sur une colonne « inconnue ». Le générer dans le build le rejoue à
+chaque fois.
+
+### Pourquoi la région `cdg1`
+
+Paris est la région Vercel la plus proche de l'Afrique de l'Ouest. Mais le
+critère qui compte davantage est **la distance à la base** : une page qui fait
+six requêtes paie six allers-retours. Si la base est ailleurs, changez cette
+valeur pour coller à la base, pas à l'utilisateur.
+
+---
+
+## 2. Variables à poser dans Vercel
+
+### Indispensables — sans elles, rien ne fonctionne
+
+```env
+DATABASE_URL       # via le pooler : ?pgbouncer=true&connection_limit=1
+DIRECT_URL         # connexion directe, pour les migrations
+S3_ENDPOINT
+S3_REGION
+S3_BUCKET
+S3_ACCESS_KEY_ID
+S3_SECRET_ACCESS_KEY
+S3_FORCE_PATH_STYLE
+S3_PUBLIC_URL      # en HTTPS
+```
+
+**Deux URL de base, et ce n'est pas un doublon.** Une fonction serverless ouvre
+une connexion par invocation ; sans pooler, Postgres s'épuise à la première
+pointe de trafic. Mais un pooler en mode transaction ne sait pas jouer une
+migration — un `CREATE TYPE` suivi d'un `ALTER TABLE` doit tenir dans une seule
+session. D'où l'une pour l'application, l'autre pour les migrations.
+
+**`S3_PUBLIC_URL`, pas `CDN_URL`.** C'est bien ce nom-là que le code interroge.
+`CDN_URL` figurait dans l'ancien `.env.example` sans que rien ne le lise : le
+renseigner ne faisait rien, et les aperçus retombaient silencieusement sur
+`S3_ENDPOINT`. Le nom mort a été retiré.
+
+En HTTPS obligatoirement : une image en HTTP sur une page en HTTPS est refusée
+par le navigateur, et la grille se retrouve vide sans message d'erreur.
+
+### Pour l'ordonnanceur
+
+```env
+CRON_SECRET        # openssl rand -base64 32
+```
+
+Vercel signe ses appels de cron avec ce jeton. La route qui prépare les
+versements répond **404** à tout ce qui ne le porte pas — y compris quand le
+secret est vide. C'est délibéré : mieux vaut ne préparer aucun versement que
+laisser l'URL ouverte.
+
+### Optionnelles
+
+```env
+SLOW_QUERY_MS=200
+AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET / …   # voir lib/auth/providers.ts
+```
+
+Un fournisseur de connexion devient actif quand **toutes** ses variables sont
+renseignées ; sinon le bouton répond « Bientôt disponible ».
+
+### À ne surtout pas poser
+
+```env
+BUILD_STANDALONE=1
+```
+
+Cette sortie sert à l'image Docker. Sur Vercel, elle produit un build que la
+plateforme ne sait pas servir.
+
+### Ce qui n'aura aucun effet
+
+Paiements, courriels, Redis, IA, Sentry. Ces modules **n'existent pas**. Les
+variables restent documentées en fin de `.env.example` parce que les noms sont
+arrêtés, mais les poser dans Vercel ne branchera rien.
+
+---
+
+## 3. Stockage : MinIO ne convient pas
+
+MinIO tourne sur `localhost:9000` : Vercel ne l'atteindra jamais. Il faut un
+stockage S3-compatible joignable publiquement — Cloudflare R2, AWS S3 ou
+Supabase Storage.
+
+### Deux préfixes, deux visibilités
+
+Le code range les fichiers ainsi :
+
+```
+produits/<id>/…            privé  — ce que l'acheteur paie
+public/apercus/<id>.webp   public — la vignette de la grille
+public/extraits/<id>/…     public — l'extrait audio ou vidéo
+```
+
+Au premier envoi, l'application tente de poser une politique de lecture
+anonyme sur le seul préfixe `public/`. **R2 et certains fournisseurs refusent
+cette API** : la pose échoue en silence, par choix — un envoi ne doit pas
+échouer pour une politique. Il faut alors ouvrir l'accès public à la main, sur
+`public/*` uniquement.
+
+Vérification, une fois déployé :
+
+```bash
+curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID.webp"
+curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/produits/ID/fichier.zip"
+```
+
+Le premier doit répondre 200, le second **403**. S'il répond 200, le fichier
+vendu est téléchargeable gratuitement : arrêtez tout et corrigez la politique.
+
+### CORS
+
+Le navigateur dépose les fichiers directement sur le stockage, avec une URL
+signée. Sans CORS, l'envoi échoue :
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://votre-domaine"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
+
+`DELETE` n'est pas nécessaire : les suppressions passent par le serveur.
+
+---
+
+## 4. Migrations
+
+Vercel n'exécute pas `prisma migrate deploy`, et c'est heureux : une migration
+lancée par plusieurs instances de build en parallèle est un moyen sûr de
+corrompre un schéma.
+
+À jouer depuis un poste ou une étape de déploiement dédiée, avant de basculer
+le trafic :
+
+```bash
+pnpm db:deploy
+```
+
+Le job `migrations` de la CI rejoue toute la suite depuis une base vide à
+chaque poussée : si une migration écrite à la main casse, on l'apprend avant la
+production, pas pendant.
+
+---
+
+## 5. Limites connues du mode serverless
+
+**La fabrique d'aperçus travaille en ligne.** Confirmer un envoi rapatrie
+l'image et en tire une vignette, dans la requête. Un fichier de quarante
+mégaoctets frôle la limite de temps ; la page déclare `maxDuration = 60` pour
+s'en accommoder. La vraie réponse est une tâche de fond, qui n'existe pas
+encore.
+
+**Rien n'encaisse.** Pas de panier, pas de passage en caisse, pas de webhook de
+paiement. Une ressource gratuite se télécharge ; une ressource payante ne
+s'achète pas.
+
+**L'ordonnanceur prépare, il n'envoie pas.** Les versements sortent en état
+`CREATING`, soldes réservés. L'appel à l'opérateur mobile money n'existe pas.
+C'est sans danger : un versement `CREATING` s'annule et rend ses soldes.
+
+---
+
+## 6. Ordre des opérations
+
+1. Créer la base (Neon, Supabase, Vercel Postgres) et relever **les deux** URL.
+2. Créer le bucket, ouvrir `public/*` en lecture, poser le CORS.
+3. Poser les variables dans Vercel — les trois environnements ont leurs
+   propres valeurs ; ne faites pas pointer la préproduction sur la base de
+   production.
+4. Appliquer les migrations avec `pnpm db:deploy`.
+5. Connecter le dépôt à Vercel. `vercel.json` fournit déjà les commandes.
+6. Vérifier après le premier déploiement :
+   - la page d'accueil répond ;
+   - `/explore` affiche des cartes ;
+   - un envoi de fichier aboutit et sa vignette s'affiche ;
+   - un fichier source répond 403 en accès direct ;
+   - `/api/cron/versements` répond 404 sans le secret.
+
+---
+
+## 7. Intégration continue
+
+`ci.yml` tourne sur chaque pull request et sur `main` :
+
+| Job | Ce qu'il protège |
+|---|---|
+| `qualite` | types, style, 259 décideurs purs, build — sous deux minutes |
+| `integration` | argent, fichiers, social contre un vrai Postgres — 140 tests |
+| `migrations` | la suite rejouée depuis une base vide, puis contrôle de dérive |
+
+Les deux derniers sont séparés du premier volontairement : attendre cinq
+minutes pour apprendre qu'une virgule manque décourage de lancer la CI.
+
+Le script `db:test:setup` sert dans les deux mondes : en local il recrée la
+base via Docker, en CI il s'aperçoit qu'aucun Docker n'est joignable et se
+contente d'appliquer les migrations sur la base que le service a déjà créée.
+
+Vercel fournit de son côté les déploiements de prévisualisation sur pull
+request et la production sur `main` — il n'y a pas de workflow de déploiement à
+écrire.

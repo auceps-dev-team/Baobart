@@ -1,0 +1,161 @@
+# ============================================================================
+# Intégration continue
+#
+# Deux temps, séparés pour une raison : le premier tourne en moins de deux
+# minutes et attrape la majorité des régressions ; le second monte un Postgres
+# et exerce l'argent, les fichiers et le social contre une vraie base. Les
+# fusionner ferait attendre cinq minutes pour apprendre qu'une virgule manque.
+# ============================================================================
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Une nouvelle poussée sur la même branche annule la précédente : personne ne
+# lit le résultat d'un commit déjà remplacé.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Le client Prisma se génère à partir du schéma ; sans base joignable, les
+  # commandes qui n'en ont pas besoin doivent quand même trouver les variables.
+  DATABASE_URL: postgresql://baobart:baobart@localhost:5432/baobart_test?schema=public
+  DIRECT_URL: postgresql://baobart:baobart@localhost:5432/baobart_test?schema=public
+
+jobs:
+  qualite:
+    name: Types, style, décideurs purs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activer Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer
+        run: pnpm install --frozen-lockfile
+
+      - name: Générer le client Prisma
+        run: pnpm db:generate
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tests unitaires
+        run: pnpm test:unite
+
+      - name: Build
+        run: pnpm build
+
+  integration:
+    name: Argent, fichiers et social contre Postgres
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: baobart
+          POSTGRES_PASSWORD: baobart
+          POSTGRES_DB: baobart_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U baobart -d baobart_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL_TEST: postgresql://baobart:baobart@localhost:5432/baobart_test?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activer Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer
+        run: pnpm install --frozen-lockfile
+
+      - name: Générer le client Prisma
+        run: pnpm db:generate
+
+      # Le service Postgres a déjà créé la base ; le script s'en aperçoit et
+      # se contente d'appliquer les migrations. C'est le même script qu'en
+      # local, où il recrée la base via Docker.
+      - name: Préparer la base de test
+        run: pnpm db:test:setup
+
+      - name: Tests d'intégration
+        run: pnpm exec vitest run --project integration
+
+  # Le grand livre est protégé par des triggers Postgres, pas seulement par du
+  # TypeScript. Une migration qui les casserait passerait inaperçue si on ne
+  # rejouait jamais les migrations depuis zéro.
+  migrations:
+    name: Migrations rejouées à neuf
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: baobart
+          POSTGRES_PASSWORD: baobart
+          POSTGRES_DB: baobart_migrations
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U baobart"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://baobart:baobart@localhost:5432/baobart_migrations?schema=public
+      DIRECT_URL: postgresql://baobart:baobart@localhost:5432/baobart_migrations?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activer Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer
+        run: pnpm install --frozen-lockfile
+
+      - name: Appliquer toutes les migrations
+        run: pnpm db:deploy
+
+      # Après avoir tout rejoué, le schéma doit correspondre au fichier. Un
+      # écart signale une migration écrite à la main qu'on a oublié de
+      # répercuter — ou l'inverse.
+      - name: Vérifier qu'aucune dérive ne subsiste
+        run: pnpm exec prisma migrate status
