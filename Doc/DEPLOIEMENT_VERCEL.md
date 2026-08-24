@@ -232,3 +232,83 @@ contente d'appliquer les migrations sur la base que le service a déjà créée.
 Vercel fournit de son côté les déploiements de prévisualisation sur pull
 request et la production sur `main` — il n'y a pas de workflow de déploiement à
 écrire.
+
+---
+
+## 8. Ce qu'il reste à faire hors du dépôt
+
+Tout ce qui précède est versionné. Ce qui suit ne l'est pas, et ne peut pas
+l'être : ce sont des ressources à provisionner et des secrets à poser. Aucune
+de ces étapes n'est optionnelle — sans elles, le déploiement démarre puis
+échoue à la première requête.
+
+### 8.1 Base de données managée
+
+Créer une base chez Neon, Supabase ou Vercel Postgres, **dans la même région
+que celle déclarée dans `vercel.json`** — sinon chaque requête paie la
+traversée. Relever les deux URL : celle du pooler et la connexion directe.
+
+Ce ne sont pas deux orthographes de la même chose. Voir §2 : l'une survit au
+serverless, l'autre sait jouer une migration.
+
+### 8.2 Stockage objet joignable publiquement
+
+MinIO tourne sur `localhost` : Vercel ne l'atteindra jamais. Il faut un bucket
+S3-compatible — R2, S3 ou Supabase Storage.
+
+Trois choses à faire dessus, dans cet ordre :
+
+1. **Ouvrir `public/*` en lecture anonyme**, et rien d'autre. L'application
+   tente de poser la politique elle-même, mais certains fournisseurs refusent
+   cette API ; l'échec est silencieux par choix (§3).
+2. **Poser le CORS** (§3) : sans lui, le navigateur ne peut pas déposer les
+   fichiers, et l'envoi échoue sans message clair.
+3. **Vérifier la frontière**, une fois déployé :
+
+```bash
+curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID.webp"
+curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/produits/ID/fichier.zip"
+```
+
+`200` puis `403`. Si le second répond `200`, **ce qui est vendu est
+téléchargeable gratuitement** : c'est la seule erreur de cette liste qui coûte
+de l'argent aux créateurs. À vérifier avant d'annoncer l'ouverture.
+
+### 8.3 Secret de l'ordonnanceur
+
+```bash
+openssl rand -base64 32
+```
+
+À poser en `CRON_SECRET` chez Vercel. Sans lui la route répond 404 à tout le
+monde, y compris à Vercel : aucun versement ne serait préparé, et rien ne le
+signalerait — le cycle passerait simplement sans rien faire.
+
+### 8.4 Migrations, avant de basculer le trafic
+
+```bash
+pnpm db:deploy
+```
+
+Depuis un poste ou une étape dédiée, **jamais pendant le build** : plusieurs
+builds parallèles joueraient la même migration.
+
+Attention au piège : `prisma migrate deploy` lit `DIRECT_URL` et **ignore**
+`DATABASE_URL`. Vérifiez laquelle est chargée avant de lancer la commande —
+c'est elle qui décide de la base migrée, et une erreur ici s'applique
+directement en production.
+
+### 8.5 Vérification de bout en bout
+
+Une fois en ligne, dérouler le parcours complet avec un compte réel :
+
+```
+inscription → création d'une ressource → envoi du fichier source →
+envoi de l'aperçu → publication → apparition dans la grille →
+téléchargement d'une ressource gratuite → historique des téléchargements
+```
+
+Ce parcours est celui qui fonctionne aujourd'hui de bout en bout. Il n'inclut
+pas d'achat : le passage en caisse n'existe pas (§5). Une ressource payante se
+publie et s'affiche, mais ne s'achète pas — c'est le prochain chantier, pas un
+défaut de configuration.
