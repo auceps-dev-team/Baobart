@@ -188,7 +188,15 @@ export function Panneau({
   );
 }
 
-export function PastilleEtat({ gravite }: { gravite: Gravite }) {
+export function PastilleEtat({
+  gravite,
+  texte,
+}: {
+  gravite: Gravite;
+  /** Remplace le mot par défaut — « ENVOYÉ » plutôt que « OK ». La couleur,
+   *  elle, reste celle de la gravité : c'est le code que l'œil apprend. */
+  texte?: string;
+}) {
   const t: TonGravite = TON[gravite];
   return (
     <span
@@ -207,8 +215,94 @@ export function PastilleEtat({ gravite }: { gravite: Gravite }) {
         whiteSpace: "nowrap",
       }}
     >
-      {t.mot}
+      {texte ?? t.mot}
     </span>
+  );
+}
+
+export interface CompteurAffiche {
+  cle: string;
+  libelle: string;
+  valeur: string;
+  note: string;
+  gravite: Gravite;
+}
+
+/**
+ * Les chiffres de tête.
+ *
+ * Le point coloré porte la gravité, pas le fond de la carte : quatre cartes
+ * orange côte à côte ne se distinguent plus, et l'œil ne sait plus laquelle
+ * regarder en premier.
+ */
+export function Compteurs({ liste }: { liste: CompteurAffiche[] }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit,minmax(215px,1fr))",
+        gap: 16,
+      }}
+    >
+      {liste.map((c) => (
+        <div
+          key={c.cle}
+          style={{
+            border: CADRE,
+            borderRadius: 20,
+            boxShadow: `5px 5px 0 ${ENCRE}`,
+            padding: 18,
+            background: "#FFFFFF",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div
+              aria-hidden
+              style={{
+                width: 11,
+                height: 11,
+                flex: "0 0 auto",
+                border: `2px solid ${ENCRE}`,
+                borderRadius: 99,
+                background: TON[c.gravite].pastilleFond,
+              }}
+            />
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10.5,
+                textTransform: "uppercase",
+                letterSpacing: ".1em",
+                opacity: 0.75,
+              }}
+            >
+              {c.libelle}
+            </div>
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 32,
+              lineHeight: 1.05,
+              marginTop: 9,
+            }}
+          >
+            {c.valeur}
+          </div>
+          <div
+            style={{
+              fontSize: 12.5,
+              fontWeight: 700,
+              lineHeight: 1.35,
+              marginTop: 5,
+              opacity: 0.78,
+            }}
+          >
+            {c.note}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

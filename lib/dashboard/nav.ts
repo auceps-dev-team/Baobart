@@ -128,6 +128,12 @@ const ADMINISTRATION: EntreeNav[] = [
     glyph: "◧",
     href: "/dashboard/systeme/configuration",
   },
+  {
+    cle: "a_sys_emails",
+    label: "Système · Emails",
+    glyph: "✉",
+    href: "/dashboard/systeme/emails",
+  },
 ];
 
 export function navigationPour(
