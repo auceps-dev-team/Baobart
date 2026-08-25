@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.19.0",
+  "version": "1.20.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -21,6 +21,7 @@
     "test:unite": "vitest run --project unite",
     "db:test:setup": "node scripts/setup-test-db.mjs",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "admin:promouvoir": "node scripts/promouvoir-admin.mjs",
     "versements": "tsx --conditions=react-server --env-file=.env scripts/versements-du-cycle.ts"
   },
   "prisma": {

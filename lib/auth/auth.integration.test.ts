@@ -15,6 +15,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { hacherMotDePasse, verifierMotDePasse } from "@/lib/auth/password";
+import { estAdministrateur } from "@/lib/auth/administration";
 import { progressionDe } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import {
@@ -329,5 +330,59 @@ describe("durée de vie d'une session", () => {
 
     expect(await resoudreSession(telephone)).toBeNull();
     expect(await resoudreSession(bureau)).toBeNull();
+  });
+});
+
+describe("rôle sur la plateforme", () => {
+  it("sort MEMBER par défaut — l'administration ne s'attrape pas à l'inscription", async () => {
+    const compte = await creerCompte("neuf@baobart.test", "compte-neuf");
+    const jeton = await ouvrirSessionBrute(compte.id);
+
+    const session = await resoudreSession(jeton);
+    expect(session?.role).toBe("MEMBER");
+    expect(estAdministrateur(session!.role)).toBe(false);
+  });
+
+  it("porte le rôle accordé en base", async () => {
+    const compte = await creerCompte("admin@baobart.test", "compte-admin");
+    await db.user.update({
+      where: { id: compte.id },
+      data: { platformRole: "ADMIN" },
+    });
+    const jeton = await ouvrirSessionBrute(compte.id);
+
+    const session = await resoudreSession(jeton);
+    expect(session?.role).toBe("ADMIN");
+    expect(estAdministrateur(session!.role)).toBe(true);
+  });
+
+  it("ne confond pas le pouvoir sur la plateforme avec la progression du compte", async () => {
+    // Publier des ressources ouvre l'atelier, jamais l'administration : les
+    // deux notions se lisent à des endroits différents et doivent le rester.
+    const compte = await creerCompte("vendeur@baobart.test", "compte-vendeur");
+    const jeton = await ouvrirSessionBrute(compte.id);
+
+    const session = await resoudreSession(jeton);
+    expect(session?.role).toBe("MEMBER");
+  });
+
+  it("retire l'accès dès la rétrogradation, sans attendre l'expiration du jeton", async () => {
+    const compte = await creerCompte("dechu@baobart.test", "compte-dechu");
+    await db.user.update({
+      where: { id: compte.id },
+      data: { platformRole: "SUPER_ADMIN" },
+    });
+    const jeton = await ouvrirSessionBrute(compte.id);
+    expect((await resoudreSession(jeton))?.role).toBe("SUPER_ADMIN");
+
+    await db.user.update({
+      where: { id: compte.id },
+      data: { platformRole: "MEMBER" },
+    });
+
+    // Le jeton reste valable — c'est le rôle qui est relu à chaque résolution.
+    const apres = await resoudreSession(jeton);
+    expect(apres?.role).toBe("MEMBER");
+    expect(estAdministrateur(apres!.role)).toBe(false);
   });
 });

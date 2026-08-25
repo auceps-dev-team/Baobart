@@ -297,6 +297,35 @@ que la question soit posée.
 
 ---
 
+## 7 ter. Nommer un administrateur
+
+Aucun écran ne le fait, et c'est délibéré : un formulaire capable d'élever un
+compte est une cible — il suffit d'une faille d'autorisation pour que
+n'importe qui devienne super administrateur. La promotion exige donc un accès
+à la base, que quelqu'un de malveillant n'a par définition pas.
+
+```bash
+pnpm admin:promouvoir untel@exemple.com ADMIN
+```
+
+Trois rôles : `MEMBER` (le défaut), `ADMIN` (consulte et agit) et `SUPER_ADMIN`
+(distribue les pouvoirs). Un compte d'astreinte doit pouvoir lire un diagnostic
+à trois heures du matin sans pouvoir, du même geste, se nommer super
+administrateur.
+
+La commande **ferme toutes les sessions** du compte touché. Une rétrogradation
+qui mettrait trente jours à prendre effet n'en serait pas une.
+
+L'espace d'administration répond **404** à qui n'y a pas droit — y compris à un
+membre connecté. « Accès refusé » confirmerait qu'il y a quelque chose à forcer.
+
+Un seul écran existe aujourd'hui : `/dashboard/systeme/configuration`, qui
+répond à « le déploiement ne marche pas, pourquoi ». Il classe chaque
+dépendance — base, stockage, connexion, interrupteurs — en OK / À VOIR /
+PANNE, et dit quoi faire quand il y a quelque chose à faire.
+
+---
+
 ## 8. Ce qu'il reste à faire hors du dépôt
 
 Tout ce qui précède est versionné. Ce qui suit ne l'est pas, et ne peut pas

@@ -50,6 +50,16 @@ enum UserRiskState {
   SUSPENDED_TOS
 }
 
+/// Pouvoir sur la plateforme elle-même — sans rapport avec le chemin
+/// acheteur → créateur, qui se déduit de l'activité (voir lib/auth/roles.ts).
+/// Un créateur chevronné reste MEMBER ; l'administration ne se mérite pas à
+/// l'usage, elle s'accorde.
+enum PlatformRole {
+  MEMBER
+  ADMIN
+  SUPER_ADMIN
+}
+
 enum KycStatus {
   NONE
   PENDING
@@ -305,6 +315,14 @@ model User {
   passwordHash    String?
   riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
   kycStatus       KycStatus     @default(NONE)
+
+  /// Accès à l'administration de la plateforme.
+  ///
+  /// Par défaut MEMBER, et aucun écran ne permet de s'élever : la promotion
+  /// passe par `pnpm admin:promouvoir`, donc par quelqu'un qui a déjà la main
+  /// sur la base. Une faille dans un formulaire de profil ne doit jamais
+  /// pouvoir se terminer en accès administrateur.
+  platformRole    PlatformRole  @default(MEMBER)
   /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
   /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
   refundsDisabled Boolean       @default(false)
@@ -381,6 +399,7 @@ model User {
   riskStateChanges RiskStateChange[]
 
   @@index([riskState])
+  @@index([platformRole])
   @@index([createdAt, id])
 }
 
@@ -894,6 +913,8 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@index([state, createdAt])
+  /// Les litiges ouverts se balayent par cette colonne (livraison, supervision).
+  @@index([chargebackAt])
 }
 
 /// Un remboursement est un ENREGISTREMENT, pas un statut (vérifié : `refunded`
@@ -1035,6 +1056,8 @@ model Payout {
 
   @@index([userId, status])
   @@index([status, scheduledDate])
+  /// Réconciliation : retrouver un versement depuis la référence de l'opérateur.
+  @@index([providerRef])
 }
 
 model MobileMoneyAccount {

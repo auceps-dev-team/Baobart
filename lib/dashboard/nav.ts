@@ -114,7 +114,43 @@ const RAISON_ATELIER =
   "Disponible dès que tu déposes un premier produit, même en brouillon.";
 const RAISON_BOUTIQUE = "Disponible une fois ton premier produit publié.";
 
-export function navigationPour(etape: EtapeCompte): Groupe[] {
+/**
+ * Entrées réservées à l'administration de la plateforme.
+ *
+ * La maquette en prévoit quinze ; seules celles dont l'écran existe figurent
+ * ici. Une entrée de menu qui mène à une page vide coûte plus cher qu'une
+ * entrée absente : elle donne à croire que la fonction existe.
+ */
+const ADMINISTRATION: EntreeNav[] = [
+  {
+    cle: "a_configuration",
+    label: "Configuration",
+    glyph: "⚙",
+    href: "/dashboard/systeme/configuration",
+  },
+];
+
+export function navigationPour(
+  etape: EtapeCompte,
+  /**
+   * Rien par défaut : un appelant qui oublie ce paramètre n'expose pas
+   * l'administration par inadvertance.
+   */
+  administrateur = false,
+): Groupe[] {
+  const admin: Groupe[] = administrateur
+    ? [
+        {
+          titre: "Plateforme",
+          entrees: ADMINISTRATION.map((e) => ({
+            ...e,
+            actif: true,
+            raisonVerrou: null,
+          })),
+        },
+      ]
+    : [];
+
   const acheteur: EntreeNavRendue[] = ACHETEUR.map((e) => ({
     ...e,
     actif: true,
@@ -130,6 +166,7 @@ export function navigationPour(etape: EtapeCompte): Groupe[] {
         titre: "Vendre",
         entrees: [{ ...PORTE_CREATION, actif: true, raisonVerrou: null }],
       },
+      ...admin,
     ];
   }
 
@@ -151,6 +188,7 @@ export function navigationPour(etape: EtapeCompte): Groupe[] {
   return [
     { titre: null, entrees: acheteur },
     { titre: "Ma boutique", entrees: createur },
+    ...admin,
   ];
 }
 

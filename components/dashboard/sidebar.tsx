@@ -28,14 +28,17 @@ export function DashboardSidebar({
   nom,
   email,
   actif,
+  administrateur = false,
 }: {
   etape: EtapeCompte;
   nom: string;
   email: string;
   /** Clé de l'écran ouvert, pour le marquer dans la liste. */
   actif?: string;
+  /** Ajoute le groupe « Plateforme ». Faux par défaut, pour ne rien exposer par oubli. */
+  administrateur?: boolean;
 }) {
-  const groupes = navigationPour(etape);
+  const groupes = navigationPour(etape, administrateur);
 
   return (
     <aside

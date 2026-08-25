@@ -5,6 +5,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 
 import { db } from "@/lib/db";
+import type { RolePlateforme } from "@/lib/auth/administration";
 import { deduireProgression, type Progression } from "@/lib/auth/roles";
 
 /**
@@ -35,6 +36,11 @@ export interface UtilisateurConnecte {
   abonnes: number;
   /** Où en est le compte sur le chemin acheteur → créateur. */
   progression: Progression;
+  /**
+   * Pouvoir sur la plateforme. Sans rapport avec `progression` : un créateur
+   * chevronné reste MEMBER tant qu'on ne l'a pas nommé.
+   */
+  role: RolePlateforme;
 }
 
 /** Ouvre une session et pose le cookie. */
@@ -90,6 +96,7 @@ export async function resoudreSession(
         select: {
           id: true,
           email: true,
+          platformRole: true,
           suspendedAt: true,
           followersCount: true,
           profile: { select: { displayName: true, username: true } },
@@ -127,6 +134,7 @@ export async function resoudreSession(
     nom: session.user.profile?.displayName ?? session.user.email,
     username: session.user.profile?.username ?? null,
     abonnes: session.user.followersCount,
+    role: session.user.platformRole,
     progression: deduireProgression({
       produits: session.user._count.products,
       produitsPublies,
