@@ -132,7 +132,7 @@ export function Feed({
       >
         <h2
           style={{
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: "clamp(28px,4vw,44px)",
             letterSpacing: "-1.5px",
             margin: 0,
@@ -153,7 +153,7 @@ export function Feed({
         >
           <span
             style={{
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 11,
               textTransform: "uppercase",
               letterSpacing: ".1em",
@@ -184,7 +184,7 @@ export function Feed({
           ))}
           <span
             style={{
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 12,
               opacity: 0.6,
               marginLeft: 8,

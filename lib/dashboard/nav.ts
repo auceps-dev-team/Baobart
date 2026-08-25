@@ -123,9 +123,9 @@ const RAISON_BOUTIQUE = "Disponible une fois ton premier produit publié.";
  */
 const ADMINISTRATION: EntreeNav[] = [
   {
-    cle: "a_configuration",
-    label: "Configuration",
-    glyph: "⚙",
+    cle: "a_sys_config",
+    label: "Système · Configuration",
+    glyph: "◧",
     href: "/dashboard/systeme/configuration",
   },
 ];

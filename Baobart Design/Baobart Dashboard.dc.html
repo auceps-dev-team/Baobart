@@ -82,7 +82,205 @@
     </div>
 
     <div data-scroll="1" style="flex:1 1 auto; padding:26px; display:flex; flex-direction:column; gap:20px">
+
+      <!-- BANDEAU DE GRAVITE -->
+      <sc-if value="{{ page.hasBanner }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:20px 22px; border:2.5px solid #121212; border-radius:22px; box-shadow:6px 6px 0 #121212; background:{{ page.banner.bg }}; color:{{ page.banner.fg }}">
+          <div style="width:46px; height:46px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:{{ page.banner.dot }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:20px; color:#121212">{{ page.banner.glyph }}</div>
+          <div style="flex:1 1 260px; min-width:0">
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.14em; opacity:.7">{{ page.banner.kicker }}</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(19px,2.1vw,26px); line-height:1.1; letter-spacing:-.7px; margin-top:5px">{{ page.banner.text }}</div>
+          </div>
+          <div style="flex:0 0 auto; display:flex; flex-wrap:wrap; gap:9px">
+            <sc-for list="{{ page.banner.chips }}" as="c" hint-placeholder-count="2">
+              <div style="padding:8px 14px; border:2.5px solid #121212; border-radius:999px; background:{{ c.bg }}; color:#121212; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase">{{ c.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
       <div style="font-size:15px; font-weight:600; opacity:.75; max-width:760px; text-wrap:pretty">{{ page.intro }}</div>
+
+      <!-- COMPTEURS DE SUPERVISION -->
+      <sc-if value="{{ page.hasCounters }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:16px">
+          <sc-for list="{{ page.counters }}" as="c" hint-placeholder-count="4">
+            <div style="border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; padding:18px; background:{{ c.bg }}; color:{{ c.fg }}">
+              <div style="display:flex; align-items:center; gap:9px">
+                <div style="width:11px; height:11px; flex:0 0 auto; border:2px solid #121212; border-radius:99px; background:{{ c.dot }}"></div>
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.75">{{ c.label }}</div>
+              </div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:32px; line-height:1.05; margin-top:9px">{{ c.value }}</div>
+              <div style="font-size:12.5px; font-weight:700; line-height:1.35; margin-top:5px; opacity:.78">{{ c.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- CONSTATS / DEPENDANCES -->
+      <sc-if value="{{ page.hasChecks }}" hint-placeholder-val="{{ false }}">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:12px">
+            <div style="font-size:16px; font-weight:800; flex:1 1 auto">{{ page.checksTitle }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">relu à chaque affichage · aucune mise en cache</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px">
+            <sc-for list="{{ page.checks }}" as="c" hint-placeholder-count="5">
+              <div style="display:flex; gap:14px; padding:15px; border:2.5px solid #121212; border-radius:18px; background:{{ c.rowBg }}">
+                <div style="flex:0 0 auto; padding:6px 13px; border:2px solid #121212; border-radius:999px; background:{{ c.pillBg }}; color:{{ c.pillFg }}; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.08em; align-self:flex-start">{{ c.state }}</div>
+                <div style="flex:1 1 auto; min-width:0">
+                  <div style="font-size:14.5px; font-weight:800">{{ c.label }}</div>
+                  <div style="font-size:13.5px; font-weight:500; line-height:1.45; margin-top:4px; opacity:.82; text-wrap:pretty">{{ c.detail }}</div>
+                  <sc-if value="{{ c.hasFix }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; gap:9px; align-items:flex-start; margin-top:10px; padding:10px 13px; border:2px solid #121212; border-radius:13px; background:#FFFFFF">
+                      <div style="flex:0 0 auto; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.1em; padding-top:2px; opacity:.6">REMÈDE</div>
+                      <div style="font-size:13px; font-weight:700; line-height:1.4">{{ c.fix }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- LISTE PLATE -->
+      <sc-if value="{{ page.hasPlain }}" hint-placeholder-val="{{ false }}">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#EADFF9; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="font-size:16px; font-weight:800">{{ page.plain.title }}</div>
+          <div style="font-size:13.5px; font-weight:500; line-height:1.5; margin-top:7px; max-width:720px; opacity:.82; text-wrap:pretty">{{ page.plain.text }}</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px">
+            <sc-for list="{{ page.plain.items }}" as="i" hint-placeholder-count="5">
+              <div style="padding:10px 16px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13.5px; font-weight:700">{{ i }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TABLEAU DE SUPERVISION -->
+      <sc-if value="{{ page.hasTable }}" hint-placeholder-val="{{ false }}">
+        <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center">
+            <div style="font-size:16px; font-weight:800; flex:1 1 auto">{{ page.table.title }}</div>
+            <input placeholder="{{ page.table.searchPh }}" style="flex:0 1 230px; min-width:0; font-family:Poppins,sans-serif; font-size:12.5px; font-weight:500; padding:9px 13px; border:2.5px solid #121212; border-radius:12px; background:#F4EEFC; outline:none" />
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:9px; margin-top:14px">
+            <sc-for list="{{ page.table.filters }}" as="f" hint-placeholder-count="4">
+              <div onClick="{{ f.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+            </sc-for>
+          </div>
+          <div style="overflow-x:auto; margin-top:16px">
+            <div style="min-width:940px">
+              <div style="display:flex; gap:12px; padding:0 14px 10px; border-bottom:2.5px solid #121212">
+                <sc-for list="{{ page.table.cols }}" as="c" hint-placeholder-count="7">
+                  <div style="flex:{{ c.flex }}; min-width:0; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">{{ c.label }}</div>
+                </sc-for>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:9px; margin-top:11px">
+                <sc-for list="{{ page.table.rows }}" as="r" hint-placeholder-count="6">
+                  <div onClick="{{ r.open }}" style="display:flex; gap:12px; align-items:center; padding:13px 14px; border:2.5px solid #121212; border-radius:15px; cursor:pointer; background:{{ r.bg }}" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212">
+                    <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="7">
+                      <div style="flex:{{ c.flex }}; min-width:0">
+                        <sc-if value="{{ c.isPill }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:inline-block; padding:5px 11px; border:2px solid #121212; border-radius:999px; background:{{ c.pillBg }}; color:{{ c.pillFg }}; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; white-space:nowrap">{{ c.v }}</div>
+                        </sc-if>
+                        <sc-if value="{{ c.isText }}" hint-placeholder-val="{{ true }}">
+                          <div style="font-family:{{ c.family }}; font-size:12.5px; font-weight:{{ c.weight }}; line-height:1.35; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:{{ c.dim }}">{{ c.v }}</div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:16px; padding-top:14px; border-top:2.5px solid #121212">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; flex:1 1 auto; opacity:.6">{{ page.table.footer }}</div>
+            <sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-wrap:wrap; gap:10px">
+                <sc-for list="{{ page.table.actions }}" as="a" hint-placeholder-count="2">
+                  <div style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-1px,-1px); box-shadow:4px 4px 0 #121212">{{ a.label }}</div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ readerOnly }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 16px; border:2.5px dashed #121212; border-radius:13px; background:#F4EEFC; font-size:12.5px; font-weight:700">Lecture seule — le pouvoir <span style="font-family:'Space Mono',monospace">agir_sur_l_exploitation</span> est requis pour agir.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- DETAIL D'UNE LIGNE -->
+      <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="position:fixed; inset:0; z-index:60; background:rgba(18,18,18,.5); display:flex; justify-content:flex-end">
+          <div style="width:min(560px,94vw); height:100%; background:#EADFF9; border-left:3px solid #121212; padding:22px; overflow:auto">
+            <div style="display:flex; align-items:flex-start; gap:12px">
+              <div style="flex:1 1 auto; min-width:0">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">{{ detail.kicker }}</div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:24px; line-height:1.1; letter-spacing:-.9px; margin-top:5px; text-transform:uppercase">{{ detail.title }}</div>
+              </div>
+              <div onClick="{{ closeDetail }}" style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer">✕</div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:9px; margin-top:18px; padding:16px; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF">
+              <sc-for list="{{ detail.fields }}" as="f" hint-placeholder-count="5">
+                <div style="display:flex; gap:12px; align-items:baseline">
+                  <div style="flex:0 0 132px; font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; opacity:.6">{{ f.k }}</div>
+                  <div style="flex:1 1 auto; min-width:0; font-size:13.5px; font-weight:700; line-height:1.4; word-break:break-word">{{ f.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ detail.hasError }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:14px; padding:16px; border:2.5px solid #121212; border-radius:18px; background:#E2622C; color:#FFFFFF">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.8">Erreur complète</div>
+                <div style="font-family:'Space Mono',monospace; font-size:12px; line-height:1.5; margin-top:9px; word-break:break-word">{{ detail.error }}</div>
+              </div>
+            </sc-if>
+
+            <div style="margin-top:14px; padding:16px; border:2.5px solid #121212; border-radius:18px; background:#121212; color:#FFFFFF">
+              <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:10px">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; flex:1 1 auto; opacity:.7">{{ detail.payloadLabel }}</div>
+                <div style="padding:4px 10px; border:2px solid #FFFFFF; border-radius:999px; font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.08em">SECRETS CAVIARDÉS</div>
+              </div>
+              <pre style="font-family:'Space Mono',monospace; font-size:11.5px; line-height:1.55; margin:11px 0 0; white-space:pre-wrap; word-break:break-word">{{ detail.payload }}</pre>
+            </div>
+
+            <div style="margin-top:14px; padding:16px; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF">
+              <div style="font-size:14.5px; font-weight:800">{{ detail.historyLabel }}</div>
+              <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px">
+                <sc-for list="{{ detail.history }}" as="h" hint-placeholder-count="3">
+                  <div style="display:flex; gap:12px; align-items:center; padding:11px 13px; border:2px solid #121212; border-radius:13px; background:#F4EEFC">
+                    <div style="flex:0 0 auto; padding:4px 10px; border:2px solid #121212; border-radius:999px; background:{{ h.bg }}; color:{{ h.fg }}; font-family:'Space Mono',monospace; font-size:10px; font-weight:700">{{ h.tag }}</div>
+                    <div style="flex:1 1 auto; min-width:0; font-size:12.5px; font-weight:700; line-height:1.35">{{ h.text }}</div>
+                    <div style="flex:0 0 auto; font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ h.at }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-wrap:wrap; gap:11px; margin-top:16px">
+                <sc-for list="{{ detail.actions }}" as="a" hint-placeholder-count="2">
+                  <div style="flex:1 1 180px; padding:15px; border:2.5px solid #121212; border-radius:15px; background:{{ a.bg }}; box-shadow:4px 4px 0 #121212; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ a.label }}</div>
+                </sc-for>
+              </div>
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; margin-top:12px; opacity:.65; line-height:1.5">{{ detail.actionNote }}</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- PIED DE PAGE SYSTEME -->
+      <sc-if value="{{ page.hasFoot }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:18px 20px; border:2.5px solid #121212; border-radius:20px; background:#FFFFFF">
+          <div style="flex:1 1 260px; min-width:0">
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">{{ page.foot.label }}</div>
+            <div style="font-size:14px; font-weight:800; margin-top:4px">{{ page.foot.who }}</div>
+          </div>
+          <div style="flex:2 1 340px; min-width:0; font-size:13px; font-weight:600; line-height:1.45; opacity:.8; text-wrap:pretty">{{ page.foot.note }}</div>
+        </div>
+      </sc-if>
 
       <!-- KPI -->
       <sc-if value="{{ page.hasKpis }}" hint-placeholder-val="{{ true }}">
@@ -284,7 +482,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;acheteur&quot;,&quot;createur&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;acheteur&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rôle&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;acheteur&quot;,&quot;createur&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;acheteur&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rôle&quot;},&quot;lectureSeule&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Écrans système&quot;}}">
 const stripe = (base, s, w) => `repeating-linear-gradient(135deg, ${s} 0 ${w || 8}px, ${base} ${w || 8}px ${(w || 8) * 2 + 2}px)`;
 const LAV = "#EADFF9", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", INK = "#121212", W = "#FFFFFF";
 
@@ -331,8 +529,139 @@ const NAV = {
     { key: "a_taxonomie", label: "Catégories & tags", glyph: "☍" },
     { key: "a_equipe", label: "Équipe & rôles", glyph: "◍" },
     { key: "a_journal", label: "Journal d'activité", glyph: "▲" },
-    { key: "a_reglages", label: "Réglages plateforme", glyph: "⚙" }
+    { key: "a_reglages", label: "Réglages plateforme", glyph: "⚙" },
+    { key: "a_sys_config", label: "Système · Configuration", glyph: "◧" },
+    { key: "a_sys_emails", label: "Système · Emails", glyph: "✉", badge: true, badgeLabel: "1" },
+    { key: "a_sys_paiements", label: "Système · Paiements", glyph: "◎", badge: true, badgeLabel: "3" }
   ]
+};
+
+const SEV = {
+  ok: { pillBg: W, pillFg: INK, rowBg: "#F4EEFC", state: "OK", dot: W },
+  attention: { pillBg: YEL, pillFg: INK, rowBg: "#FFFBEB", state: "À VOIR", dot: YEL },
+  panne: { pillBg: ORA, pillFg: W, rowBg: "#FFF1EA", state: "PANNE", dot: ORA }
+};
+
+const BANNERS = {
+  ok: { bg: W, fg: INK, dot: W, glyph: "✓", kicker: "Gravité globale · OK", text: "Tout ce qui est livré fonctionne." },
+  attention: { bg: YEL, fg: INK, dot: W, glyph: "!", kicker: "Gravité globale · À VOIR", text: "La plateforme sert, mais quelque chose mérite un regard." },
+  panne: { bg: ORA, fg: W, dot: YEL, glyph: "✕", kicker: "Gravité globale · PANNE", text: "Quelque chose d'essentiel ne fonctionne pas." }
+};
+
+const cell = (v, flex, opts) => Object.assign({ v: v, flex: String(flex), isText: true, isPill: false, family: "Poppins,sans-serif", weight: "600", dim: "1" }, opts || {});
+const mono = (v, flex, dim) => cell(v, flex, { family: "'Space Mono',monospace", weight: "400", dim: dim || ".7" });
+const pill = (v, flex, sev) => ({ v: v, flex: String(flex), isPill: true, isText: false, pillBg: sev.pillBg, pillFg: sev.pillFg });
+
+const EMAIL_ROWS = [
+  { at: "25 août 2026, 09:41", tpl: "RECU_ACHAT", to: "dev.team@auceps.digital", st: "ENVOYE", sev: "ok", tries: "1 / 5", next: "—", err: "—",
+    payload: '{\n  "commande": "10428",\n  "montant": "8 000 F",\n  "articles": 2,\n  "lien": "«caviardé»",\n  "destinataire": "dev.team@auceps.digital"\n}',
+    history: [{ tag: "1", text: "Envoyé par resend", at: "09:41" }] },
+  { at: "25 août 2026, 09:12", tpl: "LIEN_TELECHARGEMENT", to: "marie.bamba@gmail.com", st: "EN_COURS", sev: "attention", tries: "1 / 5", next: "—", err: "—",
+    payload: '{\n  "achat": "A-88214",\n  "fichier": "portrait-wax-editorial.zip",\n  "url_signee": "«caviardé»",\n  "expire_dans": "3600 s"\n}',
+    history: [{ tag: "1", text: "Pris par le passage, pas encore rendu", at: "09:12" }] },
+  { at: "25 août 2026, 08:58", tpl: "AVIS_VERSEMENT", to: "awa.diallo@studio.sn", st: "EN_ATTENTE", sev: "attention", tries: "0 / 5", next: "25 août, 09:50", err: "—",
+    payload: '{\n  "beneficiaire": "Awa Diallo",\n  "periode": "juillet 2026",\n  "montant": "249 600 F",\n  "canal": "Wave",\n  "reference": "«caviardé»"\n}',
+    history: [{ tag: "0", text: "Intention écrite par le versement mensuel", at: "08:58" }] },
+  { at: "25 août 2026, 03:14", tpl: "RECU_ACHAT", to: "contact@ancienne-adresse.ci", st: "ECHOUE", sev: "panne", tries: "5 / 5", next: "—", err: "550 5.1.1 recipient address rejected: user unknown in virtual mailbox table",
+    payload: '{\n  "commande": "10391",\n  "montant": "10 000 F",\n  "articles": 1,\n  "lien": "«caviardé»",\n  "destinataire": "contact@ancienne-adresse.ci"\n}',
+    history: [{ tag: "1", text: "Échec · adresse rejetée", at: "03:14" }, { tag: "3", text: "Échec après attente exponentielle", at: "04:02" }, { tag: "5", text: "Abandon des tentatives automatiques", at: "06:30" }] },
+  { at: "24 août 2026, 22:07", tpl: "LIEN_TELECHARGEMENT", to: "grace.dembele@lome.tg", st: "ENVOYE", sev: "ok", tries: "2 / 5", next: "—", err: "—",
+    payload: '{\n  "achat": "A-88190",\n  "fichier": "font-sahel-mono.zip",\n  "url_signee": "«caviardé»",\n  "expire_dans": "3600 s"\n}',
+    history: [{ tag: "1", text: "Échec temporaire · délai dépassé", at: "22:05" }, { tag: "2", text: "Envoyé par resend", at: "22:07" }] },
+  { at: "24 août 2026, 19:33", tpl: "AVIS_VERSEMENT", to: "studio@teranga.sn", st: "ENVOYE", sev: "ok", tries: "1 / 5", next: "—", err: "—",
+    payload: '{\n  "beneficiaire": "Studio Teranga",\n  "periode": "juillet 2026",\n  "montant": "230 000 F",\n  "canal": "virement",\n  "reference": "«caviardé»"\n}',
+    history: [{ tag: "1", text: "Envoyé par resend", at: "19:33" }] }
+];
+
+const PAY_ROWS = [
+  { at: "25 août 2026, 09:40", prov: "Wave", type: "paiement.abouti", ref: "WV-8841-2261", sig: "valide", sigSev: "ok", st: "TRAITE", sev: "ok", cmd: "#10428", tries: "1",
+    payload: '{\n  "event": "payment.succeeded",\n  "provider_ref": "WV-8841-2261",\n  "amount": 8000,\n  "currency": "XOF",\n  "customer_msisdn": "«caviardé»",\n  "signature": "«caviardé»",\n  "received_at": "2026-08-25T09:40:12Z"\n}',
+    history: [{ tag: "1", text: "Signature vérifiée, commande rapprochée", at: "09:40" }] },
+  { at: "25 août 2026, 09:40", prov: "Wave", type: "paiement.abouti", ref: "WV-8841-2261", sig: "valide", sigSev: "ok", st: "IGNORE_DOUBLON", sev: "neutre", cmd: "#10428", tries: "1",
+    payload: '{\n  "event": "payment.succeeded",\n  "provider_ref": "WV-8841-2261",\n  "amount": 8000,\n  "currency": "XOF",\n  "signature": "«caviardé»",\n  "received_at": "2026-08-25T09:41:03Z"\n}',
+    history: [{ tag: "1", text: "Doublon refusé proprement — comportement normal", at: "09:41" }] },
+  { at: "25 août 2026, 08:22", prov: "CinetPay", type: "litige.ouvert", ref: "CP-77120-A", sig: "valide", sigSev: "ok", st: "RECU", sev: "attention", cmd: "#10391", tries: "0",
+    payload: '{\n  "event": "dispute.opened",\n  "provider_ref": "CP-77120-A",\n  "amount": 10000,\n  "reason": "product_not_received",\n  "deadline": "2026-09-04",\n  "signature": "«caviardé»"\n}',
+    history: [{ tag: "0", text: "Reçu, en attente d'arbitrage humain", at: "08:22" }] },
+  { at: "25 août 2026, 06:11", prov: "Orange Money", type: "paiement.abouti", ref: "OM-4471-9903", sig: "invalide", sigSev: "panne", st: "ECHEC", sev: "panne", cmd: "—", tries: "1",
+    payload: '{\n  "event": "payment.succeeded",\n  "provider_ref": "OM-4471-9903",\n  "amount": 250000,\n  "currency": "XOF",\n  "signature": "«caviardé»",\n  "source_ip": "«caviardé»"\n}',
+    err: "Signature HMAC non conforme au secret partagé Orange Money. Aucune commande correspondante. Origine probable : tentative de faire croire à un paiement.",
+    history: [{ tag: "1", text: "Signature refusée — aucun effet appliqué", at: "06:11" }] },
+  { at: "25 août 2026, 05:48", prov: "Wave", type: "paiement.echoue", ref: "WV-8839-7714", sig: "valide", sigSev: "ok", st: "TRAITE", sev: "ok", cmd: "#10422", tries: "1",
+    payload: '{\n  "event": "payment.failed",\n  "provider_ref": "WV-8839-7714",\n  "amount": 5000,\n  "failure_code": "insufficient_funds",\n  "signature": "«caviardé»"\n}',
+    history: [{ tag: "1", text: "Commande laissée en attente de paiement", at: "05:48" }] },
+  { at: "24 août 2026, 23:59", prov: "—", type: "commande.payee_sans_evenement", ref: "—", sig: "—", sigSev: "panne", st: "ECHEC", sev: "panne", cmd: "#10405", tries: "0",
+    payload: '{\n  "detection": "reconciliation_nightly",\n  "commande": "10405",\n  "montant_debite": 3000,\n  "preuve": "releve_operateur",\n  "evenement_recu": null\n}',
+    err: "L'acheteur a été débité de 3 000 F le 24 août à 21:14 selon le relevé opérateur, mais aucun événement n'est arrivé. Commande toujours en attente de paiement côté Baobart.",
+    history: [{ tag: "0", text: "Écart détecté par le rapprochement nocturne", at: "23:59" }] }
+];
+
+const NEUTRE = { pillBg: "#DCDCDC", pillFg: INK };
+
+const SYS_PAGES = {
+  a_sys_config: {
+    title: "Système · Configuration", cta: "Relire l'état",
+    severity: "attention",
+    bannerChips: [{ label: "6 constats", bg: W }, { label: "1 à voir", bg: YEL }],
+    intro: "Ce que la plateforme a réellement sous les pieds. Chaque ligne dit ce qui est cassé et ce qu'il faut faire — rien d'autre.",
+    checksTitle: "État des dépendances",
+    checks: [
+      { sev: "ok", label: "Base de données", detail: "Joignable en 12 ms. Toutes les migrations sont appliquées." },
+      { sev: "ok", label: "Stockage des fichiers", detail: "Configuré sur S3 · aperçus servis depuis cdn.baobart.africa en HTTPS." },
+      { sev: "attention", label: "Connexion", detail: "Mot de passe seul. Aucun fournisseur externe n'est actif en production.", fix: "Renseigner un fournisseur OAuth, ou assumer le mot de passe seul et le noter dans le registre des décisions." },
+      { sev: "ok", label: "Interrupteurs", detail: "2 fonctionnalités fermées volontairement : passage en caisse, versements automatiques." },
+      { sev: "ok", label: "Migrations interrompues", detail: "Aucune migration laissée à moitié." },
+      { sev: "ok", label: "Dossier des migrations", detail: "Dépôt lisible · 34 fichiers, dernier daté du 18 août 2026." }
+    ],
+    plain: {
+      title: "Pas encore écrit",
+      text: "Renseigner les variables d'environnement de ces briques ne branche rien : le code correspondant n'existe pas encore. Elles apparaissent ici pour que personne ne croie l'inverse.",
+      items: ["Passage en caisse", "Paiements", "Courriels (envoi réel)", "Envoi effectif des versements", "SMS"]
+    },
+    foot: { label: "Personne connectée", who: "Fatou Ndiaye · super admin", note: "Les rôles se donnent depuis la base de données, jamais depuis un écran. Aucune page de cette section ne peut élever un compte." }
+  },
+
+  a_sys_emails: {
+    title: "Système · Emails", cta: "Relire la file",
+    severity: "panne",
+    bannerChips: [{ label: "pilote : resend", bg: W }, { label: "1 échec définitif", bg: ORA }],
+    intro: "File d'attente des messages transactionnels. Un message part après la transaction qui le justifie : la commande écrit son intention, un passage l'envoie ensuite. Ce qui est découplé doit être surveillé.",
+    counters: [
+      { label: "En attente", value: "1", note: "sous le seuil de 25", sev: "ok" },
+      { label: "Envoyés (24 h)", value: "184", note: "jamais alarmant", sev: "ok" },
+      { label: "En échec définitif", value: "1", note: "adresse inexistante · à abandonner", sev: "panne" },
+      { label: "Âge du plus ancien en attente", value: "43 min", note: "sous une heure, mais à surveiller", sev: "attention" }
+    ],
+    table: {
+      title: "File d'attente", searchPh: "Rechercher un destinataire…",
+      filters: ["Tous", "En attente", "En cours", "Envoyés", "Échoués"],
+      footer: "6 messages sur 191 · relu à chaque affichage",
+      actions: [{ label: "Relancer la sélection", bg: YEL }, { label: "Abandonner", bg: W }],
+      cols: [{ label: "Créé le", flex: 1.5 }, { label: "Modèle", flex: 1.6 }, { label: "Destinataire", flex: 2 }, { label: "Statut", flex: 1.3 }, { label: "Tentatives", flex: .9 }, { label: "Prochaine", flex: 1.3 }, { label: "Dernière erreur", flex: 2 }]
+    },
+    foot: { label: "Pilote d'envoi actif", who: "resend — les messages partent réellement", note: "En pilote console, rien ne part : le bandeau le dirait en toutes lettres. Relancer et abandonner exigent le pouvoir agir_sur_l_exploitation." }
+  },
+
+  a_sys_paiements: {
+    title: "Système · Paiements", cta: "Relire les événements",
+    severity: "panne",
+    bannerChips: [{ label: "maquette · câblage à venir", bg: W }, { label: "1 débit sans événement", bg: ORA }],
+    intro: "Les événements que les opérateurs envoient pour dire qu'un paiement a abouti, échoué ou été contesté. Ils arrivent sans qu'on les demande, parfois en double, parfois dans le désordre. Cet écran supervise et décide — il ne rembourse pas, n'annule pas, ne modifie aucun montant.",
+    counters: [
+      { label: "Reçus (24 h)", value: "412", note: "jamais alarmant", sev: "ok" },
+      { label: "En échec de traitement", value: "2", note: "dont 1 signature refusée", sev: "panne" },
+      { label: "Signatures invalides", value: "1", note: "tentative de faire croire à un paiement", sev: "panne" },
+      { label: "Commandes payées sans événement", value: "1", note: "quelqu'un a perdu de l'argent", sev: "panne" }
+    ],
+    table: {
+      title: "Événements reçus", searchPh: "Rechercher une référence…",
+      filters: ["Tous", "Échecs", "Signatures invalides", "Doublons", "Litiges"],
+      footer: "6 événements sur 412 · IGNORE_DOUBLON est un état normal, montré en gris",
+      actions: [{ label: "Rejouer le traitement", bg: YEL }, { label: "Marquer comme revu", bg: W }],
+      cols: [{ label: "Reçu le", flex: 1.5 }, { label: "Fournisseur", flex: 1.2 }, { label: "Type", flex: 2 }, { label: "Référence", flex: 1.5 }, { label: "Signature", flex: 1.1 }, { label: "Statut", flex: 1.5 }, { label: "Commande", flex: .9 }]
+    },
+    foot: { label: "État de l'écran", who: "Maquette — ni passage en caisse, ni fournisseur, ni webhook", note: "Le rejeu du traitement doit être idempotent : le rejouer deux fois ne crée pas deux commandes. Marquer comme revu sort la ligne des compteurs sans prétendre qu'elle a réussi." }
+  }
 };
 
 const chart = (vals, color) => vals.map(v => ({
@@ -993,19 +1322,113 @@ const PAGES = {
 class Component extends DCLogic {
   state = { role: null, key: null, filter: {} };
 
+  tableRows(key) {
+    const open = (kind, i) => () => this.setState({ detail: { kind: kind, i: i } });
+    if (key === "a_sys_emails") {
+      const f = (this.state.tfilter || {}).a_sys_emails || "Tous";
+      const want = { "En attente": "EN_ATTENTE", "En cours": "EN_COURS", "Envoyés": "ENVOYE", "Échoués": "ECHOUE" }[f];
+      return EMAIL_ROWS.map((r, i) => ({ r: r, i: i })).filter(x => !want || x.r.st === want).map(x => {
+        const r = x.r, s = SEV[r.sev];
+        return {
+          bg: s.rowBg, open: open("email", x.i),
+          cells: [mono(r.at, 1.5), cell(r.tpl, 1.6, { family: "'Space Mono',monospace", weight: "700", dim: "1" }),
+            cell(r.to, 2, { weight: "700" }), pill(r.st, 1.3, s), mono(r.tries, .9, "1"),
+            mono(r.next, 1.3), mono(r.err, 2, r.err === "—" ? ".5" : ".85")]
+        };
+      });
+    }
+    if (key === "a_sys_paiements") {
+      const f = (this.state.tfilter || {}).a_sys_paiements || "Tous";
+      return PAY_ROWS.map((r, i) => ({ r: r, i: i })).filter(x =>
+        f === "Tous" ||
+        (f === "Échecs" && x.r.st === "ECHEC") ||
+        (f === "Signatures invalides" && x.r.sig === "invalide") ||
+        (f === "Doublons" && x.r.st === "IGNORE_DOUBLON") ||
+        (f === "Litiges" && x.r.type === "litige.ouvert")
+      ).map(x => {
+        const r = x.r, s = r.sev === "neutre" ? NEUTRE : SEV[r.sev];
+        return {
+          bg: r.sev === "neutre" ? "#F2F2F2" : SEV[r.sev].rowBg, open: open("paiement", x.i),
+          cells: [mono(r.at, 1.5), cell(r.prov, 1.2, { weight: "800" }),
+            cell(r.type, 2, { family: "'Space Mono',monospace", weight: "700", dim: "1" }),
+            mono(r.ref, 1.5, "1"), pill(r.sig, 1.1, SEV[r.sigSev] || NEUTRE),
+            pill(r.st, 1.5, s), mono(r.cmd, .9, "1")]
+        };
+      });
+    }
+    return [];
+  }
+
+  detailVals() {
+    const d = this.state.detail;
+    if (!d) return { has: false, fields: [], history: [], actions: [] };
+    if (d.kind === "email") {
+      const r = EMAIL_ROWS[d.i];
+      return {
+        has: true, kicker: "Message de la file · " + r.st, title: r.tpl,
+        fields: [{ k: "Créé le", v: r.at }, { k: "Modèle", v: r.tpl }, { k: "Destinataire", v: r.to },
+          { k: "Statut", v: r.st }, { k: "Tentatives", v: r.tries }, { k: "Prochaine tentative", v: r.next }],
+        hasError: r.err !== "—", error: r.err,
+        payloadLabel: "Charge utile", payload: r.payload,
+        historyLabel: "Historique des tentatives",
+        history: r.history.map(h => Object.assign({}, h, { bg: YEL, fg: INK })),
+        actions: r.st === "ECHOUE"
+          ? [{ label: "Relancer", bg: YEL }, { label: "Abandonner", bg: W }]
+          : [{ label: "Abandonner", bg: W }],
+        actionNote: r.st === "ECHOUE"
+          ? "Relancer remet le message en attente immédiatement. Abandonner le ferme définitivement — utile quand l'adresse n'existe plus, sinon la ligne resterait rouge à jamais et masquerait les vraies pannes."
+          : "Relancer n'est disponible que sur un message en échec. L'URL signée n'est jamais affichée en clair."
+      };
+    }
+    const r = PAY_ROWS[d.i];
+    return {
+      has: true, kicker: "Événement · " + r.st, title: r.type,
+      fields: [{ k: "Reçu le", v: r.at }, { k: "Fournisseur", v: r.prov }, { k: "Référence", v: r.ref },
+        { k: "Signature", v: r.sig }, { k: "Statut", v: r.st }, { k: "Tentatives", v: r.tries }, { k: "Commande", v: r.cmd }],
+      hasError: !!r.err, error: r.err || "",
+      payloadLabel: "JSON brut tel qu'il est arrivé", payload: r.payload,
+      historyLabel: "Tentatives de traitement",
+      history: r.history.map(h => Object.assign({}, h, { bg: r.sev === "panne" ? ORA : YEL, fg: r.sev === "panne" ? W : INK })),
+      actions: [{ label: "Rejouer le traitement", bg: YEL }, { label: "Marquer comme revu", bg: W }],
+      actionNote: "Le rejeu est idempotent : le rejouer deux fois ne crée pas deux commandes. Marquer comme revu sort la ligne des compteurs d'alerte sans prétendre qu'elle a réussi. Aucun remboursement, aucune annulation depuis cet écran."
+    };
+  }
+
   renderVals() {
     const role = this.state.role || this.props.role || "acheteur";
     const nav = NAV[role] || NAV.acheteur;
     const key = (nav.some(n => n.key === this.state.key) && this.state.key) || nav[0].key;
-    const raw = PAGES[key] || ADMIN_PAGES[key] || {};
+    const raw = PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || {};
     const filters = raw.filters || [];
     const active = this.state.filter[key] || filters[0];
+    const active2 = (this.state.tfilter || {})[key] || ((raw.table || {}).filters || [])[0];
 
     const page = Object.assign({}, raw, {
       hasKpis: !!raw.kpis, hasChart: !!raw.chart, hasRows: !!raw.rows,
       hasGrid: !!raw.grid, hasPeople: !!raw.people, hasForm: !!raw.formBlocks,
       hasPlan: !!raw.plan, hasSteps: !!raw.steps, hasNotice: !!raw.notice,
       notice: raw.notice || {},
+
+      hasBanner: !!raw.severity,
+      banner: Object.assign({}, BANNERS[raw.severity || "ok"], { chips: raw.bannerChips || [] }),
+      hasChecks: !!raw.checks,
+      checks: (raw.checks || []).map(c => Object.assign({}, SEV[c.sev], c, { hasFix: !!c.fix, fix: c.fix || "" })),
+      hasPlain: !!raw.plain,
+      hasFoot: !!raw.foot,
+      hasCounters: !!raw.counters,
+      counters: (raw.counters || []).map(c => Object.assign({}, c, {
+        bg: c.sev === "panne" ? ORA : c.sev === "attention" ? YEL : W,
+        fg: c.sev === "panne" ? W : INK,
+        dot: c.sev === "panne" ? YEL : c.sev === "attention" ? W : "#DCDCDC"
+      })),
+      hasTable: !!raw.table,
+      table: raw.table ? Object.assign({}, raw.table, {
+        filters: (raw.table.filters || []).map(f => ({
+          label: f, bg: active2 === f ? INK : W, fg: active2 === f ? W : INK,
+          pick: () => this.setState(s => ({ tfilter: Object.assign({}, s.tfilter, { [key]: f }) }))
+        })),
+        rows: this.tableRows(key)
+      }) : {},
       filters: filters.map(f => ({
         label: f, bg: active === f ? INK : W, fg: active === f ? W : INK,
         pick: () => this.setState(s => ({ filter: Object.assign({}, s.filter, { [key]: f }) }))
@@ -1019,6 +1442,12 @@ class Component extends DCLogic {
     });
 
     return {
+      canAct: !this.props.lectureSeule,
+      readerOnly: !!this.props.lectureSeule,
+      hasDetail: !!this.state.detail,
+      detail: this.detailVals(),
+      closeDetail: () => this.setState({ detail: null }),
+
       roles: [{ k: "acheteur", l: "Acheteur" }, { k: "createur", l: "Créateur" }, { k: "admin", l: "Super admin" }].map(r => ({
         label: r.l, bg: role === r.k ? INK : "transparent", fg: role === r.k ? W : INK,
         pick: () => this.setState({ role: r.k, key: null })

@@ -23,7 +23,7 @@ export default async function NouveauProduitPage() {
       <main style={{ flex: "1 1 auto", padding: "32px 36px", minWidth: 0 }}>
         <h1
           style={{
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: "clamp(28px,3.2vw,40px)",
             letterSpacing: "-1.4px",
             margin: 0,

@@ -92,7 +92,7 @@ export function EcranDashboard({
         <div>
           <h1
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: "clamp(28px,3.2vw,40px)",
               letterSpacing: "-1.4px",
               margin: 0,
@@ -156,7 +156,7 @@ export function EcranDashboard({
             >
               <div
                 style={{
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 10.5,
                   textTransform: "uppercase",
                   letterSpacing: ".1em",
@@ -167,7 +167,7 @@ export function EcranDashboard({
               </div>
               <div
                 style={{
-                  fontFamily: "'Archivo Black', sans-serif",
+                  fontFamily: "var(--font-display)",
                   fontSize: 30,
                   lineHeight: 1.1,
                   marginTop: 6,
@@ -284,7 +284,7 @@ function LigneTableau({ ligne }: { ligne: Ligne }) {
         </div>
         <div
           style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 11,
             opacity: 0.65,
           }}
@@ -295,7 +295,7 @@ function LigneTableau({ ligne }: { ligne: Ligne }) {
 
       <div
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 16,
           whiteSpace: "nowrap",
         }}

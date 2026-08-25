@@ -243,7 +243,7 @@ export function FileUploader({
       >
         <div
           style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 12,
             opacity: 0.7,
           }}
@@ -333,7 +333,7 @@ export function FileUploader({
             >
               {e.nom}
             </span>
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
               {Math.round(e.progression * 100)} %
             </span>
           </div>
@@ -361,7 +361,7 @@ export function FileUploader({
             <p
               style={{
                 margin: "8px 0 0",
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 10.5,
                 opacity: 0.65,
               }}
@@ -436,7 +436,7 @@ export function FileUploader({
                   <span
                     style={{
                       display: "block",
-                      fontFamily: "'Space Mono', monospace",
+                      fontFamily: "var(--font-mono)",
                       fontSize: 11,
                       opacity: 0.6,
                     }}
@@ -469,7 +469,7 @@ export function FileUploader({
           <p
             style={{
               marginTop: 12,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 11,
               opacity: 0.65,
             }}

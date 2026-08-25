@@ -2,6 +2,12 @@
 
 **Août 2026 · pour la mise à jour de `Baobart Design/Baobart Dashboard.dc.html`**
 
+> **À jour au 25 août 2026 : la maquette couvre désormais les trois écrans**
+> (`a_sys_config`, `a_sys_emails`, `a_sys_paiements`). Ce document reste la
+> référence des **données** ; la maquette fait foi pour la **forme**. Là où elle
+> ajoute des éléments — pastilles de comptage dans le bandeau, encadré
+> « REMÈDE », pied structuré — c'est elle qui décrit ce qu'il faut construire.
+>
 > Trois écrans sous `/dashboard/systeme`. Le premier existe et fonctionne ; les
 > deux autres attendent leur substrat. Ce document décrit **les données que
 > chacun a réellement à afficher** — pas une intention, les champs qui existent

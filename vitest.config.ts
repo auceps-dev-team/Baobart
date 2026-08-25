@@ -56,8 +56,14 @@ export default defineConfig({
           // système de fichiers qui est lent, pas le code. Le délai de test
           // suit, parce qu'une transaction Serializable sur un disque lent
           // n'est pas plus rapide que le disque.
+          //
+          // Trente secondes suffisaient sur une machine au repos ; un test les a
+          // dépassées pendant qu'un build tournait à côté. Ce délai ne protège
+          // de rien d'utile — aucun de ces tests ne boucle, ils attendent le
+          // disque — et un échec aléatoire en intégration continue coûte plus
+          // cher que la minute qu'on économise.
           hookTimeout: 60_000,
-          testTimeout: 30_000,
+          testTimeout: 60_000,
         },
       },
     ],

@@ -159,7 +159,7 @@ export function DetailProduit({
                 border: `2px solid ${ENCRE}`,
                 borderRadius: 999,
                 background: BLANC,
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 13,
               }}
             >
@@ -186,7 +186,7 @@ export function DetailProduit({
           >
             <div
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 textTransform: "uppercase",
                 letterSpacing: ".08em",
@@ -266,7 +266,7 @@ export function DetailProduit({
                 padding: "6px 12px",
                 border: `2px solid ${ENCRE}`,
                 borderRadius: 999,
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
               }}
             >
@@ -275,7 +275,7 @@ export function DetailProduit({
           ) : null}
           <div
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: 26,
               lineHeight: 1.05,
               letterSpacing: "-.8px",
@@ -359,10 +359,10 @@ export function DetailProduit({
               gap: 10,
             }}
           >
-            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 30 }}>
               {formatPrice(produit.prix, produit.devise)}
             </div>
-            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 11 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
               licence commerciale
             </div>
           </div>
@@ -477,7 +477,7 @@ export function EnTeteFiche({
     >
       <div
         style={{
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 11.5,
           textTransform: "uppercase",
           letterSpacing: ".1em",

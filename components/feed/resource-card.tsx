@@ -148,7 +148,7 @@ function PastilleSelection({ compacte }: { compacte: boolean }) {
         border: `2px solid ${ENCRE}`,
         borderRadius: 999,
         background: "#FFD84A",
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "var(--font-mono)",
         fontSize: compacte ? 10 : 11,
         fontWeight: 800,
       }}
@@ -217,7 +217,7 @@ export function CarteMosaique(props: CarteProps) {
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
             background: "#FFFFFF",
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 11,
             textAlign: "center",
           }}
@@ -245,7 +245,7 @@ export function CarteMosaique(props: CarteProps) {
             </div>
             <div
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 10.5,
                 opacity: 0.55,
                 marginTop: 2,
@@ -327,7 +327,7 @@ export function CarteAlaUne(props: CarteProps) {
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
             background: "#FFFFFF",
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 12,
           }}
         >
@@ -354,7 +354,7 @@ export function CarteAlaUne(props: CarteProps) {
             </div>
             <div
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 opacity: 0.58,
                 marginTop: 4,

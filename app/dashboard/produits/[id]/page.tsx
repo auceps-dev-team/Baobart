@@ -40,7 +40,7 @@ function Section({ titre, aide }: { titre: string; aide: string }) {
     <div style={{ margin: "28px 0 12px", maxWidth: 640 }}>
       <h2
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 17,
           letterSpacing: "-.4px",
           margin: 0,
@@ -179,7 +179,7 @@ export default async function ProduitDuTableauDeBord({
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
             background: enLigne ? JAUNE : BLANC,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 11,
             textTransform: "uppercase",
             letterSpacing: ".1em",
@@ -190,7 +190,7 @@ export default async function ProduitDuTableauDeBord({
 
         <h1
           style={{
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: "clamp(28px,3.2vw,40px)",
             letterSpacing: "-1.4px",
             margin: "12px 0 0",

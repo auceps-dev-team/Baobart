@@ -118,7 +118,7 @@ export function Header({
           </span>
           <span
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: 22,
               letterSpacing: "-.5px",
             }}
@@ -147,7 +147,7 @@ export function Header({
             aria-label="Rechercher une ressource"
             style={{
               width: "100%",
-              fontFamily: "Poppins, sans-serif",
+              fontFamily: "var(--font-body)",
               fontSize: 14,
               fontWeight: 500,
               padding: "11px 16px",
@@ -208,7 +208,7 @@ export function Header({
                   <span style={{ flex: "1 1 auto" }}>{s.title}</span>
                   <span
                     style={{
-                      fontFamily: "'Space Mono', monospace",
+                      fontFamily: "var(--font-mono)",
                       fontSize: 11,
                       opacity: 0.55,
                     }}
@@ -343,7 +343,7 @@ export function Header({
               border: `2.5px solid ${ENCRE}`,
               borderRadius: 12,
               background: BLANC,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 10.5,
               fontWeight: 700,
               letterSpacing: ".06em",

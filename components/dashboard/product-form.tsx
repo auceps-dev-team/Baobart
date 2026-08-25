@@ -41,7 +41,7 @@ const LICENCES = [
 const champStyle = (enErreur: boolean) => ({
   minWidth: 0,
   width: "100%",
-  fontFamily: "Poppins, sans-serif",
+  fontFamily: "var(--font-body)",
   fontSize: 13.5,
   fontWeight: 500,
   padding: "12px 14px",
@@ -70,7 +70,7 @@ function Bloc({
     >
       <div
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 19,
           textTransform: "uppercase",
           letterSpacing: "-.4px",

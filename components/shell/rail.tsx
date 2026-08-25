@@ -95,7 +95,7 @@ export function Rail({
             background: JAUNE,
             display: "grid",
             placeItems: "center",
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: 16,
           }}
         >
@@ -104,7 +104,7 @@ export function Rail({
         {ouvert ? (
           <span
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: 17,
               whiteSpace: "nowrap",
             }}
@@ -195,7 +195,7 @@ export function Rail({
                 borderRadius: 8,
                 display: "grid",
                 placeItems: "center",
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 fontWeight: 700,
                 cursor: "pointer",

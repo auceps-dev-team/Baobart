@@ -83,7 +83,7 @@ export function Footer() {
                   style={{ width: 24, height: "auto", display: "block", marginTop: 2 }}
                 />
               </span>
-              <span style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20 }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>
                 Baobart<span style={{ color: ORANGE }}>.</span>
               </span>
             </Link>
@@ -135,7 +135,7 @@ export function Footer() {
                 style={{
                   flex: "1 1 auto",
                   minWidth: 0,
-                  fontFamily: "Poppins, sans-serif",
+                  fontFamily: "var(--font-body)",
                   fontSize: 13,
                   fontWeight: 500,
                   padding: "10px 12px",
@@ -171,7 +171,7 @@ export function Footer() {
             marginTop: 26,
             paddingTop: 18,
             borderTop: `2.5px solid ${ENCRE}`,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 11.5,
             opacity: 0.65,
           }}

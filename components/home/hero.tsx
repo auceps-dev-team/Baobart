@@ -62,7 +62,7 @@ export function HeroB({ chiffres }: { chiffres: ChiffresCommunaute }) {
 
           <h1
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: "clamp(40px,5.8vw,82px)",
               lineHeight: 0.94,
               letterSpacing: "-2.5px",
@@ -154,7 +154,7 @@ export function HeroB({ chiffres }: { chiffres: ChiffresCommunaute }) {
               <div key={s.libelle}>
                 <div
                   style={{
-                    fontFamily: "'Archivo Black', sans-serif",
+                    fontFamily: "var(--font-display)",
                     fontSize: 28,
                   }}
                 >

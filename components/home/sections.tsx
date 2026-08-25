@@ -65,7 +65,7 @@ export function Categories({
       >
         <h2
           style={{
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: 34,
             letterSpacing: "-1px",
             margin: 0,
@@ -76,7 +76,7 @@ export function Categories({
         </h2>
         <div
           style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: 12,
             opacity: 0.6,
           }}
@@ -116,7 +116,7 @@ export function Categories({
               <span
                 style={{
                   display: "block",
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 11.5,
                   opacity: 0.6,
                 }}
@@ -174,7 +174,7 @@ export function CollectionsTrieesMain() {
         <div>
           <h2
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: 40,
               lineHeight: 0.98,
               letterSpacing: "-1.5px",
@@ -245,7 +245,7 @@ export function CollectionsTrieesMain() {
               </div>
               <div
                 style={{
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 10.5,
                   opacity: 0.6,
                 }}
@@ -299,7 +299,7 @@ export function EspacesEquipe({
     <div id="collab" style={CONTENEUR}>
       <h2
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 44,
           letterSpacing: "-1.5px",
           margin: "0 0 6px",
@@ -355,7 +355,7 @@ export function EspacesEquipe({
                 background: JAUNE,
                 display: "grid",
                 placeItems: "center",
-                fontFamily: "'Archivo Black', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: 16,
               }}
             >
@@ -463,7 +463,7 @@ export function EspacesEquipe({
           >
             <div
               style={{
-                fontFamily: "'Archivo Black', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: 24,
                 textTransform: "uppercase",
                 lineHeight: 1.05,
@@ -506,7 +506,7 @@ export function EspacesEquipe({
                   </span>
                   <span
                     style={{
-                      fontFamily: "'Space Mono', monospace",
+                      fontFamily: "var(--font-mono)",
                       fontSize: 11,
                       opacity: 0.6,
                     }}
@@ -626,7 +626,7 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
           </div>
           <h2
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: 46,
               lineHeight: 0.96,
               letterSpacing: "-2px",
@@ -687,7 +687,7 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
         >
           <div
             style={{
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 12,
               opacity: 0.7,
             }}
@@ -753,7 +753,7 @@ export function Temoignages() {
     <div style={CONTENEUR}>
       <h2
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 36,
           letterSpacing: "-1.2px",
           margin: "0 0 22px",
@@ -785,7 +785,7 @@ export function Temoignages() {
           >
             <div
               style={{
-                fontFamily: "'Archivo Black', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: 34,
                 lineHeight: 0.6,
               }}
@@ -880,7 +880,7 @@ export function Blog() {
       >
         <h2
           style={{
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: 36,
             letterSpacing: "-1.2px",
             margin: 0,
@@ -923,7 +923,7 @@ export function Blog() {
             <div style={{ padding: 16 }}>
               <div
                 style={{
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 11,
                   opacity: 0.6,
                 }}

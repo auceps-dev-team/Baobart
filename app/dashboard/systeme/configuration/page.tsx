@@ -1,51 +1,20 @@
-import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
+import { DashboardFrame } from "@/components/dashboard/frame";
+import {
+  BandeauGravite,
+  Intro,
+  Panneau,
+  PastilleEtat,
+  PiedEcran,
+  type Puce,
+} from "@/components/systeme/bandeau";
 import { exigerAdministrateur } from "@/lib/auth/acces-administration";
 import { LIBELLE_ROLE } from "@/lib/auth/administration";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, TON } from "@/lib/systeme/charte";
+import type { Constat } from "@/lib/systeme/diagnostic";
 import { etatDeLaPlateforme } from "@/lib/systeme/lecture";
-import type { Constat, Gravite } from "@/lib/systeme/diagnostic";
 
-export const metadata = { title: "Configuration — Baobart." };
+export const metadata = { title: "Système · Configuration — Baobart." };
 export const dynamic = "force-dynamic";
-
-const ENCRE = "#121212";
-const BLANC = "#FFFFFF";
-const JAUNE = "#FFD84A";
-const ORANGE = "#E2622C";
-const CADRE = `2.5px solid ${ENCRE}`;
-
-const TON: Record<Gravite, { fond: string; encre: string; mot: string }> = {
-  ok: { fond: BLANC, encre: ENCRE, mot: "OK" },
-  attention: { fond: JAUNE, encre: ENCRE, mot: "À VOIR" },
-  panne: { fond: ORANGE, encre: BLANC, mot: "PANNE" },
-};
-
-const BANDEAU: Record<Gravite, string> = {
-  ok: "Tout ce qui est livré fonctionne.",
-  attention: "La plateforme sert, mais quelque chose mérite un regard.",
-  panne: "Quelque chose d'essentiel ne fonctionne pas.",
-};
-
-function Pastille({ gravite }: { gravite: Gravite }) {
-  const ton = TON[gravite];
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "4px 10px",
-        border: `2px solid ${ENCRE}`,
-        borderRadius: 999,
-        background: ton.fond,
-        color: ton.encre,
-        fontFamily: "'Space Mono', monospace",
-        fontSize: 10,
-        letterSpacing: ".1em",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {ton.mot}
-    </span>
-  );
-}
 
 function LigneConstat({ constat }: { constat: Constat }) {
   return (
@@ -53,18 +22,58 @@ function LigneConstat({ constat }: { constat: Constat }) {
       style={{
         display: "flex",
         gap: 14,
-        alignItems: "flex-start",
-        padding: "12px 0",
-        borderBottom: "1px solid #12121222",
+        padding: 15,
+        border: CADRE,
+        borderRadius: 18,
+        background: TON[constat.gravite].ligneFond,
       }}
     >
-      <Pastille gravite={constat.gravite} />
-      <div style={{ minWidth: 0, flex: "1 1 auto" }}>
-        <strong style={{ fontSize: 14 }}>{constat.libelle}</strong>
-        <div style={{ fontSize: 13, marginTop: 3 }}>{constat.detail}</div>
+      <PastilleEtat gravite={constat.gravite} />
+
+      <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 800 }}>{constat.libelle}</div>
+        <div
+          style={{
+            fontSize: 13.5,
+            fontWeight: 500,
+            lineHeight: 1.45,
+            marginTop: 4,
+            opacity: 0.82,
+            textWrap: "pretty",
+          }}
+        >
+          {constat.detail}
+        </div>
+
         {constat.remede ? (
-          <div style={{ fontSize: 12.5, marginTop: 5, opacity: 0.75 }}>
-            → {constat.remede}
+          <div
+            style={{
+              display: "flex",
+              gap: 9,
+              alignItems: "flex-start",
+              marginTop: 10,
+              padding: "10px 13px",
+              border: `2px solid ${ENCRE}`,
+              borderRadius: 13,
+              background: BLANC,
+            }}
+          >
+            <div
+              style={{
+                flex: "0 0 auto",
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: ".1em",
+                paddingTop: 2,
+                opacity: 0.6,
+              }}
+            >
+              REMÈDE
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>
+              {constat.remede}
+            </div>
           </div>
         ) : null}
       </div>
@@ -72,69 +81,116 @@ function LigneConstat({ constat }: { constat: Constat }) {
   );
 }
 
+/**
+ * Les compteurs du bandeau.
+ *
+ * On n'annonce que ce qui demande une décision : « 6 constats » situe, « 1 à
+ * voir » oriente. Afficher aussi « 5 OK » diluerait le seul chiffre qu'on
+ * regarde vraiment.
+ */
+function puces(constats: Constat[]): Puce[] {
+  const compte = (g: Constat["gravite"]) =>
+    constats.filter((c) => c.gravite === g).length;
+
+  const liste: Puce[] = [
+    { texte: `${constats.length} constats`, fond: BLANC },
+  ];
+
+  const aVoir = compte("attention");
+  if (aVoir > 0) liste.push({ texte: `${aVoir} à voir`, fond: JAUNE });
+
+  const pannes = compte("panne");
+  if (pannes > 0) liste.push({ texte: `${pannes} en panne`, fond: ORANGE });
+
+  return liste;
+}
+
 export default async function ConfigurationPage() {
   // Le layout garde déjà la section, mais Next.js ne le réexécute pas à chaque
   // navigation entre pages sœurs. Une garde qui ne s'exécute pas est absente.
   const utilisateur = await exigerAdministrateur();
   const etat = await etatDeLaPlateforme();
-  const ton = TON[etat.gravite];
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
-      titre="Configuration"
-      description="Ce que cette instance sait faire, et ce qui l'en empêche. Lu à chaque affichage — rien n'est mis en cache."
+      titre="Système · Configuration"
+      description="Ce que la plateforme a réellement sous les pieds."
     >
-      <div
-        role="status"
-        style={{
-          border: CADRE,
-          borderRadius: 18,
-          background: ton.fond,
-          color: ton.encre,
-          boxShadow: `5px 5px 0 ${ENCRE}`,
-          padding: "16px 18px",
-          marginBottom: 20,
-          fontSize: 14,
-          fontWeight: 800,
-        }}
-      >
-        {BANDEAU[etat.gravite]}
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <BandeauGravite gravite={etat.gravite} puces={puces(etat.constats)} />
+
+        <Intro>
+          Ce que la plateforme a réellement sous les pieds. Chaque ligne dit ce
+          qui est cassé et ce qu&apos;il faut faire — rien d&apos;autre.
+        </Intro>
+
+        <Panneau
+          titre="État des dépendances"
+          mention="relu à chaque affichage · aucune mise en cache"
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              marginTop: 16,
+            }}
+          >
+            {etat.constats.map((c) => (
+              <LigneConstat key={c.cle} constat={c} />
+            ))}
+          </div>
+        </Panneau>
+
+        <Panneau titre="Pas encore écrit" fond={LAVANDE}>
+          <div
+            style={{
+              fontSize: 13.5,
+              fontWeight: 500,
+              lineHeight: 1.5,
+              marginTop: 7,
+              maxWidth: 720,
+              opacity: 0.82,
+              textWrap: "pretty",
+            }}
+          >
+            Renseigner les variables d&apos;environnement de ces briques ne
+            branche rien : le code correspondant n&apos;existe pas encore. Elles
+            apparaissent ici pour que personne ne croie l&apos;inverse.
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              marginTop: 16,
+            }}
+          >
+            {etat.aVenir.map((m) => (
+              <div
+                key={m}
+                style={{
+                  padding: "10px 16px",
+                  border: CADRE,
+                  borderRadius: 14,
+                  background: BLANC,
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                }}
+              >
+                {m}
+              </div>
+            ))}
+          </div>
+        </Panneau>
+
+        <PiedEcran
+          libelle="Personne connectée"
+          qui={`${utilisateur.nom} · ${LIBELLE_ROLE[utilisateur.role].toLowerCase()}`}
+          note="Les rôles se donnent depuis la base de données, jamais depuis un écran. Aucune page de cette section ne peut élever un compte."
+        />
       </div>
-
-      <DashboardPanel titre="État des dépendances">
-        {etat.constats.map((c) => (
-          <LigneConstat key={c.cle} constat={c} />
-        ))}
-      </DashboardPanel>
-
-      <div style={{ marginTop: 18 }}>
-        <DashboardPanel titre="Pas encore écrit">
-          <p style={{ margin: "0 0 10px", fontSize: 13, opacity: 0.75 }}>
-            Les variables de ces modules sont documentées dans{" "}
-            <code>.env.example</code>, mais aucun code ne les lit : les
-            renseigner ne branche rien.
-          </p>
-          {etat.aVenir.map((m) => (
-            <div
-              key={m}
-              style={{
-                padding: "8px 0",
-                borderBottom: "1px solid #12121222",
-                fontSize: 13.5,
-              }}
-            >
-              {m}
-            </div>
-          ))}
-        </DashboardPanel>
-      </div>
-
-      <p style={{ marginTop: 18, fontSize: 12.5, opacity: 0.7 }}>
-        Connecté en tant que {LIBELLE_ROLE[utilisateur.role]}. Les rôles se
-        donnent depuis la base — <code>node scripts/promouvoir-admin.mjs</code> —
-        et jamais depuis un écran.
-      </p>
     </DashboardFrame>
   );
 }

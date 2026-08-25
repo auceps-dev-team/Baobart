@@ -143,7 +143,7 @@ export default async function GainsPage() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 11,
                     opacity: 0.6,
                   }}
@@ -177,7 +177,7 @@ export default async function GainsPage() {
                   >
                     <div
                       style={{
-                        fontFamily: "'Space Mono', monospace",
+                        fontFamily: "var(--font-mono)",
                         fontSize: 10.5,
                         textAlign: "center",
                       }}

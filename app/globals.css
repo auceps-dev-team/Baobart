@@ -18,9 +18,13 @@
   --color-blanc: #ffffff; /* surfaces, pastilles sur image */
 
   /* --- Typographie (3 voix : impact / lisibilité / données) --------------- */
-  --font-display: "Archivo Black", "Arial Black", sans-serif;
-  --font-body: "Poppins", system-ui, sans-serif;
-  --font-mono: "Space Mono", ui-monospace, monospace;
+  /* Les fontes sont chargées par `next/font` dans app/layout.tsx, sous un nom
+     de famille qu'il génère. Écrire « Archivo Black » en dur ne désignerait
+     donc rien : on passe par les variables qu'il expose. Les replis restent,
+     pour le temps de chargement et pour un échec de réseau. */
+  --font-display: var(--police-titre), "Arial Black", sans-serif;
+  --font-body: var(--police-texte), system-ui, sans-serif;
+  --font-mono: var(--police-donnees), ui-monospace, monospace;
 
   /* --- Ombres dures : toujours 45°, jamais floues ------------------------- */
   --shadow-sticker: 4px 4px 0 var(--color-encre); /* carte de liste */

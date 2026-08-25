@@ -115,7 +115,7 @@ export function AuthForm({
 
       <h2
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: "clamp(26px,3vw,36px)",
           lineHeight: 1,
           letterSpacing: "-1.4px",
@@ -162,7 +162,7 @@ export function AuthForm({
                   htmlFor={f.nom}
                   style={{
                     display: "block",
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 10.5,
                     textTransform: "uppercase",
                     letterSpacing: ".12em",
@@ -198,7 +198,7 @@ export function AuthForm({
                     style={{
                       width: "100%",
                       minWidth: 0,
-                      fontFamily: "Poppins, sans-serif",
+                      fontFamily: "var(--font-body)",
                       fontSize: 14,
                       fontWeight: 500,
                       padding: "13px 15px",
@@ -221,7 +221,7 @@ export function AuthForm({
                         border: `2px solid ${ENCRE}`,
                         borderRadius: 9,
                         background: BLANC,
-                        fontFamily: "'Space Mono', monospace",
+                        fontFamily: "var(--font-mono)",
                         fontSize: 10,
                         fontWeight: 700,
                         cursor: "pointer",
@@ -249,7 +249,7 @@ export function AuthForm({
                     <span
                       style={{
                         flex: "0 0 auto",
-                        fontFamily: "'Space Mono', monospace",
+                        fontFamily: "var(--font-mono)",
                         fontSize: 10,
                         opacity: 0.6,
                         marginLeft: 4,
@@ -389,7 +389,7 @@ export function AuthForm({
             <span style={{ flex: "1 1 auto", height: 2.5, background: ENCRE }} />
             <span
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 10.5,
                 textTransform: "uppercase",
                 letterSpacing: ".12em",
@@ -438,7 +438,7 @@ export function AuthForm({
                 }}
               >
                 <span
-                  style={{ fontFamily: "'Space Mono', monospace", fontSize: 14 }}
+                  style={{ fontFamily: "var(--font-mono)", fontSize: 14 }}
                 >
                   {f.glyph}
                 </span>

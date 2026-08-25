@@ -85,7 +85,7 @@ export function AuthShell({
           </span>
           <span
             style={{
-              fontFamily: "'Archivo Black', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: 21,
               letterSpacing: "-.6px",
             }}
@@ -135,7 +135,7 @@ export function AuthShell({
                 borderRadius: 999,
                 background: JAUNE,
                 padding: "7px 15px",
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 textTransform: "uppercase",
                 letterSpacing: ".14em",
@@ -145,7 +145,7 @@ export function AuthShell({
             </div>
             <h1
               style={{
-                fontFamily: "'Archivo Black', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: "clamp(30px,3.6vw,50px)",
                 lineHeight: 0.97,
                 letterSpacing: "-2px",

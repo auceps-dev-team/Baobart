@@ -55,7 +55,7 @@ export default async function ForfaitPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
             {plans.map((plan) => (
               <div key={plan.id} style={{ border: `2.5px solid ${ENCRE}`, borderRadius: 20, padding: 18, background: plan.priceMonthly === 0 ? "#FFFFFF" : JAUNE, boxShadow: `4px 4px 0 ${ENCRE}` }}>
-                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22 }}>{plan.name}</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>{plan.name}</div>
                 <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900 }}>{formatMoney(plan.priceMonthly, "XOF")}/mois</div>
                 <p style={{ fontSize: 13, opacity: .75 }}>{plan.downloadsPerMonth ?? "Téléchargements illimités"} {plan.downloadsPerMonth ? "téléchargements/mois" : ""}</p>
                 <div style={{ fontSize: 12, fontWeight: 800 }}>Licence : {plan.licenseIncluded ?? "—"} · Shield : {plan.shieldLevel}</div>

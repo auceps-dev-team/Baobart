@@ -76,7 +76,7 @@ export function DashboardSidebar({
             style={{ width: 26, height: "auto", display: "block", marginTop: 2 }}
           />
         </span>
-        <span style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19 }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>
           Baobart<span style={{ color: ORANGE }}>.</span>
         </span>
       </Link>
@@ -89,7 +89,7 @@ export function DashboardSidebar({
           {groupe.titre ? (
             <div
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 10.5,
                 textTransform: "uppercase",
                 letterSpacing: ".12em",

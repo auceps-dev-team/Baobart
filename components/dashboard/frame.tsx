@@ -44,7 +44,7 @@ export function DashboardFrame({
           <div>
             <h1
               style={{
-                fontFamily: "'Archivo Black', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: "clamp(30px,3.4vw,44px)",
                 letterSpacing: "-1.4px",
                 margin: 0,
@@ -98,7 +98,7 @@ export function MetricCard({
     >
       <div
         style={{
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 11,
           textTransform: "uppercase",
           letterSpacing: ".1em",
@@ -109,7 +109,7 @@ export function MetricCard({
       </div>
       <div
         style={{
-          fontFamily: "'Archivo Black', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 28,
           lineHeight: 1,
           marginTop: 10,
@@ -157,7 +157,7 @@ export function DashboardPanel({
         <h2
           style={{
             margin: 0,
-            fontFamily: "'Archivo Black', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: 20,
             letterSpacing: "-.5px",
             textTransform: "uppercase",

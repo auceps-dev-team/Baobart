@@ -67,7 +67,7 @@ export default async function MesProduitsPage() {
           <div>
             <h1
               style={{
-                fontFamily: "'Archivo Black', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: "clamp(28px,3.2vw,40px)",
                 letterSpacing: "-1.4px",
                 margin: 0,
@@ -139,7 +139,7 @@ export default async function MesProduitsPage() {
                   border: `2px solid ${ENCRE}`,
                   borderRadius: 999,
                   background: p.status === "PUBLISHED" ? "#FFD84A" : "#FFFFFF",
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 10.5,
                   textTransform: "uppercase",
                   letterSpacing: ".08em",
@@ -156,7 +156,7 @@ export default async function MesProduitsPage() {
                 <span
                   style={{
                     display: "block",
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: 11,
                     opacity: 0.6,
                   }}

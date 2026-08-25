@@ -150,7 +150,7 @@ const ETIQUETTE = {
 
 const CHAMP = {
   width: "100%",
-  fontFamily: "Poppins, sans-serif",
+  fontFamily: "var(--font-body)",
   fontSize: 13.5,
   fontWeight: 500,
   padding: "11px 14px",
