@@ -4,6 +4,7 @@ import {
   constatBase,
   constatConnexion,
   constatInterrupteurs,
+  constatSimulation,
   constatStockage,
   graviteGlobale,
   type Constat,
@@ -116,6 +117,33 @@ describe("diagnostic de la plateforme", () => {
       const c = constatConnexion({ actifs: ["google", "github"], motDePasse: true });
       expect(c.gravite).toBe("ok");
       expect(c.detail).toContain("google");
+    });
+  });
+
+  describe("paiement simulé", () => {
+    it("est calme quand la simulation est fermée", () => {
+      expect(
+        constatSimulation({ ouverte: false, production: true }).gravite,
+      ).toBe("ok");
+    });
+
+    it("avertit hors production", () => {
+      expect(
+        constatSimulation({ ouverte: true, production: false }).gravite,
+      ).toBe("attention");
+    });
+
+    it("crie à la panne en production", () => {
+      // Deux dégâts à la fois : les ressources payantes se prennent sans
+      // payer, et les créateurs sont crédités d'un argent jamais entré.
+      const c = constatSimulation({ ouverte: true, production: true });
+      expect(c.gravite).toBe("panne");
+      expect(c.remede).toContain("CHECKOUT_SIMULATION_ENABLED");
+    });
+
+    it("dit où retrouver les ventes fabriquées", () => {
+      const c = constatSimulation({ ouverte: true, production: true });
+      expect(c.remede).toContain("simulation");
     });
   });
 

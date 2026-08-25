@@ -1,6 +1,8 @@
 import "server-only";
 
+import { simulationOuverte } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
+import { formatPrice } from "@/lib/i18n/money";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
 
@@ -40,7 +42,20 @@ export interface FicheProduit {
 /** Ce que le bouton doit proposer à la personne qui regarde la fiche. */
 export type DroitTelechargement =
   | { etat: "TELECHARGEABLE"; fichiers: Array<{ id: string; nom: string }> }
-  | { etat: "A_ACHETER" }
+  | {
+      etat: "A_ACHETER";
+      produitId: string;
+      /** Déjà formaté : le bouton ne recalcule pas un montant. */
+      prix: string;
+      /**
+       * L'achat peut-il réellement aboutir ?
+       *
+       * Faux quand le paiement n'est pas ouvert, quand la ressource n'a aucun
+       * fichier, ou quand celui qui regarde en est le vendeur. Le bouton
+       * disparaît alors plutôt que de promettre un écran qui refusera.
+       */
+      achatPossible: boolean;
+    }
   | { etat: "A_CONNECTER" };
 
 /**
@@ -58,6 +73,8 @@ export async function droitDeTelecharger(
     where: { id: produitId },
     select: {
       price: true,
+      currency: true,
+      sellerId: true,
       files: {
         where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
@@ -66,7 +83,26 @@ export async function droitDeTelecharger(
     },
   });
 
-  if (!produit || produit.files.length === 0) return { etat: "A_ACHETER" };
+  // Sans produit, on ne sait même pas quoi proposer d'acheter.
+  if (!produit) {
+    return { etat: "A_ACHETER", produitId, prix: "", achatPossible: false };
+  }
+
+  const aAcheter = (possible: boolean): DroitTelechargement => ({
+    etat: "A_ACHETER",
+    produitId,
+    prix: formatPrice(produit.price, produit.currency),
+    // Sans fichier, l'acheteur paierait pour rien. Sur sa propre ressource,
+    // il se créditerait son propre argent. Sans simulation ouverte, l'achat
+    // n'aboutirait pas. Trois raisons de ne pas montrer le bouton.
+    achatPossible:
+      possible &&
+      produit.files.length > 0 &&
+      produit.sellerId !== userId &&
+      simulationOuverte(),
+  });
+
+  if (produit.files.length === 0) return aAcheter(false);
 
   const fichiers = produit.files.map((f) => ({ id: f.id, nom: f.filename }));
 
@@ -78,7 +114,7 @@ export async function droitDeTelecharger(
       : { etat: "A_CONNECTER" };
   }
 
-  if (!userId) return { etat: "A_ACHETER" };
+  if (!userId) return aAcheter(true);
 
   const achat = await db.orderItem.findFirst({
     where: {
@@ -98,19 +134,19 @@ export async function droitDeTelecharger(
     orderBy: { createdAt: "desc" },
   });
 
-  if (!achat) return { etat: "A_ACHETER" };
+  if (!achat) return aAcheter(true);
 
   // Un remboursement intégral retire le droit ; un remboursement partiel non.
   const totalPaye = achat.price * achat.quantity;
   if (totalPaye > 0 && achat.refundedAmount >= totalPaye) {
-    return { etat: "A_ACHETER" };
+    return aAcheter(true);
   }
 
   // Les mêmes motifs que la route de livraison, sans quoi le bouton
   // proposerait un téléchargement qu'elle refusera au clic.
   const litige = achat.chargebackAt !== null && achat.chargebackReversedAt === null;
   if (litige || achat.accessRevokedAt !== null) {
-    return { etat: "A_ACHETER" };
+    return aAcheter(true);
   }
 
   return { etat: "TELECHARGEABLE", fichiers };

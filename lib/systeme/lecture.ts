@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { listerFournisseurs } from "@/lib/auth/providers";
+import { simulationOuverte } from "@/lib/checkout/achat";
 import { etatDes } from "@/lib/config/fonctionnalites";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -11,6 +12,7 @@ import {
   constatBase,
   constatConnexion,
   constatInterrupteurs,
+  constatSimulation,
   constatStockage,
   graviteGlobale,
   type Constat,
@@ -86,7 +88,6 @@ async function migrationsDuDepot(): Promise<string[] | null> {
 
 /** Modules dont les variables sont documentées mais que rien ne lit encore. */
 const A_VENIR = [
-  "Passage en caisse",
   "Paiements (Wave, Orange Money, carte)",
   "Courriels transactionnels",
   "Envoi effectif des versements",
@@ -125,6 +126,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       // l'implémente sans condition d'environnement.
       motDePasse: true,
     }),
+    constatSimulation({ ouverte: simulationOuverte(process.env), production }),
     constatInterrupteurs({
       fermees: etatDes(process.env)
         .filter((f) => !f.ouverte)

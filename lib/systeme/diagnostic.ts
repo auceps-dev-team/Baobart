@@ -184,6 +184,52 @@ export function constatConnexion(faits: FaitsConnexion): Constat {
   };
 }
 
+export interface FaitsSimulation {
+  ouverte: boolean;
+  production: boolean;
+}
+
+/**
+ * Le paiement simulé est-il ouvert ?
+ *
+ * En développement, c'est l'outil qui permet d'éprouver la chaîne d'achat sans
+ * opérateur. En production, c'est deux dégâts à la fois : les ressources
+ * payantes se prennent gratuitement, et les créateurs sont crédités d'un argent
+ * qui n'est jamais entré — dette de versement fabriquée de toutes pièces. D'où
+ * la panne, et pas un simple avertissement.
+ */
+export function constatSimulation(faits: FaitsSimulation): Constat {
+  if (!faits.ouverte) {
+    return {
+      cle: "simulation",
+      libelle: "Paiement",
+      gravite: "ok",
+      detail: "Aucun paiement simulé. Les ressources payantes ne s'achètent pas.",
+    };
+  }
+
+  if (faits.production) {
+    return {
+      cle: "simulation",
+      libelle: "Paiement simulé EN PRODUCTION",
+      gravite: "panne",
+      detail:
+        "Les ressources payantes se prennent sans payer, et les créateurs sont crédités d'un argent qui n'est jamais entré.",
+      remede:
+        "Retire CHECKOUT_SIMULATION_ENABLED, puis vérifie les commandes dont le fournisseur vaut « simulation ».",
+    };
+  }
+
+  return {
+    cle: "simulation",
+    libelle: "Paiement simulé",
+    gravite: "attention",
+    detail:
+      "Les achats aboutissent sans qu'aucun argent ne circule. Les commandes portent le fournisseur « simulation ».",
+    remede: "À ne jamais poser en production.",
+  };
+}
+
 export interface FaitsInterrupteurs {
   fermees: readonly string[];
 }

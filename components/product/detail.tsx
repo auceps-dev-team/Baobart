@@ -9,6 +9,7 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { acheterRessource } from "@/lib/checkout/actions";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
@@ -97,11 +98,89 @@ function BoutonTelechargement({ droit }: { droit: DroitTelechargement }) {
     );
   }
 
-  // Le paiement n'existe pas encore : annoncer « Acheter » promettrait un
-  // écran qui n'ouvrirait sur rien.
+  // À acheter. Le bouton n'apparaît que si un achat peut réellement aboutir :
+  // annoncer « Acheter » sans paiement branché promettrait un écran qui
+  // n'ouvrirait sur rien.
+  if (droit.achatPossible) {
+    return (
+      <form action={acheterRessource.bind(null, droit.produitId)}>
+        <button
+          type="submit"
+          className="sticker-press"
+          style={{
+            ...base,
+            width: "100%",
+            background: ENCRE,
+            color: BLANC,
+            boxShadow: `4px 4px 0 ${ORANGE}`,
+            cursor: "pointer",
+          }}
+        >
+          Acheter — {droit.prix}
+        </button>
+      </form>
+    );
+  }
+
   return (
     <div style={{ ...base, background: ENCRE, color: BLANC, opacity: 0.6 }}>
-      Télécharger
+      Paiement bientôt disponible
+    </div>
+  );
+}
+
+const MESSAGES_ACHAT: Record<string, { texte: string; fond: string }> = {
+  ok: {
+    texte:
+      "Achat enregistré. Le téléchargement est ouvert, et le reçu part par courriel.",
+    fond: JAUNE,
+  },
+  DEJA_ACQUISE: {
+    texte: "Tu possèdes déjà cette ressource. Retrouve-la dans tes achats.",
+    fond: JAUNE,
+  },
+  SA_PROPRE_RESSOURCE: {
+    texte: "On n'achète pas sa propre ressource.",
+    fond: ORANGE,
+  },
+  SANS_FICHIER: {
+    texte:
+      "Cette ressource n'a aucun fichier attaché : elle ne peut pas être vendue.",
+    fond: ORANGE,
+  },
+  GRATUITE: {
+    texte: "Cette ressource est offerte — télécharge-la directement.",
+    fond: JAUNE,
+  },
+  EN_COURS: { texte: "Un achat est déjà en cours pour cette ressource.", fond: JAUNE },
+  CONFLIT: { texte: "Deux achats sont partis en même temps. Réessaie.", fond: JAUNE },
+  PAIEMENT_INDISPONIBLE: {
+    texte: "Le paiement n'est pas encore disponible. Reviens bientôt.",
+    fond: ORANGE,
+  },
+  INTROUVABLE: { texte: "Cette ressource n'est plus disponible.", fond: ORANGE },
+};
+
+/** Le retour d'un achat, lu depuis l'URL après la redirection de l'action. */
+export function RetourAchat({ code }: { code: string | undefined }) {
+  const message = code ? MESSAGES_ACHAT[code] : undefined;
+  if (!message) return null;
+
+  return (
+    <div
+      role="status"
+      style={{
+        margin: "0 0 16px",
+        padding: "13px 16px",
+        border: CADRE,
+        borderRadius: 14,
+        background: message.fond,
+        color: message.fond === ORANGE ? BLANC : ENCRE,
+        fontSize: 13.5,
+        fontWeight: 800,
+      }}
+    >
+      {message.texte}
     </div>
   );
 }

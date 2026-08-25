@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { DetailProduit, EnTeteFiche } from "@/components/product/detail";
+import { DetailProduit, EnTeteFiche, RetourAchat } from "@/components/product/detail";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
@@ -34,10 +34,13 @@ export async function generateMetadata({
  */
 export default async function FicheProduitPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ achat?: string }>;
 }) {
   const { slug } = await params;
+  const { achat } = await searchParams;
   const [produit, utilisateur] = await Promise.all([
     obtenirProduit(slug),
     sessionCourante(),
@@ -76,6 +79,9 @@ export default async function FicheProduitPage({
           }}
         >
           <EnTeteFiche titre={produit.titre} />
+          <div style={{ padding: "0 24px" }}>
+            <RetourAchat code={achat} />
+          </div>
           <DetailProduit
             produit={produit}
             droit={droit}
