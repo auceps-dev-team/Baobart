@@ -1624,6 +1624,70 @@ model AuditLog {
 // 11. MÉDIAS — upload direct presign + pipeline Shield
 // ============================================================================
 
+enum EmailStatus {
+  PENDING
+  SENDING
+  SENT
+  /// Échec définitif : plus aucune tentative automatique.
+  FAILED
+  /// Fermé à la main. Une adresse qui n'existe plus resterait rouge à jamais
+  /// et masquerait les vraies pannes.
+  ABANDONED
+}
+
+enum EmailTemplate {
+  BIENVENUE
+  REINITIALISATION_MOT_DE_PASSE
+  RECU_ACHAT
+  LIEN_TELECHARGEMENT
+  AVIS_VERSEMENT
+}
+
+/// File d'attente des messages transactionnels.
+///
+/// Un message part **après** la transaction qui le justifie. S'il partait
+/// pendant, une commande annulée aurait déjà envoyé son reçu ; s'il partait
+/// avant, une panne d'expéditeur ferait échouer la commande. On écrit donc
+/// l'intention dans la même transaction que le fait, et un passage l'envoie
+/// ensuite.
+model EmailOutbox {
+  id String @id @default(cuid())
+
+  /// Ce qui empêche le doublon.
+  ///
+  /// Dérivée du fait qui justifie l'envoi — « recu-<orderItemId> » — et non
+  /// d'un hasard : un webhook rejoué par l'opérateur doit retomber sur la même
+  /// clé et se faire refuser, plutôt que d'envoyer un second reçu.
+  idempotencyKey String @unique
+
+  recipient String
+  template  EmailTemplate
+  /// Les variables du modèle. Peut contenir un lien de téléchargement :
+  /// ne jamais l'afficher tel quel dans un écran ni dans un journal.
+  payload   Json
+
+  status     EmailStatus @default(PENDING)
+  attempts   Int         @default(0)
+  lastError  String?
+
+  /// Avant cette date, la ligne n'est pas réclamée. Porte le recul progressif.
+  nextAttemptAt DateTime @default(now())
+
+  /// Posée à la réclamation. Une ligne SENDING dont la réclamation traîne
+  /// signale un processus mort en plein envoi.
+  claimedAt DateTime?
+
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  /// L'index du passage : ce qui est dû, dans l'ordre où c'est dû.
+  @@index([status, nextAttemptAt])
+  /// La supervision lit par récence.
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
 model MediaAsset {
   id               String      @id @default(cuid())
   ownerId          String

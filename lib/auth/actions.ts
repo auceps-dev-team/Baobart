@@ -9,6 +9,7 @@ import {
   verifierMotDePasse,
 } from "@/lib/auth/password";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
+import { deposer } from "@/lib/email/outbox";
 
 /**
  * Actions d'authentification.
@@ -125,18 +126,50 @@ export async function inscrire(
 
   const passwordHash = await hacherMotDePasse(motDePasse);
 
-  const compte = await db.user.create({
-    data: {
-      email,
-      passwordHash,
-      profile: {
-        create: { username, displayName: `${prenom} ${nom}`.trim() },
+  const affichage = `${prenom} ${nom}`.trim();
+
+  // Le compte et l'intention d'envoi s'écrivent ensemble. Si la création
+  // échouait après coup, un message de bienvenue partirait pour un compte
+  // inexistant ; si l'envoi échouait seul, l'inscription serait perdue pour un
+  // courriel. La transaction supprime le choix.
+  const compte = await db.$transaction(async (tx) => {
+    const cree = await tx.user.create({
+      data: {
+        email,
+        passwordHash,
+        profile: {
+          create: { username, displayName: affichage },
+        },
+        // Le prénom et le nom servent aux factures, pas à la vitrine : ils vont
+        // dans les informations de facturation, pas dans le profil public.
+        billing: { create: { firstName: prenom, lastName: nom } },
       },
-      // Le prénom et le nom servent aux factures, pas à la vitrine : ils vont
-      // dans les informations de facturation, pas dans le profil public.
-      billing: { create: { firstName: prenom, lastName: nom } },
-    },
-    select: { id: true },
+      select: { id: true },
+    });
+
+    await deposer(
+      {
+        // Une clé par compte : même rejouée, l'inscription n'enverra jamais
+        // deux messages de bienvenue.
+        cle: `bienvenue-${cree.id}`,
+        destinataire: email,
+        modele: "BIENVENUE",
+        charge: { nom: affichage || username },
+      },
+      tx,
+    );
+
+    return cree;
+  },
+  {
+    // Le défaut de Prisma est de cinq secondes. C'est court pour deux écritures
+    // sur une connexion froide — première invocation d'une fonction serverless,
+    // ou passage par un pooler. Un dépassement ici renvoie une erreur 500 à
+    // quelqu'un qui s'inscrit, pour une lenteur passagère.
+    timeout: 15_000,
+    // Même raison côté attente : obtenir une connexion peut prendre plus de
+    // deux secondes quand le pool vient d'être réveillé.
+    maxWait: 10_000,
   });
 
   await ouvrirSession(compte.id);
