@@ -56,6 +56,11 @@ export interface VenteCreateur {
   processorFee: number;
   affiliateFee: number;
   refundedAmount: number;
+  /// Paiement contesté auprès de la banque, contestation non tranchée.
+  chargebackAt: Date | null;
+  chargebackReversedAt: Date | null;
+  /// Accès coupé à la main par le vendeur, sans remboursement.
+  accessRevokedAt: Date | null;
   createdAt: Date;
   order: { buyer: { email: string; profile: { displayName: string } | null } };
   product: { name: string; slug: string; currency: Currency };
@@ -212,6 +217,9 @@ export async function lireVentesCreateur(userId: string, limit = 10) {
       processorFee: true,
       affiliateFee: true,
       refundedAmount: true,
+      chargebackAt: true,
+      chargebackReversedAt: true,
+      accessRevokedAt: true,
       createdAt: true,
       order: {
         select: {

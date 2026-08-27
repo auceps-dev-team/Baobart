@@ -44,6 +44,8 @@ export type BalanceTransactionType =
   | "SALE"
   | "COMMISSION"
   | "REFUND"
+  | "CHARGEBACK"
+  | "CHARGEBACK_REVERSED"
   | "PAYOUT"
   | "AFFILIATE"
   | "POOL"

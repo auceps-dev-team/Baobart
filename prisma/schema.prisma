@@ -149,6 +149,11 @@ enum BalanceTransactionType {
   SALE
   COMMISSION
   REFUND
+  /// Paiement contesté auprès de la banque : l'argent est repris sans qu'on ait
+  /// rien remboursé. Distinct de REFUND, qui est un geste du vendeur.
+  CHARGEBACK
+  /// Contestation tranchée en faveur du vendeur : l'argent revient.
+  CHARGEBACK_REVERSED
   PAYOUT
   AFFILIATE
   POOL
@@ -331,7 +336,9 @@ model User {
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
   /// détermine le JOUR de la semaine où ce créateur est payé — voir
   /// lib/payments/payout-schedule.ts.
-  payoutFrequency PayoutFrequency @default(WEEKLY)
+  /// Le mensuel par défaut : un seul virement, donc le moins de frais
+  /// d'opérateur. Voir la maquette du panneau de versements.
+  payoutFrequency PayoutFrequency @default(MONTHLY)
   payoutRail      String?
 
   /// Versements suspendus sans que le compte le soit.
@@ -929,6 +936,14 @@ model Refund {
   reason       String?
   processorRef String?
   refundedById String? // null = automatique (politique, litige)
+
+  /// Commission que la plateforme a gardée sur ce remboursement.
+  ///
+  /// Politique arrêtée : la commission n'est pas rendue, et les frais
+  /// d'opérateur restent à la charge du vendeur — c'est donc lui qui finance
+  /// le remboursement en entier. Ce champ n'entre dans aucun calcul : il note
+  /// ce que Baobart a conservé, faute d'un compte plateforme au grand livre.
+  retainedFee  Int      @default(0)
   createdAt    DateTime @default(now())
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)

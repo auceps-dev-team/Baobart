@@ -18,7 +18,7 @@ const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 const iso = (date: Date) => date.toISOString().slice(0, 10);
 
 const wave = RAILS_BAOBART.wave as PayoutRail; // mardi
-const banque = RAILS_BAOBART.bank as PayoutRail; // jeudi
+const banque = RAILS_BAOBART.bank as PayoutRail; // lundi
 const vendrediRail: PayoutRail = { id: "x", label: "Vendredi", weekday: 5 };
 
 describe("cycles — l'ancrage est toujours un vendredi", () => {
@@ -58,7 +58,7 @@ describe("date de cycle vs date de versement", () => {
     const cycle = d("2026-08-07"); // vendredi
 
     expect(iso(dateVersementPourCycle(cycle, wave))).toBe("2026-08-04"); // mardi
-    expect(iso(dateVersementPourCycle(cycle, banque))).toBe("2026-08-06"); // jeudi
+    expect(iso(dateVersementPourCycle(cycle, banque))).toBe("2026-08-03"); // lundi
     expect(iso(dateVersementPourCycle(cycle, vendrediRail))).toBe("2026-08-07");
   });
 

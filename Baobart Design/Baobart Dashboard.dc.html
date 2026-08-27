@@ -83,6 +83,129 @@
 
     <div data-scroll="1" style="flex:1 1 auto; padding:26px; display:flex; flex-direction:column; gap:20px">
 
+      <!-- VERSEMENTS (CRÉATEUR) -->
+      <sc-if value="{{ isPayout }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px">
+
+          <sc-if value="{{ payout.suspended }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:20px 22px; border:2.5px solid #121212; border-radius:22px; background:#E2622C; color:#FFFFFF; box-shadow:6px 6px 0 #121212">
+              <div style="width:46px; height:46px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFD84A; color:#121212; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:20px">!</div>
+              <div style="flex:1 1 300px; min-width:0">
+                <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(19px,2.1vw,25px); line-height:1.1; letter-spacing:-.7px">Tes versements sont suspendus</div>
+                <div style="font-size:14px; font-weight:600; line-height:1.45; margin-top:7px; opacity:.95; text-wrap:pretty">Motif : le nom du titulaire du compte ne correspond pas à celui de ton profil. Ton solde reste acquis et continue de s'accumuler — rien n'est perdu, rien ne part tant que ce point n'est pas réglé.</div>
+              </div>
+              <div style="flex:0 0 auto; padding:13px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; color:#121212; font-size:13.5px; font-weight:800; cursor:pointer">Corriger le titulaire</div>
+            </div>
+          </sc-if>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:20px; align-items:start">
+
+            <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Compte de versement</div>
+
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:16px; padding:16px; border:2.5px solid #121212; border-radius:18px; background:{{ payout.currentBg }}">
+                <div style="flex:1 1 220px; min-width:0">
+                  <div style="font-size:15.5px; font-weight:800; line-height:1.3">{{ payout.currentLabel }}</div>
+                  <div style="font-size:12.5px; font-weight:600; line-height:1.45; margin-top:6px; opacity:.75; text-wrap:pretty">{{ payout.currentNote }}</div>
+                </div>
+                <div onClick="{{ payout.toggleAccount }}" style="flex:0 0 auto; padding:9px 14px; border:2px solid #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.06em; cursor:pointer">{{ payout.toggleLabel }}</div>
+              </div>
+
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin:20px 0 9px">Moyen de versement</div>
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <sc-for list="{{ payout.methods }}" as="m" hint-placeholder-count="5">
+                  <div onClick="{{ m.pick }}" style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; cursor:pointer; background:{{ m.bg }}; color:{{ m.fg }}">
+                    <div style="flex:0 1 auto; font-size:14px; font-weight:800">{{ m.label }}</div>
+                    <div style="flex:1 1 160px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; text-align:right; opacity:.7">{{ m.hint }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:18px">
+                <div>
+                  <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin-bottom:6px">{{ payout.fieldLabel }}</div>
+                  <input placeholder="{{ payout.fieldPh }}" style="width:100%; min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none" />
+                </div>
+                <div>
+                  <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin-bottom:6px">Nom du titulaire</div>
+                  <input placeholder="Awa Diallo" style="width:100%; min-width:0; font-family:Poppins,sans-serif; font-size:13.5px; font-weight:500; padding:12px 14px; border:2.5px solid #121212; border-radius:13px; background:#F4EEFC; outline:none" />
+                </div>
+              </div>
+
+              <sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:18px">
+                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ payout.saveLabel }}</div>
+                  <div style="flex:1 1 200px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.65">{{ payout.saveNote }}</div>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Cadence des versements</div>
+              <div style="font-size:13.5px; font-weight:700; line-height:1.5; margin-top:10px; padding:12px 14px; border:2.5px solid #121212; border-radius:14px; background:#EADFF9; text-wrap:pretty">{{ payout.dayLine }}</div>
+              <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px">
+                <sc-for list="{{ payout.cadences }}" as="c" hint-placeholder-count="3">
+                  <div onClick="{{ c.pick }}" style="display:flex; gap:13px; padding:15px; border:2.5px solid #121212; border-radius:16px; cursor:pointer; background:{{ c.bg }}">
+                    <div style="width:22px; height:22px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:11px; color:{{ c.dot }}">{{ c.mark }}</div>
+                    <div style="flex:1 1 auto; min-width:0">
+                      <div style="font-size:14.5px; font-weight:800">{{ c.label }}</div>
+                      <div style="font-size:12.5px; font-weight:500; line-height:1.45; margin-top:5px; opacity:.8; text-wrap:pretty">{{ c.note }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; align-items:start">
+
+            <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Ce qui conditionne un versement</div>
+              <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px">
+                <sc-for list="{{ payout.conditions }}" as="c" hint-placeholder-count="3">
+                  <div style="display:flex; gap:12px; padding:14px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
+                    <div style="width:22px; height:22px; flex:0 0 auto; border:2px solid #121212; border-radius:7px; background:#C9A8F5; display:grid; place-items:center; font-size:11px; font-weight:800">▸</div>
+                    <div style="flex:1 1 auto; min-width:0">
+                      <div style="font-size:14px; font-weight:800">{{ c.t }}</div>
+                      <div style="font-size:13px; font-weight:500; line-height:1.5; margin-top:5px; opacity:.82; text-wrap:pretty">{{ c.d }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="border:2.5px solid #121212; border-radius:24px; background:#FFD84A; box-shadow:6px 6px 0 #121212; padding:22px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Ce qu'un remboursement te coûte</div>
+              <p style="font-size:14px; font-weight:600; line-height:1.55; margin:14px 0 0; text-wrap:pretty">Quand un acheteur est remboursé, la totalité de ce qu'il a payé lui est rendue — pas seulement la part que tu as touchée. La commission déjà prélevée par Baobart ne t'est pas restituée : elle a servi au traitement du paiement, qui a bien eu lieu.</p>
+              <div style="border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; padding:16px; margin-top:14px">
+                <p style="font-size:14px; font-weight:600; line-height:1.6; margin:0; text-wrap:pretty">Sur une vente à <strong>5 000 F</strong> dont tu as reçu <strong>4 425 F</strong>, un remboursement intégral te débite <strong>5 000 F</strong>. Tu perds donc 575 F de plus que ce que la vente t'avait rapporté. Si ton solde disponible est inférieur à cette somme, il devient négatif et les versements suivants servent d'abord à le ramener à zéro.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="border:2.5px solid #121212; border-radius:24px; background:#EADFF9; box-shadow:6px 6px 0 #121212; padding:22px">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Moyens de paiement des acheteurs</div>
+            <p style="font-size:14px; font-weight:600; line-height:1.55; margin:12px 0 0; max-width:780px; text-wrap:pretty">Tu n'as rien à régler ici. Aucun opérateur n'est branché sur ton compte : les acheteurs paient Baobart, jamais toi directement. Les moyens proposés au passage en caisse seront ceux de la plateforme, identiques pour toutes les boutiques.</p>
+          </div>
+
+          <sc-if value="{{ payout.hasRetired }}" hint-placeholder-val="{{ false }}">
+            <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Comptes remplacés</div>
+              <div style="font-size:13px; font-weight:600; line-height:1.5; margin-top:9px; opacity:.75; max-width:720px">Conservés pour la traçabilité des versements déjà partis. Ils ne sont jamais supprimés et ne peuvent plus recevoir de fonds.</div>
+              <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px">
+                <sc-for list="{{ payout.retired }}" as="r" hint-placeholder-count="2">
+                  <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:13px 15px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC">
+                    <div style="flex:1 1 180px; min-width:0; font-size:14px; font-weight:800">{{ r.label }}</div>
+                    <div style="flex:1 1 140px; min-width:0; font-size:12.5px; font-weight:600; opacity:.75">{{ r.holder }}</div>
+                    <div style="flex:0 0 auto; font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ r.at }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
       <!-- BANDEAU DE GRAVITE -->
       <sc-if value="{{ page.hasBanner }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:20px 22px; border:2.5px solid #121212; border-radius:22px; box-shadow:6px 6px 0 #121212; background:{{ page.banner.bg }}; color:{{ page.banner.fg }}">
@@ -108,7 +231,7 @@
             <div style="border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; padding:18px; background:{{ c.bg }}; color:{{ c.fg }}">
               <div style="display:flex; align-items:center; gap:9px">
                 <div style="width:11px; height:11px; flex:0 0 auto; border:2px solid #121212; border-radius:99px; background:{{ c.dot }}"></div>
-                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.75">{{ c.label }}</div>
+                <div style="flex:1 1 auto; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.75">{{ c.label }}</div>
               </div>
               <div style="font-family:'Archivo Black',sans-serif; font-size:32px; line-height:1.05; margin-top:9px">{{ c.value }}</div>
               <div style="font-size:12.5px; font-weight:700; line-height:1.35; margin-top:5px; opacity:.78">{{ c.note }}</div>
@@ -482,7 +605,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;acheteur&quot;,&quot;createur&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;acheteur&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rôle&quot;},&quot;lectureSeule&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Écrans système&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;acheteur&quot;,&quot;createur&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;acheteur&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rôle&quot;},&quot;lectureSeule&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Écrans système&quot;},&quot;versementsSuspendus&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Versements&quot;}}">
 const stripe = (base, s, w) => `repeating-linear-gradient(135deg, ${s} 0 ${w || 8}px, ${base} ${w || 8}px ${(w || 8) * 2 + 2}px)`;
 const LAV = "#EADFF9", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", INK = "#121212", W = "#FFFFFF";
 
@@ -506,6 +629,7 @@ const NAV = {
     { key: "c_commandes", label: "Commandes", glyph: "▤" },
     { key: "c_ventes", label: "Ventes", glyph: "◫" },
     { key: "c_commissions", label: "Commissions", glyph: "%" },
+    { key: "c_versements", label: "Versements", glyph: "◈", badge: true, badgeLabel: "!" },
     { key: "c_stats", label: "Statistiques", glyph: "▲" },
     { key: "c_profil", label: "Profil de la boutique", glyph: "☺" },
     { key: "c_purchases", label: "Mes achats", glyph: "⌂" },
@@ -597,6 +721,34 @@ const PAY_ROWS = [
 ];
 
 const NEUTRE = { pillBg: "#DCDCDC", pillFg: INK };
+
+const PAYOUT_METHODS = [
+  { k: "wave", label: "Wave", hint: "Sénégal, Côte d'Ivoire · versement le mardi", field: "Numéro Wave", ph: "+221 77 000 00 00" },
+  { k: "orange", label: "Orange Money", hint: "Sénégal, Mali, Guinée · versement le jeudi", field: "Numéro Orange Money", ph: "+223 70 00 00 00" },
+  { k: "mtn", label: "MTN MoMo", hint: "Ghana, Cameroun, Côte d'Ivoire · versement le mercredi", field: "Numéro MTN MoMo", ph: "+233 24 000 0000" },
+  { k: "moov", label: "Moov Money", hint: "Bénin, Togo, Burkina · versement le vendredi", field: "Numéro Moov Money", ph: "+228 90 00 00 00" },
+  { k: "banque", label: "Virement bancaire", hint: "Zone UEMOA · versement le lundi", field: "IBAN ou numéro de compte", ph: "SN08 SN01 0015 2000 0482 1000 0000" }
+];
+
+const PAYOUT_DAY = { wave: "mardi", orange: "jeudi", mtn: "mercredi", moov: "vendredi", banque: "lundi" };
+
+const CADENCES = [
+  { k: "semaine", label: "Chaque semaine", note: "Le versement part dès que le solde disponible dépasse le seuil. C'est le rythme le plus court, mais chaque virement bancaire est facturé par la banque." },
+  { k: "mois", label: "Chaque mois", note: "Un seul versement, le premier jour de versement du mois. Le rythme par défaut, celui qui coûte le moins en frais." },
+  { k: "trimestre", label: "Chaque trimestre", note: "Trois mois d'accumulation avant le départ. Utile si tu vends peu et que tu ne veux pas multiplier les lignes de compte." }
+];
+
+const RETIRED_ACCOUNTS = [
+  { label: "Orange Money ···· 3390", holder: "Awa Diallo", at: "retiré le 14 mars 2026" },
+  { label: "Virement bancaire ···· 7712", holder: "Diallo Awa Fatimata", at: "retiré le 2 novembre 2025" }
+];
+
+const PAYOUT_PAGE = {
+  c_versements: {
+    title: "Versements", cta: "Voir l'historique",
+    intro: "Où part ton argent, quand, et ce qui peut l'empêcher de partir. Rien d'autre ne se règle sur cet écran."
+  }
+};
 
 const SYS_PAGES = {
   a_sys_config: {
@@ -1394,11 +1546,55 @@ class Component extends DCLogic {
     };
   }
 
+  payoutVals() {
+    const s = this.state;
+    const method = s.payMethod || "wave";
+    const m = PAYOUT_METHODS.find(x => x.k === method) || PAYOUT_METHODS[0];
+    const hasAccount = s.payHasAccount !== false;
+    const cadence = s.payCadence || "mois";
+    const suspended = !!this.props.versementsSuspendus;
+    return {
+      suspended: suspended,
+      currentLabel: hasAccount ? "Tes versements partent vers Wave ···· 4821" : "Aucun compte de versement enregistré",
+      currentNote: hasAccount
+        ? "Titulaire : Awa Diallo · enregistré le 14 mars 2026. La référence complète n'est jamais réaffichée, ni ici ni par le support."
+        : "Tant qu'aucun compte n'est enregistré, ton solde s'accumule mais rien ne part.",
+      currentBg: hasAccount ? W : YEL,
+      methods: PAYOUT_METHODS.map(x => ({
+        label: x.label, hint: x.hint,
+        bg: x.k === method ? INK : W, fg: x.k === method ? W : INK,
+        pick: () => this.setState({ payMethod: x.k })
+      })),
+      fieldLabel: m.field, fieldPh: m.ph,
+      saveLabel: hasAccount ? "Remplacer le compte" : "Enregistrer",
+      saveNote: hasAccount
+        ? "Remplacer archive l'ancien compte et déclenche une vérification de 24 h avant le prochain départ."
+        : "Le premier enregistrement déclenche une vérification de 24 h avant le premier départ.",
+      toggleAccount: () => this.setState({ payHasAccount: !hasAccount }),
+      toggleLabel: hasAccount ? "Voir l'état sans compte" : "Voir l'état avec compte",
+      dayLine: "Ton moyen de versement paie le " + PAYOUT_DAY[method] + " — la cadence décide de la fréquence, le moyen décide du jour.",
+      cadences: CADENCES.map(c => ({
+        label: c.label, note: c.note,
+        bg: c.k === cadence ? YEL : W,
+        dot: c.k === cadence ? INK : W,
+        mark: c.k === cadence ? "●" : "",
+        pick: () => this.setState({ payCadence: c.k })
+      })),
+      conditions: [
+        { t: "Délai de rétention de 7 jours", d: "Une vente devient disponible 7 jours après le téléchargement de l'acheteur. Ce délai couvre la fenêtre de remboursement : avant, la somme est visible mais pas versable." },
+        { t: "Seuil de 1 000 F", d: "Sous 1 000 F de solde disponible, aucun versement ne part. Le montant n'est pas perdu : il attend la période suivante et s'additionne." },
+        { t: "Le nom du titulaire doit être le tien", d: "Le nom porté par le compte doit correspondre à celui de ton profil Baobart. Un versement vers un compte à un autre nom est refusé par l'opérateur et revient avec des frais à ta charge." }
+      ],
+      retired: RETIRED_ACCOUNTS,
+      hasRetired: RETIRED_ACCOUNTS.length > 0
+    };
+  }
+
   renderVals() {
     const role = this.state.role || this.props.role || "acheteur";
     const nav = NAV[role] || NAV.acheteur;
     const key = (nav.some(n => n.key === this.state.key) && this.state.key) || nav[0].key;
-    const raw = PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || {};
+    const raw = PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || PAYOUT_PAGE[key] || {};
     const filters = raw.filters || [];
     const active = this.state.filter[key] || filters[0];
     const active2 = (this.state.tfilter || {})[key] || ((raw.table || {}).filters || [])[0];
@@ -1442,6 +1638,9 @@ class Component extends DCLogic {
     });
 
     return {
+      isPayout: key === "c_versements",
+      payout: this.payoutVals(),
+
       canAct: !this.props.lectureSeule,
       readerOnly: !!this.props.lectureSeule,
       hasDetail: !!this.state.detail,

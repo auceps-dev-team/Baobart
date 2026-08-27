@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { verifierCompte } from "@/lib/payments/comptes";
+import { cadenceValide } from "@/lib/payments/cadences";
 
 /**
  * Enregistrer son compte de versement.
@@ -69,5 +70,41 @@ export async function enregistrerCompteDeVersement(
   });
 
   revalidatePath("/dashboard/gains");
+  revalidatePath("/dashboard/versements");
+  return { ok: true };
+}
+
+/**
+ * Changer sa cadence de versement.
+ *
+ * La cadence dit à quelle **fréquence** on est payé ; le rail choisi, lui,
+ * décide du **jour**. Les deux se lisent ensemble sur l'écran, sinon un vendeur
+ * qui passe au mensuel ne sait pas quand tomber son argent.
+ *
+ * Aucune valeur libre n'est acceptée : la liste vient du code, et une cadence
+ * inconnue est refusée plutôt qu'écrite. Le quotidien existe au schéma mais
+ * aucun cycle ne le sert — l'offrir promettrait un versement que rien ne
+ * déclencherait.
+ */
+export async function enregistrerCadence(
+  _precedent: EtatCompte | null,
+  donnees: FormData,
+): Promise<EtatCompte> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) {
+    return { ok: false, message: "Connecte-toi pour continuer." };
+  }
+
+  const cadence = cadenceValide(String(donnees.get("cadence") ?? ""));
+  if (!cadence) {
+    return { ok: false, message: "Cadence inconnue." };
+  }
+
+  await db.user.update({
+    where: { id: utilisateur.id },
+    data: { payoutFrequency: cadence },
+  });
+
+  revalidatePath("/dashboard/versements");
   return { ok: true };
 }

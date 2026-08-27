@@ -55,12 +55,20 @@ export interface PayoutRail {
  * Rails proposés pour le lancement. Les jours sont à confirmer avec chaque
  * opérateur : ce sont leurs fenêtres de compensation qui décident, pas nous.
  */
+/**
+ * Un rail, un jour de la semaine.
+ *
+ * Les jours viennent de la maquette (`Baobart Design/Baobart Dashboard.dc.html`,
+ * `PAYOUT_DAY`), qui fait foi. Ils sont volontairement **tous distincts** :
+ * regrouper deux opérateurs le même jour concentrerait les virements et, le
+ * jour où l'un d'eux tombe en panne, on perdrait deux rails d'un coup.
+ */
 export const RAILS_BAOBART: Record<string, PayoutRail> = {
+  bank: { id: "bank", label: "Virement bancaire", weekday: 1 },
   wave: { id: "wave", label: "Wave", weekday: 2 },
-  om: { id: "om", label: "Orange Money", weekday: 2 },
   mtn: { id: "mtn", label: "MTN MoMo", weekday: 3 },
-  moov: { id: "moov", label: "Moov Money", weekday: 3 },
-  bank: { id: "bank", label: "Virement bancaire", weekday: 4 },
+  om: { id: "om", label: "Orange Money", weekday: 4 },
+  moov: { id: "moov", label: "Moov Money", weekday: 5 },
 };
 
 export interface PayoutConfig {

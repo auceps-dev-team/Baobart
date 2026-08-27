@@ -16,7 +16,7 @@ import type { Currency } from "@/lib/domain/prisma-types";
 import { crediterSolde } from "@/lib/domain/balances";
 import {
   computeFees,
-  partNetteRemboursee,
+  partProportionnelle,
   type FeeRegime,
 } from "@/lib/domain/fees";
 import { db } from "@/lib/db";
@@ -220,6 +220,18 @@ export async function rembourserLigne(input: {
       );
     }
 
+    // Ce que la plateforme garde sur ce remboursement. N'entre dans aucun
+    // calcul : la somme est notée faute d'un compte plateforme au grand livre,
+    // pour qu'on puisse un jour répondre à « combien avons-nous conservé ».
+    // Répartie par différence sur le cumul, sans quoi cent remboursements d'un
+    // franc n'additionneraient pas la commission entière.
+    const retenu = partProportionnelle({
+      brut: encaisse,
+      part: ligne.platformFee,
+      dejaRembourse,
+      montant: amount,
+    });
+
     const remboursement = await tx.refund.create({
       data: {
         orderItemId,
@@ -227,28 +239,28 @@ export async function rembourserLigne(input: {
         currency: ligne.order.currency,
         reason,
         refundedById,
+        retainedFee: retenu,
       },
     });
 
-    // Le créateur rend ce qu'il avait touché sur la part remboursée, au prorata
-    // de son net — il ne rend pas la commission de la plateforme, qu'il n'a
-    // jamais reçue. La part se calcule par différence sur le cumul : arrondir
-    // chaque remboursement isolément lui ferait payer la monnaie de la
-    // division, jusqu'à 29 F sur une vente de 100 remboursée franc par franc.
-    const partNette = partNetteRemboursee({
-      brut: encaisse,
-      net:
-        encaisse - ligne.platformFee - ligne.processorFee - ligne.affiliateFee,
-      dejaRembourse,
-      montant: amount,
-    });
-
+    // ────────────────────────────────────────────────────────────────
+    // LE VENDEUR FINANCE LE REMBOURSEMENT EN ENTIER
+    //
+    // Décision commerciale, août 2026 : la commission n'est pas rendue, et les
+    // frais d'opérateur — que la passerelle de paiement ne restitue jamais —
+    // restent à la charge du vendeur. L'acheteur reçoit le brut ; la plateforme
+    // ne verse rien ; le vendeur est donc débité du brut, pas de son net.
+    //
+    // Conséquence à connaître : sur une vente à 5 000 remboursée intégralement,
+    // le vendeur avait reçu 4 425 et rend 5 000 — son solde descend à −575.
+    // Aucune contrainte ne l'interdit, et le versement suivant absorbera le
+    // déficit. C'est voulu : rembourser coûte au vendeur, pas à la plateforme.
     const { mouvement } = await crediterSolde(tx, {
       userId: ligne.product.sellerId,
       type: "REFUND",
       issuedCurrency: ligne.order.currency,
       issuedGross: -amount,
-      issuedNet: -partNette,
+      issuedNet: -amount,
       holdingCurrency:
         holdingCurrency ?? ligne.product.seller.defaultCurrency,
       tauxChange,
@@ -257,6 +269,6 @@ export async function rembourserLigne(input: {
       date,
     });
 
-    return { remboursement, mouvement, partNette };
+    return { remboursement, mouvement, retenu, aCharge: amount };
   }, { isolationLevel: "Serializable" });
 }

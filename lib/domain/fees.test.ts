@@ -4,7 +4,7 @@ import {
   BAREME_XOF,
   computeFees,
   minimumViablePrice,
-  partNetteRemboursee,
+  partProportionnelle,
   type FeeSchedule,
 } from "./fees";
 
@@ -199,70 +199,75 @@ describe("minimumViablePrice", () => {
   });
 });
 
-describe("part rendue sur un remboursement", () => {
-  it("rend tout le net sur un remboursement intégral", () => {
+describe("répartition proportionnelle sur remboursements successifs", () => {
+  it("rend la part entière sur un remboursement intégral", () => {
     expect(
-      partNetteRemboursee({ brut: 10_000, net: 8_500, dejaRembourse: 0, montant: 10_000 }),
+      partProportionnelle({ brut: 10_000, part: 8_500, dejaRembourse: 0, montant: 10_000 }),
     ).toBe(8_500);
   });
 
-  it("rend la moitié du net sur la moitié du brut", () => {
+  it("rend la moitié de la part sur la moitié du brut", () => {
     expect(
-      partNetteRemboursee({ brut: 10_000, net: 8_500, dejaRembourse: 0, montant: 5_000 }),
+      partProportionnelle({ brut: 10_000, part: 8_500, dejaRembourse: 0, montant: 5_000 }),
     ).toBe(4_250);
   });
 
   it("ne rend rien quand la ligne était offerte", () => {
     expect(
-      partNetteRemboursee({ brut: 0, net: 0, dejaRembourse: 0, montant: 0 }),
+      partProportionnelle({ brut: 0, part: 0, dejaRembourse: 0, montant: 0 }),
     ).toBe(0);
   });
 
-  it("ne rend jamais plus que le net, même si le cumul dépasse", () => {
-    const p = partNetteRemboursee({
+  it("ne rend jamais plus que la part, même si le cumul dépasse", () => {
+    const p = partProportionnelle({
       brut: 10_000,
-      net: 8_500,
+      part: 8_500,
       dejaRembourse: 9_000,
       montant: 5_000,
     });
     expect(p).toBe(8_500 - Math.round((9_000 * 8_500) / 10_000));
   });
 
-  it("une suite de remboursements partiels rend exactement le net, jamais un franc de plus", () => {
+  it("une suite de remboursements partiels rend exactement la part, jamais un franc de plus", () => {
     // Le défaut anticipé : un arrondi par remboursement fait payer au créateur
     // la monnaie d'une division. Un franc n'est rien ; un franc pris sans
     // raison est un défaut.
-    const cas: Array<{ brut: number; net: number; parts: number[] }> = [
-      { brut: 10_000, net: 8_500, parts: [3_333, 3_333, 3_334] },
-      { brut: 7_777, net: 6_611, parts: [1_111, 2_222, 4_444] },
-      { brut: 999, net: 849, parts: [333, 333, 333] },
-      { brut: 3, net: 2, parts: [1, 1, 1] },
-      { brut: 15_000, net: 10_500, parts: [1, 14_998, 1] },
-      { brut: 100, net: 71, parts: Array.from({ length: 100 }, () => 1) },
+    const cas: Array<{ brut: number; part: number; parts: number[] }> = [
+      { brut: 10_000, part: 8_500, parts: [3_333, 3_333, 3_334] },
+      { brut: 7_777, part: 6_611, parts: [1_111, 2_222, 4_444] },
+      { brut: 999, part: 849, parts: [333, 333, 333] },
+      { brut: 3, part: 2, parts: [1, 1, 1] },
+      { brut: 15_000, part: 10_500, parts: [1, 14_998, 1] },
+      { brut: 100, part: 71, parts: Array.from({ length: 100 }, () => 1) },
     ];
 
-    for (const { brut, net, parts } of cas) {
+    for (const { brut, part, parts } of cas) {
       let cumul = 0;
       let rendu = 0;
 
       for (const montant of parts) {
-        rendu += partNetteRemboursee({ brut, net, dejaRembourse: cumul, montant });
+        rendu += partProportionnelle({ brut, part, dejaRembourse: cumul, montant });
         cumul += montant;
       }
 
-      expect(cumul, `${brut}/${net}`).toBe(brut);
-      expect(rendu, `${brut}/${net}`).toBe(net);
+      expect(cumul, `${brut}/${part}`).toBe(brut);
+      expect(rendu, `${brut}/${part}`).toBe(part);
     }
   });
 
   it("chaque part reste positive ou nulle", () => {
     for (let brut = 1; brut <= 60; brut += 1) {
-      for (let net = 0; net <= brut; net += 1) {
+      for (let valeur = 0; valeur <= brut; valeur += 1) {
         let cumul = 0;
         while (cumul < brut) {
           const montant = Math.min(7, brut - cumul);
-          const part = partNetteRemboursee({ brut, net, dejaRembourse: cumul, montant });
-          expect(part, `${brut}/${net}@${cumul}`).toBeGreaterThanOrEqual(0);
+          const rendue = partProportionnelle({
+            brut,
+            part: valeur,
+            dejaRembourse: cumul,
+            montant,
+          });
+          expect(rendue, `${brut}/${valeur}@${cumul}`).toBeGreaterThanOrEqual(0);
           cumul += montant;
         }
       }

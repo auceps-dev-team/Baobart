@@ -6,9 +6,9 @@
  * n'inscrit nulle part, pour qu'un changement de politique commerciale soit un
  * choix visible et non un effet de bord.
  *
- * Éprouvé au regard de Gumroad (`app/models/refund.rb`), qui garde de son côté
- * une notion de commission retenue au remboursement — chose que notre modèle
- * ne sait pas exprimer aujourd'hui.
+ * Politique arrêtée en août 2026, après confrontation à Gumroad : la commission
+ * reste acquise à la plateforme, et les frais d'opérateur restent à la charge du
+ * vendeur. C'est donc le vendeur qui finance le remboursement en entier.
  */
 
 import { describe, expect, it } from "vitest";
@@ -103,30 +103,41 @@ describe("remboursement intégral", () => {
   const PRIX = 5_000;
   const frais = computeFees({ unitPrice: PRIX, quantity: 1, regime: "DIRECT" });
 
-  it("ramène le créateur à zéro : il rend ce qu'il avait touché", async () => {
-    const { vendeurId, ligneId } = await venteDe(PRIX);
-    await rembourserLigne({ orderItemId: ligneId, amount: PRIX });
-
-    expect(await soldeInscrit(vendeurId)).toBe(0);
-  });
-
-  it("laisse la plateforme supporter seule commission et frais d'opérateur", async () => {
-    // L'acheteur récupère 5 000. Le créateur en rend 4 425. Les 575 restants
-    // sortent donc de la plateforme — dont 75 de frais d'opérateur que le
-    // prestataire de paiement, lui, ne rend pas.
-    //
-    // Rien dans le code ne dit que c'est voulu : c'est ce qui arrive faute de
-    // compte plateforme. Ce test le fixe pour que la question se pose.
+  it("débite le vendeur du brut, pas de son net", async () => {
+    // Décision commerciale d'août 2026 : la commission n'est pas rendue, et
+    // les frais d'opérateur — que la passerelle ne restitue jamais — restent
+    // à la charge du vendeur. C'est donc lui qui finance le remboursement.
     const { ligneId } = await venteDe(PRIX);
-    const { partNette } = await rembourserLigne({
+    const { aCharge } = await rembourserLigne({
       orderItemId: ligneId,
       amount: PRIX,
     });
 
-    const rendüParLaPlateforme = PRIX - partNette;
-    expect(partNette).toBe(frais.sellerNet);
-    expect(rendüParLaPlateforme).toBe(frais.platformFee + frais.processorFee);
-    expect(rendüParLaPlateforme).toBe(575);
+    expect(aCharge).toBe(PRIX);
+  });
+
+  it("laisse le vendeur en déficit de ce qu'il n'avait jamais reçu", async () => {
+    // Il avait touché 4 425 et rend 5 000 : son solde descend à −575. Aucune
+    // contrainte ne l'interdit, et le versement suivant absorbera le déficit.
+    const { vendeurId, ligneId } = await venteDe(PRIX);
+    await rembourserLigne({ orderItemId: ligneId, amount: PRIX });
+
+    expect(await soldeInscrit(vendeurId)).toBe(frais.sellerNet - PRIX);
+    expect(await soldeInscrit(vendeurId)).toBe(-575);
+  });
+
+  it("note la commission gardée par la plateforme", async () => {
+    // Faute de compte plateforme au grand livre, cette somme n'existe nulle
+    // part ailleurs. La consigner permet un jour de répondre à « combien
+    // avons-nous conservé sur les remboursements ».
+    const { ligneId } = await venteDe(PRIX);
+    const { retenu, remboursement } = await rembourserLigne({
+      orderItemId: ligneId,
+      amount: PRIX,
+    });
+
+    expect(retenu).toBe(frais.platformFee);
+    expect(remboursement.retainedFee).toBe(frais.platformFee);
   });
 
   it("interdit de rembourser au-delà de ce qui a été encaissé", async () => {
@@ -140,15 +151,32 @@ describe("remboursement intégral", () => {
 });
 
 describe("remboursements partiels empilés", () => {
-  it("ne fait pas payer au créateur la monnaie de la division", async () => {
-    // Cent remboursements d'un franc sur une vente de cent : arrondir chacun
-    // isolément ferait rendre au créateur plus qu'il n'a reçu.
+  it("débite au total exactement le brut remboursé", async () => {
     const { vendeurId, ligneId } = await venteDe(100);
+    const frais = computeFees({ unitPrice: 100, quantity: 1, regime: "DIRECT" });
 
+    let debite = 0;
     for (let i = 0; i < 100; i += 1) {
-      await rembourserLigne({ orderItemId: ligneId, amount: 1 });
+      const r = await rembourserLigne({ orderItemId: ligneId, amount: 1 });
+      debite += r.aCharge;
     }
 
-    expect(await soldeInscrit(vendeurId)).toBe(0);
+    expect(debite).toBe(100);
+    expect(await soldeInscrit(vendeurId)).toBe(frais.sellerNet - 100);
+  });
+
+  it("additionne la commission retenue sans dériver d'un franc", async () => {
+    // Cent remboursements d'un franc : arrondir chacun isolément ferait
+    // conserver à la plateforme plus, ou moins, que sa commission entière.
+    const { ligneId } = await venteDe(100);
+    const frais = computeFees({ unitPrice: 100, quantity: 1, regime: "DIRECT" });
+
+    let retenuCumule = 0;
+    for (let i = 0; i < 100; i += 1) {
+      const r = await rembourserLigne({ orderItemId: ligneId, amount: 1 });
+      retenuCumule += r.retenu;
+    }
+
+    expect(retenuCumule).toBe(frais.platformFee);
   });
 });

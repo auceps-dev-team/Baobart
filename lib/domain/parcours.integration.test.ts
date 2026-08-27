@@ -183,18 +183,22 @@ describe("remboursement", () => {
     });
 
     // Remboursement de la moitié.
-    const { partNette } = await rembourserLigne({
+    const { aCharge, retenu } = await rembourserLigne({
       orderItemId: ligne.id,
       amount: 5_000,
       reason: "geste commercial",
     });
 
-    expect(partNette).toBe(Math.round(frais.sellerNet / 2));
+    // Le vendeur finance le brut remboursé, pas sa seule part nette : la
+    // commission reste acquise à la plateforme et les frais d'opérateur ne
+    // reviennent jamais de la passerelle.
+    expect(aCharge).toBe(5_000);
+    expect(retenu).toBe(Math.round(frais.platformFee / 2));
 
     const solde = await db.balance.findFirstOrThrow({
       where: { userId: createur.id },
     });
-    expect(solde.holdingAmount).toBe(frais.sellerNet - partNette);
+    expect(solde.holdingAmount).toBe(frais.sellerNet - aCharge);
 
     const relue = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
     expect(relue.refundedAmount).toBe(5_000);
@@ -232,17 +236,24 @@ describe("remboursement", () => {
     });
 
     let rendu = 0;
+    let retenuCumule = 0;
     for (let i = 0; i < 100; i += 1) {
       const r = await rembourserLigne({ orderItemId: ligne.id, amount: 1 });
-      rendu += r.partNette;
+      rendu += r.aCharge;
+      retenuCumule += r.retenu;
     }
 
-    expect(rendu).toBe(frais.sellerNet);
+    expect(rendu).toBe(100);
 
-    // Le solde revient exactement à zéro : ni dette, ni cadeau.
+    // La ligne est remboursée en entier : la plateforme doit avoir retenu sa
+    // commission entière, ni un franc de plus, ni un de moins. Arrondir chaque
+    // remboursement isolément ferait dériver sur cent passages.
+    expect(retenuCumule).toBe(frais.platformFee);
+
+    // Le vendeur a rendu le brut : son solde descend sous son net d'autant.
     const soldes = await db.balance.findMany({ where: { userId: createur.id } });
     const total = soldes.reduce((s, b) => s + b.holdingAmount, 0);
-    expect(total).toBe(0);
+    expect(total).toBe(frais.sellerNet - 100);
   });
 
   it("refuse de rembourser plus que ce qui a été encaissé", async () => {

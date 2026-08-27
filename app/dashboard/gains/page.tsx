@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CompteDeVersement } from "@/components/dashboard/compte-versement";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
@@ -202,8 +202,33 @@ export default async function GainsPage() {
               </div>
             </div>
 
+            {/*
+              Le compte de versement se règle sur son propre onglet depuis que
+              la maquette lui en donne un. Le dupliquer ici ferait deux
+              formulaires pour une seule décision — et deux endroits où se
+              tromper.
+            */}
             <div style={{ marginTop: 20 }}>
-              <CompteDeVersement actuel={gains.compte} />
+              <Link
+                href="/dashboard/versements"
+                className="sticker-press"
+                style={{
+                  display: "inline-block",
+                  padding: "13px 22px",
+                  border: "2.5px solid #121212",
+                  borderRadius: 14,
+                  background: "#FFD84A",
+                  boxShadow: "4px 4px 0 #121212",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  color: "#121212",
+                }}
+              >
+                {gains.compte
+                  ? "Changer de compte de versement"
+                  : "Enregistrer un compte de versement"}
+              </Link>
             </div>
 
             <p
