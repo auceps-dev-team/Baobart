@@ -112,9 +112,11 @@ describe("ce qu'on annonce au créateur", () => {
       new Date("2026-07-28T00:00:00Z"),
       RAILS_BAOBART.wave!,
     );
+    // Orange Money paie le jeudi depuis que le calendrier suit la maquette,
+    // qui donne un jour distinct à chaque rail.
     const jeudi = finDePeriodePourVersement(
       new Date("2026-07-30T00:00:00Z"),
-      RAILS_BAOBART.bank!,
+      RAILS_BAOBART.om!,
     );
 
     expect(mardi.getTime()).toBe(jeudi.getTime());

@@ -140,6 +140,18 @@ const ADMINISTRATION: EntreeNav[] = [
     glyph: "✉",
     href: "/dashboard/systeme/emails",
   },
+  {
+    cle: "a_versements",
+    label: "Versements créateurs",
+    glyph: "%",
+    href: "/dashboard/systeme/versements",
+  },
+  {
+    cle: "a_membres",
+    label: "Membres",
+    glyph: "☺",
+    href: "/dashboard/systeme/membres",
+  },
 ];
 
 export function navigationPour(
