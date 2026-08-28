@@ -99,8 +99,14 @@ describe("versement déclenché à la main", () => {
     expect(avec({ ...admin, riskState: "FLAGGED_FRAUD" })).toEqual({
       payable: true,
     });
-    expect(avec({ ...admin, versementsSuspendusLe: new Date() })).toEqual({
-      payable: true,
+  });
+
+  it("ne passe pas outre le gel des versements", () => {
+    // Ce gel était levable tant qu'il n'était posé que par un humain. Depuis
+    // qu'un litige le pose tout seul, le lever ferait repartir l'argent d'un
+    // compte dont l'opérateur vient justement de reprendre des fonds.
+    expect(avec({ ...admin, versementsSuspendusLe: new Date() })).toMatchObject({
+      raison: "VERSEMENTS_SUSPENDUS",
     });
   });
 

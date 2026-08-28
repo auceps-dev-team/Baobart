@@ -92,9 +92,11 @@ export interface EligibiliteInput {
  * Ce créateur peut-il être payé sur cette période ?
  *
  * `parAdministrateur` lève le seuil minimum et l'enquête en cours — un
- * versement décidé à la main l'est en connaissance de cause. Il ne lève **pas**
- * la suspension ni l'absence de compte : la première est une décision qu'on ne
- * contourne pas par un clic, la seconde rendrait le virement impossible.
+ * versement décidé à la main l'est en connaissance de cause. Il ne lève **ni**
+ * la suspension du compte, **ni** le gel des versements, **ni** l'absence de
+ * compte : les deux premières sont des décisions qu'on ne contourne pas par un
+ * clic — et le gel est désormais posé automatiquement par un litige, donc par
+ * personne — la troisième rendrait le virement impossible.
  */
 export function peutEtrePaye(input: EligibiliteInput): DecisionVersement {
   const {
@@ -120,11 +122,23 @@ export function peutEtrePaye(input: EligibiliteInput): DecisionVersement {
   if (compte === null) return refus("PAS_DE_COMPTE");
   if (!railsConnus.includes(compte.provider)) return refus("RAIL_INCONNU");
 
-  if (!parAdministrateur) {
-    if (versementsSuspendusLe !== null) return refus("VERSEMENTS_SUSPENDUS");
+  // Le gel des versements ne se lève pas non plus, même à la main.
+  //
+  // Il l'était jusqu'à présent : la permission datait d'une époque où le gel
+  // était toujours une décision humaine, qu'un autre humain pouvait donc
+  // défaire en connaissance de cause. Depuis, un litige le pose **tout seul**
+  // (`lib/domain/litiges.ts`) : le laisser levable ferait repartir l'argent
+  // d'un compte dont l'opérateur vient justement de reprendre des fonds.
+  //
+  // La garde vit ici plutôt que chez l'appelant : protéger un appelant à la
+  // fois laisse une mine pour le prochain qui emploiera `parAdministrateur`
+  // sans savoir qu'il doit refaire le contrôle lui-même.
+  if (versementsSuspendusLe !== null) return refus("VERSEMENTS_SUSPENDUS");
 
-    // Signalé sans être suspendu : on retient le versement le temps du
-    // contrôle. Le solde n'est pas perdu, et le message le dit.
+  // Le signalement, lui, reste levable : c'est un signal souple, et un
+  // administrateur qui a lu le dossier peut raisonnablement passer outre. Le
+  // gel post-litige n'est pas de cette nature — personne ne l'a décidé.
+  if (!parAdministrateur) {
     if (riskState === "FLAGGED_FRAUD" || riskState === "FLAGGED_TOS") {
       return refus("SOUS_ENQUETE");
     }

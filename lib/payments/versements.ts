@@ -235,10 +235,22 @@ async function transiter(
         where: { payoutId, state: "PROCESSING" },
         data: { state: "PAID" },
       });
-    } else if (vers === "FAILED" || vers === "RETURNED" || vers === "CANCELLED") {
+    } else if (
+      vers === "FAILED" ||
+      vers === "RETURNED" ||
+      vers === "CANCELLED" ||
+      vers === "REVERSED"
+    ) {
       // On rend exactement les soldes que ce versement avait pris. Recalculer
       // « ce qui n'est pas versé » rendrait aussi les ventes arrivées depuis,
       // et le créateur serait payé deux fois pour elles.
+      //
+      // REVERSED dit la même chose que RETURNED — l'argent qu'on croyait livré
+      // ne l'est pas resté — et n'était pas dans cette liste. Un versement
+      // repris laissait donc le créateur inscrit comme payé pour un argent
+      // revenu. Refuser de recréditer n'est pas la bonne défense contre un
+      // créateur de mauvaise foi : le solde lui reste dû tant qu'on n'a pas
+      // gelé son compte, et c'est à ce gel-là d'arrêter la sortie.
       await tx.balance.updateMany({
         where: { payoutId },
         data: { state: "UNPAID", payoutId: null },
@@ -260,6 +272,19 @@ export async function marquerVersementEnvoye(
     // lui le jour où le créateur dit ne rien avoir reçu.
     providerRef: reference,
   });
+}
+
+/**
+ * L'opérateur détient les fonds et attend que le bénéficiaire les retire.
+ *
+ * Cas courant du mobile money : l'ordre est passé, l'argent est chez
+ * l'opérateur, mais le bénéficiaire ne l'a pas encore réclamé. Personne n'a
+ * échoué ; l'argent n'est simplement pas arrivé à destination.
+ *
+ * Comme REVERSED, cet état existait sans qu'aucune fonction n'y mène.
+ */
+export async function marquerVersementNonReclame(payoutId: string) {
+  return transiter(payoutId, "UNCLAIMED");
 }
 
 /** L'opérateur confirme que l'argent est arrivé. */
@@ -285,6 +310,21 @@ export async function retournerVersement(payoutId: string, raison: string) {
 /** Annulé avant d'avoir été envoyé. */
 export async function annulerVersement(payoutId: string, raison: string) {
   return transiter(payoutId, "CANCELLED", { failureReason: raison });
+}
+
+/**
+ * Repris par l'opérateur après avoir été payé.
+ *
+ * Distinct de RETURNED, qui décrit un envoi jamais parvenu à destination. Ici
+ * l'argent était arrivé, puis l'opérateur l'a repris — fraude constatée chez
+ * lui, erreur de son côté.
+ *
+ * L'état existait au schéma et dans la table des suites, mais aucune fonction
+ * n'y menait : il était inatteignable. C'est ce qui l'avait fait oublier de la
+ * liste des états qui rendent leurs soldes.
+ */
+export async function reprendreVersement(payoutId: string, raison: string) {
+  return transiter(payoutId, "REVERSED", { failureReason: raison });
 }
 
 /**

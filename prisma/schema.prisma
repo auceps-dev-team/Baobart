@@ -171,8 +171,9 @@ enum BalanceTransactionType {
 ///                   └→ RETURNED        (et COMPLETED → RETURNED : l'argent
 ///                                       peut revenir APRÈS la réussite)
 ///
-/// RÈGLE À NE PAS PERDRE : un versement qui passe en CANCELLED ou FAILED
-/// remet ses soldes en UNPAID, pour qu'ils soient repris au cycle suivant.
+/// RÈGLE À NE PAS PERDRE : un versement qui n'a pas abouti — CANCELLED, FAILED,
+/// RETURNED ou REVERSED — remet ses soldes en UNPAID, pour qu'ils soient repris
+/// au cycle suivant. Seul COMPLETED les solde.
 /// Sans ça, l'argent d'un créateur disparaît d'un versement raté.
 enum PayoutStatus {
   CREATING

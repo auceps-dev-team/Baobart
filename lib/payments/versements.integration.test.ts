@@ -15,7 +15,9 @@ import {
   confirmerVersement,
   echouerVersement,
   marquerVersementEnvoye,
+  marquerVersementNonReclame,
   preparerVersement,
+  reprendreVersement,
   retournerVersement,
   VersementsSuspendusError,
 } from "@/lib/payments/versements";
@@ -352,6 +354,66 @@ describe("exécution d'un versement", () => {
 
       const soldes = await db.balance.findMany({ where: { userId: createur } });
       expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+    });
+  });
+
+  describe("un versement qui n'aboutit pas rend ses soldes", () => {
+    /**
+     * Les quatre états sont éprouvés ensemble, et c'est le but.
+     *
+     * REVERSED manquait à la liste : un versement repris après paiement laissait
+     * le créateur inscrit comme payé pour un argent revenu. Le défaut était
+     * invisible parce que chaque état était vérifié séparément. Un seul test
+     * qui les parcourt tous rend l'oubli du prochain impossible à manquer.
+     */
+    it.each([
+      ["FAILED", async (id: string) => echouerVersement(id, "opérateur muet")],
+      ["CANCELLED", async (id: string) => annulerVersement(id, "doublon")],
+      [
+        "RETURNED",
+        async (id: string) => {
+          // RETOURNÉ ne se rejoint pas depuis ENVOYÉ : l'opérateur détient
+          // d'abord les fonds, puis les rend faute de réclamation.
+          await marquerVersementEnvoye(id, "REF-1");
+          await marquerVersementNonReclame(id);
+          await retournerVersement(id, "compte fermé");
+        },
+      ],
+      [
+        "REVERSED",
+        async (id: string) => {
+          await marquerVersementEnvoye(id, "REF-2");
+          await confirmerVersement(id);
+          await reprendreVersement(id, "repris par l'opérateur");
+        },
+      ],
+    ])("%s remet les soldes en UNPAID", async (_etat, conduire) => {
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+
+      await conduire(versement.id);
+
+      const soldes = await db.balance.findMany({ where: { userId: createur } });
+      expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+      expect(soldes.every((b) => b.payoutId === null)).toBe(true);
+
+      // Et la somme reste exactement ce que la vente avait rapporté.
+      const versable = await soldeVersableJusqua(
+        db,
+        createur,
+        new Date("2026-08-30T00:00:00Z"),
+      );
+      expect(versable).toBe(a.net);
+    });
+
+    it("seul COMPLETED solde les balances", async () => {
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await marquerVersementEnvoye(versement.id, "REF-3");
+      await confirmerVersement(versement.id);
+
+      const soldes = await db.balance.findMany({ where: { userId: createur } });
+      expect(soldes.every((b) => b.state === "PAID")).toBe(true);
     });
   });
 
