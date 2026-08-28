@@ -153,8 +153,10 @@ Le projet est entièrement documenté dans `docs/` (voir aussi les specs à la r
 
 | Document | Contenu |
 |---|---|
-| [`PLAN_REFONTE_BAOBART_GUMROAD.md`](PLAN_REFONTE_BAOBART_GUMROAD.md) | Plan directeur v10 : concept, modèle économique, catalogue des découvertes Gumroad (MIT), roadmap M0→M8 |
-| [`VERIFICATION_GUMROAD.md`](VERIFICATION_GUMROAD.md) | **Relevé des écarts** entre le plan et le code réel de Gumroad — ce qui est vérifié, ce qui est faux, ce qui manquait |
+| [`PLAN_REFONTE_BAOBART_GUMROAD.md`](PLAN_REFONTE_BAOBART_GUMROAD.md) | Plan directeur v11 : concept, modèle économique, catalogue des découvertes Gumroad (MIT), roadmap M0→M8. Le §0-bis est le journal d'avancement réel |
+| [`AUDIT_GUMROAD_2026-08-28.md`](AUDIT_GUMROAD_2026-08-28.md) | **Audit le plus récent** : écart plan/code, statut des points bloquants, catalogue Gumroad croisé avec le code réel |
+| [`MATRICE_IMPLEMENTATION.md`](MATRICE_IMPLEMENTATION.md) | **Inventaire vivant** spec → module → statut → tests → dette, mis à jour à chaque commit qui fait avancer une fonctionnalité |
+| [`VERIFICATION_GUMROAD.md`](VERIFICATION_GUMROAD.md) | **Relevé des écarts** entre le plan et le code réel de Gumroad (le référent) — ce qui est vérifié, ce qui est faux, ce qui manquait |
 | [`BLUEPRINT_NEXTJS_BAOBART.md`](BLUEPRINT_NEXTJS_BAOBART.md) | Architecture Next.js, mapping Gumroad → TypeScript. ⚠️ Son schéma est un brouillon : la source de vérité est `prisma/schema.prisma` |
 | [`SPEC_BAOBART_SHIELD.md`](SPEC_BAOBART_SHIELD.md) | Protection droits d'auteur (4 couches) |
 | [`SPEC_LIVRAISON_PREVIEWS_ASSETS.md`](SPEC_LIVRAISON_PREVIEWS_ASSETS.md) | Livraison numérique + previews multi-format |

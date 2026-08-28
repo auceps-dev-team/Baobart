@@ -27,20 +27,24 @@
 
 ---
 
-## 0-bis. État d'avancement — 4 août 2026
+## 0-bis. État d'avancement — 28 août 2026
 
 > Cette section est le **journal de ce qui existe réellement dans le dépôt**, par
 > opposition au reste du document, qui décrit ce qu'on veut construire. Elle est
 > tenue à jour à chaque jalon ; le détail des écarts avec Gumroad vit toujours
-> dans `VERIFICATION_GUMROAD.md`.
+> dans `VERIFICATION_GUMROAD.md`, et l'inventaire vivant spec → module → statut
+> vit désormais dans `MATRICE_IMPLEMENTATION.md`.
 >
-> **Version applicative : 1.17.0** · 40 commits · **259 tests unitaires, 140 tests
+> **Version applicative : 1.26.0** · 54 commits · **346 tests unitaires, 221 tests
 > d'intégration** contre une vraie base PostgreSQL.
 >
-> *Mise à jour du 24 août 2026 : le dépôt distant a été rejoint (durcissement de
-> la concurrence sur l'argent, contrainte `Save`, overrides de sécurité), et le
-> lot local du tableau de bord a été repris. Les dix-huit écrans du tableau de
-> bord répondent.*
+> *Mise à jour du 28 août 2026 (audit complet, voir `AUDIT_GUMROAD_2026-08-28.md`) :
+> le passage en caisse existe (en simulation), le remboursement est déclenchable,
+> les litiges/chargebacks sont câblés (débit vendeur, suspension des versements,
+> écriture de grand livre dédiée), les huit états de versement sont pilotables
+> depuis un écran admin, la suspension de compte est désormais écrite (et non
+> plus seulement lue), et un ordonnanceur cron tourne en production pour les
+> versements et la file d'e-mails.*
 
 ### Ce qui fonctionne de bout en bout
 
@@ -56,36 +60,51 @@
 | **Aperçus** — vignette dérivée publique, source privée, extrait audio/vidéo | ✅ | aperçu 200 / source 403 vérifiés |
 | **Livraison après achat** — décision, URL signée, journal de consommation | ✅ | 8 tests, octets vérifiés |
 | **Frais & grand livre** — barème deux régimes, écritures immuables, remboursements partiels | ✅ | 24 + 21 tests |
-| **Versements** — calendrier, éligibilité, exécution, passage hebdomadaire | ✅ | 27 tests |
+| **Remboursement & litiges** — déclenchable, chargebacks débitent le vendeur et suspendent ses versements | ✅ | v1.25.0, testé (concurrence incluse) |
+| **Versements** — calendrier, éligibilité, exécution, huit états pilotables (admin) | ✅ | 27 tests + v1.26.0 |
+| **Trust & suspension de compte** — sessions fermées, ressources retirées, levée explicite | ✅ | v1.26.0 |
+| **Ordonnanceur** — crons Vercel (versements en semaine, e-mails toutes les 5 min) | ✅ | `vercel.json`, `CRON_SECRET` |
+| **File d'e-mails transactionnels** — dépôt dans la même transaction, reprise, supervision admin | ⚠️ **infrastructure oui, 2 modèles sur 5 réellement déposés** | v1.21-1.23.0 |
 | **Écran Gains** — soldes, prochaine date, historique, compte de versement | ✅ | 14 tests |
 | **Social** — j'aime, suivi, commentaires à deux niveaux, modération par signalement | ✅ | 20 + 27 tests |
 | **Tableau de bord acheteur** — achats, téléchargements, éléments suivis, abonnements | ✅ | 12 tests |
+| **Passage en caisse** — panier, checkout | ⚠️ **en simulation, aucun agrégateur branché** | v1.24.0 |
 
 ### Ce qui manque pour ouvrir au public
 
-Par ordre de blocage.
+Par ordre de blocage — état recalculé le 28 août 2026, détail dans `AUDIT_GUMROAD_2026-08-28.md` §2.
 
-**1. Le paiement.** Rien n'encaisse. Le panier, le passage en caisse, l'appel à
-un agrégateur mobile money (Wave, Orange Money, CinetPay…) et le webhook de
-confirmation n'existent pas. Toute la comptabilité en aval est prête et
-éprouvée — c'est l'entrée d'argent qui manque.
+**1. Le paiement — toujours entier.** Un panier et un passage en caisse existent
+depuis la v1.24.0, mais en mode simulation : aucun agrégateur mobile money
+(Wave, Orange Money, CinetPay…) n'est branché, aucun webhook de confirmation.
+Toute la comptabilité en aval est prête et éprouvée — c'est toujours l'entrée
+d'argent réelle qui manque. Voir `lib/checkout/achat.ts`.
 
-**2. L'envoi effectif des versements.** La préparation, la réservation des
-soldes et la machine à états sont complètes ; l'appel à l'opérateur qui ferait
-passer un versement de `CREATING` à `PROCESSING` n'est pas branché. Le script
-`pnpm versements` prépare et s'arrête là, ce qui est sans danger : un versement
-préparé s'annule et rend ses soldes.
+**2. L'envoi effectif des versements — partiellement résolu.** Les cinq
+transitions manuelles (marquer envoyé/échoué/annulé/retour) sont câblées à un
+écran admin depuis la v1.26.0. Mais le cron ne fait toujours que *préparer*
+(`CREATING`) — l'appel à un opérateur réel qui ferait passer un versement à
+`PROCESSING` n'est pas branché (commentaire explicite dans
+`app/api/cron/versements/route.ts`).
 
-**3. Aucun ordonnanceur.** Le passage hebdomadaire attend un cron ou une tâche
-planifiée d'hébergeur. À brancher au déploiement.
+**3. Aucun ordonnanceur — résolu (v1.21.0-v1.23.0).** `vercel.json` déclare
+deux crons protégés par `CRON_SECRET` : `/api/cron/versements` (lun-ven 6h) et
+`/api/cron/courriels` (toutes les 5 min).
 
-**4. Les courriels.** Aucun message transactionnel : ni confirmation d'achat,
-ni lien de téléchargement, ni avis de versement, ni réinitialisation de mot de
-passe. Gumroad en compte 21 (§3.6-C).
+**4. Les courriels — partiellement résolu.** L'infrastructure est complète
+(file transactionnelle, pilotes console/resend/smtp, reprise avec distinction
+erreurs définitives/transitoires, écran de supervision admin) et cinq modèles
+sont définis, mais **seuls deux sont réellement déposés** : bienvenue à
+l'inscription et reçu d'achat. Le lien de téléchargement et l'avis de
+versement ne partent toujours pas — c'est un branchement manquant, pas un
+manque d'infrastructure.
 
-**5. Le changement de mot de passe.** La page « mot de passe oublié » est une
-coquille. `fermerToutesLesSessions` existe et fonctionne, mais rien ne l'appelle
-faute de flux.
+**5. Le changement de mot de passe — toujours une coquille.** `demanderReinitialisation()`
+(`lib/auth/actions.ts:203`) répond littéralement : *« La réinitialisation par
+e-mail arrive avec le service d'envoi. En attendant, écris-nous. »* — alors que
+le modèle `REINITIALISATION_MOT_DE_PASSE` et les pilotes d'envoi existent déjà.
+`fermerToutesLesSessions` existe et fonctionne, mais rien ne l'appelle faute de
+flux. C'est le branchement le moins coûteux des cinq à finir.
 
 ### Écrans du tableau de bord
 
@@ -96,17 +115,25 @@ Commissions donnent à lire, jamais à modifier. Les formulaires viendront avec
 les paramètres de compte.
 
 Trois écrans montrent des données qu'aucun parcours ne produit encore :
-Commandes et Ventes attendent le paiement, Commissions attend le type de
+Commandes et Ventes attendent le paiement réel, Commissions attend le type de
 produit « commission ».
 
 Il n'existe pas de **profil public de créateur** : le bouton « Suivre »
 fonctionne, mais on ne peut pas visiter la page de quelqu'un qu'on suit.
 
+Un **espace admin d'exploitation technique** est apparu depuis (v1.20.0-1.26.0) :
+`app/dashboard/systeme/` (configuration, emails, membres, versements). C'est un
+outil pour l'équipe interne, **pas** le CMS multi-rôles (SUPER_ADMIN /
+CONTENT_MANAGER / MARKETING / MODERATOR / SUPPORT / ACCOUNTANT / COMPLIANCE)
+spécifié dans `SPEC_ADMIN_CMS_BAOBART.md`, qui reste entièrement à construire.
+
 ### Micro-services non commencés
 
-Job board, Services listés, CMS événements & blogs, Dashboard admin. Les
-maquettes existent dans `Baobart Design/`, le schéma porte déjà leurs tables en
-clés étrangères scalaires (voir l'en-tête de `schema.prisma`).
+Job board, Services listés, CMS événements & blogs, forum. Les maquettes
+existent dans `Baobart Design/`, le schéma porte toujours leurs tables (69
+modèles au total) en clés étrangères scalaires — confirmé inchangé au 28 août
+2026 — mais **aucune route applicative** ne les exploite (recherche exhaustive
+sur `app/` : rien pour "job", "event", "forum", "commun[auté]").
 
 ### Décisions prises en cours de route, qui divergent du plan
 
@@ -121,7 +148,13 @@ Chacune est documentée dans le code, à l'endroit où elle s'applique.
 - **Un fichier retiré d'une ressource vendue est marqué, jamais effacé.** Le
   détruire priverait définitivement des acheteurs de ce qu'ils ont payé.
 - **Deux façons de perdre l'accès s'ajoutent au remboursement** : le paiement
-  contesté auprès de la banque et le retrait d'accès décidé par le vendeur.
+  contesté auprès de la banque (chargeback, câblé depuis v1.25.0) et le retrait
+  d'accès décidé par le vendeur.
+- **Il n'y a pas de compte plateforme dans le grand livre.** Le grand livre est
+  tenu par `userId` ; « combien la plateforme a gagné » se reconstitue plutôt
+  que de se lire. Politique retenue : le vendeur finance le remboursement (la
+  commission reste acquise, le vendeur est débité du brut, son solde peut
+  devenir négatif).
 - **Les commentaires sont signalés, jamais bloqués** : une liste de mots est un
   instrument grossier, et la marque n'est visible que du créateur.
 - **La modération de contenu adulte n'est pas reprise** de Gumroad : sa liste
@@ -151,6 +184,9 @@ Chacune est documentée dans le code, à l'endroit où elle s'applique.
   HTML invalide, et un lecteur d'écran annonce les actions comme faisant partie
   du lien. La correction propre est de sortir la barre d'actions de l'ancre,
   sans perdre le clic-milieu.
+- **Deux effets de la suspension de compte restent déclarés mais non exécutés**
+  (réactivation des produits à la levée, blocage IP) — journalisés comme tels
+  plutôt que simulés en silence (v1.26.0).
 
 ---
 
