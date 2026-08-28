@@ -1,17 +1,26 @@
 import { redirect } from "next/navigation";
 
+import { DashboardFrame } from "@/components/dashboard/frame";
 import {
-  DashboardFrame,
-  DashboardPanel,
-  EmptyState,
-  MetricCard,
-} from "@/components/dashboard/frame";
-import { LigneVente, type VenteAffichee } from "@/components/dashboard/ligne-vente";
+  PanneauOperations,
+  type ActionOps,
+  type FiltreOps,
+  type LegendeOps,
+  type LigneOps,
+} from "@/components/systeme/panneau-operations";
 import { sessionCourante } from "@/lib/auth/session";
 import { lireVentesCreateur } from "@/lib/dashboard/lectures";
 import { formatMoney } from "@/lib/i18n/money";
+import { BLANC, CADRE, ENCRE, JAUNE, TON_ETAT } from "@/lib/systeme/charte";
+import { agirSurLaVente } from "@/lib/ventes/actions";
+import {
+  ETATS_VENTE,
+  etatDeLaVente,
+  ORDRE_VENTE,
+  type EtatVente,
+} from "@/lib/ventes/etats";
 
-export const metadata = { title: "Ventes — Baobart." };
+export const metadata = { title: "Ventes · Remboursement et accès — Baobart." };
 export const dynamic = "force-dynamic";
 
 const DATE = new Intl.DateTimeFormat("fr-FR", {
@@ -23,138 +32,209 @@ const DATE = new Intl.DateTimeFormat("fr-FR", {
 type Vente = Awaited<ReturnType<typeof lireVentesCreateur>>[number];
 
 /**
- * Comment se lit une vente.
+ * Ce qu'on peut faire d'une vente, selon son état.
  *
- * L'ordre compte : un litige l'emporte sur tout — l'argent a été repris, le
- * reste est secondaire. Vient ensuite le remboursement intégral, puis le
- * retrait d'accès, qui peut coexister avec un remboursement partiel.
+ * Rembourser et retirer l'accès sont deux gestes distincts : l'un rend
+ * l'argent, l'autre coupe le téléchargement. On peut faire l'un sans l'autre —
+ * les réunir obligerait à choisir entre punir et rembourser.
+ *
+ * « Contester le litige » figure dans la maquette et n'est pas ici : constituer
+ * un dossier de contestation auprès d'un opérateur n'existe pas encore. Un
+ * bouton qui n'ouvrirait sur rien vaut moins que son absence.
  */
-function decrire(v: Vente): VenteAffichee {
-  const brut = v.price * v.quantity;
-  const restant = brut - v.refundedAmount;
-  const litige = v.chargebackAt !== null && v.chargebackReversedAt === null;
-  const rembourseEnEntier = v.refundedAmount >= brut && brut > 0;
-
-  let etat = "ENCAISSÉE";
-  let fond = "#FFFFFF";
-
-  if (litige) {
-    etat = "CONTESTÉE";
-    fond = "#FFF1EA";
-  } else if (v.state === "IN_PROGRESS") {
-    etat = "EN ATTENTE";
-    fond = "#FFFBEB";
-  } else if (rembourseEnEntier) {
-    etat = "REMBOURSÉE";
-    fond = "#F4EEFC";
-  } else if (v.refundedAmount > 0) {
-    etat = `REMBOURSÉE EN PARTIE`;
-    fond = "#FFFBEB";
-  } else if (v.accessRevokedAt !== null) {
-    etat = "ACCÈS RETIRÉ";
-    fond = "#FFFBEB";
-  } else if (v.state === "NOT_CHARGED") {
-    etat = "OFFERTE";
-  }
-
-  return {
-    id: v.id,
-    ressource: v.product.name,
-    acheteur: v.order.buyer.profile?.displayName ?? v.order.buyer.email,
-    date: DATE.format(v.createdAt),
-    montant: formatMoney(brut, v.product.currency),
-    restant,
-    restantLisible: formatMoney(restant, v.product.currency),
-    etat,
-    fond,
-    // Une ligne jamais encaissée n'a rien à rendre ; une ligne contestée non
-    // plus — la banque a déjà repris l'argent.
-    remboursable:
-      v.state === "SUCCESSFUL" && restant > 0 && !litige,
-    accesRetire: v.accessRevokedAt !== null,
-    litige,
+function actionsDe(etat: EtatVente, restant: number): ActionOps[] {
+  const rembourser: ActionOps = {
+    cle: "rembourser",
+    libelle: etat === "PARTIEL" ? "Rembourser le restant" : "Rembourser",
+    fond: JAUNE,
+    demande: {
+      champ: "montant",
+      etiquette: "Montant à rembourser",
+      valeur: String(restant),
+    },
   };
+
+  const retirer: ActionOps = {
+    cle: "retirer",
+    libelle: "Retirer l'accès",
+    fond: BLANC,
+    demande: { champ: "motif", etiquette: "Pourquoi tu retires l'accès" },
+  };
+
+  switch (etat) {
+    case "ENCAISSEE":
+    case "PARTIEL":
+      return [rembourser, retirer];
+    case "CONTESTEE":
+      // Pas de remboursement : l'opérateur a déjà repris l'argent. Le proposer
+      // débiterait le vendeur une seconde fois pour la même vente.
+      return [retirer];
+    default:
+      return [];
+  }
 }
 
-export default async function VentesPage() {
+export default async function VentesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ etat?: string }>;
+}) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
-  const ventes = await lireVentesCreateur(utilisateur.id, 30);
-  const devise = ventes[0]?.product.currency ?? "XOF";
+  const { etat: brut } = await searchParams;
+  const filtre = brut && brut in ETATS_VENTE ? (brut as EtatVente) : undefined;
 
-  const encaisse = ventes
-    .filter((v) => v.state === "SUCCESSFUL")
-    .reduce((s, v) => s + v.price * v.quantity, 0);
-  const rendu = ventes.reduce((s, v) => s + v.refundedAmount, 0);
-  const contestees = ventes.filter(
-    (v) => v.chargebackAt !== null && v.chargebackReversedAt === null,
-  ).length;
+  const toutes = await lireVentesCreateur(utilisateur.id, 60);
+
+  const decrites = toutes.map((v: Vente) => {
+    const brutMontant = v.price * v.quantity;
+    const litige = v.chargebackAt !== null && v.chargebackReversedAt === null;
+    const etat = etatDeLaVente({
+      state: v.state,
+      brut: brutMontant,
+      rembourse: v.refundedAmount,
+      litige,
+      accesRetire: v.accessRevokedAt !== null,
+    });
+
+    return { v, brutMontant, etat, restant: brutMontant - v.refundedAmount };
+  });
+
+  const visibles = filtre ? decrites.filter((d) => d.etat === filtre) : decrites;
+  const devise = toutes[0]?.product.currency ?? "XOF";
+
+  const legende: LegendeOps[] = ORDRE_VENTE.map((e) => ({
+    code: e,
+    fond: TON_ETAT[ETATS_VENTE[e].ton]!.fond,
+    encre: TON_ETAT[ETATS_VENTE[e].ton]!.encre,
+    nombre: actionsDe(e, 1).length,
+    sens: ETATS_VENTE[e].sens,
+  }));
+
+  const filtres: FiltreOps[] = [
+    {
+      code: "Tous",
+      libelle: "TOUTES",
+      actif: filtre === undefined,
+      href: "/dashboard/ventes",
+    },
+    ...ORDRE_VENTE.map((e) => ({
+      code: e,
+      libelle: e,
+      actif: filtre === e,
+      href: `/dashboard/ventes?etat=${e}`,
+    })),
+  ];
+
+  const lignes: LigneOps[] = visibles.map(({ v, brutMontant, etat, restant }) => ({
+    id: v.id,
+    colonnes: [
+      v.id.slice(-8).toUpperCase(),
+      v.product.name,
+      v.order.buyer.profile?.displayName ?? v.order.buyer.email,
+      formatMoney(brutMontant, v.product.currency),
+      formatMoney(restant, v.product.currency),
+    ],
+    etat,
+    etatFond: TON_ETAT[ETATS_VENTE[etat].ton]!.fond,
+    etatEncre: TON_ETAT[ETATS_VENTE[etat].ton]!.encre,
+    sens: ETATS_VENTE[etat].sens,
+    motif:
+      etat === "CONTESTEE"
+        ? "L'argent a été repris par l'opérateur et tes versements sont suspendus le temps que la contestation soit tranchée."
+        : null,
+    trace: `vendue le ${DATE.format(v.createdAt)}${
+      v.refundedAmount > 0
+        ? ` · ${formatMoney(v.refundedAmount, v.product.currency)} déjà remboursés`
+        : ""
+    }`,
+    actions: actionsDe(etat, restant),
+    sansAction: "État terminal — plus rien à décider sur cette vente.",
+  }));
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
-      titre="Ventes"
+      titre="Ventes · Remboursement et accès"
       description="Ce que tu as vendu, et ce que tu peux encore en faire."
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-          gap: 16,
-        }}
-      >
-        <MetricCard label="Ventes récentes" value={ventes.length} />
-        <MetricCard label="Brut encaissé" value={formatMoney(encaisse, devise)} accent />
-        <MetricCard label="Remboursé" value={formatMoney(rendu, devise)} />
-        {contestees > 0 ? (
-          <MetricCard label="Contestées" value={contestees} />
-        ) : null}
-      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 15,
+            fontWeight: 600,
+            opacity: 0.75,
+            maxWidth: 760,
+            textWrap: "pretty",
+          }}
+        >
+          Rembourser et retirer l&apos;accès sont deux gestes distincts :
+          l&apos;un rend l&apos;argent, l&apos;autre coupe le téléchargement. On
+          peut faire l&apos;un sans l&apos;autre.
+        </p>
 
-      <div style={{ marginTop: 22 }}>
-        <DashboardPanel titre="Détail">
-          {ventes.length === 0 ? (
-            <EmptyState
-              titre="Pas encore de vente"
-              texte="Publie une ressource, partage-la, puis retrouve les ventes ici."
-            />
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                marginTop: 14,
-              }}
-            >
-              {ventes.map((v) => (
-                <LigneVente key={v.id} vente={decrire(v)} />
-              ))}
-            </div>
-          )}
-        </DashboardPanel>
-      </div>
+        <PanneauOperations
+          legendeTitre="États d'une vente"
+          legende={legende}
+          rechercherPlaceholder="Rechercher une vente ou un acheteur…"
+          filtres={filtres}
+          colonnes={[
+            "Référence",
+            "Ressource",
+            "Acheteur",
+            "Payé",
+            "Reste remboursable",
+          ]}
+          lignes={lignes}
+          pied={`${visibles.length} ventes sur ${toutes.length} · un remboursement te débite la totalité payée, pas seulement ta part`}
+          peutAgir
+          executer={agirSurLaVente}
+        />
 
-      {/*
-        Obligation d'information, la même que sur l'écran des versements : la
-        découvrir sur un solde négatif serait une mauvaise surprise.
-      */}
-      <p
-        style={{
-          marginTop: 18,
-          maxWidth: 720,
-          fontSize: 12.5,
-          fontWeight: 600,
-          opacity: 0.75,
-          lineHeight: 1.55,
-        }}
-      >
-        Rembourser te débite du prix entier : la commission Baobart reste
-        acquise, et les frais de l&apos;opérateur ne sont jamais restitués par la
-        passerelle. Retirer l&apos;accès ne rend aucun argent — les deux gestes
-        sont indépendants.
-      </p>
+        {/*
+          La même information que sur l'écran des versements, au moment où elle
+          sert : juste avant de cliquer.
+        */}
+        <div
+          style={{
+            border: CADRE,
+            borderRadius: 24,
+            background: JAUNE,
+            boxShadow: `6px 6px 0 ${ENCRE}`,
+            padding: 22,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 19,
+              textTransform: "uppercase",
+              letterSpacing: "-.4px",
+            }}
+          >
+            Ce qu&apos;un remboursement te coûte
+          </div>
+          <p
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              lineHeight: 1.55,
+              margin: "14px 0 0",
+              maxWidth: 780,
+              textWrap: "pretty",
+            }}
+          >
+            La totalité de ce que l&apos;acheteur a payé lui est rendue — pas
+            seulement la part que tu as touchée. Sur une vente à{" "}
+            {formatMoney(5_000, devise)} dont tu as reçu{" "}
+            {formatMoney(4_425, devise)}, un remboursement intégral te débite{" "}
+            {formatMoney(5_000, devise)}. Retirer l&apos;accès, lui, ne rend
+            aucun argent.
+          </p>
+        </div>
+      </div>
     </DashboardFrame>
   );
 }

@@ -21,12 +21,21 @@ export type EtatDecision =
 
 export async function deciderDuCompte(
   userId: string,
-  event: RiskEvent,
-  leveSuspension: boolean,
+  /**
+   * « ÉVÉNEMENT:0|1 » — l'événement et la levée de suspension dans une
+   * seule clé. Deux gestes différents peuvent viser le même état d'arrivée, et
+   * seul l'un des deux a le droit de défaire une suspension : les séparer dans
+   * la clé évite qu'un bouton emprunte le pouvoir de l'autre.
+   */
+  cle: string,
   _precedent: EtatDecision | null,
   donnees: FormData,
 ): Promise<EtatDecision> {
   const qui = await exigerLePouvoir("agir_sur_l_exploitation");
+
+  const [brut, drapeau] = cle.split(":");
+  const event = brut as RiskEvent;
+  const leveSuspension = drapeau === "1";
 
   // Le motif n'est pas décoratif : une suspension sans raison écrite est
   // impossible à défendre trois mois plus tard, devant le créateur ou ailleurs.

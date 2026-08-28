@@ -83,3 +83,30 @@ export const BANDEAU: Record<Gravite, Bandeau> = {
     texte: "Quelque chose d'essentiel ne fonctionne pas.",
   },
 };
+
+export const MAUVE = "#C9A8F5";
+export const GRIS = "#DCDCDC";
+export const VERT = "#B9E8C0";
+
+/**
+ * Les couleurs des états d'opération, reprises de la maquette.
+ *
+ * Le code de l'œil est stable d'un écran à l'autre : le gris pour ce qui dort
+ * ou s'est arrêté sans dommage, le jaune pour ce qui attend un geste, le mauve
+ * pour ce qui est parti et qu'on attend, le vert pour la fin heureuse, l'orange
+ * pour ce qui a mal tourné, le noir pour ce qui est gelé par une décision.
+ */
+export interface TonEtat {
+  fond: string;
+  encre: string;
+}
+
+export const TON_ETAT: Record<string, TonEtat> = {
+  dort: { fond: GRIS, encre: ENCRE },
+  attend: { fond: JAUNE, encre: ENCRE },
+  enRoute: { fond: MAUVE, encre: ENCRE },
+  arrive: { fond: VERT, encre: ENCRE },
+  casse: { fond: ORANGE, encre: BLANC },
+  gele: { fond: ENCRE, encre: BLANC },
+  neutre: { fond: BLANC, encre: ENCRE },
+};

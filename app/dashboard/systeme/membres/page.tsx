@@ -1,31 +1,27 @@
-import Link from "next/link";
-
 import { DashboardFrame } from "@/components/dashboard/frame";
+import { BandeauGravite, Intro, PiedEcran, type Puce } from "@/components/systeme/bandeau";
 import {
-  BandeauGravite,
-  Compteurs,
-  Intro,
-  Panneau,
-  PiedEcran,
-  type Puce,
-} from "@/components/systeme/bandeau";
-import {
-  LigneMembre,
-  type MembreAffiche,
-} from "@/components/systeme/ligne-membre";
+  PanneauOperations,
+  type FiltreOps,
+  type LegendeOps,
+  type LigneOps,
+} from "@/components/systeme/panneau-operations";
 import { exigerAdministrateur } from "@/lib/auth/acces-administration";
 import { peut } from "@/lib/auth/administration";
+import { deciderDuCompte } from "@/lib/domain/actions-risque";
 import {
   decisionsPour,
+  ETATS_MEMBRE,
+  etatMembreDe,
   FILTRES_MEMBRES,
   filtreMembresValide,
   listerMembres,
+  type EtatMembre,
 } from "@/lib/domain/membres";
-import { ETATS_SUSPENDUS, type RiskState } from "@/lib/domain/trust";
-import { BLANC, ENCRE, ORANGE, TON } from "@/lib/systeme/charte";
-import type { Gravite } from "@/lib/systeme/diagnostic";
+import { formatMoney } from "@/lib/i18n/money";
+import { BLANC, JAUNE, ORANGE, TON_ETAT } from "@/lib/systeme/charte";
 
-export const metadata = { title: "Système · Membres — Baobart." };
+export const metadata = { title: "Membres · Décisions de risque — Baobart." };
 export const dynamic = "force-dynamic";
 
 const DATE = new Intl.DateTimeFormat("fr-FR", {
@@ -34,18 +30,16 @@ const DATE = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
-/** Le mot que voit l'administrateur, et le ton qui va avec. */
-const ETAT: Record<RiskState, { libelle: string; gravite: Gravite }> = {
-  NOT_REVIEWED: { libelle: "NON EXAMINÉ", gravite: "ok" },
-  COMPLIANT: { libelle: "CONFORME", gravite: "ok" },
-  ON_PROBATION: { libelle: "PROBATION", gravite: "attention" },
-  FLAGGED_TOS: { libelle: "SIGNALÉ · CONDITIONS", gravite: "attention" },
-  FLAGGED_FRAUD: { libelle: "SIGNALÉ · FRAUDE", gravite: "attention" },
-  SUSPENDED_TOS: { libelle: "SUSPENDU · CONDITIONS", gravite: "panne" },
-  SUSPENDED_FRAUD: { libelle: "SUSPENDU · FRAUDE", gravite: "panne" },
-};
+const ORDRE: EtatMembre[] = ["SAIN", "SIGNALE", "SUSPENDU"];
 
-export default async function MembresPage({
+/**
+ * Un signalement n'est pas visible par le membre ; une suspension l'est.
+ *
+ * C'est la phrase de la maquette, et elle porte une vraie règle : on peut
+ * observer sans accuser. Le membre signalé continue de vendre et d'être payé —
+ * ce qui change, c'est qu'un humain regarde.
+ */
+export default async function MembresRisquePage({
   searchParams,
 }: {
   searchParams: Promise<{ filtre?: string }>;
@@ -59,74 +53,82 @@ export default async function MembresPage({
   const { membres, total, suspendus } = await listerMembres(filtre);
   const peutAgir = peut(utilisateur.role, "agir_sur_l_exploitation");
 
-  const signales = membres.filter((m) =>
-    m.etatRisque.startsWith("FLAGGED"),
+  const signales = membres.filter(
+    (m) => etatMembreDe(m.etatRisque) === "SIGNALE",
   ).length;
 
-  const compteurs = [
-    {
-      cle: "affiches",
-      libelle: "Comptes affichés",
-      valeur: String(membres.length),
-      note: `sur ${total} dans ce filtre`,
-      gravite: "ok" as const,
-    },
-    {
-      cle: "suspendus",
-      libelle: "Comptes suspendus",
-      valeur: String(suspendus),
-      note: suspendus > 0 ? "ils ne peuvent plus vendre" : "aucun",
-      gravite: suspendus > 0 ? ("panne" as const) : ("ok" as const),
-    },
-    {
-      cle: "signales",
-      libelle: "Signalés, non suspendus",
-      valeur: String(signales),
-      note: signales > 0 ? "en attente d'examen" : "rien à examiner",
-      gravite: signales > 0 ? ("attention" as const) : ("ok" as const),
-    },
-  ];
-
   const puces: Puce[] = [{ texte: `${total} comptes`, fond: BLANC }];
-  if (suspendus > 0) {
-    puces.push({ texte: `${suspendus} suspendus`, fond: ORANGE });
-  }
+  if (suspendus > 0) puces.push({ texte: `${suspendus} suspendus`, fond: ORANGE });
+  else if (signales > 0) puces.push({ texte: `${signales} signalés`, fond: JAUNE });
 
-  const lignes: MembreAffiche[] = membres.map((m) => {
-    const etat = ETAT[m.etatRisque] ?? {
-      libelle: m.etatRisque,
-      gravite: "attention" as Gravite,
+  const legende: LegendeOps[] = ORDRE.map((e) => {
+    // Le nombre d'actions se lit sur un compte représentatif de l'état : c'est
+    // ce que la maquette affiche dans le rond de la légende.
+    const exemple =
+      e === "SUSPENDU"
+        ? "SUSPENDED_TOS"
+        : e === "SIGNALE"
+          ? "FLAGGED_TOS"
+          : "NOT_REVIEWED";
+
+    return {
+      code: e,
+      fond: TON_ETAT[ETATS_MEMBRE[e].ton]!.fond,
+      encre: TON_ETAT[ETATS_MEMBRE[e].ton]!.encre,
+      nombre: decisionsPour(exemple).length,
+      sens: ETATS_MEMBRE[e].sens,
     };
+  });
+
+  const filtres: FiltreOps[] = FILTRES_MEMBRES.map((f) => ({
+    code: f,
+    libelle: f.toUpperCase(),
+    actif: f === filtre,
+    href:
+      f === "Tous"
+        ? "/dashboard/systeme/membres"
+        : `/dashboard/systeme/membres?filtre=${encodeURIComponent(f)}`,
+  }));
+
+  const lignes: LigneOps[] = membres.map((m) => {
+    const etat = etatMembreDe(m.etatRisque);
+    const decisions = decisionsPour(m.etatRisque);
 
     return {
       id: m.id,
-      nom: m.nom,
-      email: m.email,
-      etatRisque: etat.libelle,
-      gravite: etat.gravite,
-      fond: TON[etat.gravite].ligneFond,
-      detail: [
+      colonnes: [
+        m.id.slice(-8).toUpperCase(),
+        m.nom,
+        m.produits > 0 ? `créateur · ${m.produits} ressource(s)` : "acheteur",
+        formatMoney(m.soldeGele, "XOF"),
         m.email,
-        m.produits > 0 ? `${m.produits} ressource(s)` : "aucune ressource",
-        `inscrit le ${DATE.format(m.inscritLe)}`,
-        m.suspendu && m.suspenduLe
-          ? `suspendu le ${DATE.format(m.suspenduLe)}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      derniereDecision: m.derniereDecision
-        ? `dernière décision : ${m.derniereDecision.auteur}, ${DATE.format(m.derniereDecision.le)}${m.derniereDecision.motif ? ` — ${m.derniereDecision.motif}` : ""}`
-        : null,
-      decisions: decisionsPour(m.etatRisque),
+      ],
+      etat,
+      etatFond: TON_ETAT[ETATS_MEMBRE[etat].ton]!.fond,
+      etatEncre: TON_ETAT[ETATS_MEMBRE[etat].ton]!.encre,
+      sens: ETATS_MEMBRE[etat].sens,
+      motif: m.derniereDecision?.motif ?? null,
+      trace: m.derniereDecision
+        ? `${m.derniereDecision.auteur} · ${DATE.format(m.derniereDecision.le)} · ${m.etatRisque}`
+        : `inscrit le ${DATE.format(m.inscritLe)} · aucune décision prise sur ce compte`,
+      actions: decisions.map((d) => ({
+        // La clé transporte l'événement ET la levée : deux gestes différents
+        // peuvent viser le même état d'arrivée, et seul l'un des deux a le
+        // droit de défaire une suspension.
+        cle: `${d.event}:${d.leveSuspension ? "1" : "0"}`,
+        libelle: d.libelle,
+        fond: d.event.startsWith("SUSPEND") ? ORANGE : JAUNE,
+        demande: { champ: "motif", etiquette: "Raison de cette décision" },
+      })),
+      sansAction: "Aucune décision possible dans cet état.",
     };
   });
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
-      titre="Système · Membres"
-      description="Qui peut vendre, qui ne peut plus, et pourquoi."
+      titre="Membres · Décisions de risque"
+      description="Signaler, suspendre, lever."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <BandeauGravite
@@ -135,86 +137,26 @@ export default async function MembresPage({
         />
 
         <Intro>
-          Suspendre un compte ferme ses sessions et retire ses ressources de la
-          vente. Lever une suspension ne les remet pas en vente : on ne sait pas
-          lesquelles le créateur avait retirées lui-même.
+          Signaler, suspendre, lever. Chaque geste exige un motif écrit avant
+          validation, et laisse une ligne que personne ne peut effacer.
         </Intro>
 
-        <Compteurs liste={compteurs} />
-
-        <Panneau
-          titre="Comptes"
-          mention="relu à chaque affichage · aucune mise en cache"
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 14 }}>
-            {FILTRES_MEMBRES.map((f) => (
-              <Link
-                key={f}
-                href={
-                  f === "Tous"
-                    ? "/dashboard/systeme/membres"
-                    : `/dashboard/systeme/membres?filtre=${encodeURIComponent(f)}`
-                }
-                style={{
-                  padding: "7px 14px",
-                  border: `2px solid ${ENCRE}`,
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  background: f === filtre ? ENCRE : BLANC,
-                  color: f === filtre ? BLANC : ENCRE,
-                  textDecoration: "none",
-                }}
-              >
-                {f}
-              </Link>
-            ))}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              marginTop: 16,
-            }}
-          >
-            {lignes.length === 0 ? (
-              <p style={{ fontSize: 13.5, fontWeight: 600, opacity: 0.7 }}>
-                Aucun compte dans ce filtre.
-              </p>
-            ) : (
-              lignes.map((m) => (
-                <LigneMembre key={m.id} membre={m} peutAgir={peutAgir} />
-              ))
-            )}
-          </div>
-
-          {peutAgir ? null : (
-            <div
-              style={{
-                marginTop: 16,
-                padding: "11px 16px",
-                border: `2.5px dashed ${ENCRE}`,
-                borderRadius: 13,
-                background: "#F4EEFC",
-                fontSize: 12.5,
-                fontWeight: 700,
-              }}
-            >
-              Lecture seule — le pouvoir{" "}
-              <span style={{ fontFamily: "var(--font-mono)" }}>
-                agir_sur_l_exploitation
-              </span>{" "}
-              est requis pour décider.
-            </div>
-          )}
-        </Panneau>
+        <PanneauOperations
+          legendeTitre="Les trois états d'un compte"
+          legende={legende}
+          rechercherPlaceholder="Rechercher un membre…"
+          filtres={filtres}
+          colonnes={["Identifiant", "Membre", "Rôle", "Solde gelé", "Courriel"]}
+          lignes={lignes}
+          pied={`${membres.length} comptes affichés sur ${total} · un signalement n'est pas visible par le membre, une suspension l'est`}
+          peutAgir={peutAgir}
+          executer={deciderDuCompte}
+        />
 
         <PiedEcran
           libelle="Ce que la machine refuse"
-          qui={`${ETATS_SUSPENDUS.length} états de suspension`}
-          note="Lever une suspension exige une demande explicite : une revue de routine ne doit pas défaire une sanction qu'elle n'a jamais examinée. Chaque décision est consignée avec son auteur et sa raison."
+          qui="Lever une suspension exige une demande explicite"
+          note="Une revue de routine ne doit pas défaire une sanction qu'elle n'a jamais examinée. Suspendre ferme les sessions et retire les ressources de la vente ; lever ne les remet pas en vente, parce qu'on ne sait pas lesquelles le créateur avait retirées lui-même."
         />
       </div>
     </DashboardFrame>

@@ -32,47 +32,55 @@ export type EtatVersement =
  */
 export const ETATS: Record<
   EtatVersement,
-  { libelle: string; sens: string; gravite: Gravite }
+  { libelle: string; sens: string; gravite: Gravite; ton: string }
 > = {
   CREATING: {
-    libelle: "PRÉPARÉ",
-    sens: "Soldes réservés, rien n'est encore parti chez l'opérateur.",
+    libelle: "A_ENVOYER",
+    sens: "Soumis au trésorier. Le montant est réservé sur le solde du bénéficiaire.",
     gravite: "attention",
+    ton: "attend",
   },
   PROCESSING: {
-    libelle: "ENVOYÉ",
-    sens: "L'ordre est chez l'opérateur, en attente de confirmation.",
+    libelle: "ENVOYE",
+    sens: "Transmis à l'opérateur avec sa référence. On attend sa confirmation.",
     gravite: "ok",
+    ton: "enRoute",
   },
   UNCLAIMED: {
-    libelle: "NON RÉCLAMÉ",
-    sens: "L'opérateur attend que le bénéficiaire retire les fonds.",
+    libelle: "NON RECLAME",
+    sens: "L'opérateur détient les fonds et attend que le bénéficiaire les retire.",
     gravite: "attention",
+    ton: "attend",
   },
   COMPLETED: {
-    libelle: "PAYÉ",
-    sens: "L'argent est arrivé.",
+    libelle: "RECU",
+    sens: "Le bénéficiaire a reçu les fonds. État terminal heureux.",
     gravite: "ok",
+    ton: "arrive",
   },
   CANCELLED: {
-    libelle: "ANNULÉ",
-    sens: "Annulé avant envoi. Les soldes sont repartis au cycle suivant.",
+    libelle: "ANNULE",
+    sens: "Retiré du cycle avant départ. Le montant est rendu au solde. État terminal.",
     gravite: "ok",
+    ton: "dort",
   },
   FAILED: {
-    libelle: "ÉCHOUÉ",
-    sens: "L'ordre n'est pas passé. Les soldes sont redevenus versables.",
+    libelle: "ECHOUE",
+    sens: "L'opérateur a refusé. Le montant est rendu au solde disponible.",
     gravite: "panne",
+    ton: "casse",
   },
   RETURNED: {
-    libelle: "RETOURNÉ",
-    sens: "L'argent est revenu — coordonnées invalides, compte fermé.",
+    libelle: "RETOURNE",
+    sens: "Parti puis revenu : compte fermé, nom non conforme.",
     gravite: "panne",
+    ton: "casse",
   },
   REVERSED: {
     libelle: "REPRIS",
-    sens: "Repris après avoir été payé.",
+    sens: "Repris après avoir été payé. État terminal.",
     gravite: "panne",
+    ton: "casse",
   },
 };
 

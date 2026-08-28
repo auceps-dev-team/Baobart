@@ -28,7 +28,69 @@ export type EtatVente =
 /** Deux clics sur « Rembourser » ne doivent pas rembourser deux fois. */
 const FENETRE_DOUBLON_MS = 60_000;
 
-export async function rembourserVente(
+/**
+ * Un seul point d'entrée, aiguillé par la clé du bouton.
+ *
+ * Le panneau d'opérations est partagé par trois écrans : il appelle toujours la
+ * même signature. C'est ici qu'on traduit « rembourser » ou « retirer » en
+ * geste, après avoir vérifié qui parle.
+ */
+export async function agirSurLaVente(
+  orderItemId: string,
+  cle: string,
+  precedent: EtatVente | null,
+  donnees: FormData,
+): Promise<EtatVente> {
+  switch (cle) {
+    case "rembourser":
+      return rembourserVente(orderItemId, precedent, donnees);
+    case "retirer":
+      return basculerAcces(orderItemId, true, donnees);
+    case "rendre":
+      return basculerAcces(orderItemId, false, donnees);
+    default:
+      return { ok: false, message: "Geste inconnu." };
+  }
+}
+
+async function basculerAcces(
+  orderItemId: string,
+  retirer: boolean,
+  donnees: FormData,
+): Promise<EtatVente> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) return { ok: false, message: "Connecte-toi pour continuer." };
+
+  // Le motif n'est pas décoratif : retirer un accès déjà payé se justifie,
+  // et l'acheteur peut le contester.
+  const motif = String(donnees.get("motif") ?? "").trim();
+  if (retirer && motif.length < 4) {
+    return { ok: false, message: "Écris pourquoi tu retires l'accès." };
+  }
+
+  const suite = retirer
+    ? await retirerAcces({ orderItemId, vendeurId: utilisateur.id, motif })
+    : await rendreAcces({ orderItemId, vendeurId: utilisateur.id });
+
+  revalidatePath("/dashboard/ventes");
+
+  if (!suite.fait) {
+    return {
+      ok: false,
+      message:
+        suite.motif === "DEJA_DANS_CET_ETAT"
+          ? "L'accès est déjà dans cet état."
+          : "Vente introuvable.",
+    };
+  }
+
+  return {
+    ok: true,
+    message: retirer ? "Accès retiré." : "Accès rendu.",
+  };
+}
+
+async function rembourserVente(
   orderItemId: string,
   _precedent: EtatVente | null,
   donnees: FormData,
@@ -135,20 +197,4 @@ export async function rembourserVente(
     }
     throw cause;
   }
-}
-
-export async function basculerAccesVente(
-  orderItemId: string,
-  retirer: boolean,
-): Promise<void> {
-  const utilisateur = await sessionCourante();
-  if (!utilisateur) return;
-
-  if (retirer) {
-    await retirerAcces({ orderItemId, vendeurId: utilisateur.id });
-  } else {
-    await rendreAcces({ orderItemId, vendeurId: utilisateur.id });
-  }
-
-  revalidatePath("/dashboard/ventes");
 }

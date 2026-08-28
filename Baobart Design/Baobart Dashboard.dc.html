@@ -83,6 +83,139 @@
 
     <div data-scroll="1" style="flex:1 1 auto; padding:26px; display:flex; flex-direction:column; gap:20px">
 
+      <!-- PANNEAU D'OPÉRATIONS À ÉTATS -->
+      <sc-if value="{{ hasOps }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px">
+
+          <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:12px">
+              <div style="flex:1 1 auto; font-size:16px; font-weight:800">{{ ops.legendTitle }}</div>
+              <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">le chiffre indique le nombre d'actions permises</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:11px; margin-top:16px">
+              <sc-for list="{{ ops.legend }}" as="l" hint-placeholder-count="8">
+                <div style="display:flex; gap:11px; padding:13px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC">
+                  <div style="flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:6px">
+                    <div style="padding:5px 10px; border:2px solid #121212; border-radius:999px; background:{{ l.bg }}; color:{{ l.fg }}; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; white-space:nowrap">{{ l.code }}</div>
+                    <div style="width:22px; height:22px; border:2px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:11px">{{ l.count }}</div>
+                  </div>
+                  <div style="flex:1 1 auto; min-width:0; font-size:12.5px; font-weight:600; line-height:1.45; opacity:.85; text-wrap:pretty">{{ l.sense }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center">
+              <input placeholder="{{ ops.searchPh }}" style="flex:1 1 260px; min-width:0; font-family:Poppins,sans-serif; font-size:12.5px; font-weight:500; padding:10px 14px; border:2.5px solid #121212; border-radius:12px; background:#F4EEFC; outline:none" />
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:14px">
+              <sc-for list="{{ ops.filters }}" as="f" hint-placeholder-count="6">
+                <div onClick="{{ f.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:12px; margin-top:18px">
+              <sc-for list="{{ ops.rows }}" as="r" hint-placeholder-count="6">
+                <div style="border:2.5px solid #121212; border-radius:18px; background:#F4EEFC; padding:15px">
+                  <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center">
+                    <div style="flex:1 1 130px; min-width:0">
+                      <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">{{ ops.cols.0.label }}</div>
+                      <div style="font-family:'Space Mono',monospace; font-size:12.5px; font-weight:700; margin-top:3px">{{ r.c0 }}</div>
+                    </div>
+                    <div style="flex:1.7 1 170px; min-width:0">
+                      <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">{{ ops.cols.1.label }}</div>
+                      <div style="font-size:14px; font-weight:800; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.c1 }}</div>
+                    </div>
+                    <div style="flex:1.3 1 150px; min-width:0">
+                      <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">{{ ops.cols.2.label }}</div>
+                      <div style="font-size:12.5px; font-weight:600; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85">{{ r.c2 }}</div>
+                    </div>
+                    <div style="flex:1 1 100px; min-width:0">
+                      <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">{{ ops.cols.3.label }}</div>
+                      <div style="font-family:'Archivo Black',sans-serif; font-size:16px; margin-top:2px; white-space:nowrap">{{ r.c3 }}</div>
+                    </div>
+                    <div style="flex:1 1 130px; min-width:0">
+                      <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.55">{{ ops.cols.4.label }}</div>
+                      <div style="font-family:'Space Mono',monospace; font-size:12px; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.8">{{ r.c4 }}</div>
+                    </div>
+                    <div style="flex:0 0 auto; padding:7px 13px; border:2.5px solid #121212; border-radius:999px; background:{{ r.stBg }}; color:{{ r.stFg }}; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; white-space:nowrap">{{ r.st }}</div>
+                  </div>
+
+                  <div style="font-size:12.5px; font-weight:600; line-height:1.45; margin-top:11px; opacity:.7; text-wrap:pretty">{{ r.sense }}</div>
+
+                  <sc-if value="{{ r.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; gap:10px; margin-top:11px; padding:11px 13px; border:2px solid #121212; border-radius:13px; background:#FFFFFF">
+                      <div style="flex:0 0 auto; font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:.1em; padding-top:2px; opacity:.55">MOTIF</div>
+                      <div style="flex:1 1 auto; min-width:0; font-size:13px; font-weight:700; line-height:1.45; text-wrap:pretty">{{ r.note }}</div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ r.hasTrace }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.55; margin-top:10px; opacity:.6; text-wrap:pretty">{{ r.trace }}</div>
+                  </sc-if>
+
+                  <sc-if value="{{ r.noAction }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:inline-block; margin-top:12px; padding:9px 15px; border:2.5px dashed #121212; border-radius:13px; background:#FFFFFF; font-size:12.5px; font-weight:700; opacity:.7">{{ r.noActionLabel }}</div>
+                  </sc-if>
+
+                  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px">
+                    <sc-for list="{{ r.actions }}" as="a" hint-placeholder-count="2">
+                      <div onClick="{{ a.run }}" style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212">{{ a.label }}</div>
+                    </sc-for>
+                  </div>
+
+                  <sc-if value="{{ r.hidden }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:inline-block; margin-top:12px; padding:9px 15px; border:2.5px dashed #121212; border-radius:13px; background:#FFFFFF; font-size:12.5px; font-weight:700">Lecture seule — le pouvoir <span style="font-family:'Space Mono',monospace">agir_sur_l_exploitation</span> est requis.</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:16px; padding-top:14px; border-top:2.5px solid #121212; opacity:.6">{{ ops.footer }}</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- SAISIE OBLIGATOIRE AVANT VALIDATION -->
+      <sc-if value="{{ ask.open }}" hint-placeholder-val="{{ false }}">
+        <div style="position:fixed; inset:0; z-index:70; background:rgba(18,18,18,.55); display:grid; place-items:center; padding:24px">
+          <div style="width:min(520px,100%); border:3px solid #121212; border-radius:26px; background:#EADFF9; box-shadow:9px 9px 0 #121212; padding:24px; max-height:88vh; overflow:auto">
+            <div style="display:flex; align-items:flex-start; gap:12px">
+              <div style="flex:1 1 auto; min-width:0">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">{{ ask.subject }}</div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:26px; line-height:1.05; letter-spacing:-1px; margin-top:6px; text-transform:uppercase">{{ ask.title }}</div>
+              </div>
+              <div onClick="{{ ask.cancel }}" style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer">✕</div>
+            </div>
+
+            <sc-if value="{{ ask.hasWarn }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:16px; padding:15px; border:2.5px solid #121212; border-radius:16px; background:#E2622C; color:#FFFFFF; font-size:13.5px; font-weight:700; line-height:1.5; text-wrap:pretty">{{ ask.warn }}</div>
+            </sc-if>
+
+            <sc-if value="{{ ask.needsField }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:16px">
+                <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin-bottom:7px">{{ ask.fieldLabel }} <span style="color:#E2622C">obligatoire</span></div>
+                <input placeholder="{{ ask.fieldPh }}" value="{{ ask.value }}" onChange="{{ ask.onInput }}" style="width:100%; min-width:0; font-family:Poppins,sans-serif; font-size:14px; font-weight:600; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; outline:none" />
+                <div style="font-size:12.5px; font-weight:600; line-height:1.45; margin-top:9px; opacity:.75; text-wrap:pretty">{{ ask.fieldHelp }}</div>
+                <sc-if value="{{ ask.showMissing }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:center; gap:9px; margin-top:11px; padding:10px 13px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF">
+                    <div style="width:20px; height:20px; flex:0 0 auto; border:2px solid #121212; border-radius:99px; background:#E2622C; color:#FFFFFF; display:grid; place-items:center; font-size:11px; font-weight:800">!</div>
+                    <div style="flex:1 1 auto; min-width:0; font-size:12.5px; font-weight:700; line-height:1.4">{{ ask.missingLabel }}</div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <div style="display:flex; flex-wrap:wrap; gap:11px; margin-top:20px">
+              <div onClick="{{ ask.confirm }}" style="flex:1 1 180px; padding:15px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14px; font-weight:800; background:{{ ask.ctaBg }}; color:{{ ask.ctaFg }}; box-shadow:{{ ask.ctaShadow }}; cursor:{{ ask.ctaCursor }}" style-hover="{{ ask.ctaHover }}">{{ ask.cta }}</div>
+              <div onClick="{{ ask.cancel }}" style="flex:0 1 140px; padding:15px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:14px; font-weight:800; cursor:pointer">Annuler</div>
+            </div>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; margin-top:12px; opacity:.65; text-wrap:pretty">{{ ask.ctaNote }}</div>
+          </div>
+        </div>
+      </sc-if>
+
       <!-- VERSEMENTS (CRÉATEUR) -->
       <sc-if value="{{ isPayout }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex; flex-direction:column; gap:20px">
@@ -628,6 +761,7 @@ const NAV = {
     { key: "c_revenus", label: "Gains", glyph: "◎" },
     { key: "c_commandes", label: "Commandes", glyph: "▤" },
     { key: "c_ventes", label: "Ventes", glyph: "◫" },
+    { key: "c_ventes_ops", label: "Remboursements", glyph: "↺", badge: true, badgeLabel: "1" },
     { key: "c_commissions", label: "Commissions", glyph: "%" },
     { key: "c_versements", label: "Versements", glyph: "◈", badge: true, badgeLabel: "!" },
     { key: "c_stats", label: "Statistiques", glyph: "▲" },
@@ -643,6 +777,7 @@ const NAV = {
     { key: "a_moderation", label: "File de modération", glyph: "✓", badge: true, badgeLabel: "23" },
     { key: "a_signalements", label: "Signalements & DMCA", glyph: "!", badge: true, badgeLabel: "5" },
     { key: "a_membres", label: "Membres", glyph: "☺" },
+    { key: "a_membres_risque", label: "Décisions de risque", glyph: "⚑", badge: true, badgeLabel: "3" },
     { key: "a_boutiques", label: "Boutiques créateurs", glyph: "▦" },
     { key: "a_catalogue", label: "Catalogue", glyph: "◫" },
     { key: "a_finances", label: "Finances plateforme", glyph: "◎" },
@@ -654,6 +789,7 @@ const NAV = {
     { key: "a_equipe", label: "Équipe & rôles", glyph: "◍" },
     { key: "a_journal", label: "Journal d'activité", glyph: "▲" },
     { key: "a_reglages", label: "Réglages plateforme", glyph: "⚙" },
+    { key: "a_sys_versements", label: "Système · Versements", glyph: "◈", badge: true, badgeLabel: "8" },
     { key: "a_sys_config", label: "Système · Configuration", glyph: "◧" },
     { key: "a_sys_emails", label: "Système · Emails", glyph: "✉", badge: true, badgeLabel: "1" },
     { key: "a_sys_paiements", label: "Système · Paiements", glyph: "◎", badge: true, badgeLabel: "3" }
@@ -742,6 +878,129 @@ const RETIRED_ACCOUNTS = [
   { label: "Orange Money ···· 3390", holder: "Awa Diallo", at: "retiré le 14 mars 2026" },
   { label: "Virement bancaire ···· 7712", holder: "Diallo Awa Fatimata", at: "retiré le 2 novembre 2025" }
 ];
+
+// ── Les huit états d'un versement ──────────────────────────────────────────
+// Chaque état déclare : sa couleur, ce qu'il signifie, et les actions permises.
+// Le nombre d'actions varie de 0 à 3. Deux d'entre elles ouvrent un champ obligatoire.
+const PAYOUT_STATES = {
+  BROUILLON:  { bg: "#DCDCDC", fg: INK, sense: "Créé par le cycle, pas encore soumis. Rien n'est parti, rien n'est réservé.",
+    actions: [{ k: "soumettre", label: "Soumettre", bg: YEL }, { k: "annuler", label: "Annuler", bg: W, ask: "raison" }] },
+  A_ENVOYER:  { bg: YEL, fg: INK, sense: "Soumis au trésorier. Le montant est réservé sur le solde du bénéficiaire.",
+    actions: [{ k: "envoyer", label: "Marquer envoyé", bg: YEL, ask: "reference" }, { k: "echouer", label: "Marquer échoué", bg: W, ask: "raison" }, { k: "annuler", label: "Annuler", bg: W, ask: "raison" }] },
+  ENVOYE:     { bg: PUR, fg: INK, sense: "Transmis à l'opérateur avec sa référence. On attend sa confirmation.",
+    actions: [{ k: "confirmer", label: "Confirmer réception", bg: YEL }, { k: "echouer", label: "Marquer échoué", bg: W, ask: "raison" }] },
+  RECU:       { bg: "#B9E8C0", fg: INK, sense: "Le bénéficiaire a reçu les fonds. État terminal heureux.",
+    actions: [] },
+  ECHOUE:     { bg: ORA, fg: W, sense: "L'opérateur a refusé. Le montant est rendu au solde disponible.",
+    actions: [{ k: "rejouer", label: "Rejouer", bg: YEL }, { k: "abandonner", label: "Abandonner", bg: W, ask: "raison" }] },
+  ANNULE:     { bg: "#DCDCDC", fg: INK, sense: "Retiré du cycle avant départ. Le montant est rendu au solde. État terminal.",
+    actions: [] },
+  RETOURNE:   { bg: ORA, fg: W, sense: "Parti puis revenu : compte fermé, nom non conforme. Frais de retour à la charge du bénéficiaire.",
+    actions: [{ k: "rejouer", label: "Rejouer", bg: YEL }, { k: "echouer", label: "Clore en échec", bg: W, ask: "raison" }] },
+  SUSPENDU:   { bg: "#121212", fg: W, sense: "Gelé par une décision de risque sur le compte. Ne bouge pas tant que la décision tient.",
+    actions: [{ k: "lever", label: "Lever la suspension", bg: YEL, ask: "raison" }] }
+};
+
+const PAYOUT_ORDER = ["BROUILLON", "A_ENVOYER", "ENVOYE", "RECU", "ECHOUE", "ANNULE", "RETOURNE", "SUSPENDU"];
+
+const PAYOUT_LEDGER = [
+  { id: "VS-2026-08-0412", who: "Awa Diallo", moyen: "Wave ···· 4821", montant: "249 600 F", st: "A_ENVOYER", ref: "—", motif: "—", at: "5 août 2026, 06:00", by: "cycle mensuel" },
+  { id: "VS-2026-08-0413", who: "Studio Teranga", moyen: "Virement ···· 7712", montant: "230 000 F", st: "ENVOYE", ref: "SGBS-88214-A", motif: "—", at: "5 août 2026, 09:12", by: "Paul Etoundi" },
+  { id: "VS-2026-08-0414", who: "Kofi Mensah", moyen: "MTN MoMo ···· 0093", montant: "158 400 F", st: "RECU", ref: "MTN-4471-9903", motif: "—", at: "5 août 2026, 11:40", by: "confirmation opérateur" },
+  { id: "VS-2026-08-0415", who: "Marie Diarrassouba", moyen: "Orange Money ···· 3390", montant: "42 000 F", st: "ECHOUE", ref: "OM-7712-4402", motif: "Compte destinataire inexistant chez l'opérateur", at: "5 août 2026, 10:22", by: "Paul Etoundi" },
+  { id: "VS-2026-08-0416", who: "Grace Dembélé", moyen: "Moov Money ···· 5518", montant: "164 200 F", st: "RETOURNE", ref: "MV-2201-8890", motif: "Nom du titulaire non conforme — fonds retournés le 7 août", at: "7 août 2026, 14:05", by: "retour opérateur" },
+  { id: "VS-2026-08-0417", who: "Ibrahim Traoré", moyen: "Wave ···· 1140", montant: "98 400 F", st: "BROUILLON", ref: "—", motif: "—", at: "5 août 2026, 06:00", by: "cycle mensuel" },
+  { id: "VS-2026-08-0418", who: "Compte #8821", moyen: "Wave ···· 6602", montant: "31 500 F", st: "SUSPENDU", ref: "—", motif: "Décision de risque du 30 juillet — 3 signalements en cours d'instruction", at: "30 juil. 2026, 11:03", by: "Fatou Ndiaye" },
+  { id: "VS-2026-07-0388", who: "Sarah Bakayoko", moyen: "Virement ···· 2214", montant: "121 000 F", st: "ANNULE", ref: "—", motif: "Doublon du cycle de juin, retiré avant départ", at: "5 juil. 2026, 07:44", by: "Paul Etoundi" }
+];
+
+// ── Décisions de risque sur un membre ──────────────────────────────────────
+const MEMBER_STATES = {
+  SAIN:      { bg: W, fg: INK, sense: "Aucune décision en cours.",
+    actions: [{ k: "signaler", label: "Signaler", bg: YEL, ask: "motif" }, { k: "suspendre", label: "Suspendre", bg: ORA, ask: "motif" }] },
+  SIGNALE:   { bg: YEL, fg: INK, sense: "Sous observation. Le membre ne le voit pas ; ses versements continuent.",
+    actions: [{ k: "suspendre", label: "Suspendre", bg: ORA, ask: "motif" }, { k: "lever", label: "Lever le signalement", bg: W, ask: "motif" }] },
+  SUSPENDU:  { bg: "#121212", fg: W, sense: "Publication bloquée, versements gelés, compte visible en lecture seule côté membre.",
+    actions: [{ k: "lever", label: "Lever la suspension", bg: YEL, ask: "motif" }] }
+};
+
+const MEMBER_LEDGER = [
+  { id: "M-1042", who: "Awa Diallo", role: "Créatrice vérifiée · Dakar", st: "SAIN", solde: "249 600 F", flags: "0",
+    lastWho: "—", lastAt: "—", lastWhy: "Aucune décision prise sur ce compte." },
+  { id: "M-8821", who: "Compte #8821", role: "Créateur · non vérifié", st: "SUSPENDU", solde: "31 500 F", flags: "3",
+    lastWho: "Fatou Ndiaye", lastAt: "30 juil. 2026, 11:03", lastWhy: "Trois signalements pour republication de ressources dont il n'est pas l'auteur. Publication bloquée le temps de l'instruction." },
+  { id: "M-4417", who: "Kofi Mensah", role: "Créateur · vérification en attente", st: "SIGNALE", solde: "158 400 F", flags: "1",
+    lastWho: "Aminata Bah", lastAt: "22 août 2026, 16:40", lastWhy: "Aperçus de deux packs identiques à ceux d'un autre créateur. Sous observation, pas de blocage tant que rien n'est établi." },
+  { id: "M-2290", who: "Dev.team", role: "Agence · acheteur Essentiel", st: "SAIN", solde: "—", flags: "0",
+    lastWho: "—", lastAt: "—", lastWhy: "Aucune décision prise sur ce compte." },
+  { id: "M-6603", who: "Marie Diarrassouba", role: "Créatrice · Abidjan", st: "SIGNALE", solde: "42 000 F", flags: "1",
+    lastWho: "Fatou Ndiaye", lastAt: "12 août 2026, 09:15", lastWhy: "Nom du titulaire de versement différent du nom de profil. Signalé le temps de la régularisation." }
+];
+
+// ── Ventes créateur : remboursement et retrait d'accès ─────────────────────
+const SALE_STATES = {
+  ENCAISSEE: { bg: W, fg: INK, sense: "Paiement encaissé, accès actif.",
+    actions: [{ k: "rembourser", label: "Rembourser", bg: YEL, ask: "montant" }, { k: "retirer", label: "Retirer l'accès", bg: W, ask: "motif" }] },
+  CONTESTEE: { bg: ORA, fg: W, sense: "L'acheteur a ouvert un litige auprès de son opérateur.",
+    actions: [{ k: "rembourser", label: "Rembourser", bg: YEL, ask: "montant" }, { k: "contester", label: "Contester le litige", bg: W, ask: "motif" }, { k: "retirer", label: "Retirer l'accès", bg: W, ask: "motif" }] },
+  PARTIEL:   { bg: YEL, fg: INK, sense: "Remboursement partiel déjà appliqué. L'accès reste actif.",
+    actions: [{ k: "rembourser", label: "Rembourser le restant", bg: YEL, ask: "montant" }, { k: "retirer", label: "Retirer l'accès", bg: W, ask: "motif" }] },
+  REMBOURSEE:{ bg: "#DCDCDC", fg: INK, sense: "Intégralement remboursée, accès retiré. État terminal.",
+    actions: [] },
+  RETIREE:   { bg: "#DCDCDC", fg: INK, sense: "Accès retiré sans remboursement. État terminal, contestable par l'acheteur.",
+    actions: [] }
+};
+
+const SALE_LEDGER = [
+  { id: "V-10428", quoi: "Illu Femme au Foulard", qui: "Dev.team", paye: "5 000 F", recu: "4 425 F", restant: "5 000 F", st: "ENCAISSEE", at: "12 juil. 2026", note: "—" },
+  { id: "V-10391", quoi: "Font Sahel Mono", qui: "Marie Bamba", paye: "10 000 F", recu: "8 850 F", restant: "10 000 F", st: "CONTESTEE", at: "3 juil. 2026", note: "Litige CinetPay ouvert le 25 août · réponse attendue avant le 4 septembre" },
+  { id: "V-10405", quoi: "Mockup Affiche Rue", qui: "Serge Nkosi", paye: "3 000 F", recu: "2 655 F", restant: "1 500 F", st: "PARTIEL", at: "18 juil. 2026", note: "1 500 F déjà remboursés le 20 juillet (fichier source manquant)" },
+  { id: "V-10362", quoi: "Pack 12 icônes marché", qui: "Aïcha Barry", paye: "3 000 F", recu: "0 F", restant: "0 F", st: "REMBOURSEE", at: "28 juin 2026", note: "Remboursement intégral le 1er juillet · solde débité de 3 000 F" },
+  { id: "V-10344", quoi: "Textures papier recyclé", qui: "Compte #8821", paye: "0 F", recu: "0 F", restant: "0 F", st: "RETIREE", at: "20 juin 2026", note: "Accès retiré le 30 juillet · compte acheteur suspendu pour fraude" }
+];
+
+const ASK_FIELDS = {
+  reference: { label: "Référence de l'opérateur", ph: "ex. SGBS-88214-A", help: "Telle qu'elle apparaît sur le relevé. Elle sera lisible par le bénéficiaire.", cta: "Marquer envoyé" },
+  raison:    { label: "Raison", ph: "Une phrase, factuelle", help: "Écrite au journal, visible par le bénéficiaire et par les autres administrateurs.", cta: "Valider" },
+  motif:     { label: "Motif de la décision", ph: "Ce qui a été constaté, et où", help: "Obligatoire. Conservé au journal avec ton nom et l'horodatage. Le membre en reçoit copie.", cta: "Valider la décision" },
+  montant:   { label: "Montant à rembourser", ph: "", help: "Pré-rempli avec le restant remboursable. Un remboursement te débite la totalité payée par l'acheteur, commission comprise.", cta: "Rembourser" }
+};
+
+const OPS_PAGES = {
+  a_sys_versements: {
+    title: "Système · Versements", cta: "Relire le registre",
+    intro: "Les versements déjà créés par le cycle, et leur avancée entre huit états. Cet écran ne calcule aucun montant : il fait avancer ce que le cycle a produit, et exige une trace écrite pour chaque geste irréversible.",
+    ops: {
+      kind: "payout", states: PAYOUT_STATES, order: PAYOUT_ORDER, rows: PAYOUT_LEDGER,
+      legendTitle: "Les huit états",
+      searchPh: "Rechercher un bénéficiaire ou une référence…",
+      cols: ["Référence", "Bénéficiaire", "Moyen", "Montant", "État", "Réf. opérateur"],
+      footer: "8 versements du cycle d'août · le nombre d'actions dépend de l'état, jamais du rôle"
+    }
+  },
+  a_membres_risque: {
+    title: "Membres · Décisions de risque", cta: "Exporter le journal",
+    intro: "Signaler, suspendre, lever. Chaque geste exige un motif écrit avant validation, et laisse une ligne que personne ne peut effacer.",
+    ops: {
+      kind: "membre", states: MEMBER_STATES, order: ["SAIN", "SIGNALE", "SUSPENDU"], rows: MEMBER_LEDGER,
+      legendTitle: "Les trois états d'un compte",
+      searchPh: "Rechercher un membre…",
+      cols: ["Identifiant", "Membre", "Rôle", "Solde gelé", "État", "Signalements"],
+      footer: "5 comptes affichés · un signalement n'est pas visible par le membre, une suspension l'est"
+    }
+  },
+  c_ventes_ops: {
+    title: "Ventes · Remboursement et accès", cta: "Exporter en CSV",
+    intro: "Rembourser et retirer l'accès sont deux gestes distincts : l'un rend l'argent, l'autre coupe le téléchargement. On peut faire l'un sans l'autre.",
+    ops: {
+      kind: "vente", states: SALE_STATES, order: ["ENCAISSEE", "CONTESTEE", "PARTIEL", "REMBOURSEE", "RETIREE"], rows: SALE_LEDGER,
+      legendTitle: "États d'une vente",
+      searchPh: "Rechercher une vente ou un acheteur…",
+      cols: ["Référence", "Ressource", "Acheteur", "Payé", "État", "Reste remboursable"],
+      footer: "5 ventes sur 37 · un remboursement te débite la totalité payée, pas seulement ta part"
+    }
+  }
+};
 
 const PAYOUT_PAGE = {
   c_versements: {
@@ -1436,7 +1695,33 @@ const PAGES = {
   },
   c_allaccess: {
     title: "All Access", cta: "Activer un pass",
-    intro: "Les pass d'accès donnent un accès complet à un catalogue pour une durée limitée.",
+    intro: "Un pass All Access ouvre un catalogue entier pour une durée fixe : tu télécharges autant que tu veux pendant la fenêtre, et ce que tu as pris te reste après son expiration.",
+    kpis: [
+      { label: "Pass actif", value: "Illustrations", delta: "expire dans 18 jours", bg: YEL },
+      { label: "Téléchargés sous ce pass", value: "64", delta: "sur 1 840 disponibles", bg: W },
+      { label: "Conservés après expiration", value: "64", delta: "licence acquise définitivement", bg: PUR },
+      { label: "Économie réalisée", value: "218 000 F", delta: "vs achat à l'unité", bg: W }
+    ],
+    notice: {
+      title: "Ton pass Illustrations expire le 15 septembre 2026",
+      text: "Après cette date, tu gardes les 64 fichiers déjà téléchargés et leur licence, mais le catalogue se referme. Le renouvellement est manuel : rien ne se reconduit tout seul.",
+      label: "Fenêtre en cours", url: "18 août → 15 septembre 2026 · 30 jours"
+    },
+    grid: [
+      { title: "Illustrations", meta: "1 840 ressources · 64 prises", value: "ACTIF · 18 j", ph: "pass en cours", bg: stripe(ORA, YEL, 8) },
+      { title: "Mockups", meta: "980 ressources", value: "25 000 F / 30 j", ph: "disponible", bg: stripe(PUR, W, 8) },
+      { title: "Fonts", meta: "412 ressources", value: "18 000 F / 30 j", ph: "disponible", bg: stripe(INK, LAV, 8) },
+      { title: "Images", meta: "2 210 ressources", value: "35 000 F / 30 j", ph: "disponible", bg: stripe(YEL, ORA, 8) },
+      { title: "Icônes", meta: "760 ressources", value: "15 000 F / 30 j", ph: "disponible", bg: stripe(W, INK, 8) },
+      { title: "Tout le catalogue", meta: "8 940 ressources", value: "80 000 F / 30 j", ph: "disponible", bg: stripe(LAV, ORA, 8) }
+    ],
+    rowsTitle: "Historique des pass",
+    rows: rows([
+      { title: "Pass Illustrations", meta: "18 août → 15 sept. 2026 · 64 fichiers pris", amount: "22 000 F", status: "Actif", statusBg: YEL, action: "Renouveler", bg: stripe(ORA, YEL, 5) },
+      { title: "Pass Mockups", meta: "12 juin → 12 juil. 2026 · 31 fichiers pris", amount: "25 000 F", status: "Expiré", statusBg: W, action: "Reprendre", bg: stripe(PUR, W, 5) },
+      { title: "Pass Fonts", meta: "3 mars → 2 avril 2026 · 8 fichiers pris", amount: "18 000 F", status: "Expiré", statusBg: W, action: "Reprendre", bg: stripe(INK, LAV, 5) }
+    ]),
+    _intro_old: "Les pass d'accès donnent un accès complet à un catalogue pour une durée limitée.",
     plan: {
       name: "Pass Wax", price: "12 000 F / 30 jours", renew: "3 août 2026", quota: "48 / illimité", pct: "62%",
       sideTitle: "Ce que le pass inclut",
@@ -1546,6 +1831,97 @@ class Component extends DCLogic {
     };
   }
 
+  opsVals(cfg, key) {
+    if (!cfg) return { legend: [], rows: [], cols: [] };
+    const filter = (this.state.opsFilter || {})[key] || "Tous";
+    const rows = cfg.rows.filter(r => filter === "Tous" || r.st === filter);
+    const readOnly = !!this.props.lectureSeule;
+    return {
+      legendTitle: cfg.legendTitle,
+      searchPh: cfg.searchPh,
+      footer: cfg.footer,
+      // 5 libellés de données (l'état est rendu à part, en pastille)
+      cols: cfg.cols.filter(c => c !== "État").map(c => ({ label: c })),
+      legend: cfg.order.map(k => {
+        const s = cfg.states[k];
+        return { code: k, bg: s.bg, fg: s.fg, sense: s.sense, count: String(s.actions.length) };
+      }),
+      filters: ["Tous"].concat(cfg.order).map(f => ({
+        label: f === "Tous" ? "Tous" : f,
+        bg: filter === f ? INK : W, fg: filter === f ? W : INK,
+        pick: () => this.setState(s => ({ opsFilter: Object.assign({}, s.opsFilter, { [key]: f }) }))
+      })),
+      rows: rows.map(r => {
+        const s = cfg.states[r.st];
+        const c = cfg.kind === "payout" ? [r.id, r.who, r.moyen, r.montant, r.ref]
+          : cfg.kind === "membre" ? [r.id, r.who, r.role, r.solde, r.flags]
+          : [r.id, r.quoi, r.qui, r.paye, r.restant];
+        return {
+          id: r.id,
+          c0: c[0], c1: c[1], c2: c[2], c3: c[3], c4: c[4],
+          st: r.st, stBg: s.bg, stFg: s.fg,
+          sense: s.sense,
+          hasNote: !!(r.motif && r.motif !== "—") || !!(r.note && r.note !== "—"),
+          note: r.motif && r.motif !== "—" ? r.motif : (r.note || ""),
+          hasTrace: cfg.kind === "membre" || cfg.kind === "payout",
+          trace: cfg.kind === "membre"
+            ? "Dernière décision : " + r.lastWho + " · " + r.lastAt + " · " + r.lastWhy
+            : "Dernier mouvement : " + r.by + " · " + r.at,
+          noAction: s.actions.length === 0,
+          noActionLabel: "État terminal — aucune action possible",
+          hidden: readOnly && s.actions.length > 0,
+          actions: readOnly ? [] : s.actions.map(a => ({
+            label: a.label, bg: a.bg,
+            run: () => this.setState({
+              askOpen: { row: r, action: a, kind: cfg.kind },
+              askValue: a.ask === "montant" ? (r.restant || "") : ""
+            })
+          }))
+        };
+      })
+    };
+  }
+
+  askVals() {
+    const o = this.state.askOpen;
+    if (!o) return { open: false, fields: [] };
+    const f = ASK_FIELDS[o.action.ask] || null;
+    const label = o.row.who || o.row.quoi;
+    const val = this.state.askValue || "";
+    const valid = !f || val.trim().length > 0;
+    return {
+      open: true,
+      needsField: !!f,
+      value: val,
+      onInput: e => this.setState({ askValue: e.target.value }),
+      valid: valid,
+      ctaBg: valid ? YEL : "#F4EEFC",
+      ctaFg: valid ? INK : "rgba(18,18,18,.4)",
+      ctaShadow: valid ? "4px 4px 0 #121212" : "none",
+      ctaCursor: valid ? "pointer" : "not-allowed",
+      ctaHover: valid ? "transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212" : "",
+      showMissing: !valid,
+      missingLabel: f ? "Renseigne « " + f.label.toLowerCase() + " » pour pouvoir valider." : "",
+      title: o.action.label,
+      subject: (o.row.id || "") + " · " + label,
+      warn: o.action.k === "rembourser"
+        ? "Sur cette vente, l'acheteur a payé " + o.row.paye + " et tu as reçu " + o.row.recu + ". Un remboursement intégral te débite " + o.row.paye + " : la commission déjà prélevée ne t'est pas restituée."
+        : o.action.k === "suspendre"
+        ? "La suspension gèle les versements en cours et bloque la publication. Le membre en est informé, motif compris."
+        : o.action.k === "retirer"
+        ? "Retirer l'accès coupe le téléchargement sans rendre l'argent. L'acheteur peut contester."
+        : "",
+      hasWarn: ["rembourser", "suspendre", "retirer"].indexOf(o.action.k) >= 0,
+      fieldLabel: f ? f.label : "",
+      fieldPh: f ? (o.action.ask === "montant" ? o.row.restant : f.ph) : "",
+      fieldHelp: f ? f.help : "",
+      cta: f ? f.cta : o.action.label,
+      ctaNote: f ? "Le champ est obligatoire : sans lui, le bouton reste inactif." : "Cette action n'exige aucune saisie — elle est réversible.",
+      cancel: () => this.setState({ askOpen: null, askValue: "" }),
+      confirm: () => { if (valid) this.setState({ askOpen: null, askValue: "" }); }
+    };
+  }
+
   payoutVals() {
     const s = this.state;
     const method = s.payMethod || "wave";
@@ -1594,7 +1970,7 @@ class Component extends DCLogic {
     const role = this.state.role || this.props.role || "acheteur";
     const nav = NAV[role] || NAV.acheteur;
     const key = (nav.some(n => n.key === this.state.key) && this.state.key) || nav[0].key;
-    const raw = PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || PAYOUT_PAGE[key] || {};
+    const raw = PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || PAYOUT_PAGE[key] || OPS_PAGES[key] || {};
     const filters = raw.filters || [];
     const active = this.state.filter[key] || filters[0];
     const active2 = (this.state.tfilter || {})[key] || ((raw.table || {}).filters || [])[0];
@@ -1638,6 +2014,10 @@ class Component extends DCLogic {
     });
 
     return {
+      hasOps: !!raw.ops,
+      ops: this.opsVals(raw.ops, key),
+      ask: this.askVals(),
+
       isPayout: key === "c_versements",
       payout: this.payoutVals(),
 

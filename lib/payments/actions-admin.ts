@@ -31,7 +31,7 @@ export type EtatTransition =
 
 export async function fairePasserVersement(
   payoutId: string,
-  vers: EtatVersement,
+  vers: string,
   _precedent: EtatTransition | null,
   donnees: FormData,
 ): Promise<EtatTransition> {
@@ -43,7 +43,7 @@ export async function fairePasserVersement(
   const reference = String(donnees.get("reference") ?? "").trim();
 
   try {
-    switch (vers) {
+    switch (vers as EtatVersement) {
       case "PROCESSING":
         if (reference.length === 0) {
           return {

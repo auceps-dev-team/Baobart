@@ -1,27 +1,23 @@
-import Link from "next/link";
-
 import { DashboardFrame } from "@/components/dashboard/frame";
+import { BandeauGravite, Intro, PiedEcran, type Puce } from "@/components/systeme/bandeau";
 import {
-  BandeauGravite,
-  Compteurs,
-  Intro,
-  Panneau,
-  PiedEcran,
-  type Puce,
-} from "@/components/systeme/bandeau";
-import {
-  LigneVersement,
-  type VersementAffiche,
-} from "@/components/systeme/ligne-versement";
+  PanneauOperations,
+  type ActionOps,
+  type FiltreOps,
+  type LegendeOps,
+  type LigneOps,
+} from "@/components/systeme/panneau-operations";
 import { exigerAdministrateur } from "@/lib/auth/acces-administration";
 import { peut } from "@/lib/auth/administration";
 import { formatMoney } from "@/lib/i18n/money";
+import { fairePasserVersement } from "@/lib/payments/actions-admin";
 import {
   ETATS,
+  SUITES_PERMISES,
   vueDesVersements,
   type EtatVersement,
 } from "@/lib/payments/supervision";
-import { BLANC, ENCRE, JAUNE, ORANGE, TON } from "@/lib/systeme/charte";
+import { BLANC, JAUNE, ORANGE, TON_ETAT } from "@/lib/systeme/charte";
 import { graviteGlobale } from "@/lib/systeme/diagnostic";
 
 export const metadata = { title: "Système · Versements — Baobart." };
@@ -34,27 +30,64 @@ const DATE = new Intl.DateTimeFormat("fr-FR", {
   minute: "2-digit",
 });
 
-const FILTRES: Array<{ code: EtatVersement | "Tous"; libelle: string }> = [
-  { code: "Tous", libelle: "Tous" },
-  { code: "CREATING", libelle: "Préparés" },
-  { code: "PROCESSING", libelle: "Envoyés" },
-  { code: "COMPLETED", libelle: "Payés" },
-  { code: "FAILED", libelle: "Échoués" },
-  { code: "RETURNED", libelle: "Retournés" },
+/** L'ordre de la légende suit le cycle de vie, pas l'alphabet. */
+const ORDRE: EtatVersement[] = [
+  "CREATING",
+  "PROCESSING",
+  "UNCLAIMED",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+  "RETURNED",
+  "REVERSED",
 ];
+
+/**
+ * Le mot du bouton dit ce qui se passe, pas le nom de l'état d'arrivée.
+ *
+ * Les transitions qui exigent une saisie l'exigent vraiment : un versement
+ * échoué sans motif oblige à rouvrir le dossier chez l'opérateur pour savoir
+ * ce qui s'est passé.
+ */
+const TRANSITIONS: Partial<
+  Record<EtatVersement, { libelle: string; fond: string; demande?: ActionOps["demande"] }>
+> = {
+  PROCESSING: {
+    libelle: "Marquer envoyé",
+    fond: JAUNE,
+    demande: { champ: "reference", etiquette: "Référence chez l'opérateur" },
+  },
+  COMPLETED: { libelle: "Confirmer réception", fond: JAUNE },
+  FAILED: {
+    libelle: "Marquer échoué",
+    fond: BLANC,
+    demande: { champ: "raison", etiquette: "Pourquoi l'ordre n'est pas passé" },
+  },
+  RETURNED: {
+    libelle: "Marquer retourné",
+    fond: BLANC,
+    demande: { champ: "raison", etiquette: "Pourquoi l'argent est revenu" },
+  },
+  CANCELLED: {
+    libelle: "Annuler",
+    fond: BLANC,
+    demande: { champ: "raison", etiquette: "Pourquoi tu annules" },
+  },
+};
+
+/** Les transitions offertes à l'écran — celles qu'un clic peut décider. */
+function actionsDe(etat: EtatVersement): ActionOps[] {
+  return (SUITES_PERMISES[etat] ?? [])
+    .filter((vers) => TRANSITIONS[vers] !== undefined)
+    .map((vers) => {
+      const t = TRANSITIONS[vers]!;
+      return { cle: vers, libelle: t.libelle, fond: t.fond, demande: t.demande };
+    });
+}
 
 function filtreValide(brut: string | undefined): EtatVersement | undefined {
   return brut && brut in ETATS ? (brut as EtatVersement) : undefined;
 }
-
-/** Le mot du bouton dit ce qui se passe, pas le nom de l'état d'arrivée. */
-const LIBELLE_TRANSITION: Partial<Record<EtatVersement, string>> = {
-  PROCESSING: "Marquer envoyé",
-  COMPLETED: "Confirmer l'arrivée",
-  FAILED: "Marquer échoué",
-  RETURNED: "Marquer retourné",
-  CANCELLED: "Annuler",
-};
 
 export default async function VersementsSystemePage({
   searchParams,
@@ -73,176 +106,106 @@ export default async function VersementsSystemePage({
   const compte = (e: EtatVersement) =>
     vue.parEtat.find((g) => g.etat === e) ?? { nombre: 0, montant: 0 };
 
-  const prepares = compte("CREATING");
-  const envoyes = compte("PROCESSING");
-  const echoues = compte("FAILED");
-  const retournes = compte("RETURNED");
-  const bloques = echoues.nombre + retournes.nombre;
+  const aEnvoyer = compte("CREATING");
+  const bloques =
+    compte("FAILED").nombre + compte("RETURNED").nombre + compte("REVERSED").nombre;
 
-  const compteurs = [
-    {
-      cle: "prepares",
-      libelle: "Préparés, non partis",
-      valeur: String(prepares.nombre),
-      note:
-        prepares.nombre > 0
-          ? `${formatMoney(prepares.montant, "XOF")} de soldes réservés`
-          : "rien en attente d'envoi",
-      // Un versement préparé est un versement qui n'est pas parti : c'est le
-      // seul état où l'argent est immobilisé sans que personne n'agisse.
-      gravite: prepares.nombre > 0 ? ("attention" as const) : ("ok" as const),
-    },
-    {
-      cle: "envoyes",
-      libelle: "Chez l'opérateur",
-      valeur: String(envoyes.nombre),
-      note: "en attente de confirmation",
-      gravite: "ok" as const,
-    },
+  const gravite = graviteGlobale([
     {
       cle: "bloques",
-      libelle: "Échoués ou retournés",
-      valeur: String(bloques),
-      note: bloques > 0 ? "les soldes sont repartis au cycle suivant" : "rien à reprendre",
-      gravite: bloques > 0 ? ("panne" as const) : ("ok" as const),
+      libelle: "",
+      detail: "",
+      gravite: bloques > 0 ? "panne" : "ok",
     },
     {
-      cle: "total",
-      libelle: "Versements enregistrés",
-      valeur: String(vue.total),
-      note: "toutes périodes confondues",
-      gravite: "ok" as const,
-    },
-  ];
-
-  const gravite = graviteGlobale(
-    compteurs.map((c) => ({
-      cle: c.cle,
-      libelle: c.libelle,
-      gravite: c.gravite,
+      cle: "aEnvoyer",
+      libelle: "",
       detail: "",
-    })),
-  );
+      gravite: aEnvoyer.nombre > 0 ? "attention" : "ok",
+    },
+  ]);
 
-  const puces: Puce[] = [
-    { texte: `${vue.total} versements`, fond: BLANC },
-  ];
-  if (bloques > 0) {
-    puces.push({ texte: `${bloques} bloqués`, fond: ORANGE });
-  } else if (prepares.nombre > 0) {
-    puces.push({ texte: `${prepares.nombre} à envoyer`, fond: JAUNE });
+  const puces: Puce[] = [{ texte: `${vue.total} versements`, fond: BLANC }];
+  if (bloques > 0) puces.push({ texte: `${bloques} bloqués`, fond: ORANGE });
+  else if (aEnvoyer.nombre > 0) {
+    puces.push({ texte: `${aEnvoyer.nombre} à envoyer`, fond: JAUNE });
   }
 
-  const lignes: VersementAffiche[] = vue.lignes.map((v) => ({
+  const legende: LegendeOps[] = ORDRE.map((e) => ({
+    code: ETATS[e].libelle,
+    fond: TON_ETAT[ETATS[e].ton]!.fond,
+    encre: TON_ETAT[ETATS[e].ton]!.encre,
+    nombre: actionsDe(e).length,
+    sens: ETATS[e].sens,
+  }));
+
+  const filtres: FiltreOps[] = [
+    {
+      code: "Tous",
+      libelle: "TOUS",
+      actif: filtre === undefined,
+      href: "/dashboard/systeme/versements",
+    },
+    ...ORDRE.map((e) => ({
+      code: e,
+      libelle: ETATS[e].libelle,
+      actif: filtre === e,
+      href: `/dashboard/systeme/versements?etat=${e}`,
+    })),
+  ];
+
+  const lignes: LigneOps[] = vue.lignes.map((v) => ({
     id: v.id,
-    beneficiaire: v.beneficiaire,
-    moyen: v.moyen,
-    compte: v.compte,
-    montant: formatMoney(v.montant, v.devise as "XOF"),
-    etat: v.etat,
-    etatLibelle: ETATS[v.etat].libelle,
-    gravite: ETATS[v.etat].gravite,
-    fond: TON[ETATS[v.etat].gravite].ligneFond,
-    reference: v.reference,
-    motifEchec: v.motifEchec,
-    creeLe: DATE.format(v.creeLe),
-    suites: v.suites
-      // UNCLAIMED et REVERSED viennent de l'opérateur, jamais d'un clic.
-      .filter((s) => LIBELLE_TRANSITION[s] !== undefined)
-      .map((s) => ({ vers: s, libelle: LIBELLE_TRANSITION[s]! })),
+    colonnes: [
+      v.id.slice(-12).toUpperCase(),
+      v.beneficiaire,
+      `${v.moyen} ${v.compte}`,
+      formatMoney(v.montant, v.devise as "XOF"),
+      v.reference ?? "—",
+    ],
+    etat: ETATS[v.etat].libelle,
+    etatFond: TON_ETAT[ETATS[v.etat].ton]!.fond,
+    etatEncre: TON_ETAT[ETATS[v.etat].ton]!.encre,
+    sens: ETATS[v.etat].sens,
+    motif: v.motifEchec,
+    trace: `créé le ${DATE.format(v.creeLe)}`,
+    actions: actionsDe(v.etat),
+    sansAction: "État terminal — plus rien à décider ici.",
   }));
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
       titre="Système · Versements"
-      description="Faire avancer les versements, du solde réservé jusqu'à l'argent arrivé."
+      description="Les versements créés par le cycle, et leur avancée entre huit états."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <BandeauGravite gravite={gravite} puces={puces} />
 
         <Intro>
-          Le passage hebdomadaire prépare les versements ; il ne les envoie pas.
-          C&apos;est ici qu&apos;on les fait avancer, et qu&apos;on consigne ce
-          que l&apos;opérateur a répondu.
+          Les versements déjà créés par le cycle, et leur avancée entre huit
+          états. Cet écran ne calcule aucun montant : il fait avancer ce que le
+          cycle a produit, et exige une trace écrite pour chaque geste
+          irréversible.
         </Intro>
 
-        <Compteurs liste={compteurs} />
-
-        <Panneau
-          titre="Versements"
-          mention="relu à chaque affichage · aucune mise en cache"
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 14 }}>
-            {FILTRES.map((f) => {
-              const actif =
-                f.code === "Tous" ? filtre === undefined : filtre === f.code;
-              return (
-                <Link
-                  key={f.code}
-                  href={
-                    f.code === "Tous"
-                      ? "/dashboard/systeme/versements"
-                      : `/dashboard/systeme/versements?etat=${f.code}`
-                  }
-                  style={{
-                    padding: "7px 14px",
-                    border: `2px solid ${ENCRE}`,
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    background: actif ? ENCRE : BLANC,
-                    color: actif ? BLANC : ENCRE,
-                    textDecoration: "none",
-                  }}
-                >
-                  {f.libelle}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              marginTop: 16,
-            }}
-          >
-            {lignes.length === 0 ? (
-              <p style={{ fontSize: 13.5, fontWeight: 600, opacity: 0.7 }}>
-                {vue.total === 0
-                  ? "Aucun versement n'a encore été préparé. Le passage hebdomadaire s'en charge."
-                  : "Aucun versement dans cet état."}
-              </p>
-            ) : (
-              lignes.map((v) => (
-                <LigneVersement key={v.id} versement={v} peutAgir={peutAgir} />
-              ))
-            )}
-          </div>
-
-          {peutAgir ? null : (
-            <div
-              style={{
-                marginTop: 16,
-                padding: "11px 16px",
-                border: `2.5px dashed ${ENCRE}`,
-                borderRadius: 13,
-                background: "#F4EEFC",
-                fontSize: 12.5,
-                fontWeight: 700,
-              }}
-            >
-              Lecture seule — le pouvoir{" "}
-              <span style={{ fontFamily: "var(--font-mono)" }}>
-                agir_sur_l_exploitation
-              </span>{" "}
-              est requis pour agir.
-            </div>
-          )}
-        </Panneau>
+        <PanneauOperations
+          legendeTitre="Les huit états"
+          legende={legende}
+          rechercherPlaceholder="Rechercher un bénéficiaire ou une référence…"
+          filtres={filtres}
+          colonnes={[
+            "Référence",
+            "Bénéficiaire",
+            "Moyen",
+            "Montant",
+            "Réf. opérateur",
+          ]}
+          lignes={lignes}
+          pied={`${vue.lignes.length} versements affichés sur ${vue.total} · le nombre d'actions dépend de l'état, jamais du rôle`}
+          peutAgir={peutAgir}
+          executer={fairePasserVersement}
+        />
 
         <PiedEcran
           libelle="Règle à ne pas perdre"
