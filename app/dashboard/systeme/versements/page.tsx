@@ -75,14 +75,36 @@ const TRANSITIONS: Partial<
   },
 };
 
-/** Les transitions offertes à l'écran — celles qu'un clic peut décider. */
+/** Les états terminés d'où un nouvel essai a du sens. */
+const REJOUABLES: EtatVersement[] = ["FAILED", "RETURNED", "CANCELLED"];
+
+/**
+ * Les gestes offerts à l'écran.
+ *
+ * Deux natures s'y mêlent, et c'est voulu. Les transitions font avancer **ce**
+ * versement. « Verser à nouveau » n'en est pas une : elle en prépare un autre
+ * sur les soldes que l'échec a déjà rendus. Recycler l'ancien effacerait la
+ * trace de la première tentative auprès de l'opérateur — justement ce qu'on lui
+ * montre le jour où il conteste.
+ */
 function actionsDe(etat: EtatVersement): ActionOps[] {
-  return (SUITES_PERMISES[etat] ?? [])
+  const transitions: ActionOps[] = (SUITES_PERMISES[etat] ?? [])
     .filter((vers) => TRANSITIONS[vers] !== undefined)
     .map((vers) => {
       const t = TRANSITIONS[vers]!;
       return { cle: vers, libelle: t.libelle, fond: t.fond, demande: t.demande };
     });
+
+  if (REJOUABLES.includes(etat)) {
+    transitions.push({
+      cle: "REJOUER",
+      libelle: "Verser à nouveau",
+      fond: JAUNE,
+      demande: undefined,
+    });
+  }
+
+  return transitions;
 }
 
 function filtreValide(brut: string | undefined): EtatVersement | undefined {

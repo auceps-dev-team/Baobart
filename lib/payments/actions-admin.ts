@@ -11,6 +11,7 @@ import {
   marquerVersementEnvoye,
   retournerVersement,
 } from "@/lib/payments/versements";
+import { verserANouveau } from "@/lib/payments/reprise";
 import type { EtatVersement } from "@/lib/payments/supervision";
 
 /**
@@ -41,6 +42,19 @@ export async function fairePasserVersement(
   // rouvrir le dossier chez l'opérateur pour savoir ce qui s'est passé.
   const raison = String(donnees.get("raison") ?? "").trim();
   const reference = String(donnees.get("reference") ?? "").trim();
+
+  // Un nouvel essai n'est pas une transition : l'ancien versement reste ce
+  // qu'il est. On en prépare un neuf sur les soldes que l'échec a rendus.
+  if (vers === "REJOUER") {
+    const suite = await verserANouveau({ payoutId, auteur: qui.email });
+    revalidatePath("/dashboard/systeme/versements");
+    return suite.prepare
+      ? {
+          ok: true,
+          message: `Nouveau versement préparé pour ${suite.montant}.`,
+        }
+      : { ok: false, message: suite.message };
+  }
 
   try {
     switch (vers as EtatVersement) {

@@ -52,6 +52,16 @@ export class TransitionInterditeError extends Error {
   }
 }
 
+export class VersementsSuspendusError extends Error {
+  constructor(payoutId: string, motif: string | null) {
+    super(
+      `Les versements de ce compte sont suspendus : ${motif ?? "motif non précisé"}. ` +
+        `Le versement ${payoutId} ne peut pas partir.`,
+    );
+    this.name = "VersementsSuspendusError";
+  }
+}
+
 export class RienAVerserError extends Error {
   constructor(userId: string, finDePeriode: Date) {
     super(
@@ -178,12 +188,40 @@ async function transiter(
   return db.$transaction(async (tx) => {
     const versement = await tx.payout.findUnique({
       where: { id: payoutId },
-      select: { id: true, status: true, userId: true },
+      select: {
+        id: true,
+        status: true,
+        userId: true,
+        user: {
+          select: { payoutsPausedAt: true, payoutsPausedReason: true },
+        },
+      },
     });
     if (!versement) throw new VersementIntrouvableError(payoutId);
 
     if (!SUITES[versement.status]?.includes(vers)) {
       throw new TransitionInterditeError(payoutId, versement.status, vers);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // UN COMPTE GELÉ NE LAISSE PARTIER AUCUN ARGENT
+    //
+    // `peutEtrePaye()` vérifie la suspension à la **création** du versement.
+    // Rien ne la vérifiait ensuite : un versement déjà créé quand un litige gelait
+    // le compte pouvait être envoyé malgré tout, ce que le gel existe précisément
+    // pour empêcher.
+    //
+    // Seul PROCESSING est gardé, et c'est délibéré : c'est la seule transition
+    // où l'argent **sort**. Les autres ne font qu'inscrire ce que l'opérateur a
+    // répondu. Refuser COMPLETED sur un compte gelé ne rappellerait pas des fonds
+    // déjà partis — cela laisserait seulement nos livres affirmer « en transit »
+    // pour un argent arrivé, et un registre faux se paie plus cher qu'un
+    // versement de trop bloqué.
+    if (vers === "PROCESSING" && versement.user.payoutsPausedAt !== null) {
+      throw new VersementsSuspendusError(
+        payoutId,
+        versement.user.payoutsPausedReason,
+      );
     }
 
     const misAJour = await tx.payout.update({

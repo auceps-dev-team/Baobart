@@ -9,12 +9,15 @@ import {
   projeterVersements,
 } from "@/lib/payments/payout-schedule";
 import { preparerLeCycle } from "@/lib/payments/cycle";
+import { verserANouveau } from "@/lib/payments/reprise";
 import {
+  annulerVersement,
   confirmerVersement,
   echouerVersement,
   marquerVersementEnvoye,
   preparerVersement,
   retournerVersement,
+  VersementsSuspendusError,
 } from "@/lib/payments/versements";
 
 /**
@@ -285,6 +288,167 @@ describe("exécution d'un versement", () => {
     expect(pris.every((b) => b.state === "PROCESSING")).toBe(true);
     // Celle d'après reste versable.
     expect(soldes.some((b) => b.state === "UNPAID")).toBe(true);
+  });
+
+  describe("un compte gelé ne laisse partir aucun argent", () => {
+    it("refuse d'envoyer un versement déjà créé quand le compte est gelé", async () => {
+      // Le trou réel : `peutEtrePaye()` vérifie la suspension à la création, et
+      // rien ne la vérifiait ensuite. Un litige qui gelait le compte après coup
+      // laissait l'argent partir quand même.
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+
+      await db.user.update({
+        where: { id: createur },
+        data: {
+          payoutsPausedAt: new Date(),
+          payoutsPausedReason: "Paiement contesté, contestation en cours.",
+        },
+      });
+
+      await expect(
+        marquerVersementEnvoye(versement.id, "WAVE-REF-99"),
+      ).rejects.toThrow(VersementsSuspendusError);
+
+      const relu = await db.payout.findUniqueOrThrow({
+        where: { id: versement.id },
+      });
+      expect(relu.status).toBe("CREATING");
+      expect(relu.providerRef).toBeNull();
+    });
+
+    it("laisse inscrire l'arrivée d'un argent déjà parti", async () => {
+      // Seul PROCESSING est gardé : c'est la seule transition où l'argent sort.
+      // Refuser COMPLETED ne rappellerait pas des fonds déjà partis — cela
+      // laisserait nos livres affirmer « en transit » pour un argent arrivé.
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await marquerVersementEnvoye(versement.id, "WAVE-REF-77");
+
+      await db.user.update({
+        where: { id: createur },
+        data: { payoutsPausedAt: new Date(), payoutsPausedReason: "litige" },
+      });
+
+      await confirmerVersement(versement.id);
+      const relu = await db.payout.findUniqueOrThrow({
+        where: { id: versement.id },
+      });
+      expect(relu.status).toBe("COMPLETED");
+    });
+
+    it("laisse annuler un versement d'un compte gelé, et lui rend ses soldes", async () => {
+      // Annuler ne fait sortir aucun argent : c'est au contraire le geste qui
+      // remet les fonds à disposition. Le gel n'a pas à l'empêcher.
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+
+      await db.user.update({
+        where: { id: createur },
+        data: { payoutsPausedAt: new Date(), payoutsPausedReason: "litige" },
+      });
+
+      await annulerVersement(versement.id, "compte gelé");
+
+      const soldes = await db.balance.findMany({ where: { userId: createur } });
+      expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+    });
+  });
+
+  describe("verser à nouveau après un échec", () => {
+    /**
+     * Le rejeu relit le compte enregistré, là où `preparerVersement` reçoit la
+     * référence en paramètre. C'est voulu : un versement rejoué des semaines
+     * plus tard doit partir vers le compte **actuel**, pas vers celui d'alors.
+     */
+    beforeEach(async () => {
+      await db.payoutAccount.create({
+        data: {
+          userId: createur,
+          method: "MOBILE_MONEY",
+          provider: "wave",
+          accountRef: "+221770000000",
+          holderName: "Créateur Test",
+        },
+      });
+    });
+
+    it("prépare un nouveau versement sur les soldes que l'échec a rendus", async () => {
+      // Le rejeu n'est pas une transition : l'ancien versement reste la trace
+      // d'une tentative réelle auprès de l'opérateur, avec son motif d'échec.
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await echouerVersement(versement.id, "opérateur injoignable");
+
+      const suite = await verserANouveau({
+        payoutId: versement.id,
+        auteur: "admin-test",
+      });
+
+      expect(suite.prepare).toBe(true);
+      if (!suite.prepare) return;
+      expect(suite.montant).toBe(a.net);
+      expect(suite.payoutId).not.toBe(versement.id);
+
+      // L'ancien garde son état et son motif : c'est ce qu'on montre à
+      // l'opérateur le jour où il conteste.
+      const ancien = await db.payout.findUniqueOrThrow({
+        where: { id: versement.id },
+      });
+      expect(ancien.status).toBe("FAILED");
+      expect(ancien.failureReason).toBe("opérateur injoignable");
+    });
+
+    it("refuse sur un versement qui n'est pas terminé", async () => {
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+
+      const suite = await verserANouveau({
+        payoutId: versement.id,
+        auteur: "admin-test",
+      });
+
+      expect(suite.prepare).toBe(false);
+      if (!suite.prepare) expect(suite.motif).toBe("PAS_TERMINE");
+    });
+
+    it("refuse quand les versements du compte sont gelés", async () => {
+      // Un clic ne contourne pas une décision de risque.
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await echouerVersement(versement.id, "opérateur injoignable");
+
+      await db.user.update({
+        where: { id: createur },
+        data: { payoutsPausedAt: new Date(), payoutsPausedReason: "litige" },
+      });
+
+      const suite = await verserANouveau({
+        payoutId: versement.id,
+        auteur: "admin-test",
+      });
+
+      expect(suite.prepare).toBe(false);
+      if (!suite.prepare) expect(suite.motif).toBe("REFUSE");
+      expect(await db.payout.count()).toBe(1);
+    });
+
+    it("refuse quand les soldes ont déjà été repris ailleurs", async () => {
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await echouerVersement(versement.id, "opérateur injoignable");
+
+      // Un premier rejeu prend les soldes.
+      await verserANouveau({ payoutId: versement.id, auteur: "admin-test" });
+      // Le second ne trouve plus rien.
+      const second = await verserANouveau({
+        payoutId: versement.id,
+        auteur: "admin-test",
+      });
+
+      expect(second.prepare).toBe(false);
+      if (!second.prepare) expect(second.motif).toBe("RIEN_A_VERSER");
+    });
   });
 
   it("mène un versement de bout en bout et solde les balances", async () => {
