@@ -13,6 +13,7 @@ import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
 import type { FaitPaiement } from "@/lib/payments/encaissement/pilotes";
 import { recevoir } from "@/lib/payments/encaissement/reception";
+import { perimerCommandesOubliees } from "@/lib/payments/encaissement/reglement";
 
 const AVANT = {
   simulation: process.env.CHECKOUT_SIMULATION_ENABLED,
@@ -381,5 +382,73 @@ describe("un rappel d'étape", () => {
     );
     expect(suite).toEqual({ recu: true, effet: "SANS_EFFET" });
     expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+  });
+});
+
+describe("la péremption des commandes oubliées", () => {
+  it("referme une commande qu'aucun rappel n'a conclue", async () => {
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+
+    // Vingt-cinq heures plus tard : au-delà de tout rappel plausible.
+    await db.order.update({
+      where: { id: orderId },
+      data: { createdAt: new Date(Date.now() - 25 * 3_600_000) },
+    });
+
+    expect(await perimerCommandesOubliees()).toBe(1);
+
+    const ligne = await etatDe(orderItemId);
+    expect(ligne.state).toBe("FAILED");
+    expect(ligne.order.status).toBe("ABANDONED");
+
+    // Rien n'a jamais été encaissé : rien n'est rendu, rien n'est débité.
+    expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
+  it("laisse tranquille une commande encore fraîche", async () => {
+    const { orderItemId } = await ouvrirCommande();
+
+    expect(await perimerCommandesOubliees()).toBe(0);
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+  });
+
+  it("ne touche pas une commande déjà encaissée", async () => {
+    const { orderId, orderItemId } = await ouvrirCommande();
+    await recevoir("bac-a-sable", fait(orderId), {});
+
+    await db.order.update({
+      where: { id: orderId },
+      data: { createdAt: new Date(Date.now() - 25 * 3_600_000) },
+    });
+
+    expect(await perimerCommandesOubliees()).toBe(0);
+    expect((await etatDe(orderItemId)).state).toBe("SUCCESSFUL");
+  });
+
+  it("crie quand un paiement arrive sur une commande refermée", async () => {
+    // Le pire cas du mobile money : l'acheteur a payé, et on avait refermé.
+    // Aucun code ne répare cela tout seul — il faut qu'un humain le voie.
+    const { orderId, orderItemId } = await ouvrirCommande();
+
+    await db.order.update({
+      where: { id: orderId },
+      data: { createdAt: new Date(Date.now() - 25 * 3_600_000) },
+    });
+    await perimerCommandesOubliees();
+
+    const suite = await recevoir("bac-a-sable", fait(orderId), {});
+
+    expect(suite.recu).toBe(false);
+    expect(suite.recu === false && suite.motif).toBe("COMMANDE_REFERMEE");
+
+    // Et la ligne reste en échec : on ne crédite pas en douce.
+    expect((await etatDe(orderItemId)).state).toBe("FAILED");
+
+    // La trace est marquée refusée, donc visible à l'écran Système.
+    const trace = await db.paymentWebhookEvent.findFirstOrThrow({
+      where: { status: "REJECTED" },
+      select: { error: true },
+    });
+    expect(trace.error).toContain("refermée");
   });
 });

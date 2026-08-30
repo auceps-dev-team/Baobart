@@ -1,10 +1,11 @@
 import { createHmac } from "node:crypto";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatMoney } from "@/lib/i18n/money";
 import {
   PAYSTACK,
+  confirmerAupresDePaystack,
   depuisPaystack,
   versPaystack,
 } from "@/lib/payments/encaissement/pilotes/paystack";
@@ -16,7 +17,42 @@ const INITIAL = process.env.PAYSTACK_SECRET_KEY;
 afterEach(() => {
   if (INITIAL === undefined) delete process.env.PAYSTACK_SECRET_KEY;
   else process.env.PAYSTACK_SECRET_KEY = INITIAL;
+  vi.unstubAllGlobals();
 });
+
+/**
+ * Remplace `fetch` et retient ce qui lui a été demandé.
+ *
+ * Ces tests ne joignent pas Paystack : ils vérifient ce qu'on lui **envoie** et
+ * ce qu'on fait de ce qu'il **répond**. C'est précisément ce qui manquait — la
+ * conversion des montants était éprouvée comme fonction, sans que rien ne
+ * prouve qu'elle soit appliquée à la requête réelle.
+ */
+function faireRepondre(
+  statut: number,
+  corps: unknown,
+): { appels: Array<{ url: string; init?: RequestInit }> } {
+  const appels: Array<{ url: string; init?: RequestInit }> = [];
+
+  vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+    appels.push({ url: String(url), init });
+    return new Response(JSON.stringify(corps), {
+      status: statut,
+      headers: { "content-type": "application/json" },
+    });
+  });
+
+  return { appels };
+}
+
+const DEMANDE = {
+  reference: "cmd-1",
+  montant: 5_000,
+  devise: "XOF",
+  moyen: "om",
+  retour: "https://baobart.test/achat/cmd-1",
+  email: "acheteur@baobart.test",
+};
 
 function entetes(signature?: string): Headers {
   const h = new Headers();
@@ -187,5 +223,167 @@ describe("la lecture d'un rappel", () => {
     expect(PAYSTACK.lire("[]")).toBeNull();
     expect(PAYSTACK.lire('{"event":"charge.success"}')).toBeNull();
     expect(PAYSTACK.lire('{"data":{"reference":"c"}}')).toBeNull();
+  });
+});
+
+
+describe("l'ouverture d'une transaction", () => {
+  it("envoie le montant CONVERTI, pas le nôtre", async () => {
+    // Le test qui manquait. `versPaystack` était éprouvée comme fonction, sans
+    // que rien ne prouve qu'elle traverse la requête. Une conversion juste mais
+    // jamais appelée facture cinquante francs au lieu de cinq mille.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, {
+      status: true,
+      data: { authorization_url: "https://checkout.paystack.com/x", reference: "r" },
+    });
+
+    const suite = await PAYSTACK.ouvrir(DEMANDE);
+
+    expect(suite.ok).toBe(true);
+    expect(suite.ok === true && suite.redirection).toBe(
+      "https://checkout.paystack.com/x",
+    );
+
+    const envoye = JSON.parse(String(appels[0]!.init!.body));
+    expect(envoye.amount).toBe(500_000);
+    expect(envoye.currency).toBe("XOF");
+    expect(envoye.reference).toBe("cmd-1");
+    expect(envoye.email).toBe("acheteur@baobart.test");
+    expect(envoye.callback_url).toBe("https://baobart.test/achat/cmd-1");
+  });
+
+  it("frappe le bon point d'entrée, avec la clé en porteur", async () => {
+    // Une URL fautive échouerait silencieusement à l'ouverture, et personne ne
+    // saurait dire pourquoi la caisse est fermée.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, {
+      status: true,
+      data: { authorization_url: "https://checkout.paystack.com/x" },
+    });
+
+    await PAYSTACK.ouvrir(DEMANDE);
+
+    expect(appels[0]!.url).toBe("https://api.paystack.co/transaction/initialize");
+    expect(
+      (appels[0]!.init!.headers as Record<string, string>).authorization,
+    ).toBe(`Bearer ${CLE}`);
+  });
+
+  it("refuse une devise que Paystack ne règle pas, sans appeler personne", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, { status: true });
+
+    const suite = await PAYSTACK.ouvrir({ ...DEMANDE, devise: "EUR" });
+
+    expect(suite.ok).toBe(false);
+    expect(suite.ok === false && suite.definitif).toBe(true);
+    expect(appels).toHaveLength(0);
+  });
+
+  it("distingue une faute de notre côté d'une panne de leur côté", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+
+    // 4xx : la clé, la devise ou le montant. Réessayer n'y changera rien.
+    faireRepondre(400, { status: false, message: "Invalid key" });
+    const notre = await PAYSTACK.ouvrir(DEMANDE);
+    expect(notre.ok === false && notre.definitif).toBe(true);
+
+    // 5xx : chez eux. Ce sera peut-être passé dans dix minutes.
+    faireRepondre(503, { status: false });
+    const leur = await PAYSTACK.ouvrir(DEMANDE);
+    expect(leur.ok === false && leur.definitif).toBe(false);
+  });
+
+  it("ne se prend pas les pieds dans une panne réseau", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ECONNREFUSED");
+    });
+
+    const suite = await PAYSTACK.ouvrir(DEMANDE);
+    expect(suite.ok).toBe(false);
+    // Réessayable : l'acheteur peut recommencer dans deux minutes.
+    expect(suite.ok === false && suite.definitif).toBe(false);
+  });
+
+  it("refuse une réponse « réussie » sans page de paiement", async () => {
+    // Sans lien, on n'a nulle part où envoyer l'acheteur. Dire « ok » ici
+    // laisserait une commande ouverte et un acheteur sur une page morte.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    faireRepondre(200, { status: true, data: {} });
+
+    expect((await PAYSTACK.ouvrir(DEMANDE)).ok).toBe(false);
+  });
+});
+
+describe("la confirmation auprès de Paystack", () => {
+  it("confirme, et reconvertit le montant dans nos unités", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, {
+      status: true,
+      data: { status: "success", amount: 500_000, currency: "XOF" },
+    });
+
+    const verdict = await confirmerAupresDePaystack("cmd-1");
+
+    expect(verdict.confirme).toBe(true);
+    expect(verdict.montant).toBe(5_000);
+    expect(appels[0]!.url).toBe(
+      "https://api.paystack.co/transaction/verify/cmd-1",
+    );
+  });
+
+  it("ne confirme pas une transaction que Paystack dit non aboutie", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    faireRepondre(200, {
+      status: true,
+      data: { status: "abandoned", amount: 500_000, currency: "XOF" },
+    });
+
+    expect((await confirmerAupresDePaystack("cmd-1")).confirme).toBe(false);
+  });
+
+  it("ne confirme rien quand Paystack est injoignable", async () => {
+    // On ne confirme pas, donc on ne crédite pas. Le rappel sera rejoué.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ETIMEDOUT");
+    });
+
+    expect((await confirmerAupresDePaystack("cmd-1")).confirme).toBe(false);
+  });
+
+  it("ne confirme rien sur une réponse en erreur", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    faireRepondre(404, { status: false });
+
+    expect((await confirmerAupresDePaystack("cmd-1")).confirme).toBe(false);
+  });
+
+  it("ne confirme rien sans clé, et n'appelle personne", async () => {
+    delete process.env.PAYSTACK_SECRET_KEY;
+    const { appels } = faireRepondre(200, {
+      status: true,
+      data: { status: "success" },
+    });
+
+    expect((await confirmerAupresDePaystack("cmd-1")).confirme).toBe(false);
+    expect(appels).toHaveLength(0);
+  });
+
+  it("échappe la référence dans l'URL", async () => {
+    // Une référence contenant une barre oblique changerait le chemin appelé.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, {
+      status: true,
+      data: { status: "success" },
+    });
+
+    await confirmerAupresDePaystack("a/b?c=1");
+
+    expect(appels[0]!.url).toBe(
+      "https://api.paystack.co/transaction/verify/a%2Fb%3Fc%3D1",
+    );
   });
 });

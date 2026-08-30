@@ -88,10 +88,23 @@ réinitialisation du mot de passe refuse franchement au lieu d'afficher
 CRON_SECRET        # openssl rand -base64 32
 ```
 
-Vercel signe ses appels de cron avec ce jeton. La route qui prépare les
-versements répond **404** à tout ce qui ne le porte pas — y compris quand le
-secret est vide. C'est délibéré : mieux vaut ne préparer aucun versement que
-laisser l'URL ouverte.
+Vercel signe ses appels de cron avec ce jeton. Les trois routes d'ordonnanceur
+répondent **404** à tout ce qui ne le porte pas — y compris quand le secret est
+vide. C'est délibéré : mieux vaut ne rien faire que laisser l'URL ouverte.
+
+`vercel.json` en déclare trois :
+
+| Route | Cadence | Rôle |
+|---|---|---|
+| `/api/cron/versements` | lun-ven 6 h | Prépare les versements du cycle |
+| `/api/cron/courriels` | toutes les 5 min | Vide la file d'envoi |
+| `/api/cron/commandes` | chaque jour 4 h 30 | Referme les commandes qu'aucun rappel n'a conclues |
+
+Le troisième est né du mobile money. Une commande s'ouvre puis attend le rappel
+de l'opérateur ; beaucoup d'acheteurs n'iront pas au bout. Sans ce ménage,
+chaque tentative abandonnée reste ouverte à jamais et le compteur « commandes
+bloquées » de l'écran Système ne redescend plus — il finit par afficher un grand
+nombre permanent et cesse de signaler quoi que ce soit.
 
 ### Pour l'encaissement
 

@@ -55,7 +55,9 @@ export type Reception =
         | "MONTANT_DISCORDANT"
         | "DEVISE_DISCORDANTE"
         /** L'opérateur, interrogé, ne reconnaît pas la transaction annoncée. */
-        | "NON_CONFIRME";
+        | "NON_CONFIRME"
+        /** Un paiement est arrivé sur une commande déjà refermée. Grave. */
+        | "COMMANDE_REFERMEE";
       detail: string;
     };
 
@@ -252,12 +254,40 @@ async function appliquer(
     await finaliserVente(ligneId);
     return { recu: true, effet: "ENCAISSE" };
   } catch (cause) {
-    // La ligne n'était plus `IN_PROGRESS` : un autre rappel est passé avant.
-    // La garde vit dans le `WHERE` de l'encaissement, donc un seul des deux a
-    // pu créditer ; celui-ci n'a rien fait, et c'est exactement ce qu'on veut.
-    if (cause instanceof LigneDejaEncaisseeError) {
-      return { recu: true, effet: "SANS_EFFET" };
+    if (!(cause instanceof LigneDejaEncaisseeError)) throw cause;
+
+    // ────────────────────────────────────────────────────────────────────────
+    // DEUX SITUATIONS TRÈS DIFFÉRENTES, ET LE MÊME SYMPTÔME
+    //
+    // La ligne n'est plus `IN_PROGRESS`. Si elle est déjà encaissée, un autre
+    // rappel est simplement passé avant : la garde a fait son travail, celui-ci
+    // n'a rien à faire, tout va bien.
+    //
+    // Mais si elle est ÉCHOUÉE, un succès vient d'arriver sur une commande
+    // qu'on avait refermée — parce qu'elle avait dépassé sa péremption, ou
+    // qu'un rappel d'échec l'avait précédé. Alors quelqu'un a payé et ne
+    // recevra rien. Aucun code ne peut réparer cela tout seul : il faut un
+    // humain, et il faut donc qu'il le voie.
+    const etat = await db.orderItem.findUnique({
+      where: { id: ligneId },
+      select: { state: true },
+    });
+
+    if (etat?.state === "FAILED") {
+      journal.erreur("PAIEMENT REÇU SUR UNE COMMANDE REFERMÉE", {
+        commande: commande.id,
+        ligne: ligneId,
+        remede:
+          "L'acheteur a payé et n'a rien reçu. Rembourser, ou rendre l'accès à la main.",
+      });
+      return {
+        recu: false,
+        motif: "COMMANDE_REFERMEE",
+        detail:
+          "Succès annoncé sur une commande déjà refermée : l'acheteur a payé sans rien recevoir.",
+      };
     }
-    throw cause;
+
+    return { recu: true, effet: "SANS_EFFET" };
   }
 }

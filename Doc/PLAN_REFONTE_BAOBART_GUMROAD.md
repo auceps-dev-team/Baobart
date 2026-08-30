@@ -35,7 +35,7 @@
 > dans `VERIFICATION_GUMROAD.md`, et l'inventaire vivant spec → module → statut
 > vit désormais dans `MATRICE_IMPLEMENTATION.md`.
 >
-> **Version applicative : 1.31.0** · **502 tests unitaires, 274 tests
+> **Version applicative : 1.32.0** · **514 tests unitaires, 292 tests
 > d'intégration** contre une vraie base PostgreSQL.
 >
 > *Mise à jour du 28 août 2026 (audit complet, voir `AUDIT_GUMROAD_2026-08-28.md`) :
@@ -108,6 +108,15 @@ Trois pilotes sont écrits (`lib/payments/encaissement/pilotes/`) :
 **Ce qu'il reste : ouvrir un compte marchand** et poser `PAYSTACK_SECRET_KEY`.
 Aucun des deux pilotes n'a été exercé contre le vrai service — c'est la seule
 chose qui manque, et elle ne s'écrit pas.
+
+*Ajout v1.32.0 — deux lacunes fermées, dont une venue du référent.* La route de
+rappel, seul point d'entrée qu'un inconnu puisse atteindre, n'avait aucun test :
+elle en a quatorze, qui passent par elle et non par la couche en dessous. Et la
+confrontation avec `ChargeProcessor` (cf. `VERIFICATION_GUMROAD.md` §7.1) a
+révélé que **rien ne refermait jamais une commande ouverte** : une tentative de
+mobile money abandonnée restait `IN_PROGRESS` à vie, et le compteur « commandes
+bloquées » de l'écran Système ne redescendait plus. Un passage quotidien les
+referme au bout de vingt-quatre heures.
 
 **2. L'envoi effectif des versements — toujours ouvert.** Les cinq transitions
 manuelles sont câblées depuis la v1.26.0, et un versement échoué peut être

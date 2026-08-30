@@ -367,6 +367,29 @@ USSD, l'encaissement se confirme ensuite. Orange Money, Wave et MTN entrent dans
 ce contrat sans le déformer. C'est l'abstraction la plus directement réutilisable
 du dépôt.
 
+> **➕ RÉALISÉ en v1.30.0-1.32.0** — `lib/payments/encaissement/contrat.ts`.
+> La prédiction s'est vérifiée : le contrat tient en cinq méthodes
+> (`configure`, `ouvrir`, `authentifier`, `lire`, `confirmer`) plutôt que
+> vingt, parce qu'on n'a ni cartes enregistrées ni prélèvement récurrent.
+>
+> **Un écart assumé sur la fenêtre.** `TIME_TO_COMPLETE_SCA` vaut quinze
+> minutes chez Gumroad ; notre péremption vaut **vingt-quatre heures**. Le
+> mobile money n'a pas le rythme de l'authentification bancaire européenne :
+> l'invite part sur un téléphone qui peut être hors réseau ou dans une autre
+> pièce, et les opérateurs rappellent parfois avec des heures de retard après
+> un incident chez eux. Fermer à quinze minutes fabriquerait le pire cas
+> possible — un acheteur qui a payé, et une commande refermée avant qu'on le
+> sache.
+>
+> Ce n'est donc pas une fenêtre d'autorisation, c'est du ménage. Le cas où un
+> paiement arrive malgré tout sur une commande refermée est traité à part, et
+> **bruyamment** : aucun code ne peut le réparer seul, il faut qu'un humain le
+> voie.
+>
+> `holder_of_funds` n'a **pas** été transposé : il désigne qui détient l'argent
+> entre l'encaissement et le versement, ce qui n'a de sens qu'avec plusieurs
+> détenteurs. Baobart n'en a qu'un pour l'instant.
+
 ---
 
 ## 8. Les versements — §3.9-A
