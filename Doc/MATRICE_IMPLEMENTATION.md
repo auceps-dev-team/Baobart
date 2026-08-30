@@ -28,7 +28,11 @@
 | Versements — 8 états pilotables | §3.9 | `lib/payments/*`, `app/dashboard/systeme/versements` | ✅ | v1.26.0 | `UNCLAIMED`/`REVERSED` réservés opérateur, pas de bouton |
 | Versements — appel opérateur réel | §0-bis | `app/api/cron/versements/route.ts` | ❌ | — | Le cron ne fait que préparer (`CREATING`) |
 | **Passage en caisse / checkout** | §0-bis | `lib/checkout/achat.ts` | ✅ | v1.30.0, deux chemins | Ouvre et s'arrête : c'est le rappel qui conclut |
-| **Paiement réel (mobile money)** | Bloquant n°1 | `lib/payments/encaissement/*`, `app/api/paiements/[fournisseur]/webhook` | ⚠️ | v1.30.0, 37 tests | Substrat complet (signature, anti-rejeu, confrontation des montants) ; seul pilote livré : bac à sable. Reste à écrire un pilote d'opérateur réel |
+| **Paiement réel (mobile money)** | Bloquant n°1 | `lib/payments/encaissement/*`, `app/api/paiements/[fournisseur]/webhook` | ⚠️ | v1.31.0, 84 tests | Substrat + **trois pilotes écrits** (Paystack, Flutterwave, bac à sable). Reste à ouvrir un compte marchand : aucun n'a été exercé contre le vrai service |
+| Paystack — XOF, un appel, `authorization_url` | §6.1 | `lib/payments/encaissement/pilotes/paystack.ts` | ⚠️ | v1.31.0, 17 tests | Écrit et testé hors ligne. Conversion des montants ×100 y compris pour le XOF — le piège est testé |
+| Flutterwave — API v4, OAuth + 3 appels | §6.1 | `lib/payments/encaissement/pilotes/flutterwave.ts` | ⚠️ | v1.31.0, 16 tests | Écrit et testé hors ligne. Réseaux mobile money en zone CFA non documentés publiquement |
+| Stripe | §6.1 | — | ⛔ | — | **Sans objet en direct** : Stripe dessert l'Afrique de l'Ouest *via Paystack*. Le pilote Paystack EST le chemin Stripe |
+| PayPal | — | — | ⛔ | — | Ne règle pas en XOF. Ne servirait qu'une diaspora payant en EUR/USD, et exigerait `ExchangeRate` qui n'existe pas |
 | Codes promo | §3.4-B | — | ❌ | — | Schéma seul, non câblé |
 | Upsell post-achat | §3.4-B | — | ❌ | — | — |
 | Panier abandonné | §3.4-B | — | ❌ | — | — |

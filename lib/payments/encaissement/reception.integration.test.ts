@@ -218,6 +218,49 @@ describe("le rejeu", () => {
     ).toBe(1);
   });
 
+  it("reprend un rappel resté sans décision au lieu de l'enterrer", async () => {
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+    const f = fait(orderId);
+
+    // On simule un passage mort entre l'enregistrement et la décision : la
+    // ligne existe, en RECEIVED, et rien n'a été crédité. C'est l'état que
+    // laisse un déploiement au mauvais moment, ou une base qui coupe.
+    await db.paymentWebhookEvent.create({
+      data: {
+        provider: "bac-a-sable",
+        eventRef: f.evenement,
+        providerRef: f.referenceOperateur,
+        payload: {},
+        status: "RECEIVED",
+      },
+    });
+
+    // L'opérateur rejoue. Répondre « rejeu » ici enterrerait la commande pour
+    // de bon : il ne rejouera pas indéfiniment.
+    const suite = await recevoir("bac-a-sable", f, {});
+    expect(suite).toEqual({ recu: true, effet: "ENCAISSE" });
+
+    expect((await etatDe(orderItemId)).state).toBe("SUCCESSFUL");
+    expect(
+      await db.balance.count({ where: { userId: vendeur.id } }),
+    ).toBeGreaterThan(0);
+  });
+
+  it("tient toujours le rejeu d'un rappel DÉJÀ traité", async () => {
+    const { orderId } = await ouvrirCommande();
+    const f = fait(orderId);
+
+    await recevoir("bac-a-sable", f, {});
+
+    // La ligne est PROCESSED : celui-ci est un vrai rejeu, et il ne doit rien
+    // reprendre.
+    expect(await recevoir("bac-a-sable", f, {})).toEqual({
+      recu: false,
+      motif: "REJEU",
+      detail: f.evenement,
+    });
+  });
+
   it("ne crédite pas deux fois quand l'opérateur change d'identifiant", async () => {
     const { orderId, vendeur } = await ouvrirCommande();
 

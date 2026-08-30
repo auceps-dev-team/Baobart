@@ -1,111 +1,33 @@
 import "server-only";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 import { journal } from "@/lib/observabilite/journal";
+import {
+  sceau,
+  signaturesEgales,
+  type NomPilote,
+  type PiloteEncaissement,
+} from "@/lib/payments/encaissement/contrat";
+import { FLUTTERWAVE } from "@/lib/payments/encaissement/pilotes/flutterwave";
+import { PAYSTACK } from "@/lib/payments/encaissement/pilotes/paystack";
 
 /**
- * Ce qui parle vraiment aux opérateurs de paiement.
+ * Le registre des opérateurs.
  *
- * ────────────────────────────────────────────────────────────────────────────
- * DEUX MOITIÉS QUI NE SE RESSEMBLENT PAS
- *
- * Encaisser du mobile money, ce n'est pas un appel qui rend un résultat. C'est
- * deux moitiés séparées par un temps indéterminé :
- *
- *   1. on **ouvre** un paiement chez l'opérateur, et on envoie l'acheteur
- *      chez lui — sur une page, ou vers une invite USSD sur son téléphone ;
- *   2. l'opérateur nous **rappelle**, plus tard, pour dire ce qui s'est passé.
- *
- * Entre les deux, l'acheteur peut fermer son navigateur, changer de réseau, ou
- * mettre huit minutes à taper son code. C'est pourquoi le retour du navigateur
- * ne fait jamais foi : il dit où l'acheteur a atterri, pas si l'argent est
- * arrivé. Seul le rappel de l'opérateur, authentifié, décide.
- *
- * Le reste du système ne sait pas quel opérateur est branché. Il demande une
- * ouverture, et reçoit plus tard un fait.
+ * Le contrat qu'ils tiennent vit dans `contrat.ts` ; les vrais opérateurs dans
+ * `pilotes/`. Ici on ne fait que choisir, et refuser quand le choix ne tient
+ * pas debout.
  */
 
-export type NomPilote = "bac-a-sable" | "aucun";
-
-/** Ce qu'on demande à l'opérateur d'encaisser. */
-export interface DemandePaiement {
-  /** Notre référence. C'est elle qu'on retrouvera dans le rappel. */
-  reference: string;
-  /** En unités mineures ISO 4217 — le franc CFA n'en a pas de sous-unité. */
-  montant: number;
-  devise: string;
-  /** Le moyen visé : « om », « wave », « mtn », « moov ». */
-  moyen: string;
-  /** Où renvoyer l'acheteur une fois qu'il en a fini chez l'opérateur. */
-  retour: string;
-  /** Pour que l'opérateur pré-remplisse l'invite. */
-  telephone?: string;
-}
-
-export type Ouverture =
-  | {
-      ok: true;
-      /** Où envoyer l'acheteur. */
-      redirection: string;
-      /** Ce que l'opérateur appelle cette transaction, quand il le dit tout de suite. */
-      referenceOperateur: string | null;
-    }
-  | { ok: false; message: string; definitif: boolean };
-
-/** Ce qu'un rappel d'opérateur nous apprend, une fois traduit. */
-export interface FaitPaiement {
-  /** L'identifiant de l'événement chez l'opérateur — la clé anti-rejeu. */
-  evenement: string;
-  /** Notre référence, celle qu'on a envoyée à l'ouverture. */
-  reference: string;
-  /** La référence de la transaction chez l'opérateur. */
-  referenceOperateur: string | null;
-  /** Ce que l'opérateur affirme. */
-  issue: "REUSSI" | "ECHOUE" | "EN_COURS";
-  /** Le montant encaissé, pour le confronter au nôtre. */
-  montant: number | null;
-  devise: string | null;
-}
-
-export interface PiloteEncaissement {
-  nom: NomPilote;
-  /** Toutes ses variables sont-elles posées ? */
-  configure(): boolean;
-  ouvrir(demande: DemandePaiement): Promise<Ouverture>;
-  /**
-   * L'appel vient-il bien de l'opérateur ?
-   *
-   * Reçoit le corps **brut**. Une signature se vérifie sur les octets reçus :
-   * relire un objet déjà décodé puis le ré-encoder change les espaces, l'ordre
-   * des clés, l'échappement des accents — et la signature ne correspond plus.
-   */
-  authentifier(corpsBrut: string, entetes: Headers): boolean;
-  /** Traduit le corps en fait. Rend `null` si ce n'est pas un événement connu. */
-  lire(corpsBrut: string): FaitPaiement | null;
-}
-
-/**
- * Compare deux signatures sans révéler où elles divergent.
- *
- * Un `===` sur des chaînes s'arrête au premier octet différent. La durée de la
- * comparaison dit alors combien de caractères de tête sont bons, et une
- * signature se reconstitue octet par octet. `timingSafeEqual` prend le même
- * temps quel que soit l'endroit de l'écart.
- */
-export function signaturesEgales(attendue: string, recue: string): boolean {
-  const a = Buffer.from(attendue, "utf8");
-  const b = Buffer.from(recue, "utf8");
-  // `timingSafeEqual` exige des longueurs égales. Une longueur différente est
-  // de toute façon un refus, et elle n'apprend rien qu'on cache.
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
-/** HMAC-SHA256 en hexadécimal — la forme qu'attendent la plupart des opérateurs. */
-export function sceau(secret: string, corps: string): string {
-  return createHmac("sha256", secret).update(corps, "utf8").digest("hex");
-}
+// Réexportés pour que les appelants n'aient qu'un seul point d'entrée.
+export {
+  sceau,
+  signaturesEgales,
+  type DemandePaiement,
+  type FaitPaiement,
+  type NomPilote,
+  type Ouverture,
+  type PiloteEncaissement,
+} from "@/lib/payments/encaissement/contrat";
 
 // ──────────────────────────────────────────────────────────── bac à sable ──
 
@@ -210,6 +132,8 @@ const AUCUN: PiloteEncaissement = {
 
 const PILOTES: Record<NomPilote, PiloteEncaissement> = {
   "bac-a-sable": BAC_A_SABLE,
+  paystack: PAYSTACK,
+  flutterwave: FLUTTERWAVE,
   aucun: AUCUN,
 };
 

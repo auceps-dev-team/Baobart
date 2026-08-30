@@ -297,6 +297,16 @@ export async function acheter(input: {
   }
 
   // ── Mobile money : on ouvre, et on s'arrête là ─────────────────────────────
+  //
+  // L'adresse de l'acheteur est relue depuis la base, jamais reçue en
+  // paramètre : c'est elle qui rattache la transaction à un client chez
+  // l'opérateur, et la laisser venir de l'appelant permettrait d'ouvrir un
+  // paiement au nom d'autrui.
+  const acheteur = await db.user.findUniqueOrThrow({
+    where: { id: input.acheteurId },
+    select: { email: true, profile: { select: { displayName: true } } },
+  });
+
   const ouverture = await pilote!.ouvrir({
     // Notre référence est l'identifiant de la commande. C'est elle qu'on
     // retrouvera dans le rappel, et c'est par elle que la réception recolle
@@ -306,6 +316,8 @@ export async function acheter(input: {
     devise: creation.devise,
     moyen: input.moyen ?? "om",
     retour: `${base}/achat/${creation.orderId}`,
+    email: acheteur.email,
+    nom: acheteur.profile?.displayName ?? undefined,
   });
 
   if (!ouverture.ok) {

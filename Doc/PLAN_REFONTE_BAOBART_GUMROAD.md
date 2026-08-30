@@ -27,7 +27,7 @@
 
 ---
 
-## 0-bis. État d'avancement — 28 août 2026
+## 0-bis. État d'avancement — 30 août 2026
 
 > Cette section est le **journal de ce qui existe réellement dans le dépôt**, par
 > opposition au reste du document, qui décrit ce qu'on veut construire. Elle est
@@ -35,7 +35,7 @@
 > dans `VERIFICATION_GUMROAD.md`, et l'inventaire vivant spec → module → statut
 > vit désormais dans `MATRICE_IMPLEMENTATION.md`.
 >
-> **Version applicative : 1.26.0** · 54 commits · **346 tests unitaires, 221 tests
+> **Version applicative : 1.31.0** · **502 tests unitaires, 274 tests
 > d'intégration** contre une vraie base PostgreSQL.
 >
 > *Mise à jour du 28 août 2026 (audit complet, voir `AUDIT_GUMROAD_2026-08-28.md`) :
@@ -45,6 +45,14 @@
 > depuis un écran admin, la suspension de compte est désormais écrite (et non
 > plus seulement lue), et un ordonnanceur cron tourne en production pour les
 > versements et la file d'e-mails.*
+>
+> *Mise à jour du 30 août 2026 (v1.30.0-1.31.0) : **le blocage n°1 est levé**.
+> L'encaissement mobile money existe — substrat complet (contrat de pilote,
+> vérification de signature, route de rappel, anti-rejeu, confrontation des
+> montants) et trois pilotes : Paystack, Flutterwave, et un bac à sable qui
+> parcourt la chaîne entière. La réinitialisation du mot de passe est
+> construite, et les trois modèles d'e-mail restants sont tranchés. Il ne
+> manque plus que des identifiants d'opérateur pour encaisser réellement.*
 
 ### Ce qui fonctionne de bout en bout
 
@@ -64,47 +72,72 @@
 | **Versements** — calendrier, éligibilité, exécution, huit états pilotables (admin) | ✅ | 27 tests + v1.26.0 |
 | **Trust & suspension de compte** — sessions fermées, ressources retirées, levée explicite | ✅ | v1.26.0 |
 | **Ordonnanceur** — crons Vercel (versements en semaine, e-mails toutes les 5 min) | ✅ | `vercel.json`, `CRON_SECRET` |
-| **File d'e-mails transactionnels** — dépôt dans la même transaction, reprise, supervision admin | ⚠️ **infrastructure oui, 2 modèles sur 5 réellement déposés** | v1.21-1.23.0 |
+| **File d'e-mails transactionnels** — dépôt dans la même transaction, reprise, supervision admin | ✅ **4 modèles sur 5 déposés**, le cinquième volontairement muet | v1.21-1.30.0 |
 | **Écran Gains** — soldes, prochaine date, historique, compte de versement | ✅ | 14 tests |
 | **Social** — j'aime, suivi, commentaires à deux niveaux, modération par signalement | ✅ | 20 + 27 tests |
 | **Tableau de bord acheteur** — achats, téléchargements, éléments suivis, abonnements | ✅ | 12 tests |
-| **Passage en caisse** — panier, checkout | ⚠️ **en simulation, aucun agrégateur branché** | v1.24.0 |
+| **Passage en caisse** — deux chemins : simulation, ou opérateur réel | ✅ | v1.30.0, 20 tests |
+| **Encaissement mobile money** — contrat de pilote, signature, anti-rejeu, confrontation des montants, écran de supervision | ✅ **substrat et pilotes écrits ; identifiants d'opérateur à obtenir** | v1.30-1.31.0, 70 + 14 tests |
+| **Réinitialisation du mot de passe** — jeton haché, une heure, usage unique, sessions fermées | ✅ | v1.30.0, 14 tests |
 
 ### Ce qui manque pour ouvrir au public
 
-Par ordre de blocage — état recalculé le 28 août 2026, détail dans `AUDIT_GUMROAD_2026-08-28.md` §2.
+Par ordre de blocage — état recalculé le 30 août 2026.
 
-**1. Le paiement — toujours entier.** Un panier et un passage en caisse existent
-depuis la v1.24.0, mais en mode simulation : aucun agrégateur mobile money
-(Wave, Orange Money, CinetPay…) n'est branché, aucun webhook de confirmation.
-Toute la comptabilité en aval est prête et éprouvée — c'est toujours l'entrée
-d'argent réelle qui manque. Voir `lib/checkout/achat.ts`.
+**1. Le paiement — le code est là, les comptes ne le sont pas.** C'était le
+blocage n°1 depuis le début ; il ne l'est plus tout à fait. Depuis la v1.30.0
+la chaîne complète existe : le tunnel d'achat ouvre un paiement chez
+l'opérateur et **s'arrête là**, la commande reste `IN_PROGRESS`, rien n'est
+crédité, aucun reçu ne part. C'est le rappel signé de l'opérateur qui décide —
+jamais le retour du navigateur, qui dit seulement où l'acheteur a atterri.
 
-**2. L'envoi effectif des versements — partiellement résolu.** Les cinq
-transitions manuelles (marquer envoyé/échoué/annulé/retour) sont câblées à un
-écran admin depuis la v1.26.0. Mais le cron ne fait toujours que *préparer*
-(`CREATING`) — l'appel à un opérateur réel qui ferait passer un versement à
-`PROCESSING` n'est pas branché (commentaire explicite dans
-`app/api/cron/versements/route.ts`).
+Trois pilotes sont écrits (`lib/payments/encaissement/pilotes/`) :
 
-**3. Aucun ordonnanceur — résolu (v1.21.0-v1.23.0).** `vercel.json` déclare
-deux crons protégés par `CRON_SECRET` : `/api/cron/versements` (lun-ven 6h) et
-`/api/cron/courriels` (toutes les 5 min).
+- **Paystack** — un seul appel, une `authorization_url`, et il règle **en franc
+  CFA**. C'est lui que le code traite en premier, à rebours du §6.1 qui
+  désignait Flutterwave : son parcours est plus court, son support du XOF est
+  documenté noir sur blanc, et Stripe passe justement par lui pour l'Afrique
+  de l'Ouest. Choisir Paystack, c'est donc aussi choisir Stripe.
+- **Flutterwave** — API v4 : jeton OAuth de dix minutes, puis trois appels
+  (client, moyen de paiement, charge). Écrit, mais la documentation publique ne
+  dit pas quels réseaux mobile money sont ouverts en zone franc CFA.
+- **Bac à sable** — la chaîne entière sans opérateur, signature comprise. Il
+  refuse de se configurer sans secret : un bac à sable dont le webhook accepte
+  tout n'éprouve pas le webhook.
 
-**4. Les courriels — partiellement résolu.** L'infrastructure est complète
-(file transactionnelle, pilotes console/resend/smtp, reprise avec distinction
-erreurs définitives/transitoires, écran de supervision admin) et cinq modèles
-sont définis, mais **seuls deux sont réellement déposés** : bienvenue à
-l'inscription et reçu d'achat. Le lien de téléchargement et l'avis de
-versement ne partent toujours pas — c'est un branchement manquant, pas un
-manque d'infrastructure.
+**Ce qu'il reste : ouvrir un compte marchand** et poser `PAYSTACK_SECRET_KEY`.
+Aucun des deux pilotes n'a été exercé contre le vrai service — c'est la seule
+chose qui manque, et elle ne s'écrit pas.
 
-**5. Le changement de mot de passe — toujours une coquille.** `demanderReinitialisation()`
-(`lib/auth/actions.ts:203`) répond littéralement : *« La réinitialisation par
-e-mail arrive avec le service d'envoi. En attendant, écris-nous. »* — alors que
-le modèle `REINITIALISATION_MOT_DE_PASSE` et les pilotes d'envoi existent déjà.
-`fermerToutesLesSessions` existe et fonctionne, mais rien ne l'appelle faute de
-flux. C'est le branchement le moins coûteux des cinq à finir.
+**2. L'envoi effectif des versements — toujours ouvert.** Les cinq transitions
+manuelles sont câblées depuis la v1.26.0, et un versement échoué peut être
+rejoué depuis l'écran admin (v1.29.0). Mais le cron ne fait toujours que
+*préparer* (`CREATING`) : l'appel à un opérateur qui ferait passer un versement
+à `PROCESSING` n'est pas branché. C'est le pendant sortant du §1, et il demande
+les mêmes comptes marchands.
+
+**3. Aucun ordonnanceur — résolu (v1.21.0-v1.23.0).**
+
+**4. Les courriels — résolu (v1.30.0).** Quatre modèles sur cinq sont déposés :
+bienvenue, reçu d'achat, avis de versement, réinitialisation du mot de passe.
+Le cinquième, `LIEN_TELECHARGEMENT`, est **volontairement muet** : son texte
+annonce une URL signée, donc un laissez-passer au porteur qui contournerait
+tout ce que la route de retrait vérifie au clic — remboursement, litige, accès
+retiré, quota. Le reçu porte un lien vers l'espace gardé à la place.
+
+**5. Le changement de mot de passe — résolu (v1.30.0).** Ce n'était pas un
+branchement mais une fonctionnalité absente : il n'y avait ni modèle de jeton
+ni route de consommation. Jeton haché comme les sessions, valable une heure, à
+usage unique, périmé dès qu'on en demande un autre, et fermeture de toutes les
+sessions à la réussite. `APP_URL` n'est **pas** déduite de l'en-tête `Host` —
+le déduire permettrait d'envoyer à autrui un courriel authentique dont le lien
+mène chez l'attaquant.
+
+**6. Nouveau — ce que les opérateurs ne couvrent pas.** Ni Stripe ni PayPal ne
+règlent en franc CFA en direct. PayPal ne servirait qu'une diaspora payant en
+euro ou en dollar, et demanderait une conversion et un `ExchangeRate` qui
+n'existent pas encore (§6.1). Ce n'est pas un blocage pour ouvrir : c'est un
+marché secondaire, à traiter quand le premier tourne.
 
 ### Écrans du tableau de bord
 

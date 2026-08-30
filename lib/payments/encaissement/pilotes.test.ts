@@ -154,6 +154,7 @@ describe("le pilote « aucun »", () => {
       devise: "XOF",
       moyen: "om",
       retour: "https://baobart.test/achat/c",
+      email: "acheteur@baobart.test",
     });
     expect(suite.ok).toBe(false);
   });

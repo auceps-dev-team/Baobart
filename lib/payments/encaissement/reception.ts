@@ -5,7 +5,10 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { LigneDejaEncaisseeError } from "@/lib/domain/orders";
 import { journal } from "@/lib/observabilite/journal";
-import type { FaitPaiement } from "@/lib/payments/encaissement/pilotes";
+import {
+  piloteNomme,
+  type FaitPaiement,
+} from "@/lib/payments/encaissement/pilotes";
 import {
   abandonnerVente,
   finaliserVente,
@@ -50,7 +53,9 @@ export type Reception =
       motif:
         | "COMMANDE_INTROUVABLE"
         | "MONTANT_DISCORDANT"
-        | "DEVISE_DISCORDANTE";
+        | "DEVISE_DISCORDANTE"
+        /** L'opérateur, interrogé, ne reconnaît pas la transaction annoncée. */
+        | "NON_CONFIRME";
       detail: string;
     };
 
@@ -81,18 +86,45 @@ export async function recevoir(
     });
     evenementId = trace.id;
   } catch (cause) {
-    // P2002 : cet événement est déjà passé. C'est le cas nominal d'un rejeu,
-    // pas une anomalie — on ne journalise donc pas en avertissement.
     if (
-      cause instanceof Prisma.PrismaClientKnownRequestError &&
-      cause.code === "P2002"
+      !(cause instanceof Prisma.PrismaClientKnownRequestError) ||
+      cause.code !== "P2002"
     ) {
+      throw cause;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // TOUT DOUBLON N'EST PAS UN REJEU
+    //
+    // La ligne existe, donc cet événement est déjà arrivé. Mais est-il déjà
+    // *traité* ? Si un passage précédent est mort entre l'enregistrement et la
+    // décision — un déploiement au mauvais moment, une base qui coupe —, la
+    // ligne est restée en RECEIVED. Répondre « rejeu » à la nouvelle tentative
+    // de l'opérateur enterrerait la commande pour de bon : il ne rejouera pas
+    // indéfiniment, et personne ne serait jamais crédité.
+    //
+    // On reprend donc là où le passage mort s'est arrêté. Deux reprises
+    // simultanées ne font pas de dégât : la garde d'encaissement vit dans le
+    // `WHERE` de l'écriture, une seule crédite.
+    const existante = await db.paymentWebhookEvent.findUnique({
+      where: {
+        provider_eventRef: { provider: fournisseur, eventRef: fait.evenement },
+      },
+      select: { id: true, status: true },
+    });
+
+    if (!existante || existante.status !== "RECEIVED") {
       return { recu: false, motif: "REJEU", detail: fait.evenement };
     }
-    throw cause;
+
+    journal.avertissement("reprise d'un rappel resté sans décision", {
+      fournisseur,
+      evenement: fait.evenement,
+    });
+    evenementId = existante.id;
   }
 
-  const suite = await appliquer(fait);
+  const suite = await appliquer(fournisseur, fait);
 
   await db.paymentWebhookEvent.update({
     where: { id: evenementId },
@@ -107,7 +139,10 @@ export async function recevoir(
   return suite;
 }
 
-async function appliquer(fait: FaitPaiement): Promise<Reception> {
+async function appliquer(
+  fournisseur: string,
+  fait: FaitPaiement,
+): Promise<Reception> {
   // Notre référence est l'identifiant de la commande : c'est ce qu'on a envoyé
   // à l'ouverture, et c'est ce que l'opérateur nous rend.
   const commande = await db.order.findUnique({
@@ -169,6 +204,43 @@ async function appliquer(fait: FaitPaiement): Promise<Reception> {
       motif: "DEVISE_DISCORDANTE",
       detail: `Attendu ${commande.currency}, annoncé ${fait.devise}.`,
     };
+  }
+
+  // ── On demande à l'opérateur, plutôt que de le croire ─────────────────────
+  //
+  // La signature prouve que le message vient de lui — tant que le secret n'a
+  // pas fui. Un secret dérobé permet de forger un rappel signé annonçant un
+  // paiement qui n'a jamais eu lieu. Interroger son serveur ferme cette porte :
+  // personne ne peut lui faire dire qu'une transaction existe.
+  const pilote = piloteNomme(fournisseur);
+  if (pilote?.confirmer) {
+    const verdict = await pilote.confirmer(fait.reference);
+
+    if (!verdict.confirme) {
+      journal.erreur("l'opérateur ne confirme pas le paiement annoncé", {
+        commande: commande.id,
+        fournisseur,
+      });
+      return {
+        recu: false,
+        motif: "NON_CONFIRME",
+        detail: "L'opérateur ne confirme pas cette transaction.",
+      };
+    }
+
+    // Et on reconfronte sur SA valeur, pas sur celle du corps reçu.
+    if (verdict.montant !== null && verdict.montant !== commande.total) {
+      journal.erreur("montant confirmé différent du nôtre", {
+        commande: commande.id,
+        attendu: commande.total,
+        confirme: verdict.montant,
+      });
+      return {
+        recu: false,
+        motif: "MONTANT_DISCORDANT",
+        detail: `Attendu ${commande.total}, confirmé ${verdict.montant}.`,
+      };
+    }
   }
 
   await db.order.update({
