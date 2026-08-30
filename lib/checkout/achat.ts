@@ -1,29 +1,35 @@
 import "server-only";
 
+import { urlDuSite } from "@/lib/config/site";
 import { Prisma } from "@prisma/client";
 
 import { nouvelleLicence } from "@/lib/checkout/licence";
 import { db } from "@/lib/db";
-import { encaisserLigne } from "@/lib/domain/orders";
-import { deposer } from "@/lib/email/outbox";
-import { formatMoney } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
+import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
+import { finaliserVente } from "@/lib/payments/encaissement/reglement";
 
 /**
  * L'achat d'une ressource payante.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * AUCUN ARGENT NE CHANGE DE MAINS
+ * DEUX CHEMINS, ET UN SEUL CRÉDITE POUR DE VRAI
  *
- * Il n'y a pas d'opérateur de paiement branché. Cette fonction inscrit une
- * commande et crédite le créateur **comme si** le paiement avait eu lieu :
- * c'est une simulation, et elle refuse de s'exécuter tant que
+ * **La simulation** inscrit une commande et crédite le créateur *comme si* le
+ * paiement avait eu lieu. Elle refuse de s'exécuter tant que
  * `CHECKOUT_SIMULATION_ENABLED` n'est pas posé.
  *
- * Chaque commande ainsi créée porte `provider = "simulation"`. Ce n'est pas
- * décoratif : le jour où des versements réels partiront, il faudra pouvoir
- * distinguer les ventes qui ont apporté de l'argent de celles qui n'en ont pas
- * apporté. Un drapeau d'environnement se retire ; une colonne reste.
+ * **Le mobile money** ouvre un paiement chez l'opérateur et s'arrête là. La
+ * commande reste `IN_PROGRESS`, rien n'est crédité, aucun reçu ne part : on ne
+ * sait pas encore si l'acheteur ira au bout. C'est le rappel de l'opérateur,
+ * authentifié, qui décidera — voir `app/api/paiements/[fournisseur]/webhook`.
+ * Le retour du navigateur ne fait jamais foi : il dit où l'acheteur a atterri,
+ * pas si l'argent est arrivé.
+ *
+ * Chaque commande porte le nom de son `provider`. Ce n'est pas décoratif : le
+ * jour où des versements réels partiront, il faudra pouvoir distinguer les
+ * ventes qui ont apporté de l'argent de celles qui n'en ont pas apporté. Un
+ * drapeau d'environnement se retire ; une colonne reste.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * LE GRATUIT NE PASSE PAS PAR ICI
@@ -52,7 +58,22 @@ export type MotifRefus =
   | "CONFLIT";
 
 export type Resultat =
-  | { ok: true; orderId: string; orderItemId: string; licence: string }
+  | {
+      ok: true;
+      orderId: string;
+      orderItemId: string;
+      licence: string;
+      /**
+       * L'argent est-il déjà crédité ?
+       *
+       * Vrai en simulation seulement. En mobile money, la vente est ouverte et
+       * pas conclue : l'appelant doit envoyer l'acheteur sur `redirection` et
+       * ne rien lui promettre avant le rappel de l'opérateur.
+       */
+      paye: boolean;
+      /** Où envoyer l'acheteur. Absent quand tout est déjà réglé. */
+      redirection?: string;
+    }
   | { ok: false; motif: MotifRefus };
 
 export const MESSAGES: Record<MotifRefus, string> = {
@@ -88,10 +109,45 @@ const FENETRE_DOUBLON_MS = 2 * 60_000;
 export async function acheter(input: {
   produitId: string;
   acheteurId: string;
+  /**
+   * Le rail mobile money visé — « om », « wave », « mtn », « moov ».
+   *
+   * Ignoré en simulation. En mobile money, il décide de l'invite que reçoit
+   * l'acheteur sur son téléphone.
+   */
+  moyen?: string;
 }): Promise<Resultat> {
-  if (!simulationOuverte()) return { ok: false, motif: "PAIEMENT_INDISPONIBLE" };
+  // La simulation prime quand elle est ouverte : c'est un réglage de
+  // développement, et le laisser cohabiter avec un opérateur réel produirait
+  // des ventes payées pour de vrai et des ventes gratuites dans la même base.
+  const simulation = simulationOuverte();
+  const pilote = simulation ? null : piloteCourant();
 
-  let creation: { orderId: string; orderItemId: string; licence: string };
+  if (!simulation && (pilote === null || pilote.nom === "aucun")) {
+    return { ok: false, motif: "PAIEMENT_INDISPONIBLE" };
+  }
+
+  // L'adresse publique est vérifiée AVANT d'inscrire quoi que ce soit. Sans
+  // elle, l'URL de retour serait relative et le pilote lèverait — après avoir
+  // laissé une commande ouverte que personne ne viendrait conclure. Un refus
+  // franc vaut mieux qu'une commande orpheline.
+  const base = simulation ? null : urlDuSite();
+  if (!simulation && !base) {
+    journal.erreur("achat impossible : APP_URL absente", {
+      produitId: input.produitId,
+    });
+    return { ok: false, motif: "PAIEMENT_INDISPONIBLE" };
+  }
+
+  const fournisseur = simulation ? MARQUEUR_SIMULATION : pilote!.nom;
+
+  let creation: {
+    orderId: string;
+    orderItemId: string;
+    licence: string;
+    total: number;
+    devise: string;
+  };
 
   try {
     creation = await db.$transaction(
@@ -163,7 +219,7 @@ export async function acheter(input: {
             buyerId: input.acheteurId,
             total: produit.price,
             currency: produit.currency,
-            provider: MARQUEUR_SIMULATION,
+            provider: fournisseur,
             items: {
               create: {
                 productId: produit.id,
@@ -185,29 +241,22 @@ export async function acheter(input: {
           ligneId,
         });
 
-        // Le reçu s'inscrit dans la même transaction que la vente : si la
-        // commande échoue, il disparaît avec elle. C'est tout l'intérêt de la
-        // file (voir lib/email/outbox.ts).
-        const acheteur = await tx.user.findUniqueOrThrow({
-          where: { id: input.acheteurId },
-          select: { email: true, profile: { select: { displayName: true } } },
-        });
+        // LE REÇU NE PART PAS D'ICI. Il dit « tu as payé » : l'émettre à
+        // l'ouverture le rendrait faux pour tous ceux qui abandonnent au
+        // moment de taper leur code — c'est-à-dire beaucoup de monde en
+        // mobile money. Il est déposé par `finaliserVente`, quand l'argent
+        // est arrivé, dans la même transaction que la clôture.
 
-        await deposer(
-          {
-            cle: `recu-${ligneId}`,
-            destinataire: acheteur.email,
-            modele: "RECU_ACHAT",
-            charge: {
-              nom: acheteur.profile?.displayName ?? acheteur.email,
-              ressource: produit.name,
-              montant: formatMoney(produit.price, produit.currency),
-            },
-          },
-          tx,
-        );
-
-        return { orderId: commande.id, orderItemId: ligneId, licence };
+        return {
+          orderId: commande.id,
+          orderItemId: ligneId,
+          licence,
+          // Le montant sort d'ici plutôt que d'être relu plus tard : c'est
+          // celui qu'on a figé, et c'est à lui que le rappel de l'opérateur
+          // sera confronté.
+          total: produit.price,
+          devise: produit.currency as string,
+        };
       },
       // Deux clics simultanés doivent aboutir à une seule commande. Sans
       // sérialisation, les deux transactions liraient « rien d'acquis » et
@@ -226,23 +275,66 @@ export async function acheter(input: {
     throw cause;
   }
 
-  // L'encaissement ouvre sa propre transaction : il ne peut pas être imbriqué.
-  // Si cette étape échoue, la commande reste IN_PROGRESS — l'acheteur n'a aucun
-  // accès, et rien n'est crédité. C'est le bon état pour un paiement qui n'a
-  // pas abouti.
-  await encaisserLigne({ orderItemId: creation.orderItemId, regime: "DIRECT" });
+  if (simulation) {
+    // Le règlement ouvre ses propres transactions : il ne peut pas être
+    // imbriqué. Si cette étape échoue, la commande reste IN_PROGRESS —
+    // l'acheteur n'a aucun accès et rien n'est crédité. C'est le bon état pour
+    // un paiement qui n'a pas abouti.
+    await finaliserVente(creation.orderItemId);
 
-  await db.order.update({
-    where: { id: creation.orderId },
-    data: { status: "COMPLETED" },
+    journal.avertissement("achat simulé — aucun paiement réel", {
+      orderId: creation.orderId,
+      produitId: input.produitId,
+    });
+
+    return {
+      ok: true,
+      orderId: creation.orderId,
+      orderItemId: creation.orderItemId,
+      licence: creation.licence,
+      paye: true,
+    };
+  }
+
+  // ── Mobile money : on ouvre, et on s'arrête là ─────────────────────────────
+  const ouverture = await pilote!.ouvrir({
+    // Notre référence est l'identifiant de la commande. C'est elle qu'on
+    // retrouvera dans le rappel, et c'est par elle que la réception recolle
+    // l'annonce de l'opérateur à ce qu'on attend.
+    reference: creation.orderId,
+    montant: creation.total,
+    devise: creation.devise,
+    moyen: input.moyen ?? "om",
+    retour: `${base}/achat/${creation.orderId}`,
   });
 
-  journal.avertissement("achat simulé — aucun paiement réel", {
+  if (!ouverture.ok) {
+    // L'opérateur a refusé d'ouvrir. La commande reste IN_PROGRESS : rien
+    // n'est crédité, et la fenêtre anti-doublon laissera l'acheteur réessayer
+    // dans deux minutes.
+    journal.erreur("ouverture de paiement refusée par l'opérateur", {
+      orderId: creation.orderId,
+      operateur: pilote!.nom,
+      message: ouverture.message,
+    });
+    return { ok: false, motif: "PAIEMENT_INDISPONIBLE" };
+  }
+
+  if (ouverture.referenceOperateur) {
+    await db.order.update({
+      where: { id: creation.orderId },
+      data: { providerRef: ouverture.referenceOperateur },
+    });
+  }
+
+  return {
+    ok: true,
     orderId: creation.orderId,
-    produitId: input.produitId,
-  });
-
-  return { ok: true, ...creation };
+    orderItemId: creation.orderItemId,
+    licence: creation.licence,
+    paye: false,
+    redirection: ouverture.redirection,
+  };
 }
 
 class RefusInterne extends Error {

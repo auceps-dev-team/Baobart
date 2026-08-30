@@ -9,9 +9,15 @@ import { sessionCourante } from "@/lib/auth/session";
 export const metadata = { title: "Se connecter — Baobart." };
 export const dynamic = "force-dynamic";
 
-export default async function ConnexionPage() {
+export default async function ConnexionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reinitialise?: string }>;
+}) {
   // Déjà connecté : cette page n'a rien à offrir.
   if (await sessionCourante()) redirect("/dashboard");
+
+  const { reinitialise } = await searchParams;
 
   return (
     <AuthShell
@@ -31,6 +37,11 @@ export default async function ConnexionPage() {
       indiceBascule="Pas encore de compte ?"
     >
       <AuthForm
+        annonce={
+          reinitialise === "1"
+            ? "Mot de passe changé. Connecte-toi avec le nouveau."
+            : undefined
+        }
         mode="connexion"
         titre="Se connecter"
         sousTitre="Content de te revoir. Entre tes identifiants pour reprendre là où tu en étais."

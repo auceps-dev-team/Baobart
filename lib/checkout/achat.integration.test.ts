@@ -195,15 +195,66 @@ describe("l'argent", () => {
 });
 
 describe("refus", () => {
-  it("refuse quand la simulation est fermée", async () => {
+  it("refuse quand rien ne permet d'encaisser", async () => {
+    // Depuis v1.30.0, fermer la simulation ne suffit plus à fermer la caisse :
+    // un opérateur mobile money branché est l'autre chemin. Le refus n'arrive
+    // que lorsque les deux sont absents.
     process.env.CHECKOUT_SIMULATION_ENABLED = "";
-    const vendeur = await creerUtilisateur("vendeur");
-    const acheteur = await creerUtilisateur("acheteur");
-    const produit = await creerProduit({ vendeurId: vendeur.id, prix: 5000 });
+    const driverAvant = process.env.PAYMENTS_DRIVER;
+    delete process.env.PAYMENTS_DRIVER;
 
-    const r = await acheter({ produitId: produit.id, acheteurId: acheteur.id });
-    expect(r).toEqual({ ok: false, motif: "PAIEMENT_INDISPONIBLE" });
-    expect(await db.order.count()).toBe(0);
+    try {
+      const vendeur = await creerUtilisateur("vendeur");
+      const acheteur = await creerUtilisateur("acheteur");
+      const produit = await creerProduit({ vendeurId: vendeur.id, prix: 5000 });
+
+      const r = await acheter({ produitId: produit.id, acheteurId: acheteur.id });
+      expect(r).toEqual({ ok: false, motif: "PAIEMENT_INDISPONIBLE" });
+
+      // Aucune commande orpheline : on refuse AVANT d'inscrire quoi que ce soit.
+      expect(await db.order.count()).toBe(0);
+    } finally {
+      if (driverAvant === undefined) delete process.env.PAYMENTS_DRIVER;
+      else process.env.PAYMENTS_DRIVER = driverAvant;
+    }
+  });
+
+  it("ouvre sans créditer quand seul l'opérateur est là", async () => {
+    process.env.CHECKOUT_SIMULATION_ENABLED = "";
+    const avant = {
+      driver: process.env.PAYMENTS_DRIVER,
+      secret: process.env.PAYMENTS_SANDBOX_SECRET,
+      url: process.env.APP_URL,
+    };
+    process.env.PAYMENTS_DRIVER = "bac-a-sable";
+    process.env.PAYMENTS_SANDBOX_SECRET = "un-secret-de-bac-a-sable-assez-long";
+    process.env.APP_URL = "https://baobart.test";
+
+    try {
+      const vendeur = await creerUtilisateur("vendeur");
+      const acheteur = await creerUtilisateur("acheteur");
+      const produit = await creerProduit({ vendeurId: vendeur.id, prix: 5000 });
+
+      const r = await acheter({ produitId: produit.id, acheteurId: acheteur.id });
+
+      expect(r.ok).toBe(true);
+      expect(r.ok === true && r.paye).toBe(false);
+      expect(r.ok === true && r.redirection).toBeTruthy();
+
+      // La commande existe et attend le rappel. Rien n'est crédité : c'est
+      // toute la différence avec la simulation.
+      expect(await db.order.count()).toBe(1);
+      expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+    } finally {
+      for (const [cle, valeur] of [
+        ["PAYMENTS_DRIVER", avant.driver],
+        ["PAYMENTS_SANDBOX_SECRET", avant.secret],
+        ["APP_URL", avant.url],
+      ] as const) {
+        if (valeur === undefined) delete process.env[cle];
+        else process.env[cle] = valeur;
+      }
+    }
   });
 
   it("refuse sa propre ressource", async () => {

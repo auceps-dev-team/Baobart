@@ -184,6 +184,54 @@ export function constatConnexion(faits: FaitsConnexion): Constat {
   };
 }
 
+export interface FaitsAdressePublique {
+  /** Ce que rend `urlDuSite()` — déjà validée, ou `null`. */
+  origine: string | null;
+  production: boolean;
+}
+
+/**
+ * L'adresse publique du site est-elle posée ?
+ *
+ * Sans elle, aucun courriel ne peut porter de lien : ni la réinitialisation du
+ * mot de passe, ni les liens de téléchargement. Le manque ne casse rien au
+ * démarrage — il casse une fonctionnalité que personne ne teste avant d'en
+ * avoir besoin, un soir, en urgence. D'où la panne plutôt que l'avertissement.
+ *
+ * Une adresse en HTTP sur un site en production est un problème distinct : le
+ * lien de réinitialisation est un identifiant temporaire, et le laisser
+ * traverser un réseau en clair revient à l'écrire sur la vitre.
+ */
+export function constatAdressePublique(faits: FaitsAdressePublique): Constat {
+  if (!faits.origine) {
+    return {
+      cle: "adresse-publique",
+      libelle: "Adresse publique",
+      gravite: "panne",
+      detail: "Absente — aucun courriel ne peut porter de lien.",
+      remede:
+        "Renseigne APP_URL avec l'adresse du site, protocole compris : https://baobart.com",
+    };
+  }
+
+  if (faits.production && faits.origine.startsWith("http://")) {
+    return {
+      cle: "adresse-publique",
+      libelle: "Adresse publique",
+      gravite: "panne",
+      detail: `${faits.origine} — en clair, alors qu'elle porte des liens de réinitialisation.`,
+      remede: "Passe APP_URL en HTTPS.",
+    };
+  }
+
+  return {
+    cle: "adresse-publique",
+    libelle: "Adresse publique",
+    gravite: "ok",
+    detail: `${faits.origine}.`,
+  };
+}
+
 export interface FaitsSimulation {
   ouverte: boolean;
   production: boolean;

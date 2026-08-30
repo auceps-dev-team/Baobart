@@ -50,6 +50,7 @@ S3_ACCESS_KEY_ID
 S3_SECRET_ACCESS_KEY
 S3_FORCE_PATH_STYLE
 S3_PUBLIC_URL      # en HTTPS
+APP_URL            # l'adresse publique du site, en HTTPS
 ```
 
 **Deux URL de base, et ce n'est pas un doublon.** Une fonction serverless ouvre
@@ -66,6 +67,21 @@ renseigner ne faisait rien, et les aperçus retombaient silencieusement sur
 En HTTPS obligatoirement : une image en HTTP sur une page en HTTPS est refusée
 par le navigateur, et la grille se retrouve vide sans message d'erreur.
 
+**`APP_URL` n'est pas déduite de la requête, et c'est intentionnel.** Il serait
+tentant de lire l'en-tête `Host` : le lien pointerait toujours sur le bon
+domaine, sans réglage. C'est une faille connue — l'empoisonnement du lien de
+réinitialisation. `Host` est fourni par l'appelant : il suffit de demander une
+réinitialisation pour le compte d'autrui en annonçant son propre domaine pour
+que la victime reçoive un courriel authentique, envoyé par nous, dont le lien
+mène chez l'attaquant.
+
+Il y a une seconde raison, moins spectaculaire : le passage qui vide la file
+d'envoi tourne la nuit, sans requête HTTP. Il n'y a aucun `Host` à lire.
+
+Absente, l'écran **Système · Configuration** l'affiche en PANNE, et la
+réinitialisation du mot de passe refuse franchement au lieu d'afficher
+« vérifie ta boîte » sur un courriel qui ne partira pas.
+
 ### Pour l'ordonnanceur
 
 ```env
@@ -76,6 +92,33 @@ Vercel signe ses appels de cron avec ce jeton. La route qui prépare les
 versements répond **404** à tout ce qui ne le porte pas — y compris quand le
 secret est vide. C'est délibéré : mieux vaut ne préparer aucun versement que
 laisser l'URL ouverte.
+
+### Pour l'encaissement
+
+```env
+PAYMENTS_DRIVER            # bac-a-sable — ou vide
+PAYMENTS_SANDBOX_SECRET    # openssl rand -hex 24
+```
+
+Vide ou inconnu, le tunnel d'achat **refuse franchement** plutôt que d'ouvrir
+une commande qui n'aboutira jamais. Un opérateur à moitié branché encaisse
+peut-être, mais personne ne sait dire si l'argent est arrivé.
+
+Aucun opérateur réel n'est encore intégré : le substrat existe — interface de
+pilote, vérification de signature, route de rappel, anti-rejeu, confrontation
+des montants — et le seul pilote livré est un bac à sable qui parcourt cette
+chaîne en entier, signature comprise. Brancher Orange Money, Wave, MTN ou Moov
+consiste à écrire un pilote de plus dans
+`lib/payments/encaissement/pilotes.ts` ; rien d'autre ne bouge.
+
+**L'URL de rappel à déclarer chez l'opérateur** est
+`https://<domaine>/api/paiements/<pilote>/webhook`. Elle est publique par
+nature : c'est la signature qui la protège, jamais son secret.
+
+**Ne posez pas `CHECKOUT_SIMULATION_ENABLED` à côté.** La simulation prime
+quand elle est ouverte ; les faire cohabiter mélangerait dans la même base des
+ventes payées et des ventes gratuites, et plus personne ne saurait lesquelles
+ont rapporté.
 
 ### Optionnelles
 
@@ -98,9 +141,14 @@ plateforme ne sait pas servir.
 
 ### Ce qui n'aura aucun effet
 
-Paiements, courriels, Redis, IA, Sentry. Ces modules **n'existent pas**. Les
-variables restent documentées en fin de `.env.example` parce que les noms sont
-arrêtés, mais les poser dans Vercel ne branchera rien.
+Redis, IA, Sentry. Ces modules **n'existent pas**. Les variables restent
+documentées en fin de `.env.example` parce que les noms sont arrêtés, mais les
+poser dans Vercel ne branchera rien.
+
+Les courriels et les paiements, eux, existent désormais — voir `EMAIL_DRIVER`
+et `PAYMENTS_DRIVER` ci-dessus. Leur cas est différent : ce ne sont pas des
+variables mortes, ce sont des variables dont il manque encore l'opérateur en
+face.
 
 ---
 

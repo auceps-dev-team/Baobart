@@ -75,7 +75,30 @@ const SCHEMAS = {
     nom,
     ressource: z.string().min(1).max(200),
     montant: z.string().min(1).max(40),
+    /**
+     * Vers l'espace de l'acheteur, jamais vers le fichier.
+     *
+     * Facultatif : sans `APP_URL`, le reçu part quand même — il vaut preuve de
+     * paiement, et c'est ce qui compte le jour d'une contestation.
+     */
+    lien: lien.optional(),
   }),
+  /**
+   * ────────────────────────────────────────────────────────────────────────
+   * CE MODÈLE N'EST DÉLIBÉRÉMENT DÉPOSÉ PAR PERSONNE
+   *
+   * Son texte annonce un lien « valable un temps limité » : une URL signée,
+   * donc. Or une URL signée est un laissez-passer au porteur. Envoyée par
+   * courriel, elle contourne tout ce que `app/api/telechargement` vérifie au
+   * moment du clic — commande remboursée, paiement contesté, accès retiré par
+   * le créateur, abonnement échu, quota épuisé. Le message dormirait dans une
+   * boîte, réexpédiable, encore valide après le remboursement.
+   *
+   * Le reçu d'achat porte donc un lien vers l'espace de l'acheteur, où ces
+   * vérifications ont lieu à chaque fois. Ce modèle-ci attend un usage où le
+   * porteur n'a pas de compte — un cadeau, un achat pour un tiers — et il
+   * faudra alors lui donner sa propre péremption courte.
+   */
   LIEN_TELECHARGEMENT: z.object({
     nom,
     ressource: z.string().min(1).max(200),
@@ -125,6 +148,9 @@ const TEXTES: {
       `  ${c.ressource}\n  ${c.montant}\n\n` +
       `Retrouve le fichier dans ton espace, rubrique « Mes achats ». Il y ` +
       `reste disponible.` +
+      (c.lien ? `
+
+${c.lien}` : "") +
       SIGNATURE,
   }),
 

@@ -1,10 +1,25 @@
 import "server-only";
 
 import { simulationOuverte } from "@/lib/checkout/achat";
+import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
+import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import { formatPrice } from "@/lib/i18n/money";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
+
+/**
+ * Un achat peut-il aboutir aujourd'hui ?
+ *
+ * La même condition que celle qu'applique `acheter()`, et c'est délibéré : un
+ * bouton qui apparaît là où l'action refuse promet un écran qui n'ouvre sur
+ * rien. `APP_URL` en fait partie — sans elle, l'opérateur n'a nulle part où
+ * renvoyer l'acheteur.
+ */
+function encaissementPossible(): boolean {
+  if (simulationOuverte()) return true;
+  return piloteCourant().nom !== "aucun" && urlDuSite() !== null;
+}
 
 type RessourceLiee = { slug: string; name: string; coverUrl: string | null };
 
@@ -92,14 +107,18 @@ export async function droitDeTelecharger(
     etat: "A_ACHETER",
     produitId,
     prix: formatPrice(produit.price, produit.currency),
-    // Sans fichier, l'acheteur paierait pour rien. Sur sa propre ressource,
-    // il se créditerait son propre argent. Sans simulation ouverte, l'achat
+    // Sans fichier, l'acheteur paierait pour rien. Sur sa propre ressource, il
+    // se créditerait son propre argent. Sans moyen d'encaisser, l'achat
     // n'aboutirait pas. Trois raisons de ne pas montrer le bouton.
+    //
+    // « Encaisser » veut dire deux choses depuis v1.30.0 : la simulation de
+    // développement, ou un opérateur mobile money branché. Ne regarder que la
+    // première laisserait le bouton invisible en production, opérateur ou pas.
     achatPossible:
       possible &&
       produit.files.length > 0 &&
       produit.sellerId !== userId &&
-      simulationOuverte(),
+      encaissementPossible(),
   });
 
   if (produit.files.length === 0) return aAcheter(false);

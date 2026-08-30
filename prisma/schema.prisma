@@ -368,6 +368,7 @@ model User {
   accounts Account[]
   sessions Session[]
   passkeys Passkey[]
+  passwordResets PasswordReset[]
 
   // équipes multi-rôles (§3.10-B)
   memberships TeamMembership[] @relation("TeamMember")
@@ -547,6 +548,92 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Demande de réinitialisation de mot de passe.
+///
+/// La table ne garde que l'**empreinte** du jeton, comme pour les sessions :
+/// une fuite ne permet donc pas de prendre la main sur un compte. SHA-256
+/// suffit là où les mots de passe exigent scrypt — un jeton de 32 octets tirés
+/// au hasard n'est pas devinable, il n'y a rien à ralentir.
+/// Sort d'un appel entrant d'opérateur.
+enum WebhookEventStatus {
+  /// Reçu et authentifié, pas encore traité.
+  RECEIVED
+  /// Traité : la commande a bougé.
+  PROCESSED
+  /// Authentique, mais sans effet — l'état visé était déjà atteint. C'est le
+  /// cas normal d'un rejeu, pas une anomalie.
+  IGNORED
+  /// Signature invalide, corps illisible, ou commande introuvable.
+  REJECTED
+}
+
+/// Un appel entrant d'un opérateur de paiement.
+///
+/// ──────────────────────────────────────────────────────────────────────────
+/// POURQUOI CETTE TABLE EXISTE
+///
+/// Un opérateur rejoue ses appels. Sur incident réseau, sur dépassement de
+/// délai, et parfois sans raison apparente. Sans trace, un rejeu crédite deux
+/// fois le vendeur pour une seule vente — et l'écart ne se voit qu'au moment
+/// de verser, des semaines plus tard.
+///
+/// La clé d'unicité porte donc sur `(provider, eventRef)` : deux appels
+/// portant la même référence sont le même fait, et le second ne fait rien.
+///
+/// ON GARDE AUSSI LES APPELS REFUSÉS. C'est un arbitrage : la route est
+/// publique, donc chaque refus enregistré est une écriture qu'un inconnu
+/// provoque. On l'accepte parce que la panne la plus fréquente d'une
+/// intégration est un secret mal recopié — et que sans ces lignes, elle est
+/// parfaitement silencieuse. Le `eventRef` d'un appel refusé est l'empreinte
+/// de son corps : un même corps rejoué mille fois n'écrit qu'une ligne.
+model PaymentWebhookEvent {
+  id String @id @default(cuid())
+
+  /// L'opérateur qui a appelé.
+  provider String
+  /// Ce que l'opérateur appelle cet événement. Pour un refus : l'empreinte du
+  /// corps reçu, faute de pouvoir en croire le contenu.
+  eventRef String
+
+  /// La référence de la transaction chez l'opérateur, quand on a pu la lire.
+  providerRef String?
+
+  /// Le corps reçu, tel quel. Il ne sert pas à décider — il sert le jour où
+  /// l'opérateur conteste ce qu'il affirme avoir envoyé.
+  payload Json
+
+  status WebhookEventStatus @default(RECEIVED)
+  /// Pourquoi il a été refusé, ou ce qui a échoué au traitement.
+  error  String?
+
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, eventRef])
+  @@index([status, receivedAt])
+  @@index([providerRef])
+}
+
+model PasswordReset {
+  id     String @id @default(cuid())
+  userId String
+  token  String @unique
+
+  /// Court : une heure. Un lien de réinitialisation est un mot de passe
+  /// temporaire qui traîne dans une boîte mail.
+  expiresAt DateTime
+
+  /// Consommé. Le jeton ne sert qu'une fois : sans cela, quiconque relit le
+  /// courriel un mois plus tard reprend la main sur le compte.
+  usedAt   DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model Passkey {

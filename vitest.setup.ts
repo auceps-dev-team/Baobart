@@ -31,43 +31,44 @@ process.env.SLOW_QUERY_MS = "10000";
 // à l'instanciation.
 const { db } = await import("./lib/db");
 
-const TABLES_A_VIDER = [
-  "EmailOutbox",
-  "Session",
-  "BillingInfo",
-  "Account",
-  "Passkey",
-  "ConsumptionEvent",
-  "DownloadQuota",
-  "Subscription",
-  "Plan",
-  "BalanceTransaction",
-  "Balance",
-  "Payout",
-  "PayoutAccount",
-  "Refund",
-  "LicenseKey",
-  "OrderItem",
-  "Order",
-  "Cart",
-  "RiskStateChange",
-  "Comment",
-  "Like",
-  "Follow",
-  "Save",
-  "Board",
-  "UploadReservation",
-  "ProductTag",
-  "Tag",
-  "ProductFile",
-  "Variant",
-  "Product",
-  "MediaAsset",
-  "Profile",
-  "User",
-];
+/**
+ * Les tables à vider, demandées à la base plutôt qu'écrites à la main.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI PAS UNE LISTE
+ *
+ * Il y en avait une. Elle a manqué `PaymentWebhookEvent` — une table neuve, et
+ * la seule sans clé étrangère vers `User`, donc la seule que le `CASCADE` ne
+ * rattrapait pas. Les rappels de paiement se sont accumulés d'un test à
+ * l'autre et d'un passage à l'autre, jusqu'à ce que l'anti-rejeu refuse des
+ * événements légitimes. Le symptôme était parfaitement trompeur : des tests
+ * qui passent seuls et échouent en lot.
+ *
+ * Une liste manuelle est une promesse que chaque table future y sera ajoutée.
+ * Personne ne tient ce genre de promesse. `CASCADE` rend l'ordre indifférent,
+ * il n'y avait donc rien à gagner à l'écrire.
+ */
+async function tablesAVider(): Promise<string[]> {
+  const lignes = await db.$queryRaw<Array<{ tablename: string }>>`
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'
+  `;
+  return lignes.map((l) => l.tablename);
+}
+
+/** Calculée une fois : le schéma ne bouge pas pendant un passage. */
+let cibles: string | null = null;
 
 beforeEach(async () => {
-  const cibles = TABLES_A_VIDER.map((t) => `"${t}"`).join(", ");
+  if (cibles === null) {
+    const noms = await tablesAVider();
+    if (noms.length === 0) {
+      throw new Error(
+        "Aucune table trouvée dans baobart_test — la base est-elle migrée ?",
+      );
+    }
+    cibles = noms.map((t) => `"${t}"`).join(", ");
+  }
+
   await db.$executeRawUnsafe(`TRUNCATE TABLE ${cibles} RESTART IDENTITY CASCADE`);
 });

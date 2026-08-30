@@ -27,8 +27,8 @@
 | Versements — calendrier/éligibilité | §3.9 | `lib/payments/*` | ✅ | 27 tests | — |
 | Versements — 8 états pilotables | §3.9 | `lib/payments/*`, `app/dashboard/systeme/versements` | ✅ | v1.26.0 | `UNCLAIMED`/`REVERSED` réservés opérateur, pas de bouton |
 | Versements — appel opérateur réel | §0-bis | `app/api/cron/versements/route.ts` | ❌ | — | Le cron ne fait que préparer (`CREATING`) |
-| **Passage en caisse / checkout** | §0-bis | `lib/checkout/achat.ts` | ⚠️ | v1.24.0, en simulation | Aucun agrégateur mobile money branché |
-| **Paiement réel (mobile money)** | Bloquant n°1 | — | ❌ | — | Aucun SDK dans `package.json` |
+| **Passage en caisse / checkout** | §0-bis | `lib/checkout/achat.ts` | ✅ | v1.30.0, deux chemins | Ouvre et s'arrête : c'est le rappel qui conclut |
+| **Paiement réel (mobile money)** | Bloquant n°1 | `lib/payments/encaissement/*`, `app/api/paiements/[fournisseur]/webhook` | ⚠️ | v1.30.0, 37 tests | Substrat complet (signature, anti-rejeu, confrontation des montants) ; seul pilote livré : bac à sable. Reste à écrire un pilote d'opérateur réel |
 | Codes promo | §3.4-B | — | ❌ | — | Schéma seul, non câblé |
 | Upsell post-achat | §3.4-B | — | ❌ | — | — |
 | Panier abandonné | §3.4-B | — | ❌ | — | — |
@@ -86,10 +86,10 @@
 | File d'e-mails transactionnels (infra) | §0-bis | `lib/email/outbox.ts` | ✅ | v1.21.0-1.23.0 | — |
 | Pilotes (console/resend/smtp) | §0-bis | `lib/email/*` | ✅ | v1.22.0 | — |
 | E-mail — bienvenue à l'inscription | §0-bis | `lib/auth/actions.ts` | ✅ | déposé | — |
-| E-mail — reçu d'achat | §0-bis | `lib/checkout/achat.ts` | ✅ | déposé | — |
-| E-mail — lien de téléchargement | §0-bis | `lib/email/outbox.ts` (modèle défini) | ❌ | — | Modèle prêt, jamais déposé |
-| E-mail — avis de versement | §0-bis | `lib/email/outbox.ts` (modèle défini) | ❌ | — | Modèle prêt, jamais déposé |
-| E-mail — réinitialisation mot de passe | §0-bis | `lib/email/outbox.ts` (modèle défini) | ❌ | — | Voir §3 — dépend du flux mot de passe oublié |
+| E-mail — reçu d'achat | §0-bis | `lib/payments/encaissement/reglement.ts` | ✅ | déposé au règlement, pas à l'ouverture | Porte un lien vers l'espace gardé |
+| E-mail — lien de téléchargement | §0-bis | `lib/email/modeles.ts` | ⛔ | — | **Volontairement jamais déposé** : son texte promet une URL signée, donc un laissez-passer au porteur qui contournerait remboursement, litige, accès retiré et quota. Le reçu porte un lien vers l'espace gardé à la place |
+| E-mail — avis de versement | §0-bis | `lib/payments/versements.ts` | ✅ | v1.30.0, déposé au passage en `PROCESSING` | — |
+| E-mail — réinitialisation mot de passe | §0-bis | `lib/auth/reinitialisation.ts`, `app/reinitialiser/[jeton]` | ✅ | v1.30.0, 14 tests | Jeton haché, une heure, usage unique, ferme toutes les sessions |
 | Ordonnanceur cron | §0-bis | `vercel.json`, `app/api/cron/*` | ✅ | v1.21.0-1.23.0 | — |
 
 ## 6. Micro-services (schéma prêt, zéro route)

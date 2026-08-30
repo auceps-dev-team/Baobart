@@ -8,6 +8,10 @@ import {
   hacherMotDePasse,
   verifierMotDePasse,
 } from "@/lib/auth/password";
+import {
+  changerMotDePasse,
+  demanderReinitialisation as demanderLienDeReinitialisation,
+} from "@/lib/auth/reinitialisation";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
 import { deposer } from "@/lib/email/outbox";
 
@@ -22,6 +26,8 @@ import { deposer } from "@/lib/email/outbox";
 export interface EtatFormulaire {
   erreur?: string;
   champ?: "email" | "motDePasse" | "username" | "nom" | "conditions";
+  /** Confirmation sans redirection : la demande d'oubli reste sur sa page. */
+  succes?: string;
 }
 
 const MESSAGE_IDENTIFIANTS = "Adresse ou mot de passe incorrect.";
@@ -184,9 +190,10 @@ export async function deconnecter(): Promise<void> {
 /**
  * Demande de réinitialisation.
  *
- * L'envoi réel attend le service d'e-mail (`lib/email`, cf. SPEC_DEPLOIEMENT).
- * On le dit franchement plutôt que d'afficher « lien envoyé » sur un message qui
- * ne partira jamais — c'est le genre de mensonge dont on se souvient.
+ * La réponse est **la même** que l'adresse existe ou non. Répondre « aucun
+ * compte à cette adresse » ferait du formulaire un annuaire : on y essaie une
+ * liste et on repart avec celles qui sont chez nous. Le raisonnement complet
+ * est dans `lib/auth/reinitialisation.ts`.
  */
 export async function demanderReinitialisation(
   _precedent: EtatFormulaire,
@@ -198,8 +205,72 @@ export async function demanderReinitialisation(
     return { erreur: "Cette adresse ne ressemble pas à un e-mail.", champ: "email" };
   }
 
+  const suite = await demanderLienDeReinitialisation(email);
+
+  if (!suite.fait) {
+    // Panne d'exploitation, pas faute de l'utilisateur. Lui afficher
+    // « vérifie ta boîte » l'enverrait attendre un courriel qui ne partira pas.
+    return {
+      erreur:
+        "L'envoi des courriels n'est pas configuré sur ce serveur. Écris-nous en attendant.",
+    };
+  }
+
   return {
-    erreur:
-      "La réinitialisation par e-mail arrive avec le service d'envoi. En attendant, écris-nous.",
+    succes:
+      "Si un compte existe à cette adresse, un lien vient d'y partir. Il est valable une heure.",
   };
+}
+
+/**
+ * Pose le nouveau mot de passe au bout d'un lien de réinitialisation.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAS DE SESSION ICI, ET C'EST NORMAL
+ *
+ * Toutes les autres actions lisent l'acteur depuis la session. Celle-ci ne
+ * peut pas : celui qui l'appelle a précisément perdu l'accès à son compte. Le
+ * jeton **est** le justificatif, et c'est pourquoi il est tiré au hasard sur
+ * trente-deux octets, à usage unique et valable une heure. Le recevoir dans sa
+ * boîte prouve qu'on la contrôle — la même preuve qu'un mot de passe, en plus
+ * périssable.
+ *
+ * Le jeton passe en premier paramètre : la page le lie à l'action avant de
+ * l'envoyer au navigateur. Qu'il soit joignable directement ne change rien —
+ * il faut le connaître, et le connaître c'est l'avoir reçu.
+ */
+export async function reinitialiserMotDePasse(
+  jeton: string,
+  _precedent: EtatFormulaire,
+  donnees: FormData,
+): Promise<EtatFormulaire> {
+  const motDePasse = String(donnees.get("motDePasse") ?? "");
+  const confirmation = String(donnees.get("confirmation") ?? "");
+
+  if (donnees.get("conditions") !== "on") {
+    return {
+      erreur: "Coche la case : tes autres sessions vont être fermées.",
+      champ: "conditions",
+    };
+  }
+
+  if (motDePasse !== confirmation) {
+    return { erreur: "Les deux mots de passe ne sont pas identiques.", champ: "motDePasse" };
+  }
+
+  const suite = await changerMotDePasse(jeton, motDePasse);
+
+  if (!suite.fait) {
+    if (suite.motif === "faible") {
+      return { erreur: suite.detail ?? "Ce mot de passe est trop faible.", champ: "motDePasse" };
+    }
+    return {
+      erreur:
+        "Ce lien n'est plus valable. Demande-en un nouveau depuis la page d'oubli.",
+    };
+  }
+
+  // On ne connecte pas : le mot de passe vient de changer, et le retaper une
+  // fois confirme qu'il a bien été retenu — pas seulement collé dans un champ.
+  redirect("/connexion?reinitialise=1");
 }

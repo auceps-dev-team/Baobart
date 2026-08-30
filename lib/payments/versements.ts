@@ -3,6 +3,9 @@ import "server-only";
 import type { Currency, PayoutMethod, PayoutStatus } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import { deposer } from "@/lib/email/outbox";
+import { formatMoney } from "@/lib/i18n/money";
+import { masquerCompte } from "@/lib/payments/gains";
 import {
   CONFIG_PAR_DEFAUT,
   finDePeriodePourVersement,
@@ -192,8 +195,16 @@ async function transiter(
         id: true,
         status: true,
         userId: true,
+        amount: true,
+        currency: true,
+        accountRef: true,
         user: {
-          select: { payoutsPausedAt: true, payoutsPausedReason: true },
+          select: {
+            payoutsPausedAt: true,
+            payoutsPausedReason: true,
+            email: true,
+            profile: { select: { displayName: true } },
+          },
         },
       },
     });
@@ -228,6 +239,28 @@ async function transiter(
       where: { id: payoutId },
       data: { status: vers, ...extra },
     });
+
+    // L'avis part avec le versement, dans la même transaction.
+    //
+    // Déposé à l'envoi et non à la confirmation : c'est le moment où le créateur
+    // a besoin de savoir que son argent est en route, pas trois jours plus tard
+    // quand il est arrivé. La clé tient au versement, donc un rejeu de la même
+    // transition n'enverrait pas deux avis.
+    if (vers === "PROCESSING") {
+      await deposer(
+        {
+          cle: `versement-${payoutId}`,
+          destinataire: versement.user.email,
+          modele: "AVIS_VERSEMENT",
+          charge: {
+            nom: versement.user.profile?.displayName ?? versement.user.email,
+            montant: formatMoney(versement.amount, versement.currency),
+            compte: masquerCompte(versement.accountRef),
+          },
+        },
+        tx,
+      );
+    }
 
     // Les soldes suivent le versement, jamais l'inverse.
     if (vers === "COMPLETED") {

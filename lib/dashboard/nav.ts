@@ -141,6 +141,12 @@ const ADMINISTRATION: EntreeNav[] = [
     href: "/dashboard/systeme/emails",
   },
   {
+    cle: "a_sys_paiements",
+    label: "Système · Paiements",
+    glyph: "⇄",
+    href: "/dashboard/systeme/paiements",
+  },
+  {
     cle: "a_versements",
     label: "Versements créateurs",
     glyph: "%",

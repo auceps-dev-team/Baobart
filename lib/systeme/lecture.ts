@@ -1,5 +1,6 @@
 import "server-only";
 
+import { urlDuSite } from "@/lib/config/site";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -9,6 +10,7 @@ import { etatDes } from "@/lib/config/fonctionnalites";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import {
+  constatAdressePublique,
   constatBase,
   constatConnexion,
   constatInterrupteurs,
@@ -126,6 +128,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       // l'implémente sans condition d'environnement.
       motDePasse: true,
     }),
+    constatAdressePublique({ origine: urlDuSite(), production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),
     constatInterrupteurs({
       fermees: etatDes(process.env)

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { formatMoney } from "@/lib/i18n/money";
 import { soldeVersableJusqua } from "@/lib/domain/balances";
 import { encaisserLigne, rembourserLigne } from "@/lib/domain/orders";
 import {
@@ -354,6 +355,57 @@ describe("exécution d'un versement", () => {
 
       const soldes = await db.balance.findMany({ where: { userId: createur } });
       expect(soldes.every((b) => b.state === "UNPAID")).toBe(true);
+    });
+  });
+
+  describe("l'avis de versement", () => {
+    it("part avec l'envoi, pas avec la confirmation", async () => {
+      // C'est à l'envoi que le créateur a besoin de savoir que son argent est
+      // en route, pas trois jours plus tard quand il est arrivé.
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+
+      expect(await db.emailOutbox.count()).toBe(0);
+
+      await marquerVersementEnvoye(versement.id, "WAVE-AVIS-1");
+
+      const avis = await db.emailOutbox.findMany({
+        where: { template: "AVIS_VERSEMENT" },
+      });
+      expect(avis).toHaveLength(1);
+      expect(avis[0]?.idempotencyKey).toBe(`versement-${versement.id}`);
+
+      // Le montant annoncé est celui du versement — le net —, pas le brut de la
+      // vente. Un créateur qui lit 10 000 et reçoit 8 850 croit à une erreur.
+      const charge = avis[0]?.payload as { montant: string; compte: string };
+      expect(charge.montant).toBe(formatMoney(a.net, "XOF"));
+      // Jamais la référence entière : un courriel se transfère.
+      expect(charge.compte).toMatch(/^···· /);
+      expect(charge.compte).not.toContain("+221770000000");
+    });
+
+    it("n'en dépose qu'un, même si l'envoi est rejoué", async () => {
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await marquerVersementEnvoye(versement.id, "WAVE-AVIS-2");
+
+      // La même transition une seconde fois est refusée par la machine, mais si
+      // elle passait, la clé empêcherait le second avis.
+      await expect(
+        marquerVersementEnvoye(versement.id, "WAVE-AVIS-3"),
+      ).rejects.toThrow();
+
+      expect(
+        await db.emailOutbox.count({ where: { template: "AVIS_VERSEMENT" } }),
+      ).toBe(1);
+    });
+
+    it("ne dépose rien quand le versement n'est pas parti", async () => {
+      await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const { versement } = await preparer();
+      await annulerVersement(versement.id, "doublon");
+
+      expect(await db.emailOutbox.count()).toBe(0);
     });
   });
 

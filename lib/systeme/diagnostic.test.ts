@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  constatAdressePublique,
   constatBase,
   constatConnexion,
   constatInterrupteurs,
@@ -157,5 +158,40 @@ describe("diagnostic de la plateforme", () => {
       expect(c.gravite).toBe("attention");
       expect(c.detail).toContain("Envoi de fichiers");
     });
+  });
+});
+
+describe("l'adresse publique", () => {
+  it("est une panne quand elle manque : les courriels ne peuvent plus partir", () => {
+    const c = constatAdressePublique({ origine: null, production: true });
+    expect(c.gravite).toBe("panne");
+    expect(c.remede).toContain("APP_URL");
+  });
+
+  it("est une panne en HTTP sur un site en production", () => {
+    // Le lien de réinitialisation est un identifiant temporaire. En clair sur
+    // le réseau, il se ramasse.
+    const c = constatAdressePublique({
+      origine: "http://baobart.com",
+      production: true,
+    });
+    expect(c.gravite).toBe("panne");
+  });
+
+  it("laisse passer HTTP hors production", () => {
+    const c = constatAdressePublique({
+      origine: "http://localhost:3000",
+      production: false,
+    });
+    expect(c.gravite).toBe("ok");
+  });
+
+  it("est satisfaite d'une adresse en HTTPS", () => {
+    const c = constatAdressePublique({
+      origine: "https://baobart.com",
+      production: true,
+    });
+    expect(c.gravite).toBe("ok");
+    expect(c.detail).toContain("baobart.com");
   });
 });

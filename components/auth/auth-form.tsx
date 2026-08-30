@@ -51,6 +51,7 @@ export function AuthForm({
   libelleLienBas,
   avecMotDePasseOublie = false,
   fournisseurs = [],
+  annonce,
 }: {
   mode: "connexion" | "inscription" | "oubli";
   titre: string;
@@ -63,6 +64,8 @@ export function AuthForm({
   lienBas: string;
   libelleLienBas: string;
   avecMotDePasseOublie?: boolean;
+  /** Message porté par l'URL — l'arrivée depuis un autre écran. */
+  annonce?: string;
   /** Moyens secondaires. Ceux qui ne sont pas configurés restent affichés. */
   fournisseurs?: FournisseurPublic[];
 }) {
@@ -334,6 +337,24 @@ export function AuthForm({
             </Link>
           ) : null}
         </div>
+
+        {etat.succes ?? annonce ? (
+          <div
+            role="status"
+            style={{
+              marginTop: 14,
+              padding: "13px 15px",
+              border: CADRE,
+              borderRadius: 14,
+              background: JAUNE,
+              fontSize: 13,
+              fontWeight: 700,
+              animation: "popin .16s ease-out",
+            }}
+          >
+            {etat.succes ?? annonce}
+          </div>
+        ) : null}
 
         {etat.erreur ? (
           <div
