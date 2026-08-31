@@ -109,6 +109,7 @@ describe("le bac à sable — lecture du corps", () => {
     );
 
     expect(fait).toEqual({
+      sens: "ENCAISSEMENT",
       evenement: "evt-1",
       reference: "cmd-1",
       referenceOperateur: "op-9",
@@ -141,8 +142,18 @@ describe("le bac à sable — lecture du corps", () => {
     const fait = BAC_A_SABLE.lire(
       '{"event":"e","reference":"c","status":"ECHOUE"}',
     );
-    expect(fait?.montant).toBeNull();
-    expect(fait?.devise).toBeNull();
+    if (fait === null || fait === "HORS_SUJET") throw new Error("attendu un fait");
+    expect(fait.montant).toBeNull();
+    expect(fait.devise).toBeNull();
+  });
+
+  it("sait jouer un virement sortant, pour éprouver l'autre sens", () => {
+    const fait = BAC_A_SABLE.lire(
+      '{"event":"e","reference":"pay-1","status":"RETOURNE","kind":"VERSEMENT"}',
+    );
+    if (fait === null || fait === "HORS_SUJET") throw new Error("attendu un fait");
+    expect(fait.sens).toBe("VERSEMENT");
+    expect(fait.issue).toBe("RETOURNE");
   });
 });
 

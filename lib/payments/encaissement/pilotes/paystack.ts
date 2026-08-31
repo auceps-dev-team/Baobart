@@ -9,6 +9,7 @@ import {
   type FaitPaiement,
   type PiloteEncaissement,
 } from "@/lib/payments/encaissement/contrat";
+import { VERSEMENTS_PAYSTACK } from "@/lib/payments/encaissement/pilotes/paystack-versements";
 
 /**
  * Paystack.
@@ -71,19 +72,47 @@ function cle(): string {
 }
 
 /**
- * Ce que Paystack appelle un événement, traduit en une issue.
+ * Ce que Paystack appelle un événement, traduit en un sens et une issue.
  *
- * `charge.success` est le seul qui fasse entrer de l'argent. Les événements de
- * remboursement et de litige existent aussi ; ils ne passent pas par ici — un
- * renversement est un litige, et il laisse une écriture inverse plutôt que
- * d'effacer la première (voir `lib/domain/litiges.ts`).
+ * ────────────────────────────────────────────────────────────────────────────
+ * UNE SEULE ADRESSE POUR TOUT
+ *
+ * Paystack n'a qu'une adresse de rappel par intégration. Il y envoie les
+ * paiements entrants (`charge.*`), les virements sortants (`transfer.*`), les
+ * remboursements, les litiges, les factures. Sans tri à l'entrée, un virement
+ * réussi serait cherché parmi les commandes.
+ *
+ * Ce qui ne nous concerne pas rend `null` ici et devient « hors sujet » plus
+ * bas — pas une erreur. Un remboursement passe par `lib/domain/litiges.ts`, où
+ * il laisse une écriture inverse au lieu d'effacer la première.
  */
-function issueDe(evenement: string, statut: string): FaitPaiement["issue"] | null {
+function sensEtIssue(
+  evenement: string,
+  statut: string,
+): { sens: FaitPaiement["sens"]; issue: FaitPaiement["issue"] } | null {
   if (evenement === "charge.success") {
-    return statut === "success" ? "REUSSI" : "ECHOUE";
+    return {
+      sens: "ENCAISSEMENT",
+      issue: statut === "success" ? "REUSSI" : "ECHOUE",
+    };
   }
-  if (evenement === "charge.failed") return "ECHOUE";
-  // Tout le reste est authentique mais ne décide de rien ici.
+  if (evenement === "charge.failed") {
+    return { sens: "ENCAISSEMENT", issue: "ECHOUE" };
+  }
+
+  // Les virements. `reversed` n'est pas un échec : l'ordre est bien parti, et
+  // l'argent est revenu — souvent parce que le compte n'existe plus. Les deux
+  // ne se traitent pas pareil du côté des soldes.
+  if (evenement === "transfer.success") {
+    return { sens: "VERSEMENT", issue: "REUSSI" };
+  }
+  if (evenement === "transfer.failed") {
+    return { sens: "VERSEMENT", issue: "ECHOUE" };
+  }
+  if (evenement === "transfer.reversed") {
+    return { sens: "VERSEMENT", issue: "RETOURNE" };
+  }
+
   return null;
 }
 
@@ -185,6 +214,10 @@ export const PAYSTACK: PiloteEncaissement = {
     return confirmerAupresDePaystack(reference);
   },
 
+  // La moitié sortante vit dans son propre fichier : elle a ses trois
+  // appels et son cas d'OTP, et les mêler ici rendrait les deux illisibles.
+  versements: VERSEMENTS_PAYSTACK,
+
   lire(corpsBrut) {
     let brut: unknown;
     try {
@@ -209,22 +242,31 @@ export const PAYSTACK: PiloteEncaissement = {
     if (!reference) return null;
 
     const statut = typeof donnees.status === "string" ? donnees.status : "";
-    const issue = issueDe(evenement, statut);
-    if (!issue) return null;
+    const decision = sensEtIssue(evenement, statut);
+
+    // Authentique, mais pas notre affaire. Répondre par une erreur ferait
+    // rejouer sans fin un événement parfaitement normal.
+    if (!decision) return "HORS_SUJET";
 
     const devise = typeof donnees.currency === "string" ? donnees.currency : null;
     const brutMontant =
       typeof donnees.amount === "number" ? donnees.amount : null;
 
     return {
+      sens: decision.sens,
+      issue: decision.issue,
       // Paystack ne donne pas d'identifiant d'événement distinct : c'est
       // l'identifiant de la transaction qui sert de clé. Le nom de l'événement
       // y est joint, sans quoi un succès et un échec sur la même transaction se
       // confondraient — et le second serait pris pour un rejeu du premier.
       evenement: `${evenement}:${String(donnees.id ?? reference)}`,
       reference,
-      referenceOperateur: donnees.id !== undefined ? String(donnees.id) : null,
-      issue,
+      referenceOperateur:
+        typeof donnees.transfer_code === "string"
+          ? donnees.transfer_code
+          : donnees.id !== undefined
+            ? String(donnees.id)
+            : null,
       montant:
         brutMontant !== null && devise !== null && DEVISES.has(devise)
           ? depuisPaystack(brutMontant, devise as Currency)

@@ -343,7 +343,11 @@ export const FLUTTERWAVE: PiloteEncaissement = {
         : null;
 
     if (!type || !donnees) return null;
-    if (!type.startsWith("charge.")) return null;
+
+    // Flutterwave envoie aussi ses remboursements et ses virements sur la même
+    // adresse. Ce qui n'est pas une charge est authentique mais hors sujet ici
+    // — les virements sortants ne sont pas encore branchés chez lui.
+    if (!type.startsWith("charge.")) return "HORS_SUJET";
 
     const reference =
       typeof donnees.reference === "string"
@@ -395,6 +399,7 @@ export const FLUTTERWAVE: PiloteEncaissement = {
         : null;
 
     return {
+      sens: "ENCAISSEMENT",
       // L'identifiant d'événement du corps quand il existe, l'identifiant de
       // charge sinon — joint au type, pour qu'un échec après un succès ne passe
       // pas pour un rejeu.

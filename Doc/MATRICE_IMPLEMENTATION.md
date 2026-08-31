@@ -26,7 +26,8 @@
 | Litiges / chargebacks | §3.6-A | `lib/domain/litiges.ts` | ✅ | testé, concurrence incluse | Pas de scoring de risque amont (type Stripe Radar) |
 | Versements — calendrier/éligibilité | §3.9 | `lib/payments/*` | ✅ | 27 tests | — |
 | Versements — 8 états pilotables | §3.9 | `lib/payments/*`, `app/dashboard/systeme/versements` | ✅ | v1.26.0 | `UNCLAIMED`/`REVERSED` réservés opérateur, pas de bouton |
-| Versements — appel opérateur réel | §0-bis | `app/api/cron/versements/route.ts` | ❌ | — | Le cron ne fait que préparer (`CREATING`) |
+| Versements — appel opérateur réel | §0-bis | `lib/payments/envoi.ts`, `app/api/cron/versements` | ⚠️ | v1.33.0, 11 tests | Écrit : inscription du bénéficiaire, virement, cas OTP. Jamais exercé contre le vrai service. La correspondance rail → opérateur est demandée à Paystack, jamais inventée |
+| Versements — rappel entrant (`transfer.*`) | §0-bis | `lib/payments/encaissement/reception.ts` | ✅ | v1.33.0, 6 tests | Même adresse que les paiements ; le pilote trie par sens |
 | **Passage en caisse / checkout** | §0-bis | `lib/checkout/achat.ts` | ✅ | v1.30.0, deux chemins | Ouvre et s'arrête : c'est le rappel qui conclut |
 | **Paiement réel (mobile money)** | Bloquant n°1 | `lib/payments/encaissement/*`, `app/api/paiements/[fournisseur]/webhook` | ⚠️ | v1.32.0, 116 tests | Substrat + **trois pilotes écrits** (Paystack, Flutterwave, bac à sable). Reste à ouvrir un compte marchand : aucun n'a été exercé contre le vrai service |
 | Route de rappel — codes de retour, signature, bornes | §6.1 | `app/api/paiements/[fournisseur]/webhook` | ✅ | v1.32.0, 14 tests | Le seul point d'entrée public. Éprouvé par lui, pas seulement par la couche en dessous |

@@ -146,11 +146,25 @@ export async function POST(
     return NextResponse.json({ erreur: "signature" }, { status: 401 });
   }
 
-  const fait = pilote.lire(corps);
-  if (!fait) {
+  const lecture = pilote.lire(corps);
+
+  if (lecture === null) {
     await tracerRefus(fournisseur, corps, "corps illisible");
     return NextResponse.json({ erreur: "corps" }, { status: 400 });
   }
+
+  // Authentique, mais rien à faire ici : un litige, un remboursement, une
+  // facture. On accuse réception et on n'écrit rien.
+  //
+  // Rien du tout, et c'est délibéré : un opérateur envoie beaucoup plus
+  // d'événements qu'on n'en traite. En garder une trace remplirait la table
+  // d'un bruit permanent, et le plafond horaire des refus finirait par masquer
+  // le seul signal qui compte — un secret de signature décalé.
+  if (lecture === "HORS_SUJET") {
+    return NextResponse.json({ recu: true, effet: "HORS_SUJET" }, { status: 200 });
+  }
+
+  const fait = lecture;
 
   // À partir d'ici l'appel est authentique. Tout ce qui suit se solde par un
   // 200 : l'opérateur a fait son travail, c'est à nous de gérer la suite.

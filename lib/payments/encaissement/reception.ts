@@ -6,6 +6,13 @@ import { db } from "@/lib/db";
 import { LigneDejaEncaisseeError } from "@/lib/domain/orders";
 import { journal } from "@/lib/observabilite/journal";
 import {
+  TransitionInterditeError,
+  VersementIntrouvableError,
+  confirmerVersement,
+  echouerVersement,
+  retournerVersement,
+} from "@/lib/payments/versements";
+import {
   piloteNomme,
   type FaitPaiement,
 } from "@/lib/payments/encaissement/pilotes";
@@ -43,6 +50,10 @@ export type Effet =
   | "ENCAISSE"
   /** L'acheteur n'a pas payé : commande refermée, rien crédité. */
   | "ABANDONNE"
+  /** Le virement est arrivé chez le créateur. */
+  | "VERSE"
+  /** Le virement n'est pas parti, ou est revenu. Les soldes sont rendus. */
+  | "VERSEMENT_ECHOUE"
   /** Authentique et sans effet : rejeu, ou étape intermédiaire. */
   | "SANS_EFFET";
 
@@ -52,6 +63,8 @@ export type Reception =
       recu: false;
       motif:
         | "COMMANDE_INTROUVABLE"
+        | "VERSEMENT_INTROUVABLE"
+        | "TRANSITION_REFUSEE"
         | "MONTANT_DISCORDANT"
         | "DEVISE_DISCORDANTE"
         /** L'opérateur, interrogé, ne reconnaît pas la transaction annoncée. */
@@ -126,7 +139,10 @@ export async function recevoir(
     evenementId = existante.id;
   }
 
-  const suite = await appliquer(fournisseur, fait);
+  const suite =
+    fait.sens === "VERSEMENT"
+      ? await appliquerVersement(fait)
+      : await appliquer(fournisseur, fait);
 
   await db.paymentWebhookEvent.update({
     where: { id: evenementId },
@@ -139,6 +155,101 @@ export async function recevoir(
   });
 
   return suite;
+}
+
+/**
+ * Un rappel qui parle d'un virement sortant.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * CE N'EST PAS SYMÉTRIQUE DE L'ENCAISSEMENT
+ *
+ * À l'encaissement, on attend la confirmation avant de créditer : tant que
+ * l'opérateur n'a rien dit, personne n'a rien touché.
+ *
+ * Au versement, l'argent est **déjà parti** quand le rappel arrive. On ne
+ * décide plus s'il faut agir : on enregistre ce qui s'est passé. Un échec ou
+ * un retour rend les soldes au créateur, pour qu'ils repartent au cycle
+ * suivant — c'est la machine à huit états qui s'en charge, et elle a ses
+ * propres gardes.
+ *
+ * On ne confronte pas les montants ici. Le montant du virement, c'est nous qui
+ * l'avons fixé en l'ordonnant ; l'opérateur ne fait que le répéter. Le
+ * confronter n'ajouterait qu'un motif de refus sur un ordre déjà exécuté.
+ */
+async function appliquerVersement(fait: FaitPaiement): Promise<Reception> {
+  // Notre référence est l'identifiant du versement, celui qu'on a envoyé en
+  // ordonnant le virement.
+  const versement = await db.payout.findUnique({
+    where: { id: fait.reference },
+    select: { id: true, status: true },
+  });
+
+  if (!versement) {
+    return {
+      recu: false,
+      motif: "VERSEMENT_INTROUVABLE",
+      detail: `Aucun versement pour la référence ${fait.reference}.`,
+    };
+  }
+
+  if (fait.issue === "EN_COURS") return { recu: true, effet: "SANS_EFFET" };
+
+  const reference = fait.referenceOperateur ?? "sans référence";
+
+  try {
+    if (fait.issue === "REUSSI") {
+      await confirmerVersement(versement.id);
+      return { recu: true, effet: "VERSE" };
+    }
+
+    if (fait.issue === "RETOURNE") {
+      // ──────────────────────────────────────────────────────────────────────
+      // « RETOURNÉ » NE VEUT PAS DIRE LA MÊME CHOSE PARTOUT
+      //
+      // Notre machine réserve `RETURNED` aux versements dont l'argent est
+      // arrivé quelque part avant de revenir — d'où `COMPLETED` et `UNCLAIMED`
+      // pour seuls départs. Un versement encore `PROCESSING` n'a rien atteint :
+      // le renversement annoncé par l'opérateur est, de notre point de vue, un
+      // échec d'acheminement.
+      //
+      // On ne force donc pas une transition que la machine refuse. On enregistre
+      // l'échec, et le motif dit explicitement qu'il s'agit d'un renversement —
+      // l'information que l'exploitant cherchera est là, dans un mot plutôt que
+      // dans un état.
+      if (versement.status === "COMPLETED" || versement.status === "UNCLAIMED") {
+        await retournerVersement(
+          versement.id,
+          `Renversé par l'opérateur (${reference}).`,
+        );
+      } else {
+        await echouerVersement(
+          versement.id,
+          `Renversé par l'opérateur avant d'arriver (${reference}).`,
+        );
+      }
+      return { recu: true, effet: "VERSEMENT_ECHOUE" };
+    }
+
+    await echouerVersement(
+      versement.id,
+      `Refusé par l'opérateur (${reference}).`,
+    );
+    return { recu: true, effet: "VERSEMENT_ECHOUE" };
+  } catch (cause) {
+    // La machine refuse la transition : le versement était déjà dans cet état,
+    // ou dans un état d'où l'on ne va pas là. Un rejeu, presque toujours.
+    if (cause instanceof TransitionInterditeError) {
+      return { recu: true, effet: "SANS_EFFET" };
+    }
+    if (cause instanceof VersementIntrouvableError) {
+      return {
+        recu: false,
+        motif: "VERSEMENT_INTROUVABLE",
+        detail: `Versement ${fait.reference} disparu en cours de traitement.`,
+      };
+    }
+    throw cause;
+  }
 }
 
 async function appliquer(

@@ -74,19 +74,105 @@ export type Ouverture =
     }
   | { ok: false; message: string; definitif: boolean };
 
+/**
+ * De quel sens circule l'argent.
+ *
+ * Un opérateur n'a qu'une adresse de rappel. Il y envoie donc TOUT : les
+ * paiements entrants, les virements sortants, et quantité d'événements qui ne
+ * nous regardent pas. Sans ce marqueur, un virement réussi serait cherché parmi
+ * les commandes — et n'y étant pas, refusé comme « commande introuvable ».
+ */
+export type SensDeLArgent = "ENCAISSEMENT" | "VERSEMENT";
+
 /** Ce qu'un rappel d'opérateur nous apprend, une fois traduit. */
 export interface FaitPaiement {
+  sens: SensDeLArgent;
   /** L'identifiant de l'événement chez l'opérateur — la clé anti-rejeu. */
   evenement: string;
   /** Notre référence, celle qu'on a envoyée à l'ouverture. */
   reference: string;
   /** La référence de la transaction chez l'opérateur. */
   referenceOperateur: string | null;
-  /** Ce que l'opérateur affirme. */
-  issue: "REUSSI" | "ECHOUE" | "EN_COURS";
+  /**
+   * Ce que l'opérateur affirme.
+   *
+   * `RETOURNE` n'existe que pour les virements : l'argent est parti puis
+   * revenu, souvent parce que le compte du bénéficiaire n'existe plus. Ce
+   * n'est pas un échec — l'ordre a bien été exécuté —, et les deux ne se
+   * traitent pas pareil.
+   */
+  issue: "REUSSI" | "ECHOUE" | "EN_COURS" | "RETOURNE";
   /** Le montant encaissé, pour le confronter au nôtre. */
   montant: number | null;
   devise: string | null;
+}
+
+/** Le bénéficiaire d'un virement, tel qu'on le connaît. */
+export interface Beneficiaire {
+  /** Le nom du titulaire, tel que l'opérateur le connaît. */
+  nom: string;
+  /** Numéro mobile money, ou identifiant bancaire. */
+  compte: string;
+  /** Notre rail : « om », « wave », « mtn », « moov », « bank ». */
+  moyen: string;
+  devise: string;
+}
+
+export interface OrdreVersement {
+  /** Notre référence — l'identifiant du versement. C'est elle qui revient. */
+  reference: string;
+  /** Le bénéficiaire chez l'opérateur, obtenu une fois puis réutilisé. */
+  beneficiaire: string;
+  /** En unités mineures ISO 4217. */
+  montant: number;
+  devise: string;
+  /** Ce que le créateur lira sur son relevé. */
+  motif: string;
+}
+
+export type Inscription =
+  | { ok: true; reference: string }
+  | { ok: false; message: string; definitif: boolean };
+
+export type Envoi =
+  | {
+      ok: true;
+      /** Le code de l'ordre chez l'opérateur, à citer en cas de réclamation. */
+      referenceOperateur: string;
+    }
+  | {
+      ok: false;
+      message: string;
+      definitif: boolean;
+      /**
+       * L'opérateur exige un code à usage unique tapé par un humain.
+       *
+       * ────────────────────────────────────────────────────────────────────
+       * CE CAS N'EST PAS UNE PANNE, C'EST UN RÉGLAGE
+       *
+       * Paystack peut exiger un code envoyé au propriétaire du compte pour
+       * chaque virement. Tant que ce réglage est actif, **aucun versement
+       * automatique n'est possible** — et aucune quantité de code n'y changera
+       * quoi que ce soit. Il se désactive sur leur tableau de bord.
+       *
+       * On le distingue d'un échec ordinaire parce que le remède est
+       * entièrement différent : il n'y a rien à réessayer, il y a un réglage à
+       * changer.
+       */
+      otpRequis?: boolean;
+    };
+
+/**
+ * La moitié sortante : envoyer de l'argent, au lieu d'en recevoir.
+ *
+ * Facultative. Un opérateur peut très bien encaisser sans savoir verser, et
+ * c'est le cas de notre bac à sable comme de Flutterwave aujourd'hui.
+ */
+export interface PiloteVersement {
+  /** Enregistre le bénéficiaire chez l'opérateur, une fois pour toutes. */
+  inscrire(beneficiaire: Beneficiaire): Promise<Inscription>;
+  /** Ordonne le virement. L'argent part ; le rappel dira s'il est arrivé. */
+  ordonner(ordre: OrdreVersement): Promise<Envoi>;
 }
 
 export interface PiloteEncaissement {
@@ -102,8 +188,21 @@ export interface PiloteEncaissement {
    * des clés, l'échappement des accents — et la signature ne correspond plus.
    */
   authentifier(corpsBrut: string, entetes: Headers): boolean;
-  /** Traduit le corps en fait. Rend `null` si ce n'est pas un événement connu. */
-  lire(corpsBrut: string): FaitPaiement | null;
+  /**
+   * Traduit le corps en fait.
+   *
+   * Trois issues, et la distinction compte :
+   *
+   *   — un **fait**, qu'on va appliquer ;
+   *   — `"HORS_SUJET"` : authentique, mais rien à faire ici. Un opérateur
+   *     envoie ses litiges, ses remboursements et ses factures sur la même
+   *     adresse. Leur répondre par une erreur les ferait rejouer sans fin, et
+   *     remplirait le journal des refus au point d'y noyer un vrai secret
+   *     décalé ;
+   *   — `null` : illisible. Là, c'est une panne de configuration chez lui, et
+   *     il faut la lui faire remonter.
+   */
+  lire(corpsBrut: string): FaitPaiement | "HORS_SUJET" | null;
 
   /**
    * Demande à l'opérateur ce qu'il en est, au lieu de croire ce qu'il envoie.
@@ -125,6 +224,9 @@ export interface PiloteEncaissement {
   confirmer?(
     reference: string,
   ): Promise<{ confirme: boolean; montant: number | null; devise: string | null }>;
+
+  /** La moitié sortante, quand l'opérateur sait aussi verser. */
+  versements?: PiloteVersement;
 }
 
 /**

@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import type { FaitPaiement } from "@/lib/payments/encaissement/contrat";
 import {
   FLUTTERWAVE,
   referencePour,
@@ -100,6 +101,21 @@ describe("l'authentification d'un rappel", () => {
   });
 });
 
+/**
+ * Restreint une lecture à un fait.
+ *
+ * `lire()` rend trois choses : un fait, « hors sujet », ou `null`. Les deux
+ * dernières ont leurs propres tests ; partout ailleurs on veut un fait, et
+ * échouer bruyamment si ce n'en est pas un vaut mieux qu'un `?.` qui rend
+ * silencieusement `undefined` et fait passer l'assertion.
+ */
+function fait(lecture: FaitPaiement | "HORS_SUJET" | null): FaitPaiement {
+  if (lecture === null || lecture === "HORS_SUJET") {
+    throw new Error(`attendu un fait, reçu ${String(lecture)}`);
+  }
+  return lecture;
+}
+
 describe("la lecture d'un rappel", () => {
   function corps(patch: Record<string, unknown> = {}) {
     return JSON.stringify({
@@ -117,47 +133,56 @@ describe("la lecture d'un rappel", () => {
   }
 
   it("traduit un succès, montant converti en unités mineures", () => {
-    const fait = FLUTTERWAVE.lire(corps());
+    const lu = fait(FLUTTERWAVE.lire(corps()));
 
-    expect(fait?.issue).toBe("REUSSI");
-    expect(fait?.reference).toBe("cmdabc");
-    expect(fait?.evenement).toBe("evt_9");
-    expect(fait?.referenceOperateur).toBe("chg_Hq4oBRTJ4r");
+    expect(lu.sens).toBe("ENCAISSEMENT");
+    expect(lu.issue).toBe("REUSSI");
+    expect(lu.reference).toBe("cmdabc");
+    expect(lu.evenement).toBe("evt_9");
+    expect(lu.referenceOperateur).toBe("chg_Hq4oBRTJ4r");
     // Le franc CFA n'a pas de décimale : les deux valeurs coïncident, et c'est
     // exactement ce qui rendrait l'erreur invisible si on ne convertissait pas.
-    expect(fait?.montant).toBe(5_000);
+    expect(lu.montant).toBe(5_000);
   });
 
   it("convertit vraiment sur une devise à décimales", () => {
     // Cinquante euros valent 5 000 chez nous. Sans conversion, « 50 » serait
     // confronté à « 5000 » et tout paiement légitime serait refusé pour
     // discordance de montant.
-    const fait = FLUTTERWAVE.lire(corps({ amount: 50, currency: "EUR" }));
-    expect(fait?.montant).toBe(5_000);
-    expect(fait?.devise).toBe("EUR");
+    const lu = fait(FLUTTERWAVE.lire(corps({ amount: 50, currency: "EUR" })));
+    expect(lu.montant).toBe(5_000);
+    expect(lu.devise).toBe("EUR");
   });
 
   it("accepte un montant transmis en chaîne", () => {
-    expect(FLUTTERWAVE.lire(corps({ amount: "5000" }))?.montant).toBe(5_000);
+    expect(fait(FLUTTERWAVE.lire(corps({ amount: "5000" }))).montant).toBe(5_000);
   });
 
   it("n'annonce aucun montant sur une devise inconnue", () => {
-    expect(FLUTTERWAVE.lire(corps({ currency: "RWF" }))?.montant).toBeNull();
+    expect(fait(FLUTTERWAVE.lire(corps({ currency: "RWF" }))).montant).toBeNull();
   });
 
   it("reconnaît un échec, et laisse le reste en cours", () => {
-    expect(FLUTTERWAVE.lire(corps({ status: "failed" }))?.issue).toBe("ECHOUE");
-    expect(FLUTTERWAVE.lire(corps({ status: "cancelled" }))?.issue).toBe("ECHOUE");
+    expect(fait(FLUTTERWAVE.lire(corps({ status: "failed" }))).issue).toBe(
+      "ECHOUE",
+    );
+    expect(fait(FLUTTERWAVE.lire(corps({ status: "cancelled" }))).issue).toBe(
+      "ECHOUE",
+    );
     // Un état intermédiaire ne referme pas une commande qui vit encore.
-    expect(FLUTTERWAVE.lire(corps({ status: "pending" }))?.issue).toBe("EN_COURS");
+    expect(fait(FLUTTERWAVE.lire(corps({ status: "pending" }))).issue).toBe(
+      "EN_COURS",
+    );
   });
 
-  it("ignore les événements qui ne sont pas des charges", () => {
+  it("classe hors sujet les événements qui ne sont pas des charges", () => {
+    // Les virements sortants ne sont pas branchés chez Flutterwave. Leur
+    // répondre par une erreur le ferait rejouer sans fin.
     expect(
       FLUTTERWAVE.lire(
         JSON.stringify({ type: "refund.completed", data: { reference: "c" } }),
       ),
-    ).toBeNull();
+    ).toBe("HORS_SUJET");
   });
 
   it("rend null sur un corps illisible ou incomplet", () => {

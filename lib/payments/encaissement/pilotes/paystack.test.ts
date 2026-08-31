@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatMoney } from "@/lib/i18n/money";
+import type { FaitPaiement } from "@/lib/payments/encaissement/contrat";
 import {
   PAYSTACK,
   confirmerAupresDePaystack,
@@ -156,6 +157,21 @@ describe("l'authentification d'un rappel", () => {
   });
 });
 
+/**
+ * Restreint une lecture à un fait.
+ *
+ * `lire()` rend trois choses : un fait, « hors sujet », ou `null`. Les deux
+ * dernières ont leurs propres tests ; partout ailleurs on veut un fait, et
+ * échouer bruyamment si ce n'en est pas un vaut mieux qu'un `?.` qui rend
+ * silencieusement `undefined` et fait passer l'assertion.
+ */
+function fait(lecture: FaitPaiement | "HORS_SUJET" | null): FaitPaiement {
+  if (lecture === null || lecture === "HORS_SUJET") {
+    throw new Error(`attendu un fait, reçu ${String(lecture)}`);
+  }
+  return lecture;
+}
+
 describe("la lecture d'un rappel", () => {
   function corps(patch: Record<string, unknown> = {}) {
     return JSON.stringify({
@@ -172,50 +188,108 @@ describe("la lecture d'un rappel", () => {
   }
 
   it("traduit un succès, montant reconverti dans nos unités", () => {
-    const fait = PAYSTACK.lire(corps());
+    const lu = fait(PAYSTACK.lire(corps()));
 
-    expect(fait?.issue).toBe("REUSSI");
-    expect(fait?.reference).toBe("cmd-abc");
+    expect(lu.sens).toBe("ENCAISSEMENT");
+    expect(lu.issue).toBe("REUSSI");
+    expect(lu.reference).toBe("cmd-abc");
     // 500 000 chez eux, 5 000 chez nous. C'est cette ligne qui empêche de
     // créditer cent fois trop.
-    expect(fait?.montant).toBe(5_000);
-    expect(fait?.devise).toBe("XOF");
-    expect(fait?.referenceOperateur).toBe("302961");
+    expect(lu.montant).toBe(5_000);
+    expect(lu.devise).toBe("XOF");
+    expect(lu.referenceOperateur).toBe("302961");
   });
 
   it("distingue un succès d'un échec sur la même transaction", () => {
     // Sans le nom de l'événement dans la clé, le second serait pris pour un
     // rejeu du premier — et l'échec ne serait jamais traité.
-    const succes = PAYSTACK.lire(corps());
-    const echec = PAYSTACK.lire(
-      JSON.stringify({
-        event: "charge.failed",
-        data: { id: 302961, reference: "cmd-abc", status: "failed" },
-      }),
+    const succes = fait(PAYSTACK.lire(corps()));
+    const echec = fait(
+      PAYSTACK.lire(
+        JSON.stringify({
+          event: "charge.failed",
+          data: { id: 302961, reference: "cmd-abc", status: "failed" },
+        }),
+      ),
     );
 
-    expect(succes?.evenement).not.toBe(echec?.evenement);
-    expect(echec?.issue).toBe("ECHOUE");
+    expect(succes.evenement).not.toBe(echec.evenement);
+    expect(echec.issue).toBe("ECHOUE");
   });
 
   it("traite un charge.success au statut non abouti comme un échec", () => {
-    expect(PAYSTACK.lire(corps({ status: "abandoned" }))?.issue).toBe("ECHOUE");
+    expect(fait(PAYSTACK.lire(corps({ status: "abandoned" }))).issue).toBe(
+      "ECHOUE",
+    );
   });
 
-  it("ignore les événements dont ce module n'a pas à décider", () => {
+  it("classe hors sujet ce dont ce module n'a pas à décider", () => {
     // Remboursements et litiges passent par `lib/domain/litiges.ts`, où ils
     // laissent une écriture inverse au lieu d'effacer la première.
+    //
+    // « Hors sujet » et non `null` : Paystack n'a qu'une adresse de rappel et
+    // y envoie tout. Répondre par une erreur le ferait rejouer sans fin un
+    // événement parfaitement normal, et remplirait le journal des refus au
+    // point d'y noyer un vrai secret décalé.
     expect(
       PAYSTACK.lire(
         JSON.stringify({ event: "refund.processed", data: { reference: "c" } }),
       ),
-    ).toBeNull();
+    ).toBe("HORS_SUJET");
+  });
+
+  it("reconnaît les virements sortants, sur la même adresse", () => {
+    const reussi = fait(
+      PAYSTACK.lire(
+        JSON.stringify({
+          event: "transfer.success",
+          data: {
+            reference: "pay-1",
+            transfer_code: "TRF_x",
+            status: "success",
+            amount: 500_000,
+            currency: "XOF",
+          },
+        }),
+      ),
+    );
+
+    expect(reussi.sens).toBe("VERSEMENT");
+    expect(reussi.issue).toBe("REUSSI");
+    // C'est le code de transfert qu'on garde, pas l'identifiant : c'est lui
+    // qu'on cite à l'opérateur le jour où un créateur dit n'avoir rien reçu.
+    expect(reussi.referenceOperateur).toBe("TRF_x");
+  });
+
+  it("distingue un virement retourné d'un virement échoué", () => {
+    // L'ordre est bien parti et l'argent est revenu — souvent parce que le
+    // compte n'existe plus. Ce n'est pas le même état, ni le même remède.
+    const echoue = fait(
+      PAYSTACK.lire(
+        JSON.stringify({
+          event: "transfer.failed",
+          data: { reference: "pay-1", status: "failed" },
+        }),
+      ),
+    );
+    const retourne = fait(
+      PAYSTACK.lire(
+        JSON.stringify({
+          event: "transfer.reversed",
+          data: { reference: "pay-1", status: "reversed" },
+        }),
+      ),
+    );
+
+    expect(echoue.issue).toBe("ECHOUE");
+    expect(retourne.issue).toBe("RETOURNE");
+    expect(echoue.evenement).not.toBe(retourne.evenement);
   });
 
   it("n'annonce aucun montant sur une devise qu'il ne sait pas convertir", () => {
     // Un montant faux vaut moins que pas de montant : sans valeur, la
     // confrontation passe son tour au lieu de refuser à tort.
-    expect(PAYSTACK.lire(corps({ currency: "EUR" }))?.montant).toBeNull();
+    expect(fait(PAYSTACK.lire(corps({ currency: "EUR" }))).montant).toBeNull();
   });
 
   it("rend null sur un corps illisible ou incomplet", () => {

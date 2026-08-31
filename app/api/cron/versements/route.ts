@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { estOuverte } from "@/lib/config/fonctionnalites";
 import { journal } from "@/lib/observabilite/journal";
 import { preparerLeCycle } from "@/lib/payments/cycle";
+import { envoyerLesVersements } from "@/lib/payments/envoi";
 import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
 
 /**
@@ -17,8 +18,11 @@ import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
  * ────────────────────────────────────────────────────────────────────────────
  * CE QU'ELLE FAIT, ET CE QU'ELLE NE FAIT PAS
  *
- * Elle **prépare** : les versements sortent en état CREATING, soldes réservés.
- * Elle n'envoie rien à un opérateur — cette intégration n'existe pas encore.
+ * Elle **prépare**, puis **envoie**. La préparation sort les versements en état
+ * CREATING, soldes réservés ; l'envoi les ordonne chez l'opérateur et les fait
+ * passer en PROCESSING. Sans opérateur branché, l'envoi ne fait rien et les
+ * versements restent en CREATING — l'écran admin les fait alors avancer à la
+ * main, comme avant cette intégration.
  * Préparer sans envoyer est sans danger : un versement CREATING s'annule et
  * rend ses soldes.
  */
@@ -94,6 +98,14 @@ export async function GET(requete: Request) {
 
   const resultat = await preparerLeCycle({ rails });
 
+  // ── Et maintenant, on envoie ───────────────────────────────────────────────
+  //
+  // Préparer puis envoyer, dans cet ordre et dans le même passage : ce qui
+  // vient d'être préparé part le jour même. Sans opérateur branché, l'envoi ne
+  // fait rien et les versements restent en CREATING — l'écran admin les fait
+  // alors avancer à la main, comme avant.
+  const envoi = await envoyerLesVersements();
+
   // Les écartés sont regroupés par motif : trente lignes « sous le seuil » ne
   // disent rien de plus qu'une, et noieraient le motif qui compte.
   const parMotif: Record<string, number> = {};
@@ -127,5 +139,6 @@ export async function GET(requete: Request) {
     // Les erreurs techniques se lisent en entier : les résumer les ferait
     // passer pour des refus ordinaires et personne n'enquêterait.
     erreurs: erreurs.map((e) => ({ userId: e.userId, message: e.message })),
+    envoi,
   });
 }

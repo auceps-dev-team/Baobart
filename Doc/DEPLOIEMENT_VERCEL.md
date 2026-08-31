@@ -96,7 +96,7 @@ vide. C'est délibéré : mieux vaut ne rien faire que laisser l'URL ouverte.
 
 | Route | Cadence | Rôle |
 |---|---|---|
-| `/api/cron/versements` | lun-ven 6 h | Prépare les versements du cycle |
+| `/api/cron/versements` | lun-ven 6 h | Prépare **et envoie** les versements du cycle |
 | `/api/cron/courriels` | toutes les 5 min | Vide la file d'envoi |
 | `/api/cron/commandes` | chaque jour 4 h 30 | Referme les commandes qu'aucun rappel n'a conclues |
 
@@ -127,6 +127,18 @@ consiste à écrire un pilote de plus dans
 **L'URL de rappel à déclarer chez l'opérateur** est
 `https://<domaine>/api/paiements/<pilote>/webhook`. Elle est publique par
 nature : c'est la signature qui la protège, jamais son secret.
+
+Une seule adresse suffit : l'opérateur y envoie aussi bien les paiements
+entrants que les virements sortants, et le pilote les trie. Ce qui ne nous
+concerne pas — remboursements, litiges, factures — reçoit un 200 sans effet
+et sans trace. Leur répondre par une erreur les ferait rejouer sans fin, et
+remplirait le journal des refus au point d'y noyer le seul signal qui
+compte : un secret de signature décalé.
+
+**Avant le premier versement réel**, deux réglages à vérifier chez Paystack :
+l'OTP sur les transferts doit être **désactivé** (sinon aucun versement
+automatique n'est possible), et le solde doit être suffisant — l'argent versé
+sort du solde Paystack, pas d'un compte séparé.
 
 **Ne posez pas `CHECKOUT_SIMULATION_ENABLED` à côté.** La simulation prime
 quand elle est ouverte ; les faire cohabiter mélangerait dans la même base des

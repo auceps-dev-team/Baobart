@@ -116,6 +116,7 @@ let e = 0;
 function fait(reference: string, patch: Partial<FaitPaiement> = {}): FaitPaiement {
   e += 1;
   return {
+    sens: "ENCAISSEMENT",
     evenement: `evt-${e}`,
     reference,
     referenceOperateur: `op-${e}`,
@@ -450,5 +451,156 @@ describe("la péremption des commandes oubliées", () => {
       select: { error: true },
     });
     expect(trace.error).toContain("refermée");
+  });
+});
+
+describe("un rappel qui parle d'un virement sortant", () => {
+  /**
+   * Un versement déjà parti, en attente de confirmation.
+   *
+   * C'est l'état dans lequel le rappel de l'opérateur le trouve : l'argent est
+   * DÉJÀ sorti. On n'attend plus une autorisation, on enregistre une issue.
+   */
+  async function versementEnCours() {
+    n += 1;
+    const createur = await db.user.create({
+      data: {
+        email: `c-vers-${n}@baobart.test`,
+        profile: { create: { username: `c-vers-${n}`, displayName: `C ${n}` } },
+      },
+      select: { id: true },
+    });
+
+    const versement = await db.payout.create({
+      data: {
+        userId: createur.id,
+        method: "MOBILE_MONEY",
+        provider: "om",
+        accountRef: `2250700${n}`,
+        amount: 9_000,
+        currency: "XOF",
+        status: "PROCESSING",
+        providerRef: "TRF_x",
+      },
+      select: { id: true },
+    });
+
+    return { createur, versement };
+  }
+
+  function faitVersement(
+    reference: string,
+    issue: "REUSSI" | "ECHOUE" | "RETOURNE" | "EN_COURS",
+  ) {
+    e += 1;
+    return {
+      sens: "VERSEMENT" as const,
+      evenement: `evt-v-${e}`,
+      reference,
+      referenceOperateur: "TRF_x",
+      issue,
+      montant: null,
+      devise: null,
+    };
+  }
+
+  async function etatVersement(payoutId: string) {
+    return db.payout.findUniqueOrThrow({
+      where: { id: payoutId },
+      select: { status: true, failureReason: true },
+    });
+  }
+
+  it("confirme le versement sur un succès", async () => {
+    const { versement } = await versementEnCours();
+
+    const suite = await recevoir(
+      "bac-a-sable",
+      faitVersement(versement.id, "REUSSI"),
+      {},
+    );
+
+    expect(suite).toEqual({ recu: true, effet: "VERSE" });
+    expect((await etatVersement(versement.id)).status).toBe("COMPLETED");
+  });
+
+  it("fait échouer le versement, et garde le motif", async () => {
+    const { versement } = await versementEnCours();
+
+    const suite = await recevoir(
+      "bac-a-sable",
+      faitVersement(versement.id, "ECHOUE"),
+      {},
+    );
+
+    expect(suite).toEqual({ recu: true, effet: "VERSEMENT_ECHOUE" });
+    const apres = await etatVersement(versement.id);
+    expect(apres.status).toBe("FAILED");
+    expect(apres.failureReason).toContain("TRF_x");
+  });
+
+  it("traite un renversement avant arrivée comme un échec, en le nommant", async () => {
+    // Notre machine réserve RETURNED aux versements dont l'argent est arrivé
+    // quelque part avant de revenir. Un versement encore PROCESSING n'a rien
+    // atteint : on n'invente pas une transition que la machine refuse, et
+    // l'information vit dans le motif.
+    const { versement } = await versementEnCours();
+
+    await recevoir("bac-a-sable", faitVersement(versement.id, "RETOURNE"), {});
+
+    const apres = await etatVersement(versement.id);
+    expect(apres.status).toBe("FAILED");
+    expect(apres.failureReason).toContain("Renversé");
+  });
+
+  it("marque RETOURNÉ un versement déjà arrivé, puis renversé", async () => {
+    const { versement } = await versementEnCours();
+    await recevoir("bac-a-sable", faitVersement(versement.id, "REUSSI"), {});
+
+    await recevoir("bac-a-sable", faitVersement(versement.id, "RETOURNE"), {});
+
+    expect((await etatVersement(versement.id)).status).toBe("RETURNED");
+  });
+
+  it("ne décide de rien sur une étape intermédiaire", async () => {
+    const { versement } = await versementEnCours();
+
+    const suite = await recevoir(
+      "bac-a-sable",
+      faitVersement(versement.id, "EN_COURS"),
+      {},
+    );
+
+    expect(suite).toEqual({ recu: true, effet: "SANS_EFFET" });
+    expect((await etatVersement(versement.id)).status).toBe("PROCESSING");
+  });
+
+  it("ne cherche pas un virement parmi les commandes", async () => {
+    // Sans le marqueur de sens, un virement réussi serait cherché parmi les
+    // commandes — et n'y étant pas, refusé comme « commande introuvable ».
+    const suite = await recevoir(
+      "bac-a-sable",
+      faitVersement("versement-imaginaire", "REUSSI"),
+      {},
+    );
+
+    expect(suite.recu).toBe(false);
+    expect(suite.recu === false && suite.motif).toBe("VERSEMENT_INTROUVABLE");
+  });
+
+  it("laisse passer un rejeu sans rien casser", async () => {
+    const { versement } = await versementEnCours();
+    await recevoir("bac-a-sable", faitVersement(versement.id, "REUSSI"), {});
+
+    // Un second succès, sous un autre identifiant d'événement : la machine
+    // refuse la transition, et ce refus est le cas normal du rejeu.
+    const second = await recevoir(
+      "bac-a-sable",
+      faitVersement(versement.id, "REUSSI"),
+      {},
+    );
+
+    expect(second).toEqual({ recu: true, effet: "SANS_EFFET" });
+    expect((await etatVersement(versement.id)).status).toBe("COMPLETED");
   });
 });

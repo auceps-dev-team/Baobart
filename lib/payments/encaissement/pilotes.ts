@@ -92,11 +92,21 @@ const BAC_A_SABLE: PiloteEncaissement = {
     const issue = typeof o.status === "string" ? o.status : null;
 
     if (!evenement || !reference) return null;
-    if (issue !== "REUSSI" && issue !== "ECHOUE" && issue !== "EN_COURS") {
+    if (
+      issue !== "REUSSI" &&
+      issue !== "ECHOUE" &&
+      issue !== "EN_COURS" &&
+      issue !== "RETOURNE"
+    ) {
       return null;
     }
 
+    // Le bac à sable sait jouer les deux sens : c'est ce qui permet
+    // d'éprouver le virement sortant sans opérateur.
+    const sens = o.kind === "VERSEMENT" ? "VERSEMENT" : "ENCAISSEMENT";
+
     return {
+      sens,
       evenement,
       reference,
       referenceOperateur:

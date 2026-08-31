@@ -473,6 +473,20 @@ model PayoutAccount {
   /// compte est le premier motif de rejet d'un virement.
   holderName String?
 
+  /// Le bénéficiaire tel que l'opérateur l'a enregistré.
+  ///
+  /// Chez Paystack, envoyer de l'argent suppose d'abord de créer un
+  /// « transfer recipient » et d'en garder le code. Le recréer à chaque
+  /// versement multiplierait les bénéficiaires en double chez l'opérateur, et
+  /// rendrait illisible le jour où l'on doit retrouver un virement contesté.
+  providerRecipientRef String?
+
+  /// Quel opérateur a délivré cette référence.
+  ///
+  /// Elle ne vaut que chez lui : changer d'opérateur doit la rendre caduque,
+  /// sans quoi on enverrait un code Paystack à Flutterwave.
+  recipientProvider String?
+
   /// Vérifié par un contrôle d'identité. Enregistré mais **pas encore exigé** :
   /// aucun KYC n'existe, et l'exiger aujourd'hui ne paierait personne. À rendre
   /// obligatoire le jour où le contrôle sera en place.
