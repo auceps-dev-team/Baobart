@@ -16,6 +16,17 @@ recoupées ; les affirmations les plus sensibles (checkout simulé, cron, mot de
 
 ---
 
+> **⚠️ Ce document date du 28 août 2026 et n'a pas été revu depuis.**
+>
+> Deux jalons ont passé (v1.30.0 à v1.33.0) : l'encaissement mobile money et
+> l'envoi des versements existent, la réinitialisation du mot de passe aussi.
+> Ses constats sur les cinq points bloquants sont donc **périmés** — voir le
+> §0-bis du plan, tenu à jour, et la seconde passe en §16 de
+> `VERIFICATION_GUMROAD.md`.
+>
+> Il est conservé tel quel : un audit qu'on récrit après coup ne dit plus ce
+> qu'on savait le jour où on l'a écrit.
+
 ## 1. Ce que le plan ne documente pas encore
 
 Le §0-bis (« journal de ce qui existe réellement ») s'arrête à v1.17.0. Neuf versions plus tard :

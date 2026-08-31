@@ -1067,8 +1067,36 @@ Community → ForumCategory → ForumTopic → ForumPost ; ForumMembership (rôl
 - **FCFA sans cents** : entiers FCFA (adapter, pas copier, le modèle cents de Gumroad).
 - Formatage localisé : `180 000 F`, `₦45 000`, `GH₵120`, `KSh 5 000`.
 - `ExchangeRate` (paire + taux + date) pour la conversion d'affichage.
-- Passerelles : Flutterwave (prim) + Paystack + CinetPay/PayDunya (OM/MTN/Moov/Wave) + Stripe.
-- Payouts : virement local + **mobile money** (numéro vérifié, KYC).
+
+> **➕ Vérifié le 31 août 2026 → `VERIFICATION_GUMROAD.md` §16.** Le référent a
+> construit une couche entière de présentation en devise locale dans le mois
+> écoulé, absente de ce plan. Trois corrections à apporter ici le jour où l'on
+> écrira `ExchangeRate` :
+>
+> **(a) « paire + taux + date » ne suffit pas.** Il faut une **expiration** et
+> un **identifiant de devis**, dès le premier jet. L'acheteur doit être débité
+> exactement ce qu'il a vu ; sans expiration, un taux qui bouge entre
+> l'affichage et le débit fait payer autre chose que le prix annoncé. Ajouter
+> l'expiration après coup obligerait à réécrire les charges déjà émises.
+>
+> **(b) Le taux à stocker inclut la marge du prestataire, et le taux de base ne
+> doit PAS l'être** — sans quoi on peut reconstituer la marge.
+>
+> **(c) Prévoir une table de taux de secours versionnée avec le code.** Quand le
+> fournisseur ne répond pas, on vend à un taux périmé mais connu plutôt que de
+> fermer la boutique. L'écart se règle en comptabilité ; une journée de ventes
+> perdue, non.
+>
+> Rien de ceci n'est urgent : Baobart vend en franc CFA à des acheteurs en zone
+> franc CFA, il n'y a pas de conversion. Cela le devient le jour où la diaspora
+> achète.
+- ~~Passerelles : Flutterwave (prim)~~ → **Paystack en premier** (v1.31.0). Il
+  règle en XOF, son parcours tient en un appel, et Stripe dessert l'Afrique de
+  l'Ouest *via* lui. Flutterwave est écrit et suit. CinetPay/PayDunya restent
+  à faire ; PayPal est sans objet (pas de XOF).
+- Payouts : virement local + **mobile money** — écrit en v1.33.0
+  (`lib/payments/envoi.ts`), jamais exercé contre le vrai service. Le KYC
+  reste à faire : `PayoutAccount.verifiedAt` existe et n'est exigé nulle part.
 - **Paiement récurrent** des plans §2.3 via Flutterwave subscriptions.
 
 ### 6.2 Jobs, Services, Événements (Jobs monétisés en M4)

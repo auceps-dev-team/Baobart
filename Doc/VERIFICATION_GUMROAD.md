@@ -1,7 +1,13 @@
 # Vérification du plan contre le dépôt Gumroad
 
 **Relevé des écarts entre `PLAN_REFONTE_BAOBART_GUMROAD.md` (v10) et le code réel**
-**Document V — v1.0 — 2 août 2026**
+**Document V — v2.0 — 31 août 2026**
+
+> **Deux passes, un mois d'écart.** Les sections 1 à 15 datent du 2 août et
+> restent valables sauf mention contraire ; la **section 12** consigne la
+> seconde passe. Le dépôt référent a reçu **581 commits** dans l'intervalle, et
+> une couche entière y est apparue que ni le plan ni la première passe ne
+> connaissaient.
 
 ---
 
@@ -27,8 +33,10 @@ Ce document est la trace. Le plan sera corrigé, mais c'est ici qu'on retrouvera
 | | |
 |---|---|
 | Dépôt | `antiwork/gumroad` — licence **MIT** |
-| Commit | `a475e3f9e5f5b3e6303cdd74448b3703dca62920` (1er août 2026) |
-| Portée lue | `app/`, `lib/`, `db/`, `config/` — 3 082 fichiers Ruby |
+| Commit — passe 1 | `a475e3f9e5f5b3e6303cdd74448b3703dca62920` (1er août 2026) |
+| Commit — passe 2 | `3fd2d6663da864777ab45a0a11b5f1776a1041c6` (31 août 2026) |
+| Écart entre les deux | **581 commits** |
+| Portée lue | `app/`, `lib/`, `db/`, `config/` — 3 082 fichiers Ruby à la passe 1 |
 | Nature | **Spécification**. Aucun code Ruby n'est copié ; la marque Gumroad n'est jamais réutilisée. |
 
 Le clone est local et en lecture seule, **hors du dépôt Baobart**, pour qu'aucun
@@ -905,3 +913,130 @@ sujets décrits mais jamais lus dans le détail :
 
 Sauf mention contraire dans ce document, une affirmation du plan reste **non
 vérifiée**.
+
+---
+
+## 16. Seconde passe — 31 août 2026
+
+Un mois, 581 commits. Cette section ne relit pas tout : elle consigne **ce qui a
+changé depuis la première passe**, et ce que Baobart doit en retenir.
+
+### 16.0 Ce qui n'a pas bougé
+
+Les citations de fichiers de la première passe tiennent toutes celles qui ont
+été revérifiées :
+
+| Cité en §7.1 | Toujours à `app/business/payments/charging/charge_processor.rb` |
+|---|---|
+| `holder_of_funds.rb` | présent, même dossier |
+| `charge_intent.rb`, `charge_event.rb` | présents |
+| `balance.rb`, `balance_transaction.rb` | présents |
+
+Les constats des sections 2 à 11 n'ont donc **pas** à être remis en cause en
+bloc. Ce qui suit s'y ajoute.
+
+### 16.1 ➕ LA DÉCOUVERTE : une couche de présentation en devise locale
+
+C'est l'apport principal du mois, et il est entièrement absent du plan comme de
+la première passe. Cinq fichiers neufs :
+
+| Fichier | Rôle |
+|---|---|
+| `app/models/charge_presentment.rb` | Ce qui est montré et facturé, par processeur et par devise |
+| `app/services/charge/presentment_orchestrator.rb` | Décide et fige les montants avant l'appel au processeur |
+| `app/services/charge/presentment_allocator.rb` | Répartit le total exact entre les lignes d'achat |
+| `app/services/charge/direct_listed_presentment.rb` | Le cas sans conversion |
+| `app/services/charge/method_forced_presentment.rb` | Le cas où le moyen de paiement impose sa devise |
+
+**« Présentation » veut dire les deux à la fois** : la devise dans laquelle
+l'acheteur *voit* le prix, et celle dans laquelle il est *réellement débité*.
+C'est la distinction que le §3.7-F du plan appelle « devis FX », et elle est
+plus subtile qu'annoncé.
+
+### 16.2 ➕ Cinq principes de conception à transposer
+
+Chacun répond à une manière précise de perdre de l'argent ou la confiance.
+
+**L'acheteur est débité exactement ce qu'il a vu.** Le devis qu'il a confirmé
+est verrouillé et vérifié au moment de la charge ; aucun devis frais n'est émis
+en cours de route. Sans cette règle, un taux qui bouge entre l'affichage et le
+débit fait payer autre chose que le prix annoncé — et c'est indéfendable.
+
+**Le taux stocké inclut la marge du processeur, et le taux de base n'est
+délibérément PAS conservé** — pour qu'on ne puisse pas reconstituer la marge.
+C'est une décision sur ce qu'il ne faut *pas* écrire, et elle mérite d'être
+notée : la plupart des schémas font l'inverse par réflexe.
+
+**Trois champs de devis, tous présents ou tous vides.** Identifiant du devis,
+date d'expiration, taux. Une ligne à moitié renseignée n'a aucun sens — soit la
+charge est adossée à un devis, soit elle est en devise directe.
+
+**L'écart d'arrondi est signé, et sa prise en charge est revérifiée.** Arrondir
+le total de l'acheteur déplace quelques centimes ; la plateforme les absorbe,
+mais seulement si sa commission réelle les couvre — ce qui est revérifié à la
+charge, pas prédit au devis. Une remise ou une opération commerciale peut avoir
+rendu la prédiction fausse entre-temps.
+
+**On échoue fermé.** Si la répartition du total entre les lignes ne trouve
+aucune composante non fiscale pour porter l'écart d'arrondi, la charge échoue —
+elle ne retombe pas silencieusement en dollars. Débiter dans une autre devise
+que celle annoncée serait pire que ne pas débiter.
+
+### 16.3 ➕ Une table de taux de secours, versionnée avec le code
+
+`lib/currency/backup_rates.json`. Une leçon d'exploitation, pas d'architecture :
+quand le fournisseur de taux ne répond pas, on ne ferme pas la boutique — on
+tombe sur une table périmée mais connue. Le prix est légèrement faux, la vente a
+lieu, et l'écart se règle en comptabilité. L'inverse ferait perdre une journée
+de ventes pour une panne chez un tiers.
+
+### 16.4 ➕ `FlowOfFunds` — un paiement n'a pas un montant, il en a cinq
+
+Un paiement international change de valeur à chaque étape, et chaque étape a sa
+propre devise :
+
+| Étape | Ce qu'elle porte |
+|---|---|
+| Émis | Ce que l'établissement d'origine a débité |
+| Réglé | Ce qui est arrivé après le règlement interbancaire |
+| Part plateforme | La commission prélevée |
+| Brut marchand | Ce qui atteint le compte du vendeur |
+| Net marchand | Ce qu'il touche après prélèvement |
+
+Un champ unique suppose que la valeur ne bouge pas du début à la fin. Elle
+bouge. C'est ce qui explique les six montants de `BalanceTransaction` relevés en
+§5.2 : ils ne sont pas une coquetterie comptable, ils sont l'empreinte de ces
+étapes.
+
+### 16.5 Conséquences pour Baobart — ce qui change, ce qui ne change pas
+
+**Rien de ceci n'est urgent.** Baobart vend en franc CFA à des acheteurs en zone
+franc CFA : il n'y a pas de conversion, donc pas de présentation à gérer. La
+`Currency` du schéma porte huit devises, mais une seule est réellement
+exploitée.
+
+**Cela le devient le jour où la diaspora achète.** Un acheteur payant en euro ou
+en dollar fait entrer d'un coup les cinq principes du §12.2. C'est exactement le
+chantier que le plan situe en M2 sous « checkout multi-devises », et il a
+désormais un modèle de référence complet plutôt qu'une ligne de feuille de
+route.
+
+**Deux choses à faire tout de suite, et elles sont petites.** D'abord ne pas
+créer de dette : `ExchangeRate` n'existe pas encore, et le jour où on l'écrira
+il faudra y prévoir l'expiration du devis dès le premier jet — l'ajouter après
+coup obligerait à réécrire les charges déjà émises. Ensuite, se souvenir que
+notre `formatMoney` affiche déjà huit devises alors qu'une seule est encaissable
+: c'est une promesse que l'interface tient et que le paiement ne tient pas.
+
+### 16.6 Ce que cette passe n'a PAS fait
+
+Elle a relu la trajectoire de l'argent, pas le dépôt. Les 581 commits touchent
+aussi les passages programmés, les courriels de reçu, les intégrations et
+l'administration — **non revus**. Les sections 2, 4, 6 et 9 à 15 datent donc
+toujours du 2 août, et un mois de commits a pu les décaler sans qu'on le sache.
+
+C'est un choix : relire un dépôt de trois mille fichiers à chaque jalon coûte
+plus que ce qu'il rapporte. La trajectoire de l'argent a été privilégiée parce
+que c'est là que Baobart travaillait ce mois-ci, et parce que c'est le seul
+domaine où se tromper coûte de l'argent réel.
+
