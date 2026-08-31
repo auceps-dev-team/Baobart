@@ -42,6 +42,22 @@ const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
   reactStrictMode: true,
   typedRoutes: true,
+
+  /**
+   * Ce que le bundler ne doit PAS empaqueter.
+   *
+   * `ioredis` est un module Node : il ouvre des sockets et lit des fichiers. Il
+   * n'a rien à faire dans un graphe de composants — mais il y entre sans qu'on
+   * le veuille, parce que la limitation vit dans `lib/auth/actions.ts`, que
+   * presque chaque page importe pour son bouton de déconnexion.
+   *
+   * Le déclarer externe évite au bundler d'essayer de le suivre. Ce n'est pas
+   * une correction de panne — la seule qu'on cherchait venait d'ailleurs — mais
+   * une hygiène : un client Redis n'a pas à traverser l'analyse de dépendances
+   * d'un graphe de composants, et le jour où il le fera mal, la faute sera
+   * illisible.
+   */
+  serverExternalPackages: ["ioredis"],
   images: {
     // Les médias (shots, produits) vivent sur S3/CDN, jamais en base (PLAN §8.2).
     remotePatterns: hotesDesApercus(),

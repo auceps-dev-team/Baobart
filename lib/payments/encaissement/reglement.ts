@@ -76,7 +76,12 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
           // Vers l'espace gardé, pas vers le fichier : la route de retrait
           // revérifie tout à chaque clic (remboursement, litige, accès retiré,
           // quota). Une URL signée dans un courriel ne revérifie plus rien.
-          lien: base ? `${base}/dashboard/telechargements` : undefined,
+          //
+          // Et vers les ACHATS, pas les téléchargements. L'écran des
+          // téléchargements liste ce qui a déjà été retiré : juste après un
+          // achat, il est vide. Le reçu y menait, et l'acheteur y trouvait une
+          // page qui semblait dire qu'il n'avait rien acheté.
+          lien: base ? `${base}/dashboard/achats` : undefined,
         },
       },
       tx,

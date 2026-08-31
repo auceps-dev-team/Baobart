@@ -14,9 +14,21 @@ if (existsSync(".env")) {
   process.loadEnvFile(".env");
 }
 
+/**
+ * Deux bases, deux usages, et surtout deux processus.
+ *
+ * `test` sert aux tests d'intégration ; `e2e` au navigateur. Les faire
+ * partager une base rendrait impossible de lancer les deux à la fois — et
+ * pire, un `TRUNCATE` d'un côté viderait les données que l'autre est en train
+ * de parcourir, avec des échecs qui n'ont l'air de rien.
+ */
+const cible = process.argv[2] === "e2e" ? "e2e" : "test";
+
 const url =
-  process.env.DATABASE_URL_TEST ??
-  "postgresql://baobart:baobart@localhost:5433/baobart_test?schema=public";
+  (cible === "e2e"
+    ? process.env.DATABASE_URL_E2E
+    : process.env.DATABASE_URL_TEST) ??
+  `postgresql://baobart:baobart@localhost:5433/baobart_${cible}?schema=public`;
 
 const nomBase = new URL(url).pathname.replace(/^\//, "");
 const conteneur = process.env.POSTGRES_CONTAINER ?? "baobart-postgres";
@@ -80,4 +92,4 @@ run(process.execPath, [prisma, "migrate", "deploy"], {
   env: { ...process.env, DATABASE_URL: url, DIRECT_URL: url },
 });
 
-console.log("Base de test prête.");
+console.log(`Base « ${nomBase} » prête.`);

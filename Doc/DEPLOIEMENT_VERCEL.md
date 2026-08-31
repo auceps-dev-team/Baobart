@@ -1,11 +1,42 @@
 # Déploiement sur Vercel — mode opératoire
 
-**Août 2026 · application v1.17.0**
+**31 août 2026 · application v1.34.0**
 
 > `SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md` décrit la stratégie et le
 > self-hosting Docker. Ce document-ci est la **procédure**, avec les valeurs qui
 > existent aujourd'hui dans le dépôt. Là où les deux divergent, c'est celui-ci
 > qui décrit le code.
+
+---
+
+## ⚠️ Deux choses à ne pas oublier avant la mise en ligne
+
+Elles ne s'écrivent pas dans le code, et aucune n'échoue bruyamment. Le service
+démarre, les pages s'affichent, et la faute ne se voit qu'au moment où elle
+coûte quelque chose.
+
+### 1. `RATE_LIMIT_DRIVER=redis` et `REDIS_URL`
+
+Sans elles, les compteurs de limitation vivent **dans le processus**. En
+serverless, chaque instance a les siens : dix instances autorisent dix fois la
+limite.
+
+C'est le pire genre de panne, celle qui a l'air de fonctionner — la page dit
+« protégé », les compteurs tournent, et l'attaque passe. L'écran **Système ·
+Configuration** l'affiche en avertissement dès qu'on est en production ; encore
+faut-il aller le regarder.
+
+### 2. Désactiver l'OTP sur les transferts Paystack
+
+À faire **avant le premier passage de versements**, sur leur tableau de bord,
+section Transfers.
+
+Tant qu'il est actif, Paystack réclame un code à usage unique envoyé au
+propriétaire du compte pour **chaque** virement. Aucun versement automatique
+n'est alors possible, et aucune quantité de code n'y changera quoi que ce soit.
+Le passage s'arrête net au premier versement et le journalise en erreur — plutôt
+que de faire échouer tous les créateurs pour la même raison — mais personne
+n'est payé ce jour-là.
 
 ---
 
@@ -312,6 +343,33 @@ C'est sans danger : un versement `CREATING` s'annule et rend ses soldes.
    - `/api/cron/versements` répond 404 sans le secret.
 
 ---
+
+## 6 bis. Les tests au navigateur
+
+```bash
+pnpm db:e2e:setup   # une fois : crée baobart_e2e et applique les migrations
+pnpm test:e2e       # construit, démarre, et traverse l'application
+```
+
+Ils tournent sur une **base à part** (`baobart_e2e`) et sur le **port 3100**,
+pour ne piétiner ni la base d'intégration ni un `pnpm dev` déjà ouvert.
+
+**Ils construisent l'application avant de la traverser**, et ce n'est pas du
+zèle. La première version lançait `next dev` : deux parcours y échouaient sur du
+code parfaitement correct. En mode développement, la redirection qui suit une
+action serveur n'aboutit pas — le serveur répond bien 303 avec sa cible, le
+client abandonne la requête qui devait l'y emmener, et le formulaire reste sur
+« Un instant… » alors que le compte est créé et la session ouverte. Contre un
+build, le même parcours passe.
+
+Une suite qui échoue sur du code correct ne coûte pas seulement du temps : elle
+apprend à ne plus la croire. Les deux minutes de construction sont le prix de
+sa crédibilité.
+
+Ce qu'ils couvrent : le parcours complet (inscription → achat → espace
+acheteur), les gardes des écrans d'exploitation — chacun visité séparément,
+parce que Next.js ne réexécute pas un layout entre deux pages sœurs — et la
+limitation par l'adresse, frappée sur la vraie route.
 
 ## 7. Intégration continue
 

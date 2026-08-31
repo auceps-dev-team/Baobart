@@ -28,3 +28,10 @@ Thumbs.db
 
 # docker (volumes locaux)
 .docker-data/
+
+# Tests au navigateur : traces, captures et rapports.
+# Ils se regénèrent à chaque passage et pèsent lourd.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
