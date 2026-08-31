@@ -97,7 +97,9 @@
 | E-mail — lien de téléchargement | §0-bis | `lib/email/modeles.ts` | ⛔ | — | **Volontairement jamais déposé** : son texte promet une URL signée, donc un laissez-passer au porteur qui contournerait remboursement, litige, accès retiré et quota. Le reçu porte un lien vers l'espace gardé à la place |
 | E-mail — avis de versement | §0-bis | `lib/payments/versements.ts` | ✅ | v1.30.0, déposé au passage en `PROCESSING` | — |
 | E-mail — réinitialisation mot de passe | §0-bis | `lib/auth/reinitialisation.ts`, `app/reinitialiser/[jeton]` | ✅ | v1.30.0, 14 tests | Jeton haché, une heure, usage unique, ferme toutes les sessions |
-| Ordonnanceur cron | §0-bis | `vercel.json`, `app/api/cron/*` | ✅ | v1.21.0-1.23.0 | — |
+| Ordonnanceur cron | §0-bis | `vercel.json`, `app/api/cron/*` | ✅ | v1.21.0-1.23.0 | Trois passages : versements, courriels, ménage des commandes |
+| **Limitation du débit** | §3.7-D | `lib/securite/*` | ✅ | v1.34.0, 45 tests | Fenêtre glissante, pilotes mémoire/Redis, laisse passer en panne. Borne connexion, inscription, oubli, rappels d'opérateur |
+| Redis | §M0 | `lib/securite/pilotes.ts` | ⚠️ | v1.34.0 | Branché **pour la limitation seulement**. Ni cache, ni file, ni sessions |
 
 ## 6. Micro-services (schéma prêt, zéro route)
 

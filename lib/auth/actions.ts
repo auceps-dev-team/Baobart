@@ -13,6 +13,7 @@ import {
   demanderReinitialisation as demanderLienDeReinitialisation,
 } from "@/lib/auth/reinitialisation";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
+import { verifierLimiteAction } from "@/lib/securite/garde";
 import { deposer } from "@/lib/email/outbox";
 
 /**
@@ -32,6 +33,21 @@ export interface EtatFormulaire {
 
 const MESSAGE_IDENTIFIANTS = "Adresse ou mot de passe incorrect.";
 
+/**
+ * Ce qu'on répond quand la limite est atteinte.
+ *
+ * Le même texte partout, et il ne dit **rien** de ce qui a été tenté : ni si
+ * l'adresse existe, ni combien d'essais restent. Annoncer « il vous reste deux
+ * essais » indiquerait à un attaquant qu'il est sur la bonne piste, et lui
+ * donnerait le rythme exact auquel repartir.
+ */
+function tropDEssais(secondes: number): EtatFormulaire {
+  const minutes = Math.max(1, Math.ceil(secondes / 60));
+  return {
+    erreur: `Trop de tentatives. Réessaie dans ${minutes} minute${minutes > 1 ? "s" : ""}.`,
+  };
+}
+
 function normaliserEmail(valeur: string): string {
   return valeur.trim().toLowerCase();
 }
@@ -50,6 +66,13 @@ export async function connecter(
   _precedent: EtatFormulaire,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
+  // La borne AVANT de toucher à la base : un essai refusé ne doit rien coûter
+  // de plus qu'une lecture de compteur. Vérifier le mot de passe d'abord ferait
+  // payer un hachage scrypt à chaque tentative — c'est justement ce qu'un
+  // attaquant cherche à nous faire faire un million de fois.
+  const borne = await verifierLimiteAction("connexion");
+  if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
   const motDePasse = String(donnees.get("motDePasse") ?? "");
 
@@ -83,6 +106,9 @@ export async function inscrire(
   _precedent: EtatFormulaire,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
+  const borne = await verifierLimiteAction("inscription");
+  if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
   const prenom = String(donnees.get("prenom") ?? "").trim();
   const nom = String(donnees.get("nom") ?? "").trim();
   const username = normaliserUsername(String(donnees.get("username") ?? ""));
@@ -199,6 +225,13 @@ export async function demanderReinitialisation(
   _precedent: EtatFormulaire,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
+  // Il existe déjà un plafond PAR COMPTE dans `lib/auth/reinitialisation.ts`.
+  // Celui-ci est par adresse, et il couvre autre chose : quelqu'un qui essaie
+  // cent adresses différentes pour savoir lesquelles sont chez nous. Le silence
+  // de la réponse ne suffit pas si l'on peut poser la question mille fois.
+  const borne = await verifierLimiteAction("oubli");
+  if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
 
   if (!email.includes("@")) {

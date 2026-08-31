@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   constatAdressePublique,
   constatBase,
+  constatLimitation,
   constatConnexion,
   constatInterrupteurs,
   constatSimulation,
@@ -193,5 +194,33 @@ describe("l'adresse publique", () => {
     });
     expect(c.gravite).toBe("ok");
     expect(c.detail).toContain("baobart.com");
+  });
+});
+
+describe("la limitation", () => {
+  it("avertit en production quand elle compte en mémoire", () => {
+    // Le pire genre de panne : celle qui a l'air de fonctionner. Les compteurs
+    // tournent, la page dit « protégé », et dix instances autorisent dix fois
+    // la limite.
+    const c = constatLimitation({ pilote: "memoire", production: true });
+    expect(c.gravite).toBe("attention");
+    expect(c.remede).toContain("redis");
+  });
+
+  it("ne dit rien en développement, où c'est le bon choix", () => {
+    const c = constatLimitation({ pilote: "memoire", production: false });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
+  });
+
+  it("est une panne quand on a demandé à ne rien compter, en production", () => {
+    const c = constatLimitation({ pilote: "aucun", production: true });
+    expect(c.gravite).toBe("panne");
+  });
+
+  it("se tait quand Redis compte", () => {
+    const c = constatLimitation({ pilote: "redis", production: true });
+    expect(c.gravite).toBe("ok");
+    expect(c.detail).toContain("redis");
   });
 });

@@ -145,6 +145,34 @@ quand elle est ouverte ; les faire cohabiter mélangerait dans la même base des
 ventes payées et des ventes gratuites, et plus personne ne saurait lesquelles
 ont rapporté.
 
+### Pour la limitation du débit
+
+```env
+RATE_LIMIT_DRIVER=redis
+REDIS_URL=rediss://…
+```
+
+Sans elles, les compteurs vivent **dans le processus**. En serverless, chaque
+instance a les siens : dix instances autorisent dix fois la limite, et rien ne
+le signale — la page affiche « protégé », les compteurs tournent, et l'attaque
+passe. L'écran **Système · Configuration** l'affiche en avertissement dès qu'on
+est en production.
+
+Ce qui est borné : la connexion (dix essais par quart d'heure et par adresse),
+l'inscription (cinq par heure), l'oubli de mot de passe (cinq par quart d'heure,
+en plus du plafond de trois **par compte**), et les rappels d'opérateur (trois
+cents par minute — large, pour qu'un opérateur qui rattrape un incident ne soit
+pas refusé).
+
+**On laisse passer quand le compteur est en panne.** Redis injoignable
+n'interdit rien : un limiteur indisponible ne doit pas fermer la connexion à
+tout le monde. La contrepartie est réelle — pendant la panne, plus rien n'est
+borné — donc l'incident est journalisé en erreur.
+
+**On laisse passer aussi quand l'adresse est inconnue.** Se rabattre sur une
+valeur commune serait pire : tous les visiteurs sans adresse identifiable
+partageraient un compteur, et le premier robot fermerait la porte aux autres.
+
 ### Optionnelles
 
 ```env

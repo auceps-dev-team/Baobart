@@ -6,6 +6,10 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
+import {
+  reponseTropDeGestes,
+  verifierLimiteHttp,
+} from "@/lib/securite/garde";
 import { recevoir } from "@/lib/payments/encaissement/reception";
 import { piloteNomme } from "@/lib/payments/encaissement/pilotes";
 
@@ -113,6 +117,15 @@ export async function POST(
   { params }: { params: Promise<{ fournisseur: string }> },
 ) {
   const { fournisseur } = await params;
+
+  // ── La borne, avant tout le reste ─────────────────────────────────────────
+  //
+  // Large à dessein : un opérateur qui rattrape un incident envoie des
+  // centaines de rappels d'un coup, et les refuser coûterait des ventes. Elle
+  // existe pour l'inconnu qui frappe la route sans signature — celui-là paie
+  // une vérification de signature et deux requêtes en base à chaque essai.
+  const borne = await verifierLimiteHttp("rappelPaiement", requete);
+  if (!borne.autorise) return reponseTropDeGestes(borne);
 
   const pilote = piloteNomme(fournisseur);
   if (!pilote || pilote.nom === "aucun") {

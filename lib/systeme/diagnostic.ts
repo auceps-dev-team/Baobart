@@ -232,6 +232,63 @@ export function constatAdressePublique(faits: FaitsAdressePublique): Constat {
   };
 }
 
+export interface FaitsLimitation {
+  /** Le pilote actif : « memoire », « redis » ou « aucun ». */
+  pilote: string;
+  production: boolean;
+}
+
+/**
+ * La limitation compte-t-elle vraiment ?
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * UN COMPTEUR EN MÉMOIRE MENT DÈS QU'IL Y A DEUX INSTANCES
+ *
+ * En développement, compter dans le processus est exactement ce qu'il faut :
+ * aucune infrastructure, et la limitation s'éprouve pour de vrai.
+ *
+ * En production serverless, chaque instance a ses propres compteurs. Dix
+ * instances autorisent dix fois la limite, et personne ne s'en aperçoit — la
+ * page affiche « protégé », les compteurs tournent, et l'attaque passe. C'est
+ * le pire genre de panne : celle qui a l'air de fonctionner.
+ *
+ * D'où l'avertissement en production, et la panne franche quand on a
+ * explicitement demandé à ne rien compter.
+ */
+export function constatLimitation(faits: FaitsLimitation): Constat {
+  if (faits.pilote === "aucun") {
+    return {
+      cle: "limitation",
+      libelle: "Limitation",
+      gravite: faits.production ? "panne" : "attention",
+      detail: "Désactivée — rien n'est compté.",
+      remede:
+        "Pose RATE_LIMIT_DRIVER=redis. Sans limitation, la connexion et l'inscription s'essaient sans fin.",
+    };
+  }
+
+  if (faits.pilote === "memoire") {
+    return {
+      cle: "limitation",
+      libelle: "Limitation",
+      gravite: faits.production ? "attention" : "ok",
+      detail: faits.production
+        ? "Comptée en mémoire — chaque instance a ses propres compteurs."
+        : "Comptée en mémoire (développement).",
+      remede: faits.production
+        ? "Pose RATE_LIMIT_DRIVER=redis et REDIS_URL. En mémoire, dix instances autorisent dix fois la limite."
+        : undefined,
+    };
+  }
+
+  return {
+    cle: "limitation",
+    libelle: "Limitation",
+    gravite: "ok",
+    detail: `Comptée par ${faits.pilote}.`,
+  };
+}
+
 export interface FaitsSimulation {
   ouverte: boolean;
   production: boolean;
