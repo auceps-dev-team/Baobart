@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { BacASable } from "@/components/checkout/bac-a-sable";
@@ -6,7 +7,15 @@ import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import {
+  BLANC,
+  CADRE,
+  ENCRE,
+  JAUNE,
+  LAVANDE,
+  ORANGE,
+  VERT,
+} from "@/lib/systeme/charte";
 
 export const metadata = { title: "Ton paiement — Baobart." };
 
@@ -19,39 +28,102 @@ export const metadata = { title: "Ton paiement — Baobart." };
  * L'acheteur y arrive parce que l'opérateur l'a renvoyé — pas parce qu'il a
  * payé. Les deux se ressemblent et n'ont rien à voir : on revient aussi ici en
  * ayant annulé, en ayant tapé un mauvais code, ou en ayant simplement fermé la
- * page de l'opérateur. Elle se contente donc de **lire** l'état que le rappel
- * a écrit, et dit franchement « on attend » quand il n'est pas encore arrivé.
+ * page de l'opérateur. Elle se contente donc de **lire** l'état que le rappel a
+ * écrit, et dit franchement « on attend » quand il n'est pas encore arrivé.
  *
  * Afficher « merci pour ton achat » sur la foi du retour navigateur donnerait
  * un accès gratuit à quiconque devine l'URL.
+ *
+ * Traduit de « Baobart Parcours Achat.dc.html », écran `return`.
  */
 export const dynamic = "force-dynamic";
 
-const ETATS = {
+interface Etat {
+  glyphe: string;
+  fond: string;
+  kicker: string;
+  titre: string;
+  texte: string;
+}
+
+const ETATS: Record<string, Etat> = {
   IN_PROGRESS: {
-    titre: "On attend la confirmation",
+    glyphe: "⏳",
     fond: JAUNE,
+    kicker: "Paiement en cours",
+    titre: "On attend la confirmation",
     texte:
-      "Ton opérateur ne nous a pas encore répondu. C'est normal : il lui faut parfois une minute ou deux. Cette page se met à jour toute seule — tu peux aussi la recharger.",
+      "Ton opérateur ne nous a pas encore répondu. C'est normal : il lui faut parfois une minute ou deux, et il arrive qu'il prenne plus longtemps après un incident chez lui.",
   },
   SUCCESSFUL: {
-    titre: "C'est payé",
+    glyphe: "✓",
     fond: VERT,
+    kicker: "Paiement confirmé",
+    titre: "C'est payé",
     texte:
       "Ton paiement est confirmé et la ressource est dans ton espace. Un reçu part vers ton adresse.",
   },
   NOT_CHARGED: {
-    titre: "C'est à toi",
+    glyphe: "✓",
     fond: VERT,
+    kicker: "Ressource gratuite",
+    titre: "C'est à toi",
     texte: "Rien n'a été encaissé, et la ressource est dans ton espace.",
   },
   FAILED: {
-    titre: "Le paiement n'est pas passé",
+    glyphe: "✕",
     fond: ORANGE,
+    kicker: "Paiement refusé",
+    titre: "Le paiement n'est pas passé",
     texte:
-      "Ton opérateur a refusé la transaction, ou tu l'as interrompue. Rien ne t'a été débité. Tu peux réessayer depuis la fiche.",
+      "Ton opérateur a refusé la transaction, ou tu l'as interrompue. Tu peux réessayer depuis la fiche.",
   },
-} as const;
+};
+
+function Carte({ children, fond = BLANC }: { children: React.ReactNode; fond?: string }) {
+  return (
+    <div
+      style={{
+        border: CADRE,
+        borderRadius: 22,
+        background: fond,
+        boxShadow: `6px 6px 0 ${ENCRE}`,
+        padding: 24,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Bouton({
+  href,
+  children,
+  principale,
+}: {
+  href: Route;
+  children: React.ReactNode;
+  principale?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="sticker-press"
+      style={{
+        padding: "12px 18px",
+        border: CADRE,
+        borderRadius: 14,
+        background: principale ? ENCRE : BLANC,
+        color: principale ? BLANC : ENCRE,
+        fontSize: 14,
+        fontWeight: 800,
+        boxShadow: principale ? `4px 4px 0 ${ORANGE}` : undefined,
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export default async function RetourPaiementPage({
   params,
@@ -73,7 +145,13 @@ export default async function RetourPaiementPage({
       items: {
         select: {
           state: true,
-          product: { select: { name: true, slug: true } },
+          product: {
+            select: {
+              name: true,
+              slug: true,
+              seller: { select: { profile: { select: { displayName: true } } } },
+            },
+          },
         },
       },
     },
@@ -86,107 +164,283 @@ export default async function RetourPaiementPage({
   const ligne = commande.items[0];
   if (!ligne) notFound();
 
-  const etat = ETATS[ligne.state as keyof typeof ETATS] ?? ETATS.IN_PROGRESS;
+  const etat = ETATS[ligne.state] ?? ETATS.IN_PROGRESS!;
   const enAttente = ligne.state === "IN_PROGRESS";
+  const echoue = ligne.state === "FAILED";
+  const abouti = ligne.state === "SUCCESSFUL" || ligne.state === "NOT_CHARGED";
 
-  // Le bac à sable n'est offert que s'il est vraiment le pilote actif — ce qui
-  // exige son secret. La garde qui compte reste dans l'action serveur.
+  const vendeur = ligne.product.seller.profile?.displayName ?? "un créateur";
   const bac = piloteCourant().nom === "bac-a-sable";
 
   return (
-    <main
-      style={{
-        maxWidth: 640,
-        margin: "0 auto",
-        padding: "56px 20px 80px",
-      }}
-    >
+    <main style={{ minHeight: "100vh", background: LAVANDE, padding: "48px 20px" }}>
       {/*
-        Rafraîchissement discret pendant l'attente. Une page qui dit « on
-        attend » sans jamais changer d'avis pousse à recharger à la main, puis à
-        repayer.
+        Rafraîchissement pendant l'attente. Une page qui dit « on attend » sans
+        jamais changer d'avis pousse à recharger, puis à repayer.
       */}
       {enAttente ? <meta httpEquiv="refresh" content="8" /> : null}
 
       <div
         style={{
-          border: CADRE,
-          borderRadius: 24,
-          background: etat.fond,
-          boxShadow: `8px 8px 0 ${ENCRE}`,
-          padding: 28,
+          maxWidth: 1000,
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)",
+          gap: 22,
+          alignItems: "start",
         }}
       >
-        <div
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 30,
-            textTransform: "uppercase",
-            letterSpacing: "-.7px",
-            lineHeight: 1.1,
-          }}
-        >
-          {etat.titre}
+        {/* ── L'état ────────────────────────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <Carte>
+            <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+              <div
+                style={{
+                  width: 54,
+                  height: 54,
+                  flex: "0 0 auto",
+                  border: CADRE,
+                  borderRadius: 99,
+                  background: etat.fond,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 22,
+                  fontWeight: 800,
+                }}
+              >
+                {etat.glyphe}
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: ".8px",
+                    textTransform: "uppercase",
+                    opacity: 0.65,
+                  }}
+                >
+                  {etat.kicker}
+                </div>
+                <h1
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 30,
+                    lineHeight: 1.1,
+                    letterSpacing: "-.7px",
+                    textTransform: "uppercase",
+                    margin: "6px 0 0",
+                  }}
+                >
+                  {etat.titre}
+                </h1>
+                <p
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    lineHeight: 1.6,
+                    margin: "14px 0 0",
+                    textWrap: "pretty",
+                  }}
+                >
+                  {etat.texte}
+                </p>
+              </div>
+            </div>
+          </Carte>
+
+          {/*
+            Le bandeau d'attente. Il ne décore pas : il dit explicitement de ne
+            pas repayer. C'est la seule erreur coûteuse qu'un acheteur puisse
+            commettre sur cette page.
+          */}
+          {enAttente ? (
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                alignItems: "center",
+                border: CADRE,
+                borderRadius: 18,
+                background: BLANC,
+                padding: 16,
+              }}
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>
+                  Cette page se met à jour toute seule
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: 1.5,
+                    opacity: 0.8,
+                    marginTop: 5,
+                    textWrap: "pretty",
+                  }}
+                >
+                  Ne recharge pas et ne repaie pas : ton opérateur a bien reçu
+                  la demande.
+                </div>
+              </div>
+              <div
+                style={{
+                  flex: "0 0 auto",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "7px 11px",
+                  border: CADRE,
+                  borderRadius: 999,
+                  background: JAUNE,
+                }}
+              >
+                AUTO · 8 s
+              </div>
+            </div>
+          ) : null}
+
+          {/*
+            Le rappel qui compte le plus quand un paiement échoue : personne
+            n'a été débité. Sans lui, l'acheteur va vérifier son solde, doute,
+            et écrit au support.
+          */}
+          {echoue ? (
+            <div
+              style={{
+                border: CADRE,
+                borderRadius: 18,
+                background: BLANC,
+                padding: 16,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 26,
+                  letterSpacing: "-.5px",
+                }}
+              >
+                0 F
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                  marginTop: 6,
+                  textWrap: "pretty",
+                }}
+              >
+                Rien ne t&apos;a été débité. Vérifie ton solde si tu as un
+                doute — aucune écriture n&apos;est partie.
+              </div>
+            </div>
+          ) : null}
+
+          {bac && enAttente ? <BacASable orderId={commande.id} /> : null}
         </div>
 
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            lineHeight: 1.6,
-            margin: "16px 0 0",
-            textWrap: "pretty",
-          }}
-        >
-          {etat.texte}
-        </p>
+        {/* ── La commande ───────────────────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <Carte>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                letterSpacing: ".8px",
+                textTransform: "uppercase",
+                opacity: 0.65,
+              }}
+            >
+              Ta commande
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 800, marginTop: 8 }}>
+              {ligne.product.name}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.75, marginTop: 4 }}>
+              {vendeur}
+            </div>
 
-        <div
-          style={{
-            marginTop: 22,
-            paddingTop: 18,
-            borderTop: CADRE,
-            fontSize: 14,
-            fontWeight: 700,
-          }}
-        >
-          {ligne.product.name} · {formatMoney(commande.total, commande.currency)}
-          <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.7, marginTop: 6 }}>
-            Référence {commande.id.slice(-12).toUpperCase()}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                marginTop: 18,
+                paddingTop: 14,
+                borderTop: CADRE,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.75 }}>
+                Montant
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 22,
+                  letterSpacing: "-.4px",
+                }}
+              >
+                {formatMoney(commande.total, commande.currency)}
+              </span>
+            </div>
+          </Carte>
+
+          <div
+            style={{
+              border: CADRE,
+              borderRadius: 18,
+              background: JAUNE,
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: ".5px",
+              }}
+            >
+              Référence de commande
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 16,
+                fontWeight: 700,
+                marginTop: 6,
+                wordBreak: "break-all",
+              }}
+            >
+              {commande.id.slice(-12).toUpperCase()}
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75, marginTop: 8 }}>
+              à citer en cas de question au support
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {abouti ? (
+              <Bouton href="/dashboard/telechargements" principale>
+                Télécharger maintenant
+              </Bouton>
+            ) : null}
+            {echoue ? (
+              <Bouton href={`/products/${ligne.product.slug}` as Route} principale>
+                Réessayer le paiement
+              </Bouton>
+            ) : null}
+            <Bouton href="/dashboard/achats">Mes achats</Bouton>
+            <Bouton href={`/products/${ligne.product.slug}` as Route}>
+              Revenir à la fiche
+            </Bouton>
           </div>
         </div>
       </div>
-
-      <div style={{ display: "flex", gap: 14, marginTop: 24, flexWrap: "wrap" }}>
-        <Link
-          href="/dashboard/telechargements"
-          style={{
-            padding: "12px 18px",
-            border: CADRE,
-            borderRadius: 14,
-            background: BLANC,
-            fontWeight: 800,
-            fontSize: 14,
-          }}
-        >
-          Mes achats
-        </Link>
-        <Link
-          href={`/products/${ligne.product.slug}`}
-          style={{
-            padding: "12px 18px",
-            border: CADRE,
-            borderRadius: 14,
-            background: BLANC,
-            fontWeight: 800,
-            fontSize: 14,
-          }}
-        >
-          Revenir à la fiche
-        </Link>
-      </div>
-
-      {bac && enAttente ? <BacASable orderId={commande.id} /> : null}
     </main>
   );
 }

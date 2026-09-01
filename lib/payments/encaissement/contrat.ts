@@ -227,7 +227,42 @@ export interface PiloteEncaissement {
 
   /** La moitié sortante, quand l'opérateur sait aussi verser. */
   versements?: PiloteVersement;
+
+  /**
+   * Rend l'argent à l'acheteur.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * SANS CET APPEL, UN REMBOURSEMENT N'EN EST PAS UN
+   *
+   * Écrire au grand livre débite le vendeur ; cela ne rend rien à l'acheteur.
+   * Tant que l'opérateur n'a pas reçu l'ordre, l'argent est chez lui, et le
+   * « remboursement » n'est qu'une écriture comptable — invisible en
+   * simulation, catastrophique en production : le créateur perd sa vente et
+   * l'acheteur n'est pas remboursé.
+   *
+   * Facultatif : tous les opérateurs n'ont pas de point de remboursement, et
+   * le bac à sable n'en a pas besoin. Absent, la vente ne peut pas être
+   * remboursée par l'interface — ce qui vaut mieux que de faire croire qu'elle
+   * l'a été.
+   */
+  rembourser?(demande: DemandeRemboursement): Promise<Remboursement>;
 }
+
+export interface DemandeRemboursement {
+  /** La transaction chez l'opérateur — pas notre identifiant de commande. */
+  referenceOperateur: string;
+  /** En unités mineures ISO 4217. Peut être partiel. */
+  montant: number;
+  devise: string;
+  /** Ce que l'acheteur lira. */
+  motifClient: string;
+  /** Ce qu'on retrouvera dans le tableau de bord de l'opérateur. */
+  motifInterne: string;
+}
+
+export type Remboursement =
+  | { ok: true; referenceOperateur: string | null }
+  | { ok: false; message: string; definitif: boolean };
 
 /**
  * Compare deux signatures sans révéler où elles divergent.

@@ -284,7 +284,9 @@ describe("le rejeu", () => {
 });
 
 describe("un rappel qui ne correspond pas", () => {
-  it("refuse un montant différent du nôtre, sans rien créditer", async () => {
+  it("refuse un montant INFÉRIEUR au nôtre, sans rien créditer", async () => {
+    // Le seul écart qui nous coûte : quelqu'un paie cent francs pour une
+    // ressource à cinq mille et repart avec.
     const { orderId, orderItemId, vendeur } = await ouvrirCommande();
 
     const suite = await recevoir("bac-a-sable", fait(orderId, { montant: 100 }), {});
@@ -295,6 +297,25 @@ describe("un rappel qui ne correspond pas", () => {
     const ligne = await etatDe(orderItemId);
     expect(ligne.state).toBe("IN_PROGRESS");
     expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
+  it("livre malgré un montant SUPÉRIEUR : refuser serait pire", async () => {
+    // Un trop-perçu n'est pas une attaque — arrondi d'opérateur, frais
+    // absorbés, devise reconvertie. Le refuser fabriquerait le pire cas :
+    // l'acheteur a payé plus que demandé et ne reçoit rien.
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+
+    const suite = await recevoir(
+      "bac-a-sable",
+      fait(orderId, { montant: PRIX + 50 }),
+      {},
+    );
+
+    expect(suite).toEqual({ recu: true, effet: "ENCAISSE" });
+    expect((await etatDe(orderItemId)).state).toBe("SUCCESSFUL");
+    expect(
+      await db.balance.count({ where: { userId: vendeur.id } }),
+    ).toBeGreaterThan(0);
   });
 
   it("refuse une autre devise", async () => {

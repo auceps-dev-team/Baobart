@@ -77,11 +77,22 @@
     <div style="padding:44px 40px; display:flex; align-items:center; justify-content:center">
       <div style="width:100%; max-width:520px; border:2.5px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:8px 8px 0 #121212; padding:30px">
 
-        <div style="display:flex; gap:6px; padding:5px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
-          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
-            <div onClick="{{ t.pick }}" style="flex:1 1 0; text-align:center; padding:11px 8px; border-radius:11px; font-size:13.5px; font-weight:800; cursor:pointer; background:{{ t.bg }}; color:{{ t.fg }}">{{ t.label }}</div>
-          </sc-for>
-        </div>
+        <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; gap:6px; padding:5px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+              <div onClick="{{ t.pick }}" style="flex:1 1 0; text-align:center; padding:11px 8px; border-radius:11px; font-size:13.5px; font-weight:800; cursor:pointer; background:{{ t.bg }}; color:{{ t.fg }}">{{ t.label }}</div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showStates }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
+            <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des états du lien</div>
+            <sc-for list="{{ states }}" as="s" hint-placeholder-count="3">
+              <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+            </sc-for>
+          </div>
+        </sc-if>
 
         <h2 style="font-family:'Archivo Black',sans-serif; font-size:clamp(26px,3vw,36px); line-height:1; letter-spacing:-1.4px; margin:22px 0 0; text-transform:uppercase">{{ form.title }}</h2>
         <p style="font-size:14.5px; font-weight:500; line-height:1.45; margin:8px 0 0; opacity:.75">{{ form.sub }}</p>
@@ -101,7 +112,20 @@
           </div>
         </sc-if>
 
+        <!-- LIEN MORT : AUCUN FORMULAIRE -->
+        <sc-if value="{{ isDead }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:14px; margin-top:22px; padding:18px; border:2.5px solid #121212; border-radius:18px; background:#FFD84A">
+            <div style="width:48px; height:48px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:21px">{{ form.deadGlyph }}</div>
+            <div style="flex:1 1 auto; min-width:0">
+              <div style="font-size:15px; font-weight:800">{{ form.deadLabel }}</div>
+              <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:4px; opacity:.7">Rien à remplir sur cet écran</div>
+            </div>
+          </div>
+          <div onClick="{{ goForgotFull }}" style="margin-top:18px; padding:16px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; text-align:center; font-size:15.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #E2622C">Demander un nouveau lien</div>
+        </sc-if>
+
         <!-- CHAMPS -->
+        <sc-if value="{{ hasFields }}" hint-placeholder-val="{{ true }}">
         <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:20px">
           <sc-for list="{{ fields }}" as="f" hint-placeholder-count="4">
             <div style="grid-column:{{ f.span }}; min-width:0">
@@ -123,8 +147,10 @@
             </div>
           </sc-for>
         </div>
+        </sc-if>
 
         <!-- OPTIONS -->
+        <sc-if value="{{ hasFields }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:18px">
           <div onClick="{{ toggleCheck }}" style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; max-width:340px">
             <div style="width:24px; height:24px; flex:0 0 auto; border:2.5px solid #121212; border-radius:8px; display:grid; place-items:center; font-size:13px; font-weight:800; background:{{ checkBg }}">{{ checkMark }}</div>
@@ -136,6 +162,7 @@
         </div>
 
         <div onClick="{{ submit }}" style="margin-top:20px; padding:16px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; text-align:center; font-size:15.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">{{ form.cta }}</div>
+        </sc-if>
 
         <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top:14px; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; font-size:13px; font-weight:700; animation:popin .16s ease-out">{{ form.done }}</div>
@@ -164,7 +191,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:940},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;register&quot;,&quot;forgot&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Écran&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:940},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;register&quot;,&quot;forgot&quot;,&quot;nouveau&quot;,&quot;perime&quot;,&quot;inconnu&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Écran&quot;}}">
 const INK = "#121212", W = "#FFFFFF", YEL = "#FFD84A", ORA = "#E2622C", LAV = "#F4EEFC";
 
 const SIDE = {
@@ -179,6 +206,24 @@ const SIDE = {
     title: "Crée. Partage. Vends.",
     text: "Un compte gratuit suffit pour télécharger, enregistrer et collaborer. Passe créateur quand tu veux, sans exclusivité.",
     points: ["100 téléchargements gratuits par mois", "80 % du prix reversé aux créateurs", "Paiement Mobile Money et carte bancaire"]
+  },
+  nouveau: {
+    kicker: "Nouvelle clé",
+    title: "Choisis ta nouvelle clé",
+    text: "Le lien que tu viens d'ouvrir ne sert qu'une fois et n'est valable qu'une heure. Après ce changement, toutes tes sessions ouvertes se ferment.",
+    points: ["Lien à usage unique, valable une heure", "Toutes les sessions ouvertes se ferment", "Aucun mot de passe stocké en clair"]
+  },
+  perime: {
+    kicker: "Lien épuisé",
+    title: "Ce lien a fait son temps",
+    text: "Un lien de réinitialisation est une clé. Une clé qui traîne indéfiniment dans une boîte mail finit par être ramassée par quelqu'un d'autre.",
+    points: ["Chaque lien ne sert qu'une seule fois", "Une heure de validité, pas plus", "En demander un nouveau prend dix secondes"]
+  },
+  inconnu: {
+    kicker: "Lien introuvable",
+    title: "On ne reconnaît pas ce lien",
+    text: "Il ne correspond à aucune demande de réinitialisation. Le plus souvent, c'est la fin de l'adresse qui manque.",
+    points: ["Les messageries coupent parfois la fin du lien", "Copie-le en entier depuis le message", "Sinon, demande-en un nouveau"]
   },
   forgot: {
     kicker: "Récupération",
@@ -216,6 +261,34 @@ const FORMS = {
       { label: "Mot de passe", ph: "8 caractères minimum", type: "password", span: "1 / span 2", isPass: true, meter: true }
     ]
   },
+  nouveau: {
+    title: "Nouveau mot de passe",
+    sub: "Choisis-le, puis retape-le pour être sûr.",
+    cta: "Changer le mot de passe",
+    done: "Mot de passe changé — tes autres sessions ont été fermées.",
+    checkLabel: "Je comprends que mes autres sessions vont se fermer",
+    footerText: "Tu t'en souviens finalement ?", footerLink: "Retour à la connexion",
+    fields: [
+      { label: "Nouveau mot de passe", ph: "8 caractères minimum", type: "password", span: "1 / span 2", isPass: true, meter: true },
+      { label: "Retape-le", ph: "••••••••", type: "password", span: "1 / span 2", isPass: true }
+    ]
+  },
+  perime: {
+    title: "Ce lien ne marche plus",
+    sub: "Il a déjà servi, ou l'heure de validité est passée. C'est voulu : un lien de réinitialisation est une clé, et une clé qui traîne indéfiniment dans une boîte mail finit par être ramassée par quelqu'un d'autre.",
+    dead: true, deadGlyph: "⏱", deadLabel: "Lien périmé ou déjà utilisé",
+    cta: "Demander un nouveau lien",
+    footerText: "Tu te souviens de ton mot de passe ?", footerLink: "Se connecter",
+    fields: []
+  },
+  inconnu: {
+    title: "Ce lien est inconnu",
+    sub: "Il ne correspond à aucune demande. Vérifie que tu l'as copié en entier — les messageries en coupent parfois la fin.",
+    dead: true, deadGlyph: "?", deadLabel: "Aucune demande correspondante",
+    cta: "Demander un nouveau lien",
+    footerText: "Tu te souviens de ton mot de passe ?", footerLink: "Se connecter",
+    fields: []
+  },
   forgot: {
     title: "Mot de passe oublié",
     sub: "Entre ton adresse email, on t'envoie un lien de réinitialisation.",
@@ -240,9 +313,20 @@ class Component extends DCLogic {
     return {
       isLogin: mode === "login",
       isRegister: mode === "register",
-      showSocial: mode !== "forgot",
+      isDead: !!form.dead,
+      hasFields: !form.dead,
+      showTabs: mode === "login" || mode === "register",
+      showSocial: mode === "login" || mode === "register",
+      goForgotFull: set("forgot"),
       side: SIDE[mode],
       form: form,
+      states: [{ k: "nouveau", l: "Lien valable" }, { k: "perime", l: "Périmé" }, { k: "inconnu", l: "Inconnu" }].map(t => ({
+        label: t.l,
+        bg: mode === t.k ? INK : W,
+        fg: mode === t.k ? W : INK,
+        pick: set(t.k)
+      })),
+      showStates: mode === "nouveau" || mode === "perime" || mode === "inconnu",
       tabs: [{ k: "login", l: "Connexion" }, { k: "register", l: "Inscription" }].map(t => ({
         label: t.l,
         bg: mode === t.k ? INK : "transparent",

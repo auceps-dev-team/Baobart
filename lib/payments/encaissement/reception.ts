@@ -290,11 +290,23 @@ async function appliquer(
   }
 
   // ── Succès annoncé : on confronte avant de créditer ────────────────────────
-  if (fait.montant !== null && fait.montant !== commande.total) {
-    // Ne rien créditer, et le dire fort. Un écart de montant est soit un
-    // rappel forgé, soit la transaction de quelqu'un d'autre — jamais une
-    // broutille à arrondir.
-    journal.erreur("rappel de paiement au montant discordant", {
+  //
+  // ──────────────────────────────────────────────────────────────────────────
+  // ON REFUSE LE MANQUE, PAS LE SURPLUS
+  //
+  // Le seul écart qui nous coûte est celui **par le bas** : quelqu'un paie cent
+  // francs pour une ressource à cinq mille, et repart avec. Celui-là est refusé
+  // sans discussion.
+  //
+  // Un montant SUPÉRIEUR au total n'est pas une attaque — c'est un arrondi
+  // d'opérateur, des frais absorbés, ou une devise reconvertie. Le refuser
+  // fabriquerait le pire cas possible : l'acheteur a payé plus que demandé et
+  // ne reçoit rien. On livre, et on le journalise pour que quelqu'un regarde.
+  //
+  // C'est la règle du plugin officiel de Paystack, et elle est meilleure que
+  // celle qu'on avait.
+  if (fait.montant !== null && fait.montant < commande.total) {
+    journal.erreur("rappel de paiement au montant insuffisant", {
       commande: commande.id,
       attendu: commande.total,
       annonce: fait.montant,
@@ -304,6 +316,16 @@ async function appliquer(
       motif: "MONTANT_DISCORDANT",
       detail: `Attendu ${commande.total}, annoncé ${fait.montant}.`,
     };
+  }
+
+  if (fait.montant !== null && fait.montant > commande.total) {
+    // Livré quand même. La ligne existe pour qu'on puisse rendre la
+    // différence, pas pour bloquer la vente.
+    journal.avertissement("paiement supérieur au total, livré quand même", {
+      commande: commande.id,
+      attendu: commande.total,
+      annonce: fait.montant,
+    });
   }
 
   if (fait.devise !== null && fait.devise !== commande.currency) {

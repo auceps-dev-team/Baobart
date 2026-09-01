@@ -7,6 +7,7 @@ import type { FaitPaiement } from "@/lib/payments/encaissement/contrat";
 import {
   PAYSTACK,
   confirmerAupresDePaystack,
+  rembourserChezPaystack,
   depuisPaystack,
   versPaystack,
 } from "@/lib/payments/encaissement/pilotes/paystack";
@@ -459,5 +460,93 @@ describe("la confirmation auprès de Paystack", () => {
     expect(appels[0]!.url).toBe(
       "https://api.paystack.co/transaction/verify/a%2Fb%3Fc%3D1",
     );
+  });
+});
+
+
+describe("le remboursement", () => {
+  const DEMANDE = {
+    referenceOperateur: "302961",
+    montant: 5_000,
+    devise: "XOF",
+    motifClient: "Remboursement Baobart",
+    motifInterne: "Demandé par le vendeur",
+  };
+
+  it("envoie le montant converti, et la transaction de l'opérateur", async () => {
+    // Deux pièges dans le même appel. Le montant suit la règle des cent — se
+    // tromper rembourse cinquante francs au lieu de cinq mille. Et la
+    // référence doit être celle de PAYSTACK : leur envoyer notre identifiant de
+    // commande ne rembourserait rien, ils ne connaissent pas nos numéros.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, { status: true, data: { id: 8812 } });
+
+    const suite = await rembourserChezPaystack(DEMANDE);
+
+    expect(suite.ok).toBe(true);
+    expect(suite.ok === true && suite.referenceOperateur).toBe("8812");
+
+    expect(appels[0]!.url).toBe("https://api.paystack.co/refund");
+    const envoye = JSON.parse(String(appels[0]!.init!.body));
+    expect(envoye.amount).toBe(500_000);
+    expect(envoye.transaction).toBe("302961");
+    expect(envoye.currency).toBe("XOF");
+  });
+
+  it("refuse une devise que Paystack ne rembourse pas, sans appeler personne", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    const { appels } = faireRepondre(200, { status: true });
+
+    const suite = await rembourserChezPaystack({ ...DEMANDE, devise: "EUR" });
+
+    expect(suite.ok).toBe(false);
+    expect(suite.ok === false && suite.definitif).toBe(true);
+    expect(appels).toHaveLength(0);
+  });
+
+  it("distingue un refus définitif d'une panne passagère", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+
+    // 4xx : transaction inconnue, montant trop grand. Réessayer n'y changera
+    // rien, et le vendeur doit le savoir tout de suite.
+    faireRepondre(400, { status: false, message: "Transaction not found" });
+    const notre = await rembourserChezPaystack(DEMANDE);
+    expect(notre.ok === false && notre.definitif).toBe(true);
+    expect(notre.ok === false && notre.message).toContain("Transaction");
+
+    faireRepondre(503, { status: false });
+    const leur = await rembourserChezPaystack(DEMANDE);
+    expect(leur.ok === false && leur.definitif).toBe(false);
+  });
+
+  it("ne se prend pas les pieds dans une panne réseau", async () => {
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ECONNRESET");
+    });
+
+    const suite = await rembourserChezPaystack(DEMANDE);
+    expect(suite.ok).toBe(false);
+    // Réessayable : rien n'a bougé, ni chez eux ni chez nous.
+    expect(suite.ok === false && suite.definitif).toBe(false);
+  });
+
+  it("ne rembourse rien sans clé, et n'appelle personne", async () => {
+    delete process.env.PAYSTACK_SECRET_KEY;
+    const { appels } = faireRepondre(200, { status: true, data: { id: 1 } });
+
+    expect((await rembourserChezPaystack(DEMANDE)).ok).toBe(false);
+    expect(appels).toHaveLength(0);
+  });
+
+  it("refuse une réponse dont le statut n'est pas vrai", async () => {
+    // Paystack peut rendre 200 avec `status: false`. Le croire sur le code HTTP
+    // ferait débiter le vendeur pour un remboursement jamais parti.
+    process.env.PAYSTACK_SECRET_KEY = CLE;
+    faireRepondre(200, { status: false, message: "Insufficient balance" });
+
+    const suite = await rembourserChezPaystack(DEMANDE);
+    expect(suite.ok).toBe(false);
+    expect(suite.ok === false && suite.message).toContain("Insufficient");
   });
 });

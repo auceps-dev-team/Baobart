@@ -613,6 +613,38 @@
         </div>
       </sc-if>
 
+      <!-- BIBLIOTHÈQUE DE L'ACHETEUR -->
+      <sc-if value="{{ page.hasLibrary }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:16px">
+          <sc-for list="{{ page.libraryStats }}" as="s" hint-placeholder-count="4">
+            <div style="border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; padding:18px; background:{{ s.bg }}">
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">{{ s.label }}</div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:32px; line-height:1.05; margin-top:8px">{{ s.value }}</div>
+              <div style="font-size:12.5px; font-weight:700; margin-top:4px; opacity:.75">{{ s.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:13px">
+          <sc-for list="{{ page.library }}" as="l" hint-placeholder-count="6">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:15px; border:2.5px solid #121212; border-radius:20px; box-shadow:5px 5px 0 #121212; background:{{ l.rowBg }}">
+              <div style="width:82px; height:82px; flex:0 0 auto; border:2.5px solid #121212; border-radius:15px; background:{{ l.img }}"></div>
+              <div style="flex:1 1 240px; min-width:0">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+                  <div style="font-size:16.5px; font-weight:800; line-height:1.25">{{ l.title }}</div>
+                  <div style="padding:5px 12px; border:2px solid #121212; border-radius:999px; background:{{ l.pillBg }}; color:{{ l.pillFg }}; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; white-space:nowrap">{{ l.state }}</div>
+                </div>
+                <div style="font-size:13px; font-weight:600; margin-top:5px; opacity:.72">{{ l.author }} · {{ l.formats }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:6px; opacity:.62">{{ l.note }}</div>
+              </div>
+              <div style="flex:0 0 auto; display:flex; flex-wrap:wrap; gap:10px">
+                <div style="padding:13px 22px; border:2.5px solid #121212; border-radius:14px; background:{{ l.btnBg }}; color:{{ l.btnFg }}; box-shadow:{{ l.btnSh }}; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px)">{{ l.action }}</div>
+                <div style="padding:13px 18px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Licence</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
       <!-- GRILLE RESSOURCES -->
       <sc-if value="{{ page.hasGrid }}" hint-placeholder-val="{{ false }}">
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px">
@@ -746,6 +778,7 @@ const NAV = {
   acheteur: [
     { key: "apercu", label: "Aperçu", glyph: "◈" },
     { key: "profil", label: "Profil", glyph: "☺" },
+    { key: "bibliotheque", label: "Ma bibliothèque", glyph: "▣", badge: true, badgeLabel: "2" },
     { key: "achats", label: "Historique des achats", glyph: "▤" },
     { key: "telechargements", label: "Historique des téléchargements", glyph: "↓" },
     { key: "suivis", label: "Éléments suivis", glyph: "♥" },
@@ -1410,21 +1443,46 @@ const PAGES = {
       ] }
     ]
   },
+  bibliotheque: {
+    title: "Ma bibliothèque", cta: "Tout télécharger",
+    intro: "Tout ce que tu possèdes, nommé par son titre — pas par un numéro de commande. Ce que tu n'as pas encore retiré apparaît en premier : c'est à toi, ça t'attend.",
+    library: [
+      { title: "Illu Femme au Foulard", author: "Awa Diallo", formats: "AI, PNG · 42 Mo", state: "À TÉLÉCHARGER", sev: "neuf", note: "Acheté il y a 4 minutes · licence commerciale", action: "Télécharger", img: "url('img/beaute-afro.jpg') center 25% / cover no-repeat" },
+      { title: "Portrait Wax Éditorial", author: "Awa Diallo", formats: "PNG, PSD · 128 Mo", state: "À TÉLÉCHARGER", sev: "neuf", note: "Acheté le 30 août 2026 · licence commerciale", action: "Télécharger", img: "url('img/mode-rouge.jpg') center 20% / cover no-repeat" },
+      { title: "Font Sahel Mono", author: "Grace Dembélé", formats: "TTF, OTF · 3 Mo", state: "TÉLÉCHARGÉ", sev: "ok", note: "Retiré 1 fois · le 10 juil. 2026", action: "Retélécharger", img: "url('img/emeraude.png') center / cover no-repeat" },
+      { title: "Mockup Affiche Rue", author: "Studio Teranga", formats: "PSD · 210 Mo", state: "TÉLÉCHARGÉ", sev: "ok", note: "Retiré 3 fois · le 12 juil. 2026", action: "Retélécharger", img: "url('img/neon-01.png') center / cover no-repeat" },
+      { title: "Collage Lunettes", author: "Sarah Bakayoko", formats: "JPG, TIFF · 86 Mo", state: "PASS EXPIRÉ", sev: "info", note: "Pris sous le pass Illustrations · reste à toi pour toujours", action: "Retélécharger", img: "url('img/collage-lunettes.jpg') center / cover no-repeat" },
+      { title: "Textures papier recyclé", author: "Ibrahim Traoré", formats: "JPG · 54 Mo", state: "TÉLÉCHARGÉ", sev: "ok", note: "Retiré 2 fois · le 6 juil. 2026", action: "Retélécharger", img: "url('img/studio-02.png') center 20% / cover no-repeat" }
+    ],
+    libraryStats: [
+      { label: "Ressources possédées", value: "6", note: "toutes licences confondues", bg: W },
+      { label: "Jamais retirées", value: "2", note: "elles t'attendent", bg: YEL },
+      { label: "Espace total", value: "523 Mo", note: "téléchargement en un clic", bg: W },
+      { label: "Licences commerciales", value: "4", note: "utilisables pour tes clients", bg: PUR }
+    ]
+  },
   achats: {
     title: "Historique des achats", cta: "Télécharger mes factures",
-    intro: "Toutes tes commandes, avec la facture et le détail des licences.",
-    filters: ["Toutes", "Payées", "Abonnement"],
+    intro: "Tes commandes et leur état. Une commande en mobile money peut rester ouverte quelques heures : tant qu'elle l'est, rien n'a été débité.",
+    filters: ["Toutes", "En attente", "Payées", "Abandonnées", "Abonnement"],
     rowsTitle: "8 commandes",
     rows: rows([
-      { title: "Commande #10428", meta: "12 juil. 2026 · 2 articles", amount: "8 000 F", status: "PAYÉE", action: "Facture", bg: stripe(W, INK, 7) },
-      { title: "Commande #10391", meta: "3 juil. 2026 · 1 article", amount: "10 000 F", status: "PAYÉE", action: "Facture", bg: stripe(LAV, ORA, 7) },
+      { title: "Commande #10441 · Pack 40 motifs wax", meta: "31 août 2026, 09:40 · Wave · en attente de l'opérateur depuis 12 min", amount: "12 000 F", status: "EN ATTENTE", statusBg: YEL, action: "Suivre le paiement", bg: stripe(YEL, INK, 7) },
+      { title: "Commande #10428 · Illu Femme au Foulard", meta: "12 juil. 2026 · 2 articles", amount: "8 000 F", status: "PAYÉE", action: "Facture", bg: stripe(W, INK, 7) },
+      { title: "Commande #10437 · Mockup Affiche Rue", meta: "29 août 2026 · refermée automatiquement après 24 h sans réponse", amount: "3 000 F", status: "ABANDONNÉE", statusBg: "#DCDCDC", action: "Racheter", bg: stripe("#DCDCDC", W, 7) },
+      { title: "Commande #10391 · Font Sahel Mono", meta: "3 juil. 2026 · 1 article", amount: "10 000 F", status: "PAYÉE", action: "Facture", bg: stripe(LAV, ORA, 7) },
       { title: "Abonnement Essentiel", meta: "prélèvement mensuel", amount: "5 000 F", status: "EN COURS", statusBg: PUR, action: "Gérer", bg: stripe(YEL, INK, 7) },
-      { title: "Commande #10222", meta: "18 juin 2026 · 3 articles", amount: "16 000 F", status: "PAYÉE", action: "Facture", bg: stripe(W, PUR, 7) }
-    ])
+      { title: "Commande #10222 · 3 ressources", meta: "18 juin 2026 · 3 articles", amount: "16 000 F", status: "PAYÉE", action: "Facture", bg: stripe(W, PUR, 7) }
+    ]),
+    notice: {
+      title: "Une commande en attente ne t'a rien coûté",
+      text: "Tant que ton opérateur n'a pas confirmé, aucune somme n'est partie. Si rien n'arrive sous 24 h, la commande se referme toute seule et passe en « abandonnée » — tu peux racheter sans risque de double débit.",
+      label: "Commande ouverte", url: "#10441 · Wave · ouverte à 09:40, expire à 09:40 demain"
+    }
   },
   telechargements: {
     title: "Historique des téléchargements", cta: "Voir mon quota",
-    intro: "158 téléchargements ce mois. Les fichiers restent accessibles indéfiniment.",
+    intro: "Ce que tu as effectivement retiré, et quand. Pour voir tout ce que tu possèdes — y compris ce que tu n'as pas encore téléchargé — va dans Ma bibliothèque.",
     filters: ["Tous", "Ce mois", "Achetés", "Gratuits"],
     rowsTitle: "Derniers fichiers",
     rows: rows([
@@ -1980,6 +2038,20 @@ class Component extends DCLogic {
       hasGrid: !!raw.grid, hasPeople: !!raw.people, hasForm: !!raw.formBlocks,
       hasPlan: !!raw.plan, hasSteps: !!raw.steps, hasNotice: !!raw.notice,
       notice: raw.notice || {},
+
+      hasLibrary: !!raw.library,
+      libraryStats: raw.libraryStats || [],
+      library: (raw.library || []).map(l => {
+        const neuf = l.sev === "neuf";
+        return Object.assign({}, l, {
+          rowBg: neuf ? YEL : W,
+          pillBg: neuf ? INK : l.sev === "info" ? PUR : W,
+          pillFg: neuf ? W : INK,
+          btnBg: neuf ? INK : YEL,
+          btnFg: neuf ? W : INK,
+          btnSh: neuf ? "4px 4px 0 #FFFFFF" : "4px 4px 0 #121212"
+        });
+      }),
 
       hasBanner: !!raw.severity,
       banner: Object.assign({}, BANNERS[raw.severity || "ok"], { chips: raw.bannerChips || [] }),

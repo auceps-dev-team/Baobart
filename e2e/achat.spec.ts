@@ -52,13 +52,32 @@ test.describe("de l'inscription au téléchargement", () => {
     await page.goto(`/products/${ressource.slug}`);
     await expect(page.getByText(ressource.nom).first()).toBeVisible();
 
-    const acheter = page.getByRole("button", { name: /acheter/i });
+    const acheter = page.getByRole("link", { name: /acheter/i });
     await expect(
       acheter,
       "le bouton d'achat doit apparaître : la simulation est ouverte, la ressource a un fichier, et l'acheteur n'en est pas le vendeur",
     ).toBeVisible();
 
+    // ── Choisir comment payer — étape 1 sur 2 ────────────────────────────────
+    //
+    // Le rail doit être choisi AVANT que la commande s'ouvre : c'est lui qui
+    // décide de l'invite reçue sur le téléphone.
     await acheter.click();
+    await expect(page).toHaveURL(/\/acheter\//, { timeout: 30_000 });
+    await expect(
+      page.getByRole("heading", { name: /comment veux-tu payer/i }),
+    ).toBeVisible();
+
+    // Le pays commande la liste : au Ghana, ni Orange Money ni Wave.
+    await page.getByRole("button", { name: "Ghana" }).click();
+    await expect(page.getByText("Orange Money")).toHaveCount(0);
+    await expect(page.getByText("MTN MoMo").first()).toBeVisible();
+
+    // On revient sur un pays où Orange Money existe, et on le choisit.
+    await page.getByRole("button", { name: "Côte d'Ivoire" }).click();
+    await page.getByText("Orange Money").first().click();
+
+    await page.getByRole("button", { name: /payer/i }).click();
     await expect(page).toHaveURL(/achat=ok/, { timeout: 30_000 });
 
     // ── Vérifier que l'argent a bougé ────────────────────────────────────────
@@ -162,6 +181,11 @@ test.describe("de l'inscription au téléchargement", () => {
     // Le bouton n'apparaît pas. C'est la garde côté lecture ; l'action serveur
     // refuse aussi, mais un bouton qui promet un écran de refus est déjà un
     // défaut.
-    await expect(page.getByRole("button", { name: /acheter/i })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /acheter/i })).toHaveCount(0);
+
+    // Et l'écran de choix, atteint par l'URL, renvoie sur la fiche : arriver
+    // là à la main ne doit pas contourner ce que la fiche a refusé d'afficher.
+    await page.goto(`/acheter/${produit.slug}`);
+    await expect(page).toHaveURL(new RegExp(`/products/${produit.slug}`));
   });
 });

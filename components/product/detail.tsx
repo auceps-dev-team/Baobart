@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 
 import {
@@ -9,7 +10,6 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
-import { acheterRessource } from "@/lib/checkout/actions";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
@@ -48,7 +48,14 @@ function formatPoids(octets: number): string {
  * Un bouton grisé sur une ressource qu'on possède, ou actif sur une qu'on n'a
  * pas achetée, sont deux mensonges symétriques. Chaque état dit ce qu'il fait.
  */
-function BoutonTelechargement({ droit }: { droit: DroitTelechargement }) {
+function BoutonTelechargement({
+  droit,
+  slug,
+}: {
+  droit: DroitTelechargement;
+  /** Pour mener au choix du moyen de paiement, qui se retrouve par le slug. */
+  slug: string;
+}) {
   const base = {
     display: "block",
     padding: 14,
@@ -102,23 +109,26 @@ function BoutonTelechargement({ droit }: { droit: DroitTelechargement }) {
   // annoncer « Acheter » sans paiement branché promettrait un écran qui
   // n'ouvrirait sur rien.
   if (droit.achatPossible) {
+    // Un lien, plus une action. Le rail — Orange Money, Wave, MTN, Moov — doit
+    // être choisi AVANT que la commande s'ouvre : c'est lui qui décide de
+    // l'invite que l'acheteur recevra sur son téléphone. Le demander après
+    // obligerait à rouvrir un paiement déjà ouvert.
     return (
-      <form action={acheterRessource.bind(null, droit.produitId)}>
-        <button
-          type="submit"
-          className="sticker-press"
-          style={{
-            ...base,
-            width: "100%",
-            background: ENCRE,
-            color: BLANC,
-            boxShadow: `4px 4px 0 ${ORANGE}`,
-            cursor: "pointer",
-          }}
-        >
-          Acheter — {droit.prix}
-        </button>
-      </form>
+      <Link
+        href={`/acheter/${slug}` as Route}
+        className="sticker-press"
+        style={{
+          ...base,
+          display: "block",
+          width: "100%",
+          textAlign: "center",
+          background: ENCRE,
+          color: BLANC,
+          boxShadow: `4px 4px 0 ${ORANGE}`,
+        }}
+      >
+        Acheter — {droit.prix}
+      </Link>
     );
   }
 
@@ -445,7 +455,7 @@ export function DetailProduit({
               licence commerciale
             </div>
           </div>
-          <BoutonTelechargement droit={droit} />
+          <BoutonTelechargement droit={droit} slug={produit.slug} />
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <BoutonJaime
               produitId={produit.id}

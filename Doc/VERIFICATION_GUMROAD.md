@@ -3,7 +3,11 @@
 **Relevé des écarts entre `PLAN_REFONTE_BAOBART_GUMROAD.md` (v10) et le code réel**
 **Document V — v2.0 — 31 août 2026**
 
-> **Deux passes, un mois d'écart.** Les sections 1 à 15 datent du 2 août et
+> **Trois passes.** Les sections 1 à 15 datent du 2 août, la 16 du 31 août,
+> et la **17 du 1er septembre** — celle-ci ne parle plus de Gumroad mais du
+> plugin officiel Paystack, seconde source de référence.
+>
+> Les sections 1 à 15 datent du 2 août et
 > restent valables sauf mention contraire ; la **section 12** consigne la
 > seconde passe. Le dépôt référent a reçu **581 commits** dans l'intervalle, et
 > une couche entière y est apparue que ni le plan ni la première passe ne
@@ -1039,4 +1043,93 @@ C'est un choix : relire un dépôt de trois mille fichiers à chaque jalon coût
 plus que ce qu'il rapporte. La trajectoire de l'argent a été privilégiée parce
 que c'est là que Baobart travaillait ce mois-ci, et parce que c'est le seul
 domaine où se tromper coûte de l'argent réel.
+
+---
+
+## 17. Une seconde source : le plugin officiel Paystack — 1er septembre 2026
+
+Gumroad dit comment tenir une place de marché. Il ne dit rien de Paystack.
+Cette section consigne ce qu'apporte une lecture du **plugin WooCommerce
+officiel de Paystack** (`woo-paystack`, v5.8.5).
+
+### 17.0 ⚠️ La licence change les règles
+
+| | |
+|---|---|
+| Dépôt | Plugin officiel Paystack pour WooCommerce |
+| Licence | **GPL-2.0+** |
+| Nature | **Spécification, et rien d'autre.** |
+
+La GPL est **contaminante**. Là où la licence MIT de Gumroad nous demandait
+seulement de ne pas copier, celle-ci a une conséquence plus dure : en recopier
+une ligne obligerait Baobart entier à passer en GPL.
+
+On en tire donc des **faits d'API** — noms de points d'entrée, noms de champs,
+règles de vérification — qui ne sont pas protégeables. Aucune ligne de leur
+code n'est reprise, ni traduite ligne à ligne. Le clone reste hors du dépôt.
+
+### 17.1 ✅ La conversion des montants — confirmée
+
+C'était notre plus gros risque : la documentation dit que Paystack veut le
+montant principal **multiplié par cent, y compris pour le franc CFA**, et un
+test ne prouve que ce que nous avons compris, pas que nous avons bien compris.
+
+Le plugin multiplie le total par cent **sans une seule exception de devise**,
+et le total de WooCommerce est en unités principales. Notre formule
+— `nous × 10^(2 − décimales)` — est donc exacte, vérifiée contre
+l'implémentation de Paystack lui-même.
+
+### 17.2 ✅ La signature et la vérification — confirmées
+
+En-tête `x-paystack-signature`, HMAC-SHA512 hexadécimal, **clé secrète** (pas
+un secret de webhook distinct), calculé sur le **corps brut**. Puis appel au
+point de vérification avant de créditer.
+
+Détail où nous sommes plus stricts : leur comparaison de signature n'est pas à
+durée constante, la nôtre l'est.
+
+### 17.3 ✅ Le tri des événements — confirmé
+
+Tout ce qui n'est pas un succès de charge est **ignoré en silence**, sans
+erreur ni journal. Cela valide notre passage de « 400 corps illisible » à
+« hors sujet, 200 sans trace » : un opérateur qui reçoit une erreur rejoue.
+
+### 17.4 ❌ NOTRE REMBOURSEMENT NE REMBOURSAIT PERSONNE
+
+**La trouvaille de cette lecture, et elle était grave.**
+
+`rembourserLigne` écrivait au grand livre, débitait le vendeur, mettait à jour
+le montant remboursé — et **n'appelait aucun opérateur**. Invisible en
+simulation. Avec un compte réel, un remboursement aurait débité le créateur et
+laissé l'acheteur sans rien.
+
+Le plugin utilise `POST /refund` avec la transaction, le montant (même règle des
+cent) et la devise. Corrigé en v1.36.0 : le contrat de pilote porte désormais
+un remboursement, Paystack l'implémente, et l'action du vendeur l'appelle
+**avant** d'écrire.
+
+L'ordre est délibéré, et le même que pour les versements : l'appel réseau est ce
+qui échoue le plus souvent, le faire en premier fait que l'échec courant ne
+laisse aucune trace. L'échec rare — argent rendu, écriture ratée — est
+journalisé en erreur avec son remède.
+
+Et si l'opérateur ne sait pas rembourser, ou si la vente n'a pas de référence
+chez lui, **on refuse** plutôt que de débiter le vendeur pour rien.
+
+### 17.5 ➕ On refuse le manque, pas le surplus
+
+Le plugin met la commande en attente quand le montant payé est **inférieur** au
+total — et accepte sans broncher un montant supérieur.
+
+Nous refusions toute différence. C'était moins bon : un trop-perçu — arrondi
+d'opérateur, frais absorbés, devise reconvertie — fabriquait le pire cas
+possible, un acheteur qui a payé plus que demandé et ne reçoit rien. Aligné en
+v1.36.0 : on refuse le manque, on livre le surplus, et on le journalise.
+
+### 17.6 ➕ Ce qui reste à prendre
+
+| Point d'entrée | Ce qu'il ferait | État |
+|---|---|---|
+| `/transaction/charge_authorization` | Débiter une carte enregistrée, sans repasser par la page de paiement | Non repris — suppose des abonnements, qui n'existent pas |
+| Devises `EGP` et `RWF` | Deux marchés de plus | Sans objet : absentes de notre énumération |
 

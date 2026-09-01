@@ -22,7 +22,7 @@
 | Fonctionnalité | Spec | Module | Statut | Preuve/tests | Dette |
 |---|---|---|---|---|---|
 | Frais & grand livre (2 régimes) | §2.4 | `lib/domain/fees.ts` | ✅ | 24 tests | Pas de compte plateforme — se reconstitue par requête, pas par lecture directe |
-| Remboursement déclenchable | §3.1 | `lib/domain/orders.ts` (`rembourserLigne`) | ✅ | testé, garde côté action serveur | — |
+| Remboursement déclenchable | §3.1 | `lib/domain/orders.ts`, `lib/ventes/actions.ts` | ✅ | v1.36.0, 6 tests de plus | **L'argent repart vraiment** : appel `/refund` chez l'opérateur avant toute écriture. Jusqu'en v1.35.0 le grand livre était écrit sans que rien ne soit rendu à l'acheteur |
 | Litiges / chargebacks | §3.6-A | `lib/domain/litiges.ts` | ✅ | testé, concurrence incluse | Pas de scoring de risque amont (type Stripe Radar) |
 | Versements — calendrier/éligibilité | §3.9 | `lib/payments/*` | ✅ | 27 tests | — |
 | Versements — 8 états pilotables | §3.9 | `lib/payments/*`, `app/dashboard/systeme/versements` | ✅ | v1.26.0 | `UNCLAIMED`/`REVERSED` réservés opérateur, pas de bouton |

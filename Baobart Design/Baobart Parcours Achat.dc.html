@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Poppins:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  a { color: #121212; text-decoration: none; }
+  a:hover { color: #E2622C; }
+  ::selection { background: #FFD84A; }
+  input::placeholder { color: rgba(18,18,18,.42); }
+  input:focus { box-shadow: 4px 4px 0 #121212; }
+  [style*="cursor: pointer"] { transition: transform .13s cubic-bezier(.2,.85,.3,1), box-shadow .13s cubic-bezier(.2,.85,.3,1), background-color .13s ease, color .13s ease; }
+  [style*="cursor: pointer"]:active { transform: translate(2px, 2px) scale(.99); box-shadow: 0 0 0 #121212 !important; }
+  @keyframes popin { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+  @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+  @keyframes sweep { from { background-position: -160% 0 } to { background-position: 260% 0 } }
+  @keyframes spin { to { transform: rotate(360deg) } }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#EADFF9">
+
+  <!-- BARRE DE NAVIGATION ENTRE LES MAQUETTES -->
+  <div style="position:sticky; top:0; z-index:40; display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:14px 26px; border-bottom:3px solid #121212; background:#EADFF9">
+    <div style="display:flex; align-items:center; gap:11px; flex:0 0 auto">
+      <div style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="Baobart" style="width:26px; display:block; margin-top:2px" /></div>
+      <div style="font-family:'Archivo Black',sans-serif; font-size:19px; letter-spacing:-.8px">Baobart<span style="color:#E2622C">.</span></div>
+    </div>
+    <div style="flex:1 1 auto; display:flex; flex-wrap:wrap; gap:7px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="6">
+        <div onClick="{{ n.pick }}" style="padding:9px 15px; border:2.5px solid #121212; border-radius:999px; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; background:{{ n.bg }}; color:{{ n.fg }}">{{ n.label }}</div>
+      </sc-for>
+    </div>
+    <div style="flex:0 0 auto; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em; opacity:.55">{{ route }}</div>
+  </div>
+
+  <!-- ── SÉLECTEUR DE MOYEN DE PAIEMENT ───────────────────────────────── -->
+  <sc-if value="{{ isPay }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1180px; margin:0 auto; padding:36px 26px 60px">
+    <div style="display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:24px; align-items:start">
+
+      <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:26px">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.6">Étape 1 sur 2</div>
+        <h1 style="font-family:'Archivo Black',sans-serif; font-size:clamp(26px,3.2vw,38px); line-height:1; letter-spacing:-1.5px; margin:12px 0 0; text-transform:uppercase">Comment veux-tu payer ?</h1>
+        <p style="font-size:15px; font-weight:500; line-height:1.5; margin:12px 0 0; max-width:560px; opacity:.8; text-wrap:pretty">On te redirige ensuite vers ton opérateur pour valider. Le montant n'est débité qu'après ta confirmation chez lui.</p>
+
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:11px; margin-top:22px; padding:13px 15px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">Pays de facturation</div>
+          <div style="flex:1 1 auto"></div>
+          <sc-for list="{{ countries }}" as="c" hint-placeholder-count="4">
+            <div onClick="{{ c.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ c.bg }}; color:{{ c.fg }}">{{ c.label }}</div>
+          </sc-for>
+        </div>
+        <div style="font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; margin-top:9px; opacity:.6">Seuls les rails actifs dans ce pays sont proposés — un opérateur grisé ne sert à rien.</div>
+
+        <div style="display:flex; flex-direction:column; gap:11px; margin-top:20px">
+          <sc-for list="{{ rails }}" as="r" hint-placeholder-count="4">
+            <div onClick="{{ r.pick }}" style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:16px; border:2.5px solid #121212; border-radius:18px; cursor:{{ r.cursor }}; background:{{ r.bg }}; box-shadow:{{ r.sh }}; opacity:{{ r.op }}">
+              <div style="width:24px; height:24px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:12px; font-weight:800">{{ r.mark2 }}</div>
+              <div style="width:44px; height:44px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:{{ r.mark }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:15px; color:{{ r.markFg }}">{{ r.initials }}</div>
+              <div style="flex:1 1 150px; min-width:0">
+                <div style="font-size:15.5px; font-weight:800">{{ r.label }}</div>
+                <div style="font-size:12.5px; font-weight:600; line-height:1.4; margin-top:3px; opacity:.75">{{ r.hint }}</div>
+              </div>
+              <div style="flex:0 0 auto; margin-left:auto; padding:6px 12px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; white-space:nowrap">{{ r.tag }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ needsPhone }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px; padding:18px; border:2.5px solid #121212; border-radius:18px; background:#FFD84A">
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.7">Numéro de téléphone <span style="color:#121212">obligatoire</span></div>
+            <input placeholder="{{ phonePh }}" style="width:100%; min-width:0; margin-top:8px; font-family:Poppins,sans-serif; font-size:14px; font-weight:600; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; outline:none" />
+            <div style="font-size:12.5px; font-weight:600; line-height:1.45; margin-top:9px; text-wrap:pretty">{{ phoneWhy }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noPhone }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:11px; align-items:flex-start; margin-top:18px; padding:14px 16px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
+            <div style="width:22px; height:22px; flex:0 0 auto; border:2px solid #121212; border-radius:7px; background:#C9A8F5; display:grid; place-items:center; font-size:11px; font-weight:800">i</div>
+            <div style="flex:1 1 auto; min-width:0; font-size:13px; font-weight:700; line-height:1.45; text-wrap:pretty">{{ phoneWhy }}</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px; position:sticky; top:88px">
+        <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; overflow:hidden">
+          <div style="height:150px; border-bottom:2.5px solid #121212; background:url('img/mode-rouge.jpg') center 20% / cover no-repeat"></div>
+          <div style="padding:18px">
+            <div style="font-size:16px; font-weight:800; line-height:1.25">Portrait Wax Éditorial</div>
+            <div style="font-size:12.5px; font-weight:600; opacity:.65; margin-top:3px">Awa Diallo · licence commerciale</div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px; padding-top:14px; border-top:2.5px solid #121212">
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700"><span style="opacity:.7">Prix</span><span>5 000 F</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700"><span style="opacity:.7">Frais opérateur</span><span>0 F</span></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px; padding-top:14px; border-top:2.5px solid #121212">
+              <div style="font-size:14px; font-weight:800">Total</div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:28px">5 000 F</div>
+            </div>
+            <div style="padding:15px; margin-top:16px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; background:{{ ctaBg }}; color:{{ ctaFg }}; box-shadow:{{ ctaSh }}; cursor:{{ ctaCursor }}">{{ ctaLabel }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-align:center; line-height:1.5; margin-top:11px; opacity:.65">{{ ctaNote }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── RETOUR DEPUIS L'OPÉRATEUR ────────────────────────────────────── -->
+  <sc-if value="{{ isReturn }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1180px; margin:0 auto; padding:36px 26px 60px">
+
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
+      <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des quatre états — dans la vraie page, l'état vient du rappel de l'opérateur</div>
+      <sc-for list="{{ payStates }}" as="s" hint-placeholder-count="4">
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="border:3px solid #121212; border-radius:28px; overflow:hidden; box-shadow:8px 8px 0 #121212; background:#FFFFFF">
+      <div style="padding:34px 30px; border-bottom:3px solid #121212; background:{{ ret.bg }}; color:{{ ret.fg }}">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:18px">
+          <div style="width:74px; height:74px; flex:0 0 auto; border:3px solid #121212; border-radius:99px; background:{{ ret.dotBg }}; color:{{ ret.dotFg }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:30px; animation:{{ ret.anim }}">{{ ret.glyph }}</div>
+          <div style="flex:1 1 300px; min-width:0">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.7">{{ ret.kicker }}</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(28px,3.6vw,44px); line-height:1; letter-spacing:-1.8px; margin-top:8px; text-transform:uppercase">{{ ret.title }}</div>
+            <div style="font-size:16px; font-weight:600; line-height:1.5; margin-top:12px; max-width:640px; text-wrap:pretty">{{ ret.text }}</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ ret.isWaiting }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:22px; padding:15px 18px; border:3px solid #121212; border-radius:18px; background:#FFFFFF">
+            <div style="width:26px; height:26px; flex:0 0 auto; border:3px solid #121212; border-top-color:transparent; border-radius:99px; animation:spin 1s linear infinite"></div>
+            <div style="flex:1 1 240px; min-width:0">
+              <div style="font-size:14px; font-weight:800">Cette page se met à jour toute seule</div>
+              <div style="font-size:12.5px; font-weight:600; line-height:1.4; margin-top:3px; opacity:.75">Prochaine vérification dans 8 secondes · tentative {{ ret.tick }}. Ne recharge pas et ne repaie pas : ton opérateur a bien reçu la demande.</div>
+            </div>
+            <div style="flex:0 0 auto; padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700">AUTO · 8 s</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ ret.isFailed }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:22px; padding:16px 18px; border:3px solid #121212; border-radius:18px; background:#FFFFFF; color:#121212">
+            <div style="width:30px; height:30px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFD84A; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:15px">0 F</div>
+            <div style="flex:1 1 240px; min-width:0; font-size:14.5px; font-weight:800">Rien ne t'a été débité. Vérifie ton solde si tu as un doute — aucune écriture n'est partie.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="padding:26px 30px">
+        <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:center">
+          <div style="width:96px; height:96px; flex:0 0 auto; border:2.5px solid #121212; border-radius:18px; background:url('img/mode-rouge.jpg') center 20% / cover no-repeat"></div>
+          <div style="flex:1 1 240px; min-width:0">
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Ta commande</div>
+            <div style="font-size:19px; font-weight:800; line-height:1.25; margin-top:5px">Portrait Wax Éditorial</div>
+            <div style="font-size:13px; font-weight:600; opacity:.7; margin-top:3px">Awa Diallo · licence commerciale</div>
+          </div>
+          <div style="flex:0 0 auto; text-align:right">
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Montant</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:34px; line-height:1; margin-top:5px">{{ ret.amount }}</div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:22px; padding:13px 15px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC">
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Référence de commande</div>
+          <div style="font-family:'Space Mono',monospace; font-size:13px; font-weight:700">ORD-2026-10428</div>
+          <div style="flex:1 1 auto"></div>
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">à citer en cas de question au support</div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:22px">
+          <sc-for list="{{ ret.actions }}" as="a" hint-placeholder-count="2">
+            <div style="flex:1 1 190px; padding:15px 22px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:{{ a.sh }}" style-hover="transform:translate(-2px,-2px)">{{ a.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:16px 30px; border-top:3px dashed #121212; background:#F4EEFC">
+        <div style="flex:1 1 220px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.6">Bac à sable — ces deux boutons n'existent pas en production</div>
+        <div style="display:flex; gap:9px">
+          <div onClick="{{ sandboxOk }}" style="padding:9px 15px; border:2px dashed #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer">le paiement réussit</div>
+          <div onClick="{{ sandboxKo }}" style="padding:9px 15px; border:2px dashed #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer">le paiement échoue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── 404 ───────────────────────────────────────────────────────────── -->
+  <sc-if value="{{ is404 }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:960px; margin:0 auto; padding:60px 26px">
+    <div style="border:3px solid #121212; border-radius:30px; background:#FFFFFF; box-shadow:9px 9px 0 #121212; padding:44px 38px; text-align:center">
+      <div style="display:inline-grid; place-items:center; width:120px; height:120px; border:3px solid #121212; border-radius:99px; background:#C9A8F5; box-shadow:6px 6px 0 #121212; overflow:hidden">
+        <img src="img/baobab-ink.svg" alt="" style="width:78px; display:block; margin-top:6px" />
+      </div>
+      <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(64px,10vw,120px); line-height:.85; letter-spacing:-6px; margin-top:24px">404</div>
+      <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(24px,3vw,34px); line-height:1.05; letter-spacing:-1.4px; margin-top:14px; text-transform:uppercase">Cette page n'existe pas<span style="color:#E2622C">.</span></div>
+      <p style="font-size:16px; font-weight:500; line-height:1.55; max-width:520px; margin:16px auto 0; opacity:.8; text-wrap:pretty">Elle a peut-être été retirée, ou l'adresse a été mal recopiée. Rien n'est cassé de notre côté.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:28px">
+        <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">Explorer les ressources</div>
+        <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Revenir à l'accueil</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:30px; padding-top:24px; border-top:2.5px solid #121212">
+        <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="5">
+          <div style="padding:9px 16px; border:2px solid #121212; border-radius:999px; background:#F4EEFC; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="background:#FFD84A">{{ s }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── ERREUR ───────────────────────────────────────────────────────── -->
+  <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:960px; margin:0 auto; padding:60px 26px">
+    <div style="border:3px solid #121212; border-radius:30px; background:#121212; color:#FFFFFF; box-shadow:9px 9px 0 #E2622C; padding:44px 38px">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px">
+        <div style="width:88px; height:88px; flex:0 0 auto; border:3px solid #FFFFFF; border-radius:24px; background:#E2622C; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:40px">!</div>
+        <div style="flex:1 1 280px; min-width:0">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.65">Erreur de notre côté</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(28px,3.8vw,44px); line-height:1; letter-spacing:-2px; margin-top:9px; text-transform:uppercase">Quelque chose a cassé</div>
+          <p style="font-size:16px; font-weight:500; line-height:1.55; margin:14px 0 0; max-width:600px; opacity:.88; text-wrap:pretty">Ce n'est pas toi. Une partie de la page n'a pas pu se charger. Réessayer suffit le plus souvent — et ce que tu étais en train de faire n'est pas perdu.</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:28px">
+        <div style="padding:15px 26px; border:3px solid #121212; border-radius:15px; background:#FFD84A; color:#121212; box-shadow:5px 5px 0 #FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #FFFFFF">Réessayer</div>
+        <div style="padding:15px 26px; border:3px solid #FFFFFF; border-radius:15px; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="background:rgba(255,255,255,.12)">Revenir à l'accueil</div>
+        <div style="padding:15px 26px; border:3px solid #FFFFFF; border-radius:15px; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="background:rgba(255,255,255,.12)">Signaler au support</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:28px; padding-top:22px; border-top:3px solid #FFFFFF">
+        <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Référence de l'incident</div>
+        <div style="font-family:'Space Mono',monospace; font-size:13px; font-weight:700; color:#FFD84A">ERR-8f21c4</div>
+        <div style="flex:1 1 200px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.6">à citer si tu écris au support — elle nous mène directement à la trace</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── CHARGEMENT ───────────────────────────────────────────────────── -->
+  <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1240px; margin:0 auto; padding:32px 26px 60px">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:14px 18px; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:5px 5px 0 #121212">
+      <div style="width:26px; height:26px; flex:0 0 auto; border:3px solid #121212; border-top-color:transparent; border-radius:99px; animation:spin 1s linear infinite"></div>
+      <div style="flex:1 1 auto; min-width:0; font-size:14.5px; font-weight:800">On charge tes ressources</div>
+      <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">le squelette garde la place exacte du contenu</div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px">
+      <sc-for list="{{ skelChips }}" as="c" hint-placeholder-count="6">
+        <div style="width:{{ c }}; height:38px; border:2.5px solid #121212; border-radius:999px; background:linear-gradient(100deg,#F4EEFC 30%,#DCCFF0 50%,#F4EEFC 70%); background-size:220% 100%; animation:sweep 1.4s ease-in-out infinite"></div>
+      </sc-for>
+    </div>
+
+    <div style="columns:250px; column-gap:20px; margin-top:22px">
+      <sc-for list="{{ skelCards }}" as="s" hint-placeholder-count="9">
+        <div style="break-inside:avoid; margin-bottom:20px; display:inline-block; width:100%; border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; overflow:hidden">
+          <div style="height:{{ s.h }}; border-bottom:2.5px solid #121212; background:linear-gradient(100deg,#F4EEFC 30%,#DCCFF0 50%,#F4EEFC 70%); background-size:220% 100%; animation:sweep 1.4s ease-in-out infinite"></div>
+          <div style="padding:13px; display:flex; align-items:center; gap:10px">
+            <div style="flex:1 1 auto; height:14px; border-radius:99px; background:#EADFF9; animation:pulse 1.4s ease-in-out infinite"></div>
+            <div style="width:52px; height:24px; border:2px solid #121212; border-radius:9px; background:#F4EEFC"></div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960},&quot;ecran&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pay&quot;,&quot;return&quot;,&quot;404&quot;,&quot;error&quot;,&quot;loading&quot;],&quot;default&quot;:&quot;pay&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Écran&quot;}}">
+const INK = "#121212", W = "#FFFFFF", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", LAV = "#F4EEFC", GRN = "#B9E8C0";
+
+const RAILS = [
+  { k: "orange", label: "Orange Money", initials: "OM", mark: ORA, markFg: W, hint: "Sénégal, Mali, Guinée, Côte d'Ivoire", pays: ["SN", "ML", "CI"], phone: true, tag: "Flutterwave" },
+  { k: "wave", label: "Wave", initials: "WV", mark: "#4B9EF8", markFg: W, hint: "Sénégal, Côte d'Ivoire · sans frais pour toi", pays: ["SN", "CI"], phone: true, tag: "Flutterwave" },
+  { k: "mtn", label: "MTN MoMo", initials: "MT", mark: YEL, markFg: INK, hint: "Ghana, Cameroun, Côte d'Ivoire", pays: ["GH", "CI"], phone: true, tag: "Flutterwave" },
+  { k: "moov", label: "Moov Money", initials: "MV", mark: "#1F6FEB", markFg: W, hint: "Bénin, Togo, Burkina Faso", pays: ["BJ"], phone: true, tag: "Flutterwave" },
+  { k: "carte", label: "Carte bancaire", initials: "CB", mark: INK, markFg: W, hint: "Visa, Mastercard · partout", pays: ["SN", "CI", "GH", "BJ"], phone: false, tag: "Paystack" }
+];
+
+const COUNTRIES = [
+  { k: "SN", label: "Sénégal" }, { k: "CI", label: "Côte d'Ivoire" },
+  { k: "GH", label: "Ghana" }, { k: "BJ", label: "Bénin" }
+];
+
+const RETURNS = {
+  attente: {
+    kicker: "Paiement en cours", title: "On attend la confirmation",
+    text: "Ton opérateur ne nous a pas encore répondu. C'est normal : il lui faut parfois une minute ou deux.",
+    bg: YEL, fg: INK, dotBg: W, dotFg: INK, glyph: "⏱", anim: "pulse 1.6s ease-in-out infinite",
+    amount: "5 000 F", isWaiting: true,
+    actions: [{ label: "Mes achats", bg: W, fg: INK, sh: "4px 4px 0 #121212" }, { label: "Revenir à la fiche", bg: W, fg: INK, sh: "none" }]
+  },
+  paye: {
+    kicker: "Paiement confirmé", title: "C'est payé",
+    text: "L'opérateur a confirmé. La ressource est dans ton espace et ton reçu part par courriel dans la minute.",
+    bg: GRN, fg: INK, dotBg: W, dotFg: INK, glyph: "✓", anim: "none",
+    amount: "5 000 F", isWaiting: false,
+    actions: [{ label: "Télécharger maintenant", bg: INK, fg: W, sh: "5px 5px 0 #121212" }, { label: "Mes achats", bg: W, fg: INK, sh: "4px 4px 0 #121212" }, { label: "Revenir à la fiche", bg: W, fg: INK, sh: "none" }]
+  },
+  gratuit: {
+    kicker: "Ressource gratuite", title: "C'est à toi",
+    text: "Rien n'a été encaissé — cette ressource est offerte par sa créatrice. Elle est déjà dans ton espace.",
+    bg: GRN, fg: INK, dotBg: W, dotFg: INK, glyph: "✓", anim: "none",
+    amount: "0 F", isWaiting: false,
+    actions: [{ label: "Télécharger maintenant", bg: INK, fg: W, sh: "5px 5px 0 #121212" }, { label: "Mes achats", bg: W, fg: INK, sh: "4px 4px 0 #121212" }, { label: "Revenir à la fiche", bg: W, fg: INK, sh: "none" }]
+  },
+  echoue: {
+    kicker: "Paiement refusé", title: "Le paiement n'est pas passé",
+    text: "Ton opérateur a refusé la transaction, ou elle a été interrompue avant d'aboutir.",
+    bg: ORA, fg: W, dotBg: YEL, dotFg: INK, glyph: "✕", anim: "none",
+    amount: "5 000 F", isWaiting: false, isFailed: true,
+    actions: [{ label: "Réessayer le paiement", bg: YEL, fg: INK, sh: "5px 5px 0 #121212" }, { label: "Mes achats", bg: W, fg: INK, sh: "4px 4px 0 #121212" }, { label: "Revenir à la fiche", bg: W, fg: INK, sh: "none" }]
+  }
+};
+
+const SCREENS = [
+  { k: "pay", label: "Moyen de paiement", route: "/achat/nouveau" },
+  { k: "return", label: "Retour opérateur", route: "/achat/[orderId]" },
+  { k: "404", label: "404", route: "/introuvable" },
+  { k: "error", label: "Erreur", route: "/erreur" },
+  { k: "loading", label: "Chargement", route: "/explorer · loading" }
+];
+
+class Component extends DCLogic {
+  state = { screen: null, rail: "wave", pays: "SN", ret: "attente", tick: 3 };
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if ((this.state.ret || "attente") === "attente") this.setState(s => ({ tick: (s.tick % 9) + 1 }));
+    }, 8000);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  renderVals() {
+    const screen = this.state.screen || this.props.ecran || "pay";
+    const pays = this.state.pays;
+    const railKey = this.state.rail;
+    const available = RAILS.filter(r => r.pays.indexOf(pays) >= 0);
+    const chosen = available.find(r => r.k === railKey);
+    const retKey = this.state.ret || "attente";
+    const ret = RETURNS[retKey];
+
+    return {
+      route: (SCREENS.find(s => s.k === screen) || SCREENS[0]).route,
+      nav: SCREENS.map(s => ({
+        label: s.label, bg: screen === s.k ? INK : W, fg: screen === s.k ? W : INK,
+        pick: () => this.setState({ screen: s.k })
+      })),
+
+      isPay: screen === "pay",
+      isReturn: screen === "return",
+      is404: screen === "404",
+      isError: screen === "error",
+      isLoading: screen === "loading",
+
+      countries: COUNTRIES.map(c => ({
+        label: c.label, bg: pays === c.k ? INK : W, fg: pays === c.k ? W : INK,
+        pick: () => this.setState({ pays: c.k })
+      })),
+      rails: RAILS.map(r => {
+        const on = r.pays.indexOf(pays) >= 0;
+        const sel = on && r.k === railKey;
+        return {
+          label: r.label, initials: r.initials, mark: on ? r.mark : "#DCDCDC", markFg: on ? r.markFg : "rgba(18,18,18,.45)",
+          hint: on ? r.hint : "Pas disponible dans ce pays",
+          tag: on ? r.tag : "INDISPONIBLE",
+          bg: sel ? YEL : W, sh: sel ? "5px 5px 0 #121212" : "none",
+          op: on ? "1" : ".45", cursor: on ? "pointer" : "not-allowed",
+          mark2: sel ? "●" : "",
+          pick: on ? (() => this.setState({ rail: r.k })) : (() => {})
+        };
+      }),
+      needsPhone: !!(chosen && chosen.phone),
+      noPhone: !!(chosen && !chosen.phone),
+      phonePh: pays === "GH" ? "+233 24 000 0000" : pays === "BJ" ? "+229 90 00 00 00" : pays === "CI" ? "+225 07 00 00 00 00" : "+221 77 000 00 00",
+      phoneWhy: chosen && chosen.phone
+        ? "Flutterwave a besoin du numéro pour viser le bon réseau — sans lui, la demande part au hasard et échoue."
+        : "Paystack ne demande rien ici : le numéro de carte se saisit sur sa propre page sécurisée, jamais sur Baobart.",
+      ctaLabel: chosen ? "Payer avec " + chosen.label : "Choisis un moyen de paiement",
+      ctaBg: chosen ? YEL : LAV,
+      ctaFg: chosen ? INK : "rgba(18,18,18,.4)",
+      ctaSh: chosen ? "4px 4px 0 #121212" : "none",
+      ctaCursor: chosen ? "pointer" : "not-allowed",
+      ctaNote: chosen
+        ? "Tu es redirigé vers " + chosen.tag + ". Le débit n'a lieu qu'après ta validation chez l'opérateur."
+        : "Aucun rail actif sélectionné — le bouton reste inactif.",
+
+      payStates: [
+        { k: "attente", l: "En attente" }, { k: "paye", l: "Payé" },
+        { k: "gratuit", l: "Rien à encaisser" }, { k: "echoue", l: "Échoué" }
+      ].map(s => ({
+        label: s.l, bg: retKey === s.k ? INK : W, fg: retKey === s.k ? W : INK,
+        pick: () => this.setState({ ret: s.k })
+      })),
+      ret: Object.assign({}, ret, { tick: String(this.state.tick), isFailed: !!ret.isFailed }),
+      sandboxOk: () => this.setState({ ret: "paye" }),
+      sandboxKo: () => this.setState({ ret: "echoue" }),
+
+      suggestions: ["Illustrations", "Mockups", "Fonts", "Motifs wax", "Ressources gratuites"],
+      skelChips: ["96px", "128px", "108px", "84px", "142px", "116px"],
+      skelCards: [{ h: "230px" }, { h: "300px" }, { h: "190px" }, { h: "270px" }, { h: "210px" }, { h: "320px" }, { h: "180px" }, { h: "260px" }, { h: "220px" }]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

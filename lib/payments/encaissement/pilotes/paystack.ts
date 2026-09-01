@@ -6,8 +6,10 @@ import { decimalsFor, type Currency } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 import {
   signaturesEgales,
+  type DemandeRemboursement,
   type FaitPaiement,
   type PiloteEncaissement,
+  type Remboursement,
 } from "@/lib/payments/encaissement/contrat";
 import { VERSEMENTS_PAYSTACK } from "@/lib/payments/encaissement/pilotes/paystack-versements";
 
@@ -214,6 +216,10 @@ export const PAYSTACK: PiloteEncaissement = {
     return confirmerAupresDePaystack(reference);
   },
 
+  rembourser(demande) {
+    return rembourserChezPaystack(demande);
+  },
+
   // La moitié sortante vit dans son propre fichier : elle a ses trois
   // appels et son cas d'OTP, et les mêler ici rendrait les deux illisibles.
   versements: VERSEMENTS_PAYSTACK,
@@ -331,4 +337,89 @@ export async function confirmerAupresDePaystack(
     });
     return { confirme: false, montant: null, devise: null };
   }
+}
+
+
+/**
+ * Demande à Paystack de rendre l'argent.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LE MONTANT SUIT LA MÊME RÈGLE QUE PARTOUT
+ *
+ * Multiplié par cent, y compris pour le franc CFA. Se tromper ici rembourse
+ * cinquante francs au lieu de cinq mille — et personne ne s'en aperçoit avant
+ * la réclamation de l'acheteur.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LA RÉFÉRENCE EST CELLE DE L'OPÉRATEUR, PAS LA NÔTRE
+ *
+ * Paystack veut l'identifiant de SA transaction. Lui envoyer notre identifiant
+ * de commande ne rembourserait rien : il ne connaît pas nos numéros. C'est la
+ * valeur gardée sur `Order.providerRef` au moment du rappel.
+ */
+export async function rembourserChezPaystack(
+  demande: DemandeRemboursement,
+): Promise<Remboursement> {
+  const secret = cle();
+  if (secret.length === 0) {
+    return { ok: false, message: "Paystack n'est pas configuré.", definitif: true };
+  }
+
+  if (!DEVISES.has(demande.devise)) {
+    return {
+      ok: false,
+      message: `Paystack ne rembourse pas en ${demande.devise}.`,
+      definitif: true,
+    };
+  }
+
+  let reponse: Response;
+  try {
+    reponse = await fetch(`${BASE}/refund`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${secret}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        transaction: demande.referenceOperateur,
+        amount: versPaystack(demande.montant, demande.devise as Currency),
+        currency: demande.devise,
+        customer_note: demande.motifClient.slice(0, 200),
+        merchant_note: demande.motifInterne.slice(0, 200),
+      }),
+    });
+  } catch (cause) {
+    journal.erreur("Paystack injoignable pour le remboursement", {
+      transaction: demande.referenceOperateur,
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
+    return { ok: false, message: "Paystack est injoignable.", definitif: false };
+  }
+
+  const lu = (await reponse.json().catch(() => null)) as {
+    status?: boolean;
+    message?: string;
+    data?: { id?: number | string };
+  } | null;
+
+  if (!reponse.ok || lu?.status !== true) {
+    journal.erreur("Paystack refuse le remboursement", {
+      transaction: demande.referenceOperateur,
+      code: reponse.status,
+      message: lu?.message ?? "",
+    });
+    return {
+      ok: false,
+      message: lu?.message ?? "Paystack a refusé le remboursement.",
+      // Un 4xx vient de nous — transaction inconnue, montant trop grand. Un
+      // 5xx vient de chez eux et sera peut-être passé dans dix minutes.
+      definitif: reponse.status < 500,
+    };
+  }
+
+  return {
+    ok: true,
+    referenceOperateur: lu.data?.id !== undefined ? String(lu.data.id) : null,
+  };
 }

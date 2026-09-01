@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Poppins:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #DCCFF0; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  a { color: #121212; text-decoration: none; }
+  a:hover { color: #E2622C; }
+  ::selection { background: #FFD84A; }
+</style>
+</helmet>
+
+<div style="padding:48px; display:flex; flex-direction:column; gap:40px; width:max-content">
+
+  <div style="display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; max-width:2280px">
+    <div style="flex:1 1 620px; min-width:520px; border:3px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:8px 8px 0 #121212; padding:30px">
+      <div style="display:inline-block; border:2.5px solid #121212; border-radius:999px; background:#FFD84A; padding:8px 16px; font-family:'Space Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.14em">Modèle LinkedIn · v1</div>
+      <h1 style="font-family:'Archivo Black',sans-serif; font-size:44px; line-height:.96; letter-spacing:-2px; margin:16px 0 0; text-transform:uppercase">{{ postLabel }}<span style="color:#E2622C">.</span></h1>
+      <p style="font-size:16px; font-weight:500; line-height:1.55; margin:14px 0 0; opacity:.8; max-width:560px">Un carré 1080 × 1080 pour le post simple, un carrousel de 5 pages 1080 × 1350 pour dérouler l'annonce. Le sélecteur de type de post dans les réglages change le titre, la légende et l'accent partout d'un coup.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px">
+        <div style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; background:#F4EEFC; font-size:13px; font-weight:800">1080 × 1080 · carré</div>
+        <div style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; background:#F4EEFC; font-size:13px; font-weight:800">1080 × 1350 × 5 · carrousel</div>
+        <div style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; background:#F4EEFC; font-size:13px; font-weight:800">Titre ≤ 6 mots</div>
+        <div style="padding:9px 16px; border:2.5px solid #121212; border-radius:999px; background:#F4EEFC; font-size:13px; font-weight:800">Pastille en coin</div>
+      </div>
+    </div>
+
+    <!-- LEGENDE -->
+    <div style="flex:1 1 620px; min-width:520px; border:3px solid #121212; border-radius:28px; background:#121212; color:#FFFFFF; box-shadow:8px 8px 0 #E2622C; padding:30px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.14em; opacity:.65">Légende du post · à copier</div>
+      <div style="font-size:17px; font-weight:800; line-height:1.4; margin-top:14px">{{ caption.hook }}</div>
+      <div style="display:flex; flex-direction:column; gap:11px; margin-top:16px">
+        <sc-for list="{{ caption.body }}" as="p" hint-placeholder-count="3">
+          <div style="font-size:15px; font-weight:400; line-height:1.55; opacity:.88">{{ p }}</div>
+        </sc-for>
+      </div>
+      <div style="font-size:15px; font-weight:700; line-height:1.5; margin-top:16px; color:#FFD84A">{{ caption.cta }}</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; padding-top:18px; border-top:2.5px solid #FFFFFF">
+        <sc-for list="{{ caption.tags }}" as="t" hint-placeholder-count="6">
+          <div style="padding:6px 13px; border:2px solid #FFFFFF; border-radius:999px; font-family:'Space Mono',monospace; font-size:11.5px">{{ t }}</div>
+        </sc-for>
+      </div>
+      <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:16px; opacity:.6">{{ caption.note }}</div>
+    </div>
+  </div>
+
+  <!-- CARRE 1080 -->
+  <div>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px">
+      <div style="padding:8px 16px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em">A · CARRÉ 1080 × 1080</div>
+      <div style="font-size:14px; font-weight:600; opacity:.7">Post unique. Le format qui occupe le plus de surface au fil mobile sans être coupé.</div>
+    </div>
+    <div style="width:1080px; height:1080px; border:4px solid #121212; background:#EADFF9; overflow:hidden; position:relative; display:flex; flex-direction:column">
+      <div style="position:absolute; inset:0; background:{{ art.grain }}; opacity:.5"></div>
+      <div style="position:relative; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:44px 52px 0">
+        <div style="width:78px; height:78px; flex:0 0 auto; border:4px solid #121212; border-radius:99px; background:#E2622C; box-shadow:6px 6px 0 #121212; display:grid; place-items:center; overflow:hidden">
+          <img src="img/baobab-white.svg" alt="Baobart" style="width:53px; display:block; margin-top:4px" />
+        </div>
+        <div style="flex:1 1 auto; min-width:0">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:34px; line-height:.9; letter-spacing:-1.6px">Baobart<span style="color:#E2622C">.</span></div>
+          <div style="font-family:'Space Mono',monospace; font-size:14px; font-weight:700; letter-spacing:.18em; margin-top:6px; opacity:.65">BAOBART.AFRICA</div>
+        </div>
+        <div style="flex:0 0 auto; padding:12px 22px; border:4px solid #121212; border-radius:999px; background:{{ accent }}; box-shadow:5px 5px 0 #121212; font-family:'Space Mono',monospace; font-size:16px; font-weight:700; letter-spacing:.12em; text-transform:uppercase">{{ badge }}</div>
+      </div>
+
+      <div style="position:relative; flex:1 1 auto; display:flex; flex-direction:column; justify-content:center; padding:0 52px">
+        <div style="font-family:'Space Mono',monospace; font-size:19px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; opacity:.6">{{ kicker }}</div>
+        <div style="font-family:'Archivo Black',sans-serif; font-size:{{ titleSize }}; line-height:.9; letter-spacing:-4px; text-transform:uppercase; margin-top:18px; text-wrap:balance">{{ title }}<span style="color:#E2622C">.</span></div>
+        <div style="font-size:29px; font-weight:600; line-height:1.35; margin-top:26px; max-width:820px; opacity:.85; text-wrap:pretty">{{ subtitle }}</div>
+      </div>
+
+      <div style="position:relative; flex:0 0 auto; display:flex; align-items:stretch; gap:20px; padding:0 52px 44px">
+        <div style="flex:1 1 0; height:300px; border:4px solid #121212; border-radius:26px; box-shadow:8px 8px 0 #121212; background:{{ art.a }}"></div>
+        <div style="flex:1 1 0; height:300px; border:4px solid #121212; border-radius:26px; box-shadow:8px 8px 0 #121212; background:{{ art.b }}"></div>
+        <div style="flex:0 0 300px; height:300px; border:4px solid #121212; border-radius:26px; box-shadow:8px 8px 0 #121212; background:#121212; color:#FFFFFF; padding:26px; display:flex; flex-direction:column; justify-content:space-between">
+          <div style="font-family:'Space Mono',monospace; font-size:14px; letter-spacing:.14em; opacity:.65">{{ stat.label }}</div>
+          <div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:64px; line-height:.9; letter-spacing:-3px; color:{{ accent }}">{{ stat.value }}</div>
+            <div style="font-size:18px; font-weight:700; line-height:1.3; margin-top:10px">{{ stat.note }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARROUSEL -->
+  <div>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px">
+      <div style="padding:8px 16px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em">B · CARROUSEL 1080 × 1350 · 5 PAGES</div>
+      <div style="font-size:14px; font-weight:600; opacity:.7">À exporter en PDF, une page par diapositive.</div>
+    </div>
+
+    <div style="display:flex; gap:28px">
+
+      <!-- P1 COUVERTURE -->
+      <div style="width:1080px; height:1350px; flex:0 0 auto; border:4px solid #121212; background:{{ accent }}; overflow:hidden; position:relative; display:flex; flex-direction:column">
+        <div style="position:absolute; inset:0; background:{{ art.grain }}; opacity:.35"></div>
+        <div style="position:relative; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:52px 56px 0">
+          <div style="width:76px; height:76px; flex:0 0 auto; border:4px solid #121212; border-radius:99px; background:#E2622C; box-shadow:6px 6px 0 #121212; display:grid; place-items:center; overflow:hidden">
+            <img src="img/baobab-white.svg" alt="Baobart" style="width:52px; display:block; margin-top:4px" />
+          </div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:32px; letter-spacing:-1.5px">Baobart<span style="color:#E2622C">.</span></div>
+          <div style="margin-left:auto; padding:11px 20px; border:4px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:15px; font-weight:700; letter-spacing:.12em; text-transform:uppercase">{{ badge }}</div>
+        </div>
+        <div style="position:relative; flex:1 1 auto; display:flex; flex-direction:column; justify-content:center; padding:0 56px">
+          <div style="font-family:'Space Mono',monospace; font-size:20px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; opacity:.65">{{ kicker }}</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:{{ coverSize }}; line-height:.88; letter-spacing:-5px; text-transform:uppercase; margin-top:22px; text-wrap:balance">{{ title }}<span style="color:#121212">.</span></div>
+          <div style="font-size:32px; font-weight:600; line-height:1.32; margin-top:30px; max-width:800px; opacity:.85; text-wrap:pretty">{{ subtitle }}</div>
+          <div style="display:inline-flex; align-items:center; gap:14px; margin-top:44px; padding:20px 30px; border:4px solid #121212; border-radius:22px; background:#121212; color:#FFFFFF; box-shadow:8px 8px 0 #FFFFFF; align-self:flex-start; font-size:24px; font-weight:800">Fais défiler <span style="font-size:28px">→</span></div>
+        </div>
+        <div style="position:relative; flex:0 0 auto; height:420px; margin:0 56px 56px; border:4px solid #121212; border-radius:30px; box-shadow:10px 10px 0 #121212; background:{{ art.a }}"></div>
+      </div>
+
+      <!-- P2 CONTEXTE -->
+      <div style="width:1080px; height:1350px; flex:0 0 auto; border:4px solid #121212; background:#EADFF9; overflow:hidden; position:relative; display:flex; flex-direction:column; padding:56px">
+        <div style="display:flex; align-items:center; gap:16px">
+          <div style="width:58px; height:58px; flex:0 0 auto; border:4px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="" style="width:40px; display:block; margin-top:3px" /></div>
+          <div style="font-family:'Space Mono',monospace; font-size:17px; font-weight:700; letter-spacing:.16em; opacity:.6">02 / 05</div>
+        </div>
+        <div style="font-family:'Archivo Black',sans-serif; font-size:82px; line-height:.92; letter-spacing:-4px; text-transform:uppercase; margin-top:44px; max-width:900px; text-wrap:balance">{{ p2.title }}</div>
+        <div style="font-size:31px; font-weight:500; line-height:1.45; margin-top:28px; max-width:880px; opacity:.85; text-wrap:pretty">{{ p2.text }}</div>
+        <div style="display:flex; flex-direction:column; gap:18px; margin-top:auto">
+          <sc-for list="{{ p2.bullets }}" as="b" hint-placeholder-count="3">
+            <div style="display:flex; align-items:center; gap:22px; padding:26px 30px; border:4px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:8px 8px 0 #121212">
+              <div style="width:58px; height:58px; flex:0 0 auto; border:4px solid #121212; border-radius:99px; background:{{ accent }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:26px">{{ b.n }}</div>
+              <div style="font-size:29px; font-weight:800; line-height:1.25">{{ b.t }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- P3 VISUEL PLEINE PAGE -->
+      <div style="width:1080px; height:1350px; flex:0 0 auto; border:4px solid #121212; overflow:hidden; position:relative; background:{{ art.b }}">
+        <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(18,18,18,0) 40%, rgba(18,18,18,.88) 100%)"></div>
+        <div style="position:absolute; top:56px; left:56px; display:flex; align-items:center; gap:16px">
+          <div style="width:58px; height:58px; border:4px solid #FFFFFF; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="" style="width:40px; display:block; margin-top:3px" /></div>
+          <div style="padding:10px 18px; border:4px solid #FFFFFF; border-radius:999px; background:rgba(18,18,18,.5); font-family:'Space Mono',monospace; font-size:16px; font-weight:700; letter-spacing:.14em; color:#FFFFFF">03 / 05</div>
+        </div>
+        <div style="position:absolute; inset:auto 56px 56px 56px; color:#FFFFFF">
+          <div style="display:inline-block; padding:10px 20px; border:4px solid #FFFFFF; border-radius:999px; background:{{ accent }}; color:#121212; font-family:'Space Mono',monospace; font-size:16px; font-weight:700; letter-spacing:.12em; text-transform:uppercase">{{ p3.tag }}</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:76px; line-height:.94; letter-spacing:-3.5px; text-transform:uppercase; margin-top:22px; max-width:880px; text-wrap:balance">{{ p3.title }}</div>
+          <div style="font-size:28px; font-weight:500; line-height:1.4; margin-top:20px; max-width:840px; opacity:.9">{{ p3.text }}</div>
+        </div>
+      </div>
+
+      <!-- P4 PREUVE -->
+      <div style="width:1080px; height:1350px; flex:0 0 auto; border:4px solid #121212; background:#FFFFFF; overflow:hidden; display:flex; flex-direction:column; padding:56px">
+        <div style="display:flex; align-items:center; gap:16px">
+          <div style="width:58px; height:58px; flex:0 0 auto; border:4px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="" style="width:40px; display:block; margin-top:3px" /></div>
+          <div style="font-family:'Space Mono',monospace; font-size:17px; font-weight:700; letter-spacing:.16em; opacity:.6">04 / 05</div>
+        </div>
+        <div style="font-family:'Archivo Black',sans-serif; font-size:82px; line-height:.92; letter-spacing:-4px; text-transform:uppercase; margin-top:44px; max-width:900px; text-wrap:balance">{{ p4.title }}</div>
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; margin-top:40px">
+          <sc-for list="{{ p4.stats }}" as="s" hint-placeholder-count="4">
+            <div style="border:4px solid #121212; border-radius:28px; background:{{ s.bg }}; box-shadow:8px 8px 0 #121212; padding:30px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:66px; line-height:.9; letter-spacing:-3px">{{ s.v }}</div>
+              <div style="font-size:24px; font-weight:700; line-height:1.3; margin-top:14px; opacity:.8">{{ s.k }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:auto; display:flex; align-items:center; gap:24px; padding:32px; border:4px solid #121212; border-radius:28px; background:#EADFF9">
+          <div style="width:106px; height:106px; flex:0 0 auto; border:4px solid #121212; border-radius:99px; background:{{ art.avatar }}"></div>
+          <div style="min-width:0">
+            <div style="font-size:27px; font-weight:500; line-height:1.4; font-style:italic; text-wrap:pretty">{{ p4.quote }}</div>
+            <div style="font-family:'Space Mono',monospace; font-size:16px; margin-top:12px; opacity:.65">{{ p4.author }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P5 CTA -->
+      <div style="width:1080px; height:1350px; flex:0 0 auto; border:4px solid #121212; background:#121212; color:#FFFFFF; overflow:hidden; position:relative; display:flex; flex-direction:column; justify-content:center; padding:56px">
+        <div style="position:absolute; inset:0; background:{{ art.grain }}; opacity:.16"></div>
+        <div style="position:absolute; top:56px; left:56px; right:56px; display:flex; align-items:center; gap:16px">
+          <div style="width:58px; height:58px; border:4px solid #FFFFFF; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="" style="width:40px; display:block; margin-top:3px" /></div>
+          <div style="font-family:'Space Mono',monospace; font-size:17px; font-weight:700; letter-spacing:.16em; opacity:.55">05 / 05</div>
+        </div>
+        <div style="position:relative">
+          <div style="font-family:'Space Mono',monospace; font-size:20px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:{{ accent }}">{{ p5.kicker }}</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:96px; line-height:.9; letter-spacing:-5px; text-transform:uppercase; margin-top:22px; max-width:920px; text-wrap:balance">{{ p5.title }}<span style="color:{{ accent }}">.</span></div>
+          <div style="font-size:32px; font-weight:500; line-height:1.4; margin-top:28px; max-width:840px; opacity:.85; text-wrap:pretty">{{ p5.text }}</div>
+          <div style="display:flex; flex-wrap:wrap; gap:20px; margin-top:48px">
+            <div style="padding:26px 40px; border:4px solid #121212; border-radius:24px; background:{{ accent }}; box-shadow:9px 9px 0 #FFFFFF; font-size:29px; font-weight:800; color:#121212">{{ p5.cta }}</div>
+            <div style="padding:26px 40px; border:4px solid #FFFFFF; border-radius:24px; font-size:29px; font-weight:800">baobart.africa</div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:56px; left:56px; right:56px; display:flex; align-items:center; gap:18px; padding-top:30px; border-top:4px solid #FFFFFF">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:34px; letter-spacing:-1.6px">Baobart<span style="color:{{ accent }}">.</span></div>
+          <div style="margin-left:auto; font-family:'Space Mono',monospace; font-size:17px; letter-spacing:.14em; opacity:.6">CREATE. SHARE. INSPIRE.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;postType&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;produit&quot;,&quot;ressource&quot;,&quot;createur&quot;],&quot;default&quot;:&quot;produit&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Type de post&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;options&quot;:[&quot;#FFD84A&quot;,&quot;#E2622C&quot;,&quot;#C9A8F5&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Habillage&quot;},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenu&quot;},&quot;kicker&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenu&quot;},&quot;subtitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenu&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenu&quot;}}">
+const YEL = "#FFD84A", PUR = "#C9A8F5", ORA = "#E2622C";
+
+const stripe = (a, b, w) => "repeating-linear-gradient(135deg," + a + " 0 " + w + "px," + b + " " + w + "px " + (w * 2.2) + "px)";
+const img = (f, pos) => "url('img/" + f + "') " + (pos || "center") + " / cover no-repeat";
+
+const POSTS = {
+  produit: {
+    label: "Annonce produit",
+    kicker: "Nouveau sur la plateforme",
+    title: "Vos espaces d'équipe",
+    subtitle: "Collections partagées, commentaires ancrés sur le fichier, invitation par lien. Votre équipe travaille enfin au même endroit.",
+    badge: "Nouveauté",
+    accent: YEL,
+    stat: { label: "DISPONIBLE", value: "3 forfaits", note: "Inclus dès l'Essentiel" },
+    art: { a: img("mode-blanc-01.png", "center 18%"), b: img("neon-01.png"), avatar: img("studio-01.png", "center 20%"), grain: stripe("rgba(18,18,18,.05)", "rgba(18,18,18,0)", 14) },
+    p2: {
+      title: "Le problème",
+      text: "Les fichiers partaient par WhatsApp, les retours par mail, et personne ne savait quelle version était la bonne.",
+      bullets: [{ n: "1", t: "Une collection par projet, partagée en un lien" }, { n: "2", t: "Les commentaires restent collés au fichier" }, { n: "3", t: "Les licences suivent l'équipe, pas la personne" }]
+    },
+    p3: { tag: "Dans l'interface", title: "Tout se passe dans la grille", text: "Vous enregistrez, vous commentez, vous téléchargez — sans jamais quitter la page." },
+    p4: {
+      title: "Testé avant d'ouvrir",
+      stats: [{ v: "40", k: "équipes en bêta", bg: YEL }, { v: "6 sem.", k: "de test terrain", bg: "#FFFFFF" }, { v: "−70 %", k: "d'allers-retours par mail", bg: PUR }, { v: "4,8", k: "note des testeurs", bg: "#FFFFFF" }],
+      quote: "On a arrêté de se demander qui avait la dernière version. C'est tout ce qu'on voulait.",
+      author: "Dev.team · agence, Dakar"
+    },
+    p5: { kicker: "C'est ouvert", title: "Essayez maintenant", text: "Les espaces d'équipe sont inclus dès le forfait Essentiel. Aucun paramétrage à faire.", cta: "Créer un espace" }
+  },
+  ressource: {
+    label: "Nouveau pack",
+    kicker: "Fraîchement en ligne",
+    title: "40 motifs wax",
+    subtitle: "Vectoriels, en répétition parfaite, prêts pour le textile comme pour l'écran. Dessinés à Dakar par Awa Diallo.",
+    badge: "Nouveau pack",
+    accent: ORA,
+    stat: { label: "CE PACK", value: "40", note: "motifs vectoriels" },
+    art: { a: img("mode-rouge.jpg", "center 20%"), b: img("collage-lunettes.jpg"), avatar: img("beaute-afro.jpg", "center 25%"), grain: stripe("rgba(18,18,18,.05)", "rgba(18,18,18,0)", 14) },
+    p2: {
+      title: "Ce qu'il y a dedans",
+      text: "Chaque motif est construit sur une grille propre : vous pouvez l'agrandir, le recolorer, l'imprimer en 3 mètres sans un pixel de perte.",
+      bullets: [{ n: "1", t: "40 motifs en répétition parfaite" }, { n: "2", t: "Palettes modifiables en un clic" }, { n: "3", t: "AI, SVG, EPS et PNG 300 dpi" }]
+    },
+    p3: { tag: "En situation", title: "Du tissu à l'écran", text: "Testé sur affiche A2, sur packaging et sur bannière web avant publication." },
+    p4: {
+      title: "Pourquoi celui-là",
+      stats: [{ v: "40", k: "motifs originaux", bg: ORA }, { v: "4", k: "formats de fichier", bg: "#FFFFFF" }, { v: "300", k: "dpi minimum", bg: PUR }, { v: "5,0", k: "note de la créatrice", bg: "#FFFFFF" }],
+      quote: "Je dessine ces motifs depuis six ans. Ce pack, c'est la sélection que j'utilise vraiment pour mes clients.",
+      author: "Awa Diallo · illustratrice, Dakar"
+    },
+    p5: { kicker: "Licence commerciale incluse", title: "Téléchargez-le", text: "Disponible à l'unité ou en illimité avec le forfait Pro.", cta: "Voir le pack" }
+  },
+  createur: {
+    label: "Portrait de créateur",
+    kicker: "Ils font Baobart",
+    title: "Awa Diallo",
+    subtitle: "Illustratrice à Dakar. Portraits et motifs inspirés du wax, pour l'édition comme pour l'identité visuelle.",
+    badge: "Créatrice vérifiée",
+    accent: PUR,
+    stat: { label: "SUR BAOBART", value: "6 480", note: "téléchargements de son travail" },
+    art: { a: img("beaute-afro.jpg", "center 25%"), b: img("studio-02.png", "center 20%"), avatar: img("mode-rouge.jpg", "center 20%"), grain: stripe("rgba(18,18,18,.05)", "rgba(18,18,18,0)", 14) },
+    p2: {
+      title: "Son travail",
+      text: "Elle part du tissu : une trame, une symbolique, une contrainte de répétition. Le portrait vient ensuite se poser dessus.",
+      bullets: [{ n: "1", t: "18 ressources publiées sur la plateforme" }, { n: "2", t: "Commandes d'identité visuelle et d'édition" }, { n: "3", t: "Réponse moyenne en une heure" }]
+    },
+    p3: { tag: "Dans son atelier", title: "Le tissu d'abord", text: "Chaque motif part d'un textile réel, photographié puis redessiné à la main." },
+    p4: {
+      title: "Ses chiffres",
+      stats: [{ v: "18", k: "ressources en ligne", bg: PUR }, { v: "1 240", k: "abonnés", bg: "#FFFFFF" }, { v: "4,9", k: "note moyenne", bg: YEL }, { v: "6 480", k: "téléchargements", bg: "#FFFFFF" }],
+      quote: "Baobart m'a apporté des clients que je n'aurais jamais croisés depuis Dakar.",
+      author: "Awa Diallo · créatrice vérifiée"
+    },
+    p5: { kicker: "Découvrez sa boutique", title: "Suivez Awa", text: "Ses nouveautés apparaissent directement dans votre fil dès que vous la suivez.", cta: "Voir le profil" }
+  }
+};
+
+const CAPTIONS = {
+  produit: {
+    hook: "Vos fichiers ne devraient pas vivre dans une conversation WhatsApp.",
+    body: [
+      "On a passé six semaines à regarder 40 équipes travailler sur Baobart. Le même constat revenait : les ressources circulaient par messagerie, les retours par mail, et personne ne savait quelle version était la bonne.",
+      "Les espaces d'équipe corrigent ça. Une collection par projet, partagée en un lien. Les commentaires restent attachés au fichier. Les licences suivent l'équipe, pas la personne qui a cliqué.",
+      "C'est inclus dès le forfait Essentiel, sans paramétrage."
+    ],
+    cta: "→ Créez votre premier espace sur baobart.africa",
+    tags: ["#Baobart", "#DesignAfricain", "#Collaboration", "#RessourcesCréatives", "#DesignOps"],
+    note: "Poster mardi ou jeudi, 8 h–10 h GMT. Carrousel : 5 pages, PDF 1080 × 1350."
+  },
+  ressource: {
+    hook: "40 motifs wax, dessinés à Dakar, prêts pour le textile comme pour l'écran.",
+    body: [
+      "Awa Diallo dessine des motifs inspirés des tissus d'Afrique de l'Ouest depuis six ans. Ce pack, c'est la sélection qu'elle utilise vraiment pour ses clients.",
+      "Tout est vectoriel et en répétition parfaite : vous agrandissez, vous recolorez, vous imprimez en trois mètres sans perdre un pixel. AI, SVG, EPS et PNG 300 dpi dans le même téléchargement.",
+      "80 % du prix revient à Awa. C'est la règle sur Baobart, sans exclusivité imposée."
+    ],
+    cta: "→ Le pack est en ligne sur baobart.africa",
+    tags: ["#Baobart", "#Wax", "#MotifsAfricains", "#Illustration", "#DesignTextile"],
+    note: "Poster en fin de semaine, quand les créatifs préparent leurs projets."
+  },
+  createur: {
+    hook: "Elle part du tissu. Le portrait vient après.",
+    body: [
+      "Awa Diallo est illustratrice à Dakar. Sur Baobart, son travail a été téléchargé 6 480 fois par des agences, des éditeurs et des étudiants sur tout le continent.",
+      "Sa méthode : une trame, une symbolique, une contrainte de répétition. Le visage se pose ensuite sur le motif, jamais l'inverse.",
+      "« Baobart m'a apporté des clients que je n'aurais jamais croisés depuis Dakar. »"
+    ],
+    cta: "→ Découvrez sa boutique sur baobart.africa",
+    tags: ["#Baobart", "#PortraitDeCréateur", "#Illustration", "#DesignAfricain", "#Dakar"],
+    note: "Format le plus engageant : taguer la créatrice et republier depuis son compte."
+  }
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const key = this.props.postType || "produit";
+    const p = POSTS[key] || POSTS.produit;
+    const title = this.props.title || p.title;
+    const accent = this.props.accent || p.accent;
+    const n = title.length;
+
+    return {
+      postLabel: p.label,
+      kicker: this.props.kicker || p.kicker,
+      title: title,
+      subtitle: this.props.subtitle || p.subtitle,
+      badge: this.props.badge || p.badge,
+      accent: accent,
+      titleSize: (n > 22 ? 92 : n > 15 ? 112 : 134) + "px",
+      coverSize: (n > 22 ? 104 : n > 15 ? 126 : 148) + "px",
+      stat: p.stat,
+      art: p.art,
+      p2: p.p2, p3: p.p3, p4: p.p4, p5: p.p5,
+      caption: CAPTIONS[key] || CAPTIONS.produit
+    };
+  }
+}
+
+</script>
+</body>
+</html>

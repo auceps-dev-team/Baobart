@@ -5,8 +5,10 @@ import { revalidatePath } from "next/cache";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { rendreAcces, retirerAcces } from "@/lib/domain/acces";
+import { MARQUEUR_SIMULATION } from "@/lib/checkout/achat";
 import { rembourserLigne } from "@/lib/domain/orders";
 import { journal } from "@/lib/observabilite/journal";
+import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 
 /**
  * Ce qu'un vendeur peut faire sur une de ses ventes.
@@ -106,6 +108,7 @@ async function rembourserVente(
       refundedAmount: true,
       state: true,
       chargebackAt: true,
+      order: { select: { provider: true, providerRef: true, currency: true } },
       product: { select: { sellerId: true, seller: { select: { refundsDisabled: true } } } },
     },
   });
@@ -170,6 +173,30 @@ async function rembourserVente(
     };
   }
 
+  // ── L'ARGENT D'ABORD, LES ÉCRITURES ENSUITE ────────────────────────────────
+  //
+  // Écrire au grand livre débite le vendeur ; cela ne rend rien à l'acheteur.
+  // Tant que l'opérateur n'a pas reçu l'ordre, l'argent est chez lui — et le
+  // « remboursement » n'est qu'une écriture comptable. Invisible en simulation,
+  // catastrophique en production : le créateur perd sa vente et l'acheteur
+  // n'est pas remboursé.
+  //
+  // L'ordre choisi n'est pas le plus rassurant à lire, il est le moins coûteux
+  // quand ça casse. L'appel réseau est ce qui échoue le plus souvent : le faire
+  // en premier fait que l'échec courant ne laisse AUCUNE trace — rien n'a
+  // bougé, on refuse proprement. L'échec rare — l'opérateur a rendu l'argent et
+  // l'écriture ne passe pas — est bruyant et se rattrape à la main.
+  const suiteOperateur = await rendreLArgent({
+    fournisseur: ligne.order.provider,
+    referenceOperateur: ligne.order.providerRef,
+    montant,
+    devise: ligne.order.currency,
+  });
+
+  if (!suiteOperateur.ok) {
+    return { ok: false, message: suiteOperateur.message };
+  }
+
   try {
     const { retenu } = await rembourserLigne({
       orderItemId,
@@ -182,6 +209,7 @@ async function rembourserVente(
       montant,
       retenu,
       parVendeur: utilisateur.id,
+      operateur: suiteOperateur.operateur,
     });
 
     revalidatePath("/dashboard/ventes");
@@ -195,6 +223,76 @@ async function rembourserVente(
     if (cause instanceof RangeError) {
       return { ok: false, message: "Le montant dépasse ce qui reste à rembourser." };
     }
+
+    // L'argent est PARTI et les écritures n'ont pas suivi. Aucun code ne
+    // répare cela seul : il faut qu'un humain rapproche le relevé de
+    // l'opérateur et le grand livre.
+    journal.erreur("ARGENT REMBOURSÉ SANS ÉCRITURE", {
+      orderItemId,
+      montant,
+      operateur: suiteOperateur.operateur,
+      remede:
+        "L'acheteur a été remboursé mais le vendeur n'est pas débité. Rapprocher le relevé de l'opérateur et passer l'écriture à la main.",
+    });
     throw cause;
   }
+}
+
+/**
+ * Demande à l'opérateur de rendre l'argent, quand il y a un opérateur.
+ *
+ * Une vente en simulation n'a jamais rien encaissé : il n'y a rien à rendre, et
+ * le remboursement se réduit aux écritures. On le dit plutôt que de le taire —
+ * un « remboursé » silencieux sur une vente simulée ferait croire à un virement
+ * qui n'a pas eu lieu.
+ */
+async function rendreLArgent(input: {
+  fournisseur: string | null;
+  referenceOperateur: string | null;
+  montant: number;
+  devise: string;
+}): Promise<
+  { ok: true; operateur: string } | { ok: false; message: string }
+> {
+  if (input.fournisseur === MARQUEUR_SIMULATION || input.fournisseur === null) {
+    return { ok: true, operateur: "simulation" };
+  }
+
+  const pilote = piloteCourant();
+
+  if (!pilote.rembourser) {
+    // Mieux vaut refuser que débiter le vendeur sans rendre l'argent.
+    return {
+      ok: false,
+      message:
+        "L'opérateur de paiement ne permet pas le remboursement automatique. Contacte le support.",
+    };
+  }
+
+  if (!input.referenceOperateur) {
+    // Sans la référence de l'opérateur, on ne sait pas quelle transaction
+    // rembourser. Le lui demander au hasard est exclu.
+    return {
+      ok: false,
+      message:
+        "Cette vente n'a pas de référence chez l'opérateur : le remboursement doit se faire à la main.",
+    };
+  }
+
+  const suite = await pilote.rembourser({
+    referenceOperateur: input.referenceOperateur,
+    montant: input.montant,
+    devise: input.devise,
+    motifClient: "Remboursement Baobart",
+    motifInterne: "Remboursement demandé par le vendeur",
+  });
+
+  if (suite.ok) return { ok: true, operateur: pilote.nom };
+
+  return {
+    ok: false,
+    message: suite.definitif
+      ? `L'opérateur a refusé le remboursement : ${suite.message}`
+      : "L'opérateur est injoignable. Réessaie dans quelques minutes.",
+  };
 }
