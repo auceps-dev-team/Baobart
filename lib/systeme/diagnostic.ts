@@ -289,6 +289,64 @@ export function constatLimitation(faits: FaitsLimitation): Constat {
   };
 }
 
+export interface FaitsSms {
+  /** Le pilote actif : « aucun », « console » ou le nom d'un opérateur. */
+  pilote: string;
+  production: boolean;
+}
+
+/**
+ * Les relances d'abonnement peuvent-elles vraiment partir ?
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * « CONSOLE » EN PRODUCTION EST PIRE QU'« AUCUN »
+ *
+ * C'est contre-intuitif, et c'est pourtant le seul des deux qui soit une panne.
+ *
+ * « Aucun » rend `false` : Ndank ne note pas la relance, essaie le canal
+ * suivant, et compte l'abonné parmi les injoignables. Rien n'est perdu.
+ *
+ * « Console » rend `true` après avoir simplement écrit le message dans le
+ * journal. Ndank note donc une relance qui n'est **jamais partie**, ne la
+ * renverra pas, et coupera l'accès au terme de la grâce — à quelqu'un que
+ * personne n'a prévenu, et sans qu'aucun compteur ne le signale.
+ */
+export function constatSms(faits: FaitsSms): Constat {
+  if (faits.pilote === "console") {
+    return {
+      cle: "sms",
+      libelle: faits.production ? "SMS SIMULÉ EN PRODUCTION" : "SMS",
+      gravite: faits.production ? "panne" : "ok",
+      detail: faits.production
+        ? "Les relances sont écrites dans le journal et comptées comme envoyées. Les abonnés seront coupés sans avoir été prévenus."
+        : "Écrites dans le journal (développement).",
+      remede: faits.production
+        ? "Pose SMS_DRIVER=twilio et ses identifiants, ou SMS_DRIVER=aucun — qui, lui, ne prétend rien."
+        : undefined,
+    };
+  }
+
+  if (faits.pilote === "aucun") {
+    return {
+      cle: "sms",
+      libelle: "SMS",
+      gravite: faits.production ? "attention" : "ok",
+      detail:
+        "Aucun opérateur. Les relances d'abonnement ne partent que par courriel.",
+      remede: faits.production
+        ? "Pose SMS_DRIVER et ses identifiants. Les deux derniers rappels avant coupure passent par SMS : sans lui, un abonné qui ne lit pas ses courriels perd son accès sans avertissement."
+        : undefined,
+    };
+  }
+
+  return {
+    cle: "sms",
+    libelle: "SMS",
+    gravite: "ok",
+    detail: `Envoyés par ${faits.pilote}.`,
+  };
+}
+
 export interface FaitsSimulation {
   ouverte: boolean;
   production: boolean;

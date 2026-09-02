@@ -27,6 +27,18 @@ export interface Pays {
   devise: string;
   /** Indicatif, pour l'exemple de numéro affiché sous le champ. */
   indicatif: string;
+  /**
+   * Le zéro de tête appartient-il au numéro international ?
+   *
+   * à « retirer » là où c'est un préfixe interurbain national — le Ghana écrit
+   * 024 xxx xxxx en local et +233 24 xxx xxxx à l'international.
+   *
+   * à « garder » là où c'est un chiffre du numéro lui-même. La Côte d'Ivoire
+   * (2021) et le Bénin (2020) sont passés à dix chiffres commençant par 0, et ce
+   * zéro se compose aussi depuis l'étranger : le retirer produit un numéro qui
+   * n'existe pas, et un SMS facturé sans destinataire.
+   */
+  zeroDeTete: "garder" | "retirer";
 }
 
 export interface Rail {
@@ -39,10 +51,12 @@ export interface Rail {
 }
 
 export const PAYS: readonly Pays[] = [
-  { code: "SN", label: "Sénégal", devise: "XOF", indicatif: "+221" },
-  { code: "CI", label: "Côte d'Ivoire", devise: "XOF", indicatif: "+225" },
-  { code: "GH", label: "Ghana", devise: "GHS", indicatif: "+233" },
-  { code: "BJ", label: "Bénin", devise: "XOF", indicatif: "+229" },
+  // Les numéros sénégalais ne commencent pas par zéro : « retirer » n'a rien à
+  // faire chez eux, et rattrape une vieille forme mal recopiée.
+  { code: "SN", label: "Sénégal", devise: "XOF", indicatif: "+221", zeroDeTete: "retirer" },
+  { code: "CI", label: "Côte d'Ivoire", devise: "XOF", indicatif: "+225", zeroDeTete: "garder" },
+  { code: "GH", label: "Ghana", devise: "GHS", indicatif: "+233", zeroDeTete: "retirer" },
+  { code: "BJ", label: "Bénin", devise: "XOF", indicatif: "+229", zeroDeTete: "garder" },
 ];
 
 export const RAILS: readonly Rail[] = [

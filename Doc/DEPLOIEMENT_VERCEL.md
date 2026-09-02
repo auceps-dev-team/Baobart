@@ -1,6 +1,6 @@
 # Déploiement sur Vercel — mode opératoire
 
-**31 août 2026 · application v1.34.0**
+**2 septembre 2026 · application v1.39.0**
 
 > `SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md` décrit la stratégie et le
 > self-hosting Docker. Ce document-ci est la **procédure**, avec les valeurs qui
@@ -9,7 +9,7 @@
 
 ---
 
-## ⚠️ Deux choses à ne pas oublier avant la mise en ligne
+## ⚠️ Trois choses à ne pas oublier avant la mise en ligne
 
 Elles ne s'écrivent pas dans le code, et aucune n'échoue bruyamment. Le service
 démarre, les pages s'affichent, et la faute ne se voit qu'au moment où elle
@@ -37,6 +37,26 @@ n'est alors possible, et aucune quantité de code n'y changera quoi que ce soit.
 Le passage s'arrête net au premier versement et le journalise en erreur — plutôt
 que de faire échouer tous les créateurs pour la même raison — mais personne
 n'est payé ce jour-là.
+
+
+### 3. `SMS_DRIVER` — et surtout, jamais `console`
+
+Les deux derniers rappels d'abonnement avant coupure d'accès passent par SMS
+(paliers J+2 et J+5). Trois valeurs, et l'ordre de danger n'est pas celui qu'on
+croit :
+
+| Valeur | En production |
+|---|---|
+| `aucun` (défaut) | **Manque.** Les relances ne partent que par courriel. Ndank rend `false`, ne note rien, et compte l'abonné parmi les injoignables — rien n'est perdu, mais un abonné qui ne lit pas ses courriels sera coupé sans avertissement. |
+| `console` | **Panne.** Le message est écrit dans le journal et compté comme envoyé. Ndank note une relance **jamais partie**, ne la renverra pas, et coupera l'accès au terme de la grâce. Aucun compteur ne le signale. |
+| `twilio` | Ce qu'il faut, avec `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` et `TWILIO_FROM` (ou `TWILIO_MESSAGING_SERVICE_SID`). |
+
+Un pilote Twilio à moitié configuré retombe sur `aucun` : c'est voulu, mieux
+vaut ne rien prétendre. L'écran **Système · Configuration** affiche les trois cas.
+
+Poser aussi `SMS_PLAFOND_JOUR` si le défaut de 500 est mal calibré — c'est le
+seul garde-fou qui borne le coût d'une boucle de relance, et il est compté **par
+instance** : le vrai plafond se pose chez l'opérateur.
 
 ---
 

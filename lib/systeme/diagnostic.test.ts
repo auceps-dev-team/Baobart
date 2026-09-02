@@ -4,6 +4,7 @@ import {
   constatAdressePublique,
   constatBase,
   constatLimitation,
+  constatSms,
   constatConnexion,
   constatInterrupteurs,
   constatSimulation,
@@ -222,5 +223,31 @@ describe("la limitation", () => {
     const c = constatLimitation({ pilote: "redis", production: true });
     expect(c.gravite).toBe("ok");
     expect(c.detail).toContain("redis");
+  });
+});
+
+describe("le canal SMS", () => {
+  it("tient le pilote « console » en production pour une panne", () => {
+    // Contre-intuitif et pourtant : « console » rend `true` sans rien envoyer,
+    // donc Ndank note une relance jamais partie et coupera l'accès à quelqu'un
+    // que personne n'a prévenu.
+    const c = constatSms({ pilote: "console", production: true });
+    expect(c.gravite).toBe("panne");
+    expect(c.remede).toContain("SMS_DRIVER");
+  });
+
+  it("laisse tranquille le pilote « console » en développement", () => {
+    expect(constatSms({ pilote: "console", production: false }).gravite).toBe("ok");
+  });
+
+  it("avertit sans crier quand aucun opérateur n'est branché en production", () => {
+    // « Aucun » ne prétend rien : le courriel part encore, et les injoignables
+    // remontent. C'est un manque, pas un mensonge.
+    const c = constatSms({ pilote: "aucun", production: true });
+    expect(c.gravite).toBe("attention");
+  });
+
+  it("se tait quand un opérateur envoie pour de vrai", () => {
+    expect(constatSms({ pilote: "twilio", production: true }).gravite).toBe("ok");
   });
 });

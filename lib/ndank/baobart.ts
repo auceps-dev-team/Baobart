@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 import { deposer } from "@/lib/email/outbox";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
+import { PAYS_PAR_DEFAUT, paysValide } from "@/lib/payments/rails";
+import { versE164 } from "@/lib/sms/numero";
+import { envoyerSms } from "@/lib/sms/pilotes";
+import { texteRelance } from "@/lib/sms/relance";
 import {
   REGLAGES_PAR_DEFAUT,
   ajouterJours,
@@ -125,14 +129,26 @@ const lecture: Lecture = {
       select: {
         email: true,
         phone: true,
-        profile: { select: { displayName: true } },
+        profile: { select: { displayName: true, country: true } },
       },
     });
+
+    // Le numéro est mis en forme ICI, pas au moment de l'envoi.
+    //
+    // Ndank ne connaît pas les plans de numérotation, et n'a pas à les
+    // connaître : le port promet « où joindre l'abonné », donc un numéro
+    // joignable. Un numéro qu'on ne sait pas mettre en forme devient `null`, et
+    // le moteur voit alors franchement que le canal n'est pas disponible — il
+    // essaie le suivant, et compte l'abonné parmi les injoignables s'il n'y en
+    // a aucun. C'est exactement ce qu'on veut savoir avant de couper un accès.
+    const telephone = u?.phone
+      ? versE164(u.phone, paysValide(u.profile?.country ?? undefined))
+      : null;
 
     return {
       nom: u?.profile?.displayName ?? null,
       courriel: u?.email ?? null,
-      telephone: u?.phone ?? null,
+      telephone,
       // Aucune application installée tant que la PWA n'existe pas. On le dit
       // plutôt que d'inventer un jeton : le moteur essaiera le canal suivant.
       jetonPush: null,
@@ -212,12 +228,28 @@ const envoi: Envoi = {
       return suite.depose;
     }
 
-    if (canal === "sms") {
-      // Aucun opérateur de SMS n'est branché. On le dit franchement : rendre
-      // `true` ferait noter une relance jamais partie, et l'abonné perdrait
-      // son accès sans avoir été prévenu.
-      journal.avertissement("relance SMS impossible : aucun opérateur branché", {});
-      return false;
+    if (canal === "sms" && ou.telephone) {
+      // Le numéro est déjà en E.164 (voir `coordonnees`) : `pays` ne sert alors
+      // à rien, mais le point d'entrée le demande pour les appels qui partent
+      // d'une saisie brute ailleurs dans Baobart.
+      const verdict = await envoyerSms({
+        numero: ou.telephone,
+        pays: PAYS_PAR_DEFAUT,
+        texte: texteRelance(message),
+      });
+
+      if (!verdict.ok) {
+        // On rend `false` sans exception : le moteur essaiera le canal suivant,
+        // et surtout NE NOTERA PAS une relance qui n'est jamais partie. Sans
+        // cela, une panne d'un jour couperait l'accès de quelqu'un qu'on n'a
+        // jamais prévenu — et le lendemain le moteur croirait l'avoir fait.
+        journal.avertissement("relance SMS non partie", {
+          motif: verdict.motif ?? "inconnu",
+          abonnement: message.cle,
+        });
+      }
+
+      return verdict.ok;
     }
 
     // Notification : l'application n'existe pas encore.

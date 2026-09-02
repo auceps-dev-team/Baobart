@@ -7,7 +7,7 @@
  * ne le montre.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { ajouterJours, cycleApresPaiement } from "@/lib/ndank/cycle";
@@ -18,28 +18,42 @@ import {
 } from "@/lib/ndank/baobart";
 import { passer } from "@/lib/ndank/moteur";
 
-const AVANT = process.env.APP_URL;
+const AVANT = { ...process.env };
 
 beforeEach(() => {
   process.env.APP_URL = "https://baobart.test";
+  // Le pilote « console » écrit au lieu d'envoyer. Sans lui, `SMS_DRIVER` vaut
+  // « aucun » et les paliers SMS ne prouveraient rien.
+  process.env.SMS_DRIVER = "console";
 });
 
 afterEach(() => {
-  if (AVANT === undefined) delete process.env.APP_URL;
-  else process.env.APP_URL = AVANT;
+  process.env = { ...AVANT };
 });
 
 const REGLAGES = { lien: lienDeValidation, montant: montantLisible };
 
 let n = 0;
 
-async function abonne(options: { echeance: Date; resilie?: boolean }) {
+async function abonne(options: {
+  echeance: Date;
+  resilie?: boolean;
+  telephone?: string | null;
+  pays?: string;
+}) {
   n += 1;
 
   const utilisateur = await db.user.create({
     data: {
       email: `abo-${n}@baobart.test`,
-      profile: { create: { username: `abo-${n}`, displayName: `Awa ${n}` } },
+      phone: options.telephone ?? null,
+      profile: {
+        create: {
+          username: `abo-${n}`,
+          displayName: `Awa ${n}`,
+          country: options.pays ?? "CI",
+        },
+      },
     },
     select: { id: true, email: true },
   });
@@ -183,5 +197,66 @@ describe("le passage", () => {
     expect(
       await db.emailOutbox.count({ where: { recipient: utilisateur.email } }),
     ).toBe(1);
+  });
+});
+
+describe("le canal SMS", () => {
+  it("relance par SMS une fois l'échéance dépassée", async () => {
+    // Le palier J+2 monte au SMS : le courriel n'a rien donné, et l'accès va
+    // être coupé. C'est le moment où le coût d'un SMS se justifie.
+    const { abonnement } = await abonne({
+      echeance: ajouterJours(new Date(), -2),
+      telephone: "0707070707",
+    });
+
+    const bilan = await passer(PORTS_BAOBART, REGLAGES);
+    expect(bilan.relances).toBe(1);
+
+    const relance = await db.subscriptionReminder.findFirstOrThrow({
+      where: { subscriptionId: abonnement.id },
+      select: { canaux: true },
+    });
+    expect(relance.canaux).toContain("sms");
+  });
+
+  it("ne compte pas comme joignable un abonné dont le numéro est illisible", async () => {
+    // Un numéro qu'on ne sait pas mettre en forme doit remonter comme un
+    // incident, pas disparaître : on s'apprête à couper l'accès de quelqu'un
+    // qu'on ne peut plus prévenir.
+    const { abonnement } = await abonne({
+      echeance: ajouterJours(new Date(), -5),
+      telephone: "12",
+    });
+
+    const bilan = await passer(PORTS_BAOBART, REGLAGES);
+
+    expect(bilan.injoignables).toBe(1);
+    expect(bilan.relances).toBe(0);
+
+    // Et surtout : rien n'a été noté. Demain on réessaiera, au lieu de croire
+    // l'avoir prévenu.
+    expect(
+      await db.subscriptionReminder.count({
+        where: { subscriptionId: abonnement.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("garde le zéro de tête d'un numéro ivoirien jusqu'à l'opérateur", async () => {
+    // Le défaut qui ne se voit nulle part : le message part, il est facturé,
+    // et il n'atteint personne.
+    const journal = await import("@/lib/observabilite/journal");
+    const espion = vi.spyOn(journal.journal, "info");
+
+    await abonne({
+      echeance: ajouterJours(new Date(), -2),
+      telephone: "0707070708",
+      pays: "CI",
+    });
+
+    await passer(PORTS_BAOBART, REGLAGES);
+
+    const envoi = espion.mock.calls.find((c) => String(c[0]).includes("SMS envoy"));
+    expect(envoi?.[1]).toMatchObject({ vers: "···· 0708" });
   });
 });

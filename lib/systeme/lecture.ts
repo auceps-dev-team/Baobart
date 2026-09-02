@@ -2,6 +2,7 @@ import "server-only";
 
 import { urlDuSite } from "@/lib/config/site";
 import { piloteLimite } from "@/lib/securite/pilotes";
+import { piloteSms } from "@/lib/sms/pilotes";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -14,6 +15,7 @@ import {
   constatAdressePublique,
   constatBase,
   constatLimitation,
+  constatSms,
   constatConnexion,
   constatInterrupteurs,
   constatSimulation,
@@ -132,6 +134,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
     }),
     constatAdressePublique({ origine: urlDuSite(), production }),
     constatLimitation({ pilote: piloteLimite().nom, production }),
+    constatSms({ pilote: piloteSms().nom, production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),
     constatInterrupteurs({
       fermees: etatDes(process.env)

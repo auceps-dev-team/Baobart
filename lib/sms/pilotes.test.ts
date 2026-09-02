@@ -1,0 +1,250 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { envoyerSms, oublierCompteurSms, piloteSms } from "@/lib/sms/pilotes";
+
+/**
+ * Le SMS est le seul canal qui coûte. Ces tests portent donc surtout sur ce
+ * qu'on N'envoie PAS : un numéro illisible, un envoi au-delà du plafond, un
+ * pilote à moitié configuré. Chacun de ces cas, laissé passer, se lit sur une
+ * facture avant de se lire dans un journal.
+ */
+
+const AVANT = { ...process.env };
+
+beforeEach(() => {
+  oublierCompteurSms();
+  delete process.env.SMS_DRIVER;
+  delete process.env.SMS_PLAFOND_JOUR;
+  delete process.env.TWILIO_ACCOUNT_SID;
+  delete process.env.TWILIO_AUTH_TOKEN;
+  delete process.env.TWILIO_FROM;
+  delete process.env.TWILIO_MESSAGING_SERVICE_SID;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  process.env = { ...AVANT };
+});
+
+describe("le choix du pilote", () => {
+  it("n'envoie rien par défaut", () => {
+    // Le courriel a des pilotes gratuits qu'on laisse tourner ; le SMS non. Un
+    // défaut bavard sur un canal payant est une facture qui commence sans
+    // qu'on l'ait décidé.
+    expect(piloteSms().nom).toBe("aucun");
+  });
+
+  it("retombe sur « aucun » quand le pilote nommé n'existe pas", () => {
+    process.env.SMS_DRIVER = "orange-money-sms";
+    expect(piloteSms().nom).toBe("aucun");
+  });
+
+  it("retombe sur « aucun » quand Twilio est à moitié configuré", () => {
+    // Le cas réel : on pose la clé et on oublie l'expéditeur. Sans ce repli,
+    // chaque relance partirait vers un 400 et serait comptée comme envoyée.
+    process.env.SMS_DRIVER = "twilio";
+    process.env.TWILIO_ACCOUNT_SID = "ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    process.env.TWILIO_AUTH_TOKEN = "un-jeton-assez-long";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.TWILIO_FROM = "+15550000000";
+    expect(piloteSms().nom).toBe("twilio");
+  });
+
+  it("refuse un identifiant qui n'a pas la forme d'un vrai", () => {
+    // Un espace réservé recopié d'une documentation ne doit pas passer pour
+    // une configuration valable.
+    process.env.SMS_DRIVER = "twilio";
+    process.env.TWILIO_ACCOUNT_SID = "à-remplir";
+    process.env.TWILIO_AUTH_TOKEN = "un-jeton-assez-long";
+    process.env.TWILIO_FROM = "+15550000000";
+    expect(piloteSms().nom).toBe("aucun");
+  });
+});
+
+describe("envoyerSms", () => {
+  beforeEach(() => {
+    process.env.SMS_DRIVER = "console";
+  });
+
+  it("dit franchement qu'aucun opérateur n'est branché", async () => {
+    delete process.env.SMS_DRIVER;
+    const verdict = await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      texte: "Bonjour",
+    });
+    // `ok: false` fait que Ndank NE NOTE PAS la relance, et réessaiera demain.
+    // Rendre `true` couperait l'accès de quelqu'un jamais prévenu.
+    expect(verdict.ok).toBe(false);
+  });
+
+  it("ne tente pas un numéro illisible", async () => {
+    // Un numéro mal formé est facturé sans être reçu : mieux vaut refuser.
+    const verdict = await envoyerSms({ numero: "12", pays: "CI", texte: "x" });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.motif).toContain("illisible");
+  });
+
+  it("replie le texte avant l'envoi, sans que l'appelant y pense", async () => {
+    const journal = await import("@/lib/observabilite/journal");
+    const espion = vi.spyOn(journal.journal, "info");
+
+    await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      // Une espace fine insécable et une apostrophe courbe : le message
+      // partirait en UCS-2 et coûterait le double.
+      texte: "2 000 XOF pour l’accès",
+    });
+
+    const simule = espion.mock.calls.find((c) => String(c[0]).includes("simulé"));
+    expect(simule?.[1]).toMatchObject({ texte: "2 000 XOF pour l'accès" });
+  });
+
+  it("annonce ce que l'envoi coûte", async () => {
+    const verdict = await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      texte: "a".repeat(200),
+    });
+    expect(verdict.ok).toBe(true);
+    expect(verdict.segments).toBe(2);
+  });
+
+  it("s'arrête au plafond journalier", async () => {
+    // Le garde-fou qui borne le coût d'un bogue qu'on n'a pas encore écrit :
+    // un passage qui rejouerait en boucle s'arrête ici, pas sur la facture.
+    process.env.SMS_PLAFOND_JOUR = "2";
+
+    const un = await envoyerSms({ numero: "0700000000", pays: "CI", texte: "a" });
+    const deux = await envoyerSms({ numero: "0700000001", pays: "CI", texte: "a" });
+    const trois = await envoyerSms({ numero: "0700000002", pays: "CI", texte: "a" });
+
+    expect(un.ok).toBe(true);
+    expect(deux.ok).toBe(true);
+    expect(trois.ok).toBe(false);
+    expect(trois.motif).toContain("plafond");
+  });
+
+  it("ne compte pas un envoi refusé dans le plafond", async () => {
+    // Sinon un opérateur en panne épuiserait le quota d'une journée entière
+    // sans qu'un seul message soit parti.
+    process.env.SMS_PLAFOND_JOUR = "1";
+    await envoyerSms({ numero: "12", pays: "CI", texte: "a" });
+
+    const apres = await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      texte: "a",
+    });
+    expect(apres.ok).toBe(true);
+  });
+});
+
+describe("le pilote Twilio", () => {
+  beforeEach(() => {
+    process.env.SMS_DRIVER = "twilio";
+    process.env.TWILIO_ACCOUNT_SID = "ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    process.env.TWILIO_AUTH_TOKEN = "un-jeton-assez-long";
+    process.env.TWILIO_FROM = "+15550000000";
+  });
+
+  it("envoie le numéro en E.164 et rend la référence", async () => {
+    const appels: RequestInit[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      appels.push(init);
+      return new Response(JSON.stringify({ sid: "SM123", status: "queued" }), {
+        status: 201,
+      });
+    });
+
+    const verdict = await envoyerSms({
+      numero: "07 07 07 07 07",
+      pays: "CI",
+      texte: "Bonjour",
+    });
+
+    expect(verdict.ok).toBe(true);
+    expect(verdict.reference).toBe("SM123");
+
+    const corps = new URLSearchParams(String(appels[0]?.body));
+    // Le zéro de tête est conservé : c'est un chiffre du numéro ivoirien.
+    expect(corps.get("To")).toBe("+2250707070707");
+    expect(corps.get("From")).toBe("+15550000000");
+  });
+
+  it("préfère le service de messagerie quand il est posé", async () => {
+    // Avec un service, Twilio choisit l'expéditeur le mieux placé pour le pays
+    // visé — ce qui compte quand on écrit à quatre pays différents.
+    process.env.TWILIO_MESSAGING_SERVICE_SID = "MG0000000000";
+
+    const appels: RequestInit[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      appels.push(init);
+      return new Response(JSON.stringify({ sid: "SM1", status: "accepted" }), {
+        status: 201,
+      });
+    });
+
+    await envoyerSms({ numero: "0700000000", pays: "CI", texte: "x" });
+
+    const corps = new URLSearchParams(String(appels[0]?.body));
+    expect(corps.get("MessagingServiceSid")).toBe("MG0000000000");
+    expect(corps.get("From")).toBeNull();
+  });
+
+  it("tient un refus pour un échec, et ne le compte pas comme envoyé", async () => {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(JSON.stringify({ message: "numero non valide" }), {
+          status: 400,
+        }),
+    );
+
+    const verdict = await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      texte: "x",
+    });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.motif).toContain("non valide");
+  });
+
+  it("tient « failed » pour un échec même si la requête a réussi", async () => {
+    // Twilio répond 201 avec un statut d'échec. Lire le seul code HTTP ferait
+    // noter une relance jamais partie.
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(JSON.stringify({ sid: "SM1", status: "failed" }), {
+          status: 201,
+        }),
+    );
+
+    const verdict = await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      texte: "x",
+    });
+    expect(verdict.ok).toBe(false);
+  });
+
+  it("ne laisse pas une panne réseau remonter", async () => {
+    // Le moteur essaie les canaux dans l'ordre : une exception ici arrêterait
+    // le passage entier et priverait tous les autres abonnés de leur relance.
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ECONNRESET");
+    });
+
+    const verdict = await envoyerSms({
+      numero: "0700000000",
+      pays: "CI",
+      texte: "x",
+    });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.motif).toBe("injoignable");
+  });
+});
