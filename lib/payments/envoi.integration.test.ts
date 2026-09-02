@@ -14,6 +14,15 @@ import { db } from "@/lib/db";
 import { envoyerLesVersements } from "@/lib/payments/envoi";
 import { oublierCatalogue } from "@/lib/payments/encaissement/pilotes/paystack-versements";
 
+/**
+ * Un compte de versement enregistré avant-hier.
+ *
+ * `peutEtrePaye` retient vingt-quatre heures un compte fraîchement enregistré —
+ * la défense contre le détournement de versement. Les fixtures l'antédatent
+ * pour éprouver ce qu'elles visent, et non cette retenue-là.
+ */
+const HIER = new Date(Date.now() - 48 * 3_600_000);
+
 const CLE = "sk_test_0123456789abcdef";
 
 const AVANT = {
@@ -108,6 +117,7 @@ async function creerVersement(options: { avecNom?: boolean } = {}) {
       provider: "om",
       accountRef: `2250700000${n}`,
       holderName: options.avecNom === false ? null : `Awa Diallo ${n}`,
+      createdAt: HIER,
     },
   });
 

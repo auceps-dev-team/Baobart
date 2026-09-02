@@ -104,7 +104,13 @@ export async function preparerLeCycle(
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 1,
-        select: { method: true, provider: true, accountRef: true },
+        select: {
+          method: true,
+          provider: true,
+          accountRef: true,
+          // L'âge du compte décide de la retenue de vérification.
+          createdAt: true,
+        },
       },
     },
   });
@@ -142,7 +148,13 @@ export async function preparerLeCycle(
       riskState: candidat.riskState as RiskState,
       suspenduLe: candidat.suspendedAt,
       versementsSuspendusLe: candidat.payoutsPausedAt,
-      compte,
+      compte: compte
+        ? {
+            provider: compte.provider,
+            accountRef: compte.accountRef,
+            enregistreLe: compte.createdAt,
+          }
+        : null,
       railsConnus: Object.keys(RAILS_BAOBART),
       soldeVersable: solde,
       minimum: config.minimumAmount,

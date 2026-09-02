@@ -11,6 +11,15 @@ import {
 } from "@/lib/payments/versements";
 
 /**
+ * Un compte de versement enregistré avant-hier.
+ *
+ * `peutEtrePaye` retient vingt-quatre heures un compte fraîchement enregistré —
+ * la défense contre le détournement de versement. Les fixtures l'antédatent
+ * pour éprouver ce qu'elles visent, et non cette retenue-là.
+ */
+const HIER = new Date(Date.now() - 48 * 3_600_000);
+
+/**
  * L'écran « Gains », confronté au grand livre.
  *
  * Ce que le créateur lit ici décide s'il fait confiance à la plateforme. Un
@@ -61,6 +70,7 @@ async function enregistrerCompte(provider = "wave") {
       method: "MOBILE_MONEY",
       provider,
       accountRef: "+221770004821",
+      createdAt: HIER,
     },
   });
 }
@@ -240,6 +250,7 @@ describe("ce que l'écran affiche", () => {
         method: "MOBILE_MONEY",
         provider: "wave",
         accountRef: "+221770009999",
+        createdAt: HIER,
       },
     });
 

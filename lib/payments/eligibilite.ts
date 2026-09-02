@@ -33,6 +33,8 @@ export type RefusVersement =
   | "PAS_DE_COMPTE"
   /** Le rail du compte n'est pas un rail connu. */
   | "RAIL_INCONNU"
+  /** Le compte vient d'être enregistré : il purge son délai de vérification. */
+  | "COMPTE_TROP_RECENT"
   /** Rien à verser sur la période. */
   | "RIEN_A_VERSER"
   /** En dessous du minimum : la somme roule sur le cycle suivant. */
@@ -54,6 +56,7 @@ export const REFUS_COURT: Record<RefusVersement, string> = {
   VERSEMENTS_SUSPENDUS: "versements suspendus",
   PAS_DE_COMPTE: "aucun compte enregistré",
   RAIL_INCONNU: "moyen de versement à revoir",
+  COMPTE_TROP_RECENT: "compte en cours de vérification",
   RIEN_A_VERSER: "rien à verser",
   SOUS_LE_SEUIL: "sous le minimum de versement",
 };
@@ -69,17 +72,29 @@ const MESSAGES: Record<RefusVersement, string> = {
     "Ajoute un compte de versement — mobile money ou bancaire — pour être payé.",
   RAIL_INCONNU:
     "Le moyen de versement enregistré n'est plus proposé. Choisis-en un autre.",
+  COMPTE_TROP_RECENT:
+    "Ton compte de versement vient d'être enregistré. Le premier départ a lieu après vingt-quatre heures de vérification — ton solde t'attend.",
   RIEN_A_VERSER: "Rien à verser sur cette période.",
   SOUS_LE_SEUIL:
     "Ton solde n'atteint pas encore le minimum de versement. Il roulera sur la prochaine échéance.",
 };
+
+/**
+ * Le délai de vérification d'un compte de versement fraîchement enregistré.
+ *
+ * Vingt-quatre heures : assez pour qu'un propriétaire légitime remarque le
+ * changement, assez court pour ne pas retarder quelqu'un qui s'installe.
+ */
+export const VERIFICATION_MS = 24 * 3_600_000;
 
 export interface EligibiliteInput {
   riskState: RiskState;
   suspenduLe: Date | null;
   versementsSuspendusLe: Date | null;
   /** Compte de destination, ou `null` si aucun n'est enregistré. */
-  compte: { provider: string; accountRef: string } | null;
+  compte: { provider: string; accountRef: string; enregistreLe: Date } | null;
+  /** L'instant du jugement. Paramètre pour que la règle s'éprouve. */
+  maintenant?: Date;
   /** Rails que la plateforme sait exécuter. */
   railsConnus: readonly string[];
   soldeVersable: number;
@@ -108,6 +123,7 @@ export function peutEtrePaye(input: EligibiliteInput): DecisionVersement {
     soldeVersable,
     minimum,
     parAdministrateur = false,
+    maintenant,
   } = input;
 
   const refus = (raison: RefusVersement): DecisionVersement => ({
@@ -121,7 +137,6 @@ export function peutEtrePaye(input: EligibiliteInput): DecisionVersement {
 
   if (compte === null) return refus("PAS_DE_COMPTE");
   if (!railsConnus.includes(compte.provider)) return refus("RAIL_INCONNU");
-
   // Le gel des versements ne se lève pas non plus, même à la main.
   //
   // Il l'était jusqu'à présent : la permission datait d'une époque où le gel
@@ -151,6 +166,37 @@ export function peutEtrePaye(input: EligibiliteInput): DecisionVersement {
   if (!parAdministrateur && soldeVersable < minimum) {
     return refus("SOUS_LE_SEUIL");
   }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // VINGT-QUATRE HEURES ENTRE L'ENREGISTREMENT ET LE PREMIER DÉPART
+  //
+  // C'est la seule défense contre le scénario le plus coûteux du tableau de
+  // bord : quelqu'un entre dans un compte, remplace le numéro de versement, et
+  // le prochain cycle envoie l'argent chez lui. Tout le reste — suspension,
+  // enquête, seuil — ne verrait rien : le compte est sain, le solde est à lui,
+  // le rail est connu.
+  //
+  // Ce délai ne rend pas le détournement impossible ; il laisse au propriétaire
+  // le temps de s'en apercevoir. C'est peu, et c'est ce qui existe partout
+  // ailleurs pour la même raison.
+  //
+  // Il n'est PAS levable par un administrateur : un versement déclenché à la
+  // main sur un compte qu'on vient de changer est exactement ce que l'attaquant
+  // demanderait au support.
+  //
+  // ────────────────────────────────────────────────────────────────────────
+  // POURQUOI IL PASSE EN DERNIER
+  //
+  // Il vient APRÈS la suspension, le gel et l'enquête, et après les montants.
+  // Ce sont des refus durables : dire « ton compte est en cours de
+  // vérification » à quelqu'un sous enquête laisserait croire qu'attendre
+  // vingt-quatre heures suffira. Et l'annoncer à quelqu'un qui n'a rien à
+  // toucher serait annoncer un obstacle imaginaire.
+  //
+  // Ce refus-ci n'a de sens que quand tout le reste est en ordre et qu'il y a
+  // vraiment de l'argent à envoyer.
+  const age = (maintenant ?? new Date()).getTime() - compte.enregistreLe.getTime();
+  if (age < VERIFICATION_MS) return refus("COMPTE_TROP_RECENT");
 
   return { payable: true };
 }

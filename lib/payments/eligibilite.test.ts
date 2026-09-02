@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { peutEtrePaye, type EligibiliteInput } from "./eligibilite";
+import {
+  VERIFICATION_MS,
+  peutEtrePaye,
+  type EligibiliteInput,
+} from "./eligibilite";
+
+/** Un compte enregistré hier : il a purgé sa vérification. */
+const VEILLE = new Date(Date.now() - VERIFICATION_MS - 60_000);
 
 const BASE: EligibiliteInput = {
   riskState: "COMPLIANT",
   suspenduLe: null,
   versementsSuspendusLe: null,
-  compte: { provider: "wave", accountRef: "+221770000000" },
+  compte: {
+    provider: "wave",
+    accountRef: "+221770000000",
+    enregistreLe: VEILLE,
+  },
   railsConnus: ["wave", "om", "mtn", "moov", "bank"],
   soldeVersable: 25_000,
   minimum: 1_000,
@@ -73,7 +84,13 @@ describe("qui ne peut pas, et pourquoi", () => {
 
   it("refuse un rail qu'on ne sait plus exécuter", () => {
     expect(
-      avec({ compte: { provider: "disparu", accountRef: "x" } }),
+      avec({
+        compte: {
+          provider: "disparu",
+          accountRef: "x",
+          enregistreLe: VEILLE,
+        },
+      }),
     ).toMatchObject({ raison: "RAIL_INCONNU" });
   });
 
@@ -138,7 +155,7 @@ describe("messages", () => {
       { riskState: "FLAGGED_TOS" },
       { versementsSuspendusLe: new Date() },
       { compte: null },
-      { compte: { provider: "inconnu", accountRef: "x" } },
+      { compte: { provider: "inconnu", accountRef: "x", enregistreLe: VEILLE } },
       { soldeVersable: 0 },
       { soldeVersable: 10 },
     ];
@@ -148,5 +165,101 @@ describe("messages", () => {
       expect(d.payable).toBe(false);
       if (!d.payable) expect(d.message.length).toBeGreaterThan(20);
     }
+  });
+});
+
+describe("la retenue de vérification", () => {
+  it("retient un compte enregistré à l'instant", () => {
+    // Le scénario que cette règle existe pour empêcher : quelqu'un entre dans
+    // un compte, remplace le numéro de versement, et le prochain cycle envoie
+    // l'argent chez lui. Rien d'autre ne le verrait — le compte est sain, le
+    // solde est bien à lui, le rail est connu.
+    const d = avec({
+      compte: {
+        provider: "wave",
+        accountRef: "+221770000000",
+        enregistreLe: new Date(),
+      },
+    });
+
+    expect(d).toMatchObject({ raison: "COMPTE_TROP_RECENT" });
+  });
+
+  it("laisse partir un compte qui a passé les vingt-quatre heures", () => {
+    expect(avec({})).toEqual({ payable: true });
+  });
+
+  it("bascule exactement au seuil, sans zone grise", () => {
+    const maintenant = new Date("2026-09-02T12:00:00Z");
+    const juste = new Date(maintenant.getTime() - VERIFICATION_MS);
+    const presque = new Date(maintenant.getTime() - VERIFICATION_MS + 1);
+
+    expect(
+      avec({
+        maintenant,
+        compte: { provider: "wave", accountRef: "x", enregistreLe: juste },
+      }),
+    ).toEqual({ payable: true });
+
+    expect(
+      avec({
+        maintenant,
+        compte: { provider: "wave", accountRef: "x", enregistreLe: presque },
+      }),
+    ).toMatchObject({ raison: "COMPTE_TROP_RECENT" });
+  });
+
+  it("ne se lève pas à la main", () => {
+    // Un versement déclenché au support sur un compte qu'on vient de changer
+    // est exactement ce que l'attaquant demanderait. Le seuil et l'enquête se
+    // lèvent ; celui-ci non.
+    const d = avec({
+      parAdministrateur: true,
+      compte: {
+        provider: "wave",
+        accountRef: "+221770000000",
+        enregistreLe: new Date(),
+      },
+    });
+
+    expect(d).toMatchObject({ raison: "COMPTE_TROP_RECENT" });
+  });
+});
+
+describe("l'ordre des refus", () => {
+  it("annonce l'enquête plutôt que la vérification du compte", () => {
+    // Les deux sont vrais en même temps. Dire « compte en cours de
+    // vérification » à quelqu'un sous enquête laisserait croire qu'attendre
+    // vingt-quatre heures suffira — et il attendrait pour rien.
+    const d = avec({
+      riskState: "FLAGGED_FRAUD",
+      compte: {
+        provider: "wave",
+        accountRef: "x",
+        enregistreLe: new Date(),
+      },
+    });
+
+    expect(d).toMatchObject({ raison: "SOUS_ENQUETE" });
+  });
+
+  it("annonce la suspension plutôt que la vérification du compte", () => {
+    const d = avec({
+      suspenduLe: new Date(),
+      compte: { provider: "wave", accountRef: "x", enregistreLe: new Date() },
+    });
+
+    expect(d).toMatchObject({ raison: "SUSPENDU" });
+  });
+
+  it("n'annonce pas une vérification à qui n'a rien à toucher", () => {
+    // Annoncer un obstacle à quelqu'un qui n'aurait rien reçu de toute façon,
+    // c'est fabriquer un incident qui n'existe pas.
+    const d = avec({
+      soldeVersable: 0,
+      compte: { provider: "wave", accountRef: "x", enregistreLe: new Date() },
+    });
+
+    expect(d).toMatchObject({ raison: "RIEN_A_VERSER" });
   });
 });

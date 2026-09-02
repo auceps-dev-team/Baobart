@@ -224,6 +224,7 @@ function CompteDeVersement({
             <div>
               <div style={{ ...ETIQUETTE, marginBottom: 6 }}>Nom du titulaire</div>
               <input
+                id="titulaire"
                 name="titulaire"
                 defaultValue={refus?.saisie?.titulaire ?? actuel?.titulaire ?? ""}
                 placeholder="Awa Diallo"
@@ -271,7 +272,11 @@ function CompteDeVersement({
                 opacity: enCours ? 0.6 : 1,
               }}
             >
-              {enCours ? "Enregistrement…" : "Enregistrer ce compte"}
+              {enCours
+                ? "Enregistrement…"
+                : actuel
+                  ? "Remplacer le compte"
+                  : "Enregistrer"}
             </button>
             <div
               style={{
@@ -283,7 +288,14 @@ function CompteDeVersement({
                 opacity: 0.65,
               }}
             >
-              Le nom doit correspondre à celui que l&apos;opérateur connaît.
+              {/*
+                Les vingt-quatre heures ne sont pas une formule : `peutEtrePaye`
+                refuse un compte plus récent que cela. L'écrire ici sans la règle
+                aurait été promettre une vérification qui n'existe pas.
+              */}
+              {actuel
+                ? "Remplacer archive l'ancien compte et déclenche une vérification de 24 h avant le prochain départ."
+                : "Le premier enregistrement déclenche une vérification de 24 h avant le premier départ."}
             </div>
           </div>
         </form>

@@ -24,6 +24,15 @@ import {
 } from "@/lib/payments/versements";
 
 /**
+ * Un compte de versement enregistré hier.
+ *
+ * `peutEtrePaye` retient vingt-quatre heures un compte fraîchement enregistré —
+ * la défense contre le détournement de versement. Les fixtures l'antédatent
+ * pour éprouver ce qu'elles visent, et non cette retenue-là.
+ */
+const HIER = new Date(Date.now() - 48 * 3_600_000);
+
+/**
  * La projection des versements, alimentée par de vrais soldes.
  *
  * Le calendrier lui-même est éprouvé sans base (17 cas unitaires). Ce qui se
@@ -483,6 +492,10 @@ describe("exécution d'un versement", () => {
           provider: "wave",
           accountRef: "+221770000000",
           holderName: "Créateur Test",
+          // Antédaté : un compte purge vingt-quatre heures de vérification
+          // avant son premier départ. Un cycle réel ne rencontre jamais un
+          // compte créé à la seconde près.
+          createdAt: HIER,
         },
       });
     });
@@ -750,6 +763,7 @@ describe("le passage hebdomadaire", () => {
                   method: "MOBILE_MONEY",
                   provider: input.provider ?? "wave",
                   accountRef: "+221770000001",
+                  createdAt: HIER,
                 },
               },
             }),
@@ -943,6 +957,7 @@ describe("le passage hebdomadaire", () => {
             method: "MOBILE_MONEY",
             provider: "wave",
             accountRef: "+221770000009",
+            createdAt: HIER,
           },
         },
       },

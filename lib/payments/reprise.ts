@@ -62,7 +62,12 @@ export async function verserANouveau(input: {
           payoutAccounts: {
             where: { deletedAt: null },
             take: 1,
-            select: { provider: true, method: true, accountRef: true },
+            select: {
+              provider: true,
+              method: true,
+              accountRef: true,
+              createdAt: true,
+            },
           },
         },
       },
@@ -118,7 +123,11 @@ export async function verserANouveau(input: {
     riskState: ancien.user.riskState as RiskState,
     suspenduLe: ancien.user.suspendedAt,
     versementsSuspendusLe: ancien.user.payoutsPausedAt,
-    compte: { provider: compte.provider, accountRef: compte.accountRef },
+    compte: {
+      provider: compte.provider,
+      accountRef: compte.accountRef,
+      enregistreLe: compte.createdAt,
+    },
     railsConnus: Object.keys(RAILS_BAOBART),
     soldeVersable: 1,
     minimum: 0,

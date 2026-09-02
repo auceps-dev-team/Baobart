@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **2 septembre 2026** (v1.42.0).
+> Dernière mise à jour : **2 septembre 2026** (v1.43.0).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -24,7 +24,7 @@
 | Frais & grand livre (2 régimes) | §2.4 | `lib/domain/fees.ts` | ✅ | 24 tests | Pas de compte plateforme — se reconstitue par requête, pas par lecture directe |
 | Remboursement déclenchable | §3.1 | `lib/domain/orders.ts`, `lib/ventes/actions.ts` | ✅ | v1.36.0, 6 tests de plus | **L'argent repart vraiment** : appel `/refund` chez l'opérateur avant toute écriture. Jusqu'en v1.35.0 le grand livre était écrit sans que rien ne soit rendu à l'acheteur |
 | Litiges / chargebacks | §3.6-A | `lib/domain/litiges.ts` | ✅ | testé, concurrence incluse | Pas de scoring de risque amont (type Stripe Radar) |
-| Versements — calendrier/éligibilité | §3.9 | `lib/payments/*` | ✅ | 27 tests | — |
+| Versements — calendrier/éligibilité | §3.9 | `lib/payments/*` | ✅ | v1.43.0, 30 tests | Retenue de 24 h sur un compte fraîchement enregistré : sans elle, un compte détourné voit ses versements repartir ailleurs au cycle suivant, sans qu'aucune autre garde ne le voie. Non levable à la main |
 | Versements — 8 états pilotables | §3.9 | `lib/payments/*`, `app/dashboard/systeme/versements` | ✅ | v1.26.0 | `UNCLAIMED`/`REVERSED` réservés opérateur, pas de bouton |
 | Versements — appel opérateur réel | §0-bis | `lib/payments/envoi.ts`, `app/api/cron/versements` | ⚠️ | v1.33.0, 11 tests | Écrit : inscription du bénéficiaire, virement, cas OTP. Jamais exercé contre le vrai service. La correspondance rail → opérateur est demandée à Paystack, jamais inventée |
 | Versements — rappel entrant (`transfer.*`) | §0-bis | `lib/payments/encaissement/reception.ts` | ✅ | v1.33.0, 6 tests | Même adresse que les paiements ; le pilote trie par sens |

@@ -29,6 +29,22 @@ import {
 
 const CADRE = `2.5px solid ${ENCRE}`;
 
+/** Les deux intentions de la maquette. Aucune n'accorde de droit. */
+const TYPES_DE_COMPTE = [
+  {
+    cle: "acheteur" as const,
+    label: "Acheteur",
+    glyphe: "▣",
+    indice: "Télécharger, collectionner, travailler en équipe.",
+  },
+  {
+    cle: "createur" as const,
+    label: "Créateur",
+    glyphe: "✦",
+    indice: "Publier tes ressources et vendre tes services.",
+  },
+];
+
 export interface ChampAuth {
   nom: string;
   label: string;
@@ -74,6 +90,18 @@ export function AuthForm({
   const [motDePasse, setMotDePasse] = useState("");
 
   const [bientot, setBientot] = useState<string | null>(null);
+
+  // ──────────────────────────────────────────────────────────────────────
+  // CE CHOIX N'ACCORDE AUCUN DROIT
+  //
+  // `lib/auth/roles.ts` pose qu'il n'existe **aucune colonne de rôle** : on ne
+  // devient pas créateur parce qu'on l'a déclaré, mais parce qu'on a publié
+  // quelque chose. Ce choix ne change donc pas ce qu'on a le droit de faire —
+  // il dit seulement où l'on veut atterrir, et l'inscription y mène.
+  //
+  // Un compte « acheteur » qui publie devient créateur sans rien redemander,
+  // et l'inverse est vrai aussi.
+  const [compte, setCompte] = useState<"acheteur" | "createur">("acheteur");
 
   const force = forceMotDePasse(motDePasse);
   // La maquette dessine la jauge en orange / jaune / blanc, mais elle la montre
@@ -141,6 +169,72 @@ export function AuthForm({
       </p>
 
       <form action={envoyer}>
+        {mode === "inscription" ? (
+          <>
+            <input type="hidden" name="compte" value={compte} />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+                gap: 12,
+                marginTop: 20,
+              }}
+            >
+              {TYPES_DE_COMPTE.map((t) => {
+                const actif = t.cle === compte;
+                return (
+                  <button
+                    key={t.cle}
+                    type="button"
+                    onClick={() => setCompte(t.cle)}
+                    aria-pressed={actif}
+                    style={{
+                      textAlign: "left",
+                      border: CADRE,
+                      borderRadius: 18,
+                      padding: 14,
+                      cursor: "pointer",
+                      background: actif ? JAUNE : LAVANDE_CLAIR,
+                      boxShadow: actif ? `4px 4px 0 ${ENCRE}` : undefined,
+                      fontFamily: "inherit",
+                      color: ENCRE,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          border: `2px solid ${ENCRE}`,
+                          borderRadius: 9,
+                          background: BLANC,
+                          display: "grid",
+                          placeItems: "center",
+                          fontSize: 13,
+                        }}
+                      >
+                        {t.glyphe}
+                      </div>
+                      <div style={{ fontSize: 14.5, fontWeight: 800 }}>{t.label}</div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        lineHeight: 1.4,
+                        marginTop: 8,
+                        opacity: 0.75,
+                      }}
+                    >
+                      {t.indice}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+
         <div
           style={{
             display: "grid",

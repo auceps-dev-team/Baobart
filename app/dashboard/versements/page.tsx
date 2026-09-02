@@ -145,6 +145,31 @@ export default async function VersementsPage() {
                 réglé.
               </div>
             </div>
+
+            {/*
+              La maquette met une sortie sur ce bandeau, et elle a raison : lire
+              « tes versements sont suspendus » sans savoir où agir laisse
+              chercher dans la page. Le lien descend au champ concerné.
+
+              C'est une ancre et non un bouton : il n'y a rien à décider ici,
+              seulement un endroit à atteindre.
+            */}
+            <a
+              href="#titulaire"
+              className="sticker-press"
+              style={{
+                flex: "0 0 auto",
+                padding: "13px 20px",
+                border: CADRE,
+                borderRadius: 14,
+                background: JAUNE,
+                color: ENCRE,
+                fontSize: 13.5,
+                fontWeight: 800,
+              }}
+            >
+              Corriger le titulaire
+            </a>
           </div>
         ) : null}
 

@@ -118,6 +118,7 @@ export async function gainsDe(
           id: true,
           provider: true,
           accountRef: true,
+          createdAt: true,
           verifiedAt: true,
         },
       },
@@ -177,7 +178,11 @@ export async function gainsDe(
     suspenduLe: compte.suspendedAt,
     versementsSuspendusLe: compte.payoutsPausedAt,
     compte: compteActif
-      ? { provider: compteActif.provider, accountRef: compteActif.accountRef }
+      ? {
+          provider: compteActif.provider,
+          accountRef: compteActif.accountRef,
+          enregistreLe: compteActif.createdAt,
+        }
       : null,
     railsConnus: Object.keys(RAILS_BAOBART),
     soldeVersable: disponible,

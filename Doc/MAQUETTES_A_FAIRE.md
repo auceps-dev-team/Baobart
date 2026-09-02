@@ -1,6 +1,6 @@
 # Maquettes manquantes ou décalées — relevé du 31 août 2026
 
-**Application v1.42.0** · confronté à `Baobart Design/*.dc.html`
+**Application v1.43.0** · confronté à `Baobart Design/*.dc.html`
 
 > Mis à jour le 2 septembre 2026 : les trois écrans de la section **A.4** ont
 > été dessinés puis câblés. Il reste trois écrans à dessiner.
@@ -31,35 +31,19 @@ l'ensemble.
 Ce sont les trois seuls écrans que j'ai construits sans modèle. Ils fonctionnent
 et ils sont testés, mais leur apparence est de moi, pas de vous.
 
-### A.1 — `/reinitialiser/[jeton]` · Choisir un nouveau mot de passe
+### A.1 — `/reinitialiser/[jeton]` · **dessiné et câblé** (v1.43.0)
 
-Le quatrième écran d'authentification. `Baobart Auth.dc.html` en couvre trois —
-connexion, inscription, mot de passe oublié — et s'arrête là. Celui-ci est
-l'écran sur lequel arrive quelqu'un qui **clique le lien reçu par courriel**.
+Les trois états sont maquettés (`Baobart Auth.dc.html`, écrans `nouveau`,
+`perime`, `inconnu`) et câblés. Sur les deux états morts, le formulaire
+disparaît entièrement : un bloc jaune dit pourquoi, avec « Rien à remplir sur
+cet écran », puis une seule sortie.
 
-Il a **deux états**, et le second compte autant que le premier :
+Le choix du type de compte à l'inscription est câblé lui aussi. Un point à
+connaître : **il n'accorde aucun droit**. `lib/auth/roles.ts` pose qu'il
+n'existe aucune colonne de rôle — on devient créateur en publiant, pas en le
+déclarant. Le choix décide seulement d'où l'on atterrit après l'inscription.
 
-**État « le lien est valable »**
-- Titre : *Nouveau mot de passe*
-- Sous-titre : *Choisis-le, puis retape-le pour être sûr.*
-- Deux champs mot de passe : le nouveau (avec la jauge de force, comme à
-  l'inscription) et sa confirmation (sans jauge)
-- Une case à cocher : *Je comprends que mes autres sessions vont se fermer*
-- Bouton : *Changer le mot de passe*
-- Argumentaire à gauche : *Choisis ta nouvelle clé* — lien à usage unique,
-  valable une heure ; toutes les sessions ouvertes se ferment ; aucun mot de
-  passe stocké en clair
-
-**État « le lien ne marche plus »** — c'est celui qui manque le plus
-- Deux raisons différentes, deux textes différents :
-  - **périmé ou déjà utilisé** : *Il a déjà servi, ou l'heure de validité est
-    passée. C'est voulu : un lien de réinitialisation est une clé, et une clé
-    qui traîne indéfiniment dans une boîte mail finit par être ramassée par
-    quelqu'un d'autre.*
-  - **inconnu** : *Ce lien ne correspond à aucune demande. Vérifie que tu l'as
-    copié en entier — les messageries en coupent parfois la fin.*
-- Un lien : *Demander un nouveau lien* → `/mot-de-passe-oublie`
-- **Pas de formulaire.** Rien à remplir : il n'y a rien à valider.
+---
 
 ### A.2 — `/achat/[orderId]` · Retour depuis l'opérateur de paiement
 
@@ -231,15 +215,14 @@ n'appartenant pas au produit.
 
 ## Récapitulatif
 
-**À dessiner en priorité** — trois écrans restants :
+**À dessiner en priorité** — deux écrans restants :
 
-1. `/reinitialiser/[jeton]` · deux états (valable, plus valable)
-2. `/achat/[orderId]` · quatre états (attente, payé, gratuit, échoué)
-3. Les pages 404 / erreur / chargement
+1. `/achat/[orderId]` · quatre états (attente, payé, gratuit, échoué)
+2. Les pages 404 / erreur / chargement
 
-> Les trois écrans de l'abonnement mobile money — renouvellement, retour de
-> paiement, réglage des notifications — ont été dessinés et câblés en v1.42.0.
-> Voir §A.4 pour les deux endroits où le code s'écarte du dessin, et pourquoi.
+> Les trois écrans de l'abonnement mobile money ont été dessinés et câblés en
+> v1.42.0 (§A.4). La réinitialisation de mot de passe, le choix du type de
+> compte et le panneau des versements l'ont été en v1.43.0 (§A.1).
 
 **À compléter** — trois décisions de conception :
 

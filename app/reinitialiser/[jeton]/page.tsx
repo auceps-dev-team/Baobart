@@ -4,6 +4,7 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { reinitialiserMotDePasse } from "@/lib/auth/actions";
 import { verifierJeton } from "@/lib/auth/reinitialisation";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Nouveau mot de passe — Baobart." };
 
@@ -16,16 +17,86 @@ export const metadata = { title: "Nouveau mot de passe — Baobart." };
  */
 export const dynamic = "force-dynamic";
 
-const ARGUMENTAIRE = {
-  kicker: "Récupération",
-  titre: "Choisis ta nouvelle clé",
-  texte:
-    "Le lien ne sert qu'une fois. Une fois le mot de passe changé, toutes tes sessions ouvertes se ferment.",
-  points: [
-    "Lien à usage unique, valable une heure",
-    "Toutes les sessions ouvertes se ferment",
-    "Aucun mot de passe stocké en clair",
-  ],
+/**
+ * Trois écrans, et deux d'entre eux n'ont aucun formulaire.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN LIEN MORT MÉRITE SA PROPRE PAGE
+ *
+ * On arrive ici en ayant cliqué un lien reçu par courriel, souvent dans un
+ * moment d'agacement — on ne se souvient plus de son mot de passe. Servir le
+ * formulaire habituel avec un message d'erreur au-dessus ferait remplir des
+ * champs qui ne mènent nulle part.
+ *
+ * La maquette retire donc le formulaire entier et le remplace par un bloc qui
+ * dit *pourquoi*, puis par une seule sortie. « Rien à remplir sur cet écran »
+ * est écrit noir sur jaune, parce que c'est exactement ce qu'on cherche à
+ * savoir en trois secondes.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * DEUX MORTS DIFFÉRENTES, DEUX TEXTES DIFFÉRENTS
+ *
+ * « Périmé » veut dire : le lien a existé, et il a fait son temps. C'est
+ * rassurant — le système fonctionne, il faut juste en redemander un.
+ *
+ * « Inconnu » veut dire : ce lien n'a jamais rien désigné. La cause la plus
+ * fréquente n'est pas une attaque, c'est une messagerie qui a coupé la fin de
+ * l'adresse. Le dire évite qu'on croie son compte compromis.
+ *
+ * Traduit de « Baobart Auth.dc.html », écrans `nouveau`, `perime`, `inconnu`.
+ */
+
+const ARGUMENTAIRES = {
+  nouveau: {
+    kicker: "Nouvelle clé",
+    titre: "Choisis ta nouvelle clé",
+    texte:
+      "Le lien que tu viens d'ouvrir ne sert qu'une fois et n'est valable qu'une heure. Après ce changement, toutes tes sessions ouvertes se ferment.",
+    points: [
+      "Lien à usage unique, valable une heure",
+      "Toutes les sessions ouvertes se ferment",
+      "Aucun mot de passe stocké en clair",
+    ],
+  },
+  perime: {
+    kicker: "Lien épuisé",
+    titre: "Ce lien a fait son temps",
+    texte:
+      "Un lien de réinitialisation est une clé. Une clé qui traîne indéfiniment dans une boîte mail finit par être ramassée par quelqu'un d'autre.",
+    points: [
+      "Chaque lien ne sert qu'une seule fois",
+      "Une heure de validité, pas plus",
+      "En demander un nouveau prend dix secondes",
+    ],
+  },
+  inconnu: {
+    kicker: "Lien introuvable",
+    titre: "On ne reconnaît pas ce lien",
+    texte:
+      "Il ne correspond à aucune demande de réinitialisation. Le plus souvent, c'est la fin de l'adresse qui manque.",
+    points: [
+      "Les messageries coupent parfois la fin du lien",
+      "Copie-le en entier depuis le message",
+      "Sinon, demande-en un nouveau",
+    ],
+  },
+};
+
+const MORTS = {
+  perime: {
+    titre: "Ce lien ne marche plus",
+    sousTitre:
+      "Il a déjà servi, ou l'heure de validité est passée. C'est voulu : un lien de réinitialisation est une clé, et une clé qui traîne indéfiniment dans une boîte mail finit par être ramassée par quelqu'un d'autre.",
+    glyphe: "⏱",
+    etiquette: "Lien périmé ou déjà utilisé",
+  },
+  inconnu: {
+    titre: "Ce lien est inconnu",
+    sousTitre:
+      "Il ne correspond à aucune demande. Vérifie que tu l'as copié en entier — les messageries en coupent parfois la fin.",
+    glyphe: "?",
+    etiquette: "Aucune demande correspondante",
+  },
 };
 
 export default async function ReinitialiserPage({
@@ -37,52 +108,110 @@ export default async function ReinitialiserPage({
   const verif = await verifierJeton(jeton);
 
   if (!verif.valide) {
+    // `expire` couvre le lien déjà servi comme celui qui a passé l'heure : de
+    // l'extérieur, les deux sont la même chose — il a existé, il est fini.
+    const cas = verif.motif === "expire" ? "perime" : "inconnu";
+    const mort = MORTS[cas];
+
     return (
       <AuthShell
-        argumentaire={ARGUMENTAIRE}
-        lienBascule="/mot-de-passe-oublie"
-        libelleBascule="Demander un lien"
-        indiceBascule="Besoin d'un nouveau ?"
+        argumentaire={ARGUMENTAIRES[cas]}
+        lienBascule="/connexion"
+        libelleBascule="Se connecter"
+        indiceBascule="Tu te souviens de ton mot de passe ?"
       >
-        <div style={{ padding: 4 }}>
-          <h1
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(26px,3vw,36px)",
+            lineHeight: 1,
+            letterSpacing: "-1.4px",
+            margin: "22px 0 0",
+            textTransform: "uppercase",
+          }}
+        >
+          {mort.titre}
+        </h2>
+        <p
+          style={{
+            fontSize: 14.5,
+            fontWeight: 500,
+            lineHeight: 1.45,
+            margin: "8px 0 0",
+            opacity: 0.75,
+            textWrap: "pretty",
+          }}
+        >
+          {mort.sousTitre}
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            marginTop: 22,
+            padding: 18,
+            border: CADRE,
+            borderRadius: 18,
+            background: JAUNE,
+          }}
+        >
+          <div
             style={{
+              width: 48,
+              height: 48,
+              flex: "0 0 auto",
+              border: CADRE,
+              borderRadius: 99,
+              background: BLANC,
+              display: "grid",
+              placeItems: "center",
               fontFamily: "var(--font-display)",
-              fontSize: 30,
-              margin: 0,
-              textTransform: "uppercase",
-              letterSpacing: "-.6px",
+              fontSize: 21,
             }}
           >
-            Ce lien ne marche plus
-          </h1>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              lineHeight: 1.6,
-              margin: "16px 0 0",
-              textWrap: "pretty",
-            }}
-          >
-            {verif.motif === "expire"
-              ? "Il a déjà servi, ou l'heure de validité est passée. C'est voulu : un lien de réinitialisation est une clé, et une clé qui traîne indéfiniment dans une boîte mail finit par être ramassée par quelqu'un d'autre."
-              : "Ce lien ne correspond à aucune demande. Vérifie que tu l'as copié en entier — les messageries en coupent parfois la fin."}
-          </p>
-          <Link
-            href="/mot-de-passe-oublie"
-            style={{
-              display: "inline-block",
-              marginTop: 22,
-              fontSize: 14,
-              fontWeight: 800,
-              textDecoration: "underline",
-              textUnderlineOffset: 4,
-            }}
-          >
-            Demander un nouveau lien
-          </Link>
+            {mort.glyphe}
+          </div>
+          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>{mort.etiquette}</div>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                marginTop: 4,
+                opacity: 0.7,
+              }}
+            >
+              Rien à remplir sur cet écran
+            </div>
+          </div>
         </div>
+
+        {/*
+          Une seule sortie, et elle est la principale. Proposer aussi « se
+          connecter » ici ferait hésiter quelqu'un qui, par définition, ne
+          connaît plus son mot de passe — c'est déjà dans la colonne de gauche.
+        */}
+        <Link
+          href="/mot-de-passe-oublie"
+          className="sticker-press"
+          style={{
+            display: "block",
+            marginTop: 18,
+            padding: 16,
+            border: CADRE,
+            borderRadius: 16,
+            background: ENCRE,
+            color: BLANC,
+            boxShadow: `5px 5px 0 ${ORANGE}`,
+            textAlign: "center",
+            fontSize: 15.5,
+            fontWeight: 800,
+          }}
+        >
+          Demander un nouveau lien
+        </Link>
       </AuthShell>
     );
   }
@@ -94,7 +223,7 @@ export default async function ReinitialiserPage({
 
   return (
     <AuthShell
-      argumentaire={ARGUMENTAIRE}
+      argumentaire={ARGUMENTAIRES.nouveau}
       lienBascule="/connexion"
       libelleBascule="Se connecter"
       indiceBascule="Tu t'en souviens ?"
@@ -110,22 +239,22 @@ export default async function ReinitialiserPage({
           {
             nom: "motDePasse",
             label: "Nouveau mot de passe",
-            placeholder: "Au moins 8 caractères",
+            placeholder: "8 caractères minimum",
             type: "password",
             pleineLargeur: true,
             jauge: true,
           },
           {
             nom: "confirmation",
-            label: "Confirmation",
-            placeholder: "Le même, une seconde fois",
+            label: "Retape-le",
+            placeholder: "••••••••",
             type: "password",
             pleineLargeur: true,
           },
         ]}
-        texteBas="Pas encore de compte ?"
-        lienBas="/inscription"
-        libelleLienBas="Créer un compte"
+        texteBas="Tu t'en souviens finalement ?"
+        lienBas="/connexion"
+        libelleLienBas="Retour à la connexion"
       />
     </AuthShell>
   );
