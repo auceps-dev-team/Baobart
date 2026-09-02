@@ -224,6 +224,18 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+/// À quel rythme un abonnement se renouvelle.
+///
+/// Porté par l'abonnement et non par l'offre : deux abonnés d'un même plan
+/// peuvent choisir des rythmes différents, et le prix annuel n'est presque
+/// jamais douze fois le mensuel.
+enum Cadence {
+  HEBDOMADAIRE
+  MENSUEL
+  TRIMESTRIEL
+  ANNUEL
+}
+
 enum CommunityVisibility {
   PUBLIC
   PRIVATE
@@ -1224,18 +1236,51 @@ model Subscription {
   planId          String
   status          SubscriptionStatus @default(ACTIVE)
   cycleStart      DateTime           @default(now())
+  /// L'ÉCHÉANCE : la date à laquelle le paiement suivant est dû.
+  ///
+  /// Ce n'est PAS la date de fin d'accès. Ndank tient deux horloges — voir
+  /// `lib/ndank/cycle.ts` — et l'accès dure au-delà, le temps de la grâce.
+  /// Confondre les deux couperait un abonné parti en week-end.
   cycleEnd        DateTime
+  cadence         Cadence            @default(MENSUEL)
   paymentProvider String?
   providerRef     String?
   cancelledAt     DateTime?
   createdAt       DateTime           @default(now())
 
-  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan   Plan            @relation(fields: [planId], references: [id])
-  quotas DownloadQuota[]
+  user     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan                   @relation(fields: [planId], references: [id])
+  quotas   DownloadQuota[]
+  relances SubscriptionReminder[]
 
   @@index([userId, status])
   @@index([status, cycleEnd])
+}
+
+/// Une relance déjà partie.
+///
+/// ──────────────────────────────────────────────────────────────────────────
+/// C'EST CETTE TABLE QUI EMPÊCHE SEPT SMS POUR UNE ÉCHÉANCE
+///
+/// Le passage tourne tous les jours et repasse sur les mêmes abonnements. Sans
+/// trace de ce qui est déjà parti, la même relance repartirait chaque matin —
+/// et le premier SMS de trop suffit à faire désinstaller l'application.
+///
+/// La clé ne dépend pas de la date du jour mais du **cycle** et du **palier** :
+/// un passage rejoué trois fois dans la même journée ne renvoie rien.
+model SubscriptionReminder {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  /// « <échéance>:<palier> ». Voir `cleDeCycle` dans Ndank.
+  cle            String
+  /// Par où c'est parti. Utile le jour où l'on compare le coût des canaux.
+  canaux         String[]
+  envoyeeLe      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, cle])
+  @@index([subscriptionId])
 }
 
 model DownloadQuota {
@@ -1758,6 +1803,7 @@ enum EmailTemplate {
   RECU_ACHAT
   LIEN_TELECHARGEMENT
   AVIS_VERSEMENT
+  RELANCE_ABONNEMENT
 }
 
 /// File d'attente des messages transactionnels.

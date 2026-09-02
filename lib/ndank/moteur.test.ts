@@ -34,6 +34,7 @@ function faussePorts(
 
   const marchent = options.canauxQuiMarchent ?? ["courriel", "sms", "push"];
   const ou: Coordonnees = options.coordonnees ?? {
+    nom: "Awa",
     courriel: "abonne@ndank.test",
     telephone: "+2250700000000",
     jetonPush: "jeton",
@@ -93,14 +94,23 @@ function abonnement(cycle?: Partial<Cycle>): AbonnementLu {
   };
 }
 
-const LIEN = (a: AbonnementLu) => `https://ndank.test/valider/${a.id}`;
+/**
+ * Ce que l'hôte fournit : où valider, et comment écrire un montant.
+ *
+ * Les deux dépendent du projet — Baobart n'a ni les mêmes URL ni la même devise
+ * qu'un autre — donc le moteur les reçoit plutôt que de les deviner.
+ */
+const REGLAGES = {
+  lien: (a: AbonnementLu) => `https://ndank.test/valider/${a.id}`,
+  montant: (a: AbonnementLu) => `${a.montant} ${a.devise}`,
+};
 
 describe("le passage quotidien", () => {
   it("ne fait rien sur un abonnement tranquille", async () => {
     const a = abonnement();
     const f = faussePorts([a]);
 
-    const bilan = await passer(f.ports, LIEN, ajouterJours(DEPART, 1));
+    const bilan = await passer(f.ports, REGLAGES, ajouterJours(DEPART, 1));
 
     expect(bilan.vus).toBe(1);
     expect(bilan.relances).toBe(0);
@@ -113,21 +123,26 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a]);
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, -3));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
 
     expect(f.envois).toHaveLength(1);
     expect(f.envois[0]!.canal).toBe("courriel");
     expect(f.envois[0]!.message.lien).toContain("ab-1");
+    expect(f.envois[0]!.message.destinataire).toBe("Awa");
+    expect(f.envois[0]!.message.dernier).toBe(false);
   });
 
   it("sort le SMS au dernier palier, quand l'accès va tomber", async () => {
     const a = abonnement();
     const f = faussePorts([a], { canauxQuiMarchent: ["sms"] });
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, 5));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, 5));
 
     expect(f.envois[0]!.canal).toBe("sms");
-    expect(f.envois[0]!.message.titre).toContain("Dernier rappel");
+    // Le message porte des faits, pas de la prose : c'est le canal qui met en
+    // forme. Un SMS et un courriel ne s'écrivent pas pareil.
+    expect(f.envois[0]!.message.dernier).toBe(true);
+    expect(f.envois[0]!.message.offre).toBe("Pass Créateur");
   });
 
   it("n'envoie qu'une relance même après plusieurs jours ratés", async () => {
@@ -136,7 +151,7 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a]);
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, 5));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, 5));
 
     expect(f.envois).toHaveLength(1);
     expect(f.notees).toHaveLength(1);
@@ -145,11 +160,11 @@ describe("le passage quotidien", () => {
   it("ne renvoie pas une relance déjà partie", async () => {
     const a = abonnement();
     const premier = faussePorts([a]);
-    await passer(premier.ports, LIEN, ajouterJours(a.cycle.echeance, -3));
+    await passer(premier.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
 
     const cle = premier.notees[0]!.cle;
     const second = faussePorts([a], { dejaEnvoyes: { "ab-1": [cle] } });
-    await passer(second.ports, LIEN, ajouterJours(a.cycle.echeance, -3));
+    await passer(second.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
 
     expect(second.envois).toHaveLength(0);
   });
@@ -158,7 +173,7 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a], { canauxQuiMarchent: ["push"] });
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, -3));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
 
     expect(f.envois[0]!.canal).toBe("push");
   });
@@ -166,11 +181,16 @@ describe("le passage quotidien", () => {
   it("saute un canal dont on n'a pas les coordonnées", async () => {
     const a = abonnement();
     const f = faussePorts([a], {
-      coordonnees: { courriel: null, telephone: "+225", jetonPush: null },
+      coordonnees: {
+        nom: null,
+        courriel: null,
+        telephone: "+225",
+        jetonPush: null,
+      },
       canauxQuiMarchent: ["courriel", "sms", "push"],
     });
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, 5));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, 5));
 
     expect(f.envois[0]!.canal).toBe("sms");
   });
@@ -181,7 +201,7 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a], { canauxQuiMarchent: [] });
 
-    const bilan = await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, -3));
+    const bilan = await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
 
     expect(f.notees).toHaveLength(0);
     expect(bilan.relances).toBe(0);
@@ -192,7 +212,7 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a]);
 
-    const bilan = await passer(f.ports, LIEN, ajouterJours(a.cycle.accesJusquA, 1));
+    const bilan = await passer(f.ports, REGLAGES, ajouterJours(a.cycle.accesJusquA, 1));
 
     expect(f.suspendus).toEqual(["ab-1"]);
     expect(bilan.suspendus).toBe(1);
@@ -204,7 +224,7 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a]);
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.repriseJusquA, 1));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.repriseJusquA, 1));
 
     expect(f.clos).toEqual(["ab-1"]);
   });
@@ -213,7 +233,7 @@ describe("le passage quotidien", () => {
     const a = { ...abonnement(), resilieeLe: DEPART };
     const f = faussePorts([a]);
 
-    await passer(f.ports, LIEN, ajouterJours(a.cycle.echeance, 5));
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, 5));
 
     expect(f.envois).toHaveLength(0);
     expect(f.suspendus).toHaveLength(0);
@@ -229,7 +249,7 @@ describe("le passage quotidien", () => {
     };
 
     const f = faussePorts([tranquille, aRelancer]);
-    const bilan = await passer(f.ports, LIEN, DEPART);
+    const bilan = await passer(f.ports, REGLAGES, DEPART);
 
     expect(bilan.vus).toBe(2);
   });

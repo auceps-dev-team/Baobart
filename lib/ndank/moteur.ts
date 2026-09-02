@@ -60,23 +60,32 @@ const LOT = 500;
  */
 const FENETRE_JOURS = Math.abs(PALIERS[0]?.jour ?? 3) + 2;
 
-function messagePour(
-  abonnement: AbonnementLu,
-  palier: number,
-  lien: string,
-): Message {
-  const dernier = palier === PALIERS.length - 1;
-
+/**
+ * Les faits à transmettre, pas la prose.
+ *
+ * Le montant arrive déjà formaté : l'hôte seul connaît sa devise et ses
+ * conventions — cinq mille francs ne s'écrivent pas comme cinquante euros.
+ */
+function messagePour(input: {
+  abonnement: AbonnementLu;
+  palier: number;
+  cle: string;
+  lien: string;
+  nom: string;
+  montantLisible: string;
+  maintenant: Date;
+}): Message {
   return {
-    titre: dernier
-      ? `Dernier rappel — ${abonnement.libelle}`
-      : `${abonnement.libelle} — à renouveler`,
-    // On dit ce qui va se passer, pas seulement ce qu'on attend. « Ton accès
-    // s'arrête » agit ; « pense à renouveler » se remet à demain.
-    corps: dernier
-      ? `Ton accès s'arrête bientôt. Valide ${abonnement.montant} ${abonnement.devise} pour le garder.`
-      : `Renouvelle ${abonnement.libelle} — ${abonnement.montant} ${abonnement.devise}. Rien n'est prélevé sans ta validation.`,
-    lien,
+    cle: input.cle,
+    destinataire: input.nom,
+    offre: input.abonnement.libelle,
+    montant: input.montantLisible,
+    lien: input.lien,
+    joursRestants: Math.round(
+      (input.abonnement.cycle.accesJusquA.getTime() - input.maintenant.getTime()) /
+        86_400_000,
+    ),
+    dernier: input.palier === PALIERS.length - 1,
   };
 }
 
@@ -117,7 +126,12 @@ async function relancer(
  */
 export async function passer(
   ports: Ports,
-  lienDeValidation: (abonnement: AbonnementLu) => string,
+  reglages: {
+    /** Où l'abonné ira valider. Dépend de l'hôte, donc fournie. */
+    lien: (abonnement: AbonnementLu) => string;
+    /** Le montant écrit comme l'hôte l'écrit. Idem. */
+    montant: (abonnement: AbonnementLu) => string;
+  },
   maintenant: Date = new Date(),
 ): Promise<Passage> {
   const bilan: Passage = {
@@ -165,7 +179,15 @@ export async function passer(
       ports,
       ou,
       geste.palier,
-      messagePour(abonnement, geste.palier, lienDeValidation(abonnement)),
+      messagePour({
+        abonnement,
+        palier: geste.palier,
+        cle: geste.cle,
+        lien: reglages.lien(abonnement),
+        nom: ou.nom ?? abonnement.libelle,
+        montantLisible: reglages.montant(abonnement),
+        maintenant,
+      }),
     );
 
     if (partis.length === 0) {

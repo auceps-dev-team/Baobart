@@ -23,6 +23,7 @@ export const MODELES = [
   "RECU_ACHAT",
   "LIEN_TELECHARGEMENT",
   "AVIS_VERSEMENT",
+  "RELANCE_ABONNEMENT",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -104,6 +105,14 @@ const SCHEMAS = {
     ressource: z.string().min(1).max(200),
     lien,
   }),
+  RELANCE_ABONNEMENT: z.object({
+    nom,
+    offre: z.string().min(1).max(120),
+    montant: z.string().min(1).max(40),
+    lien,
+    /** Jours restants avant que l'accès ne s'arrête. Négatif s'il est coupé. */
+    jours: z.number().int(),
+  }),
   AVIS_VERSEMENT: z.object({
     nom,
     montant: z.string().min(1).max(40),
@@ -161,6 +170,37 @@ ${c.lien}` : "") +
       `Voici ton lien pour « ${c.ressource} » :\n${c.lien}\n\n` +
       `Ce lien est personnel et n'est valable qu'un temps limité. Passé ce ` +
       `délai, reprends-le depuis ton espace.` +
+      SIGNATURE,
+  }),
+
+  /**
+   * La relance d'abonnement.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * ELLE DIT CE QUI VA SE PASSER, PAS CE QU'ON ATTEND
+   *
+   * « Pense à renouveler » se remet à demain. « Ton accès s'arrête dans deux
+   * jours » agit. Le nombre de jours restants est donc dans le sujet, là où il
+   * se lit sans ouvrir.
+   *
+   * Et la phrase qui compte : **rien n'est prélevé sans validation**. C'est
+   * vrai — le mobile money ne sait pas prélever — et c'est ce qui distingue un
+   * abonnement Ndank d'un abonnement à carte dont on a peur.
+   */
+  RELANCE_ABONNEMENT: (c) => ({
+    sujet:
+      c.jours <= 0
+        ? `Ton accès à ${c.offre} est suspendu`
+        : `${c.offre} — ${c.jours} jour${c.jours > 1 ? "s" : ""} avant la coupure`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      (c.jours <= 0
+        ? `Ton accès à « ${c.offre} » est suspendu faute de renouvellement.\n\n`
+        : `Ton abonnement « ${c.offre} » arrive à échéance. Il te reste ${c.jours} jour${c.jours > 1 ? "s" : ""} d'accès.\n\n`) +
+      `  ${c.montant}\n\n` +
+      `Pour continuer, valide depuis ce lien :\n${c.lien}\n\n` +
+      `Rien n'est prélevé sans ta validation : c'est toi qui confirmes le ` +
+      `paiement sur ton téléphone, à chaque fois.` +
       SIGNATURE,
   }),
 

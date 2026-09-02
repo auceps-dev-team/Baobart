@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "EmailTemplate" ADD VALUE 'RELANCE_ABONNEMENT';

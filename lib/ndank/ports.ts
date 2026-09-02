@@ -49,6 +49,8 @@ export interface AbonnementLu {
 
 /** Où joindre l'abonné. Chaque champ peut manquer. */
 export interface Coordonnees {
+  /** Comment l'appeler. `null` quand on ne sait pas — on dira « Bonjour ». */
+  nom: string | null;
   courriel: string | null;
   telephone: string | null;
   /** Jeton de notification, quand l'app est installée. */
@@ -102,12 +104,35 @@ export interface Ecriture {
 
 export type Canal = "courriel" | "sms" | "push";
 
+/**
+ * Ce qu'il faut dire à l'abonné — en faits, pas en phrases toutes faites.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI PAS UNE CHAÎNE DÉJÀ RENDUE
+ *
+ * Un SMS coûte au caractère et n'a pas de mise en forme ; un courriel peut
+ * s'étendre ; une notification tient en une ligne et doit pouvoir porter un
+ * bouton. Rendre le texte ici obligerait chaque canal à découper la prose d'un
+ * autre — et le SMS finirait coupé au milieu d'un mot.
+ *
+ * Le moteur transmet donc les faits, et chaque canal les met en forme comme il
+ * doit. C'est aussi ce qui permet de traduire sans toucher au moteur.
+ */
 export interface Message {
-  /** Ce que l'abonné doit faire, en une phrase. */
-  titre: string;
-  corps: string;
-  /** Où il va pour valider. */
+  /** La clé de la relance : cycle et palier. Sert à ne pas doubler l'envoi. */
+  cle: string;
+  /** Le nom de l'abonné, tel qu'on l'appelle. */
+  destinataire: string;
+  /** Le nom de l'offre. */
+  offre: string;
+  /** Le montant, déjà formaté par l'hôte — lui seul connaît sa devise. */
+  montant: string;
+  /** Où l'abonné va valider. */
   lien: string;
+  /** Jours d'accès restants. Négatif si l'accès est déjà coupé. */
+  joursRestants: number;
+  /** Dernier palier : le ton change, et le sujet aussi. */
+  dernier: boolean;
 }
 
 /**

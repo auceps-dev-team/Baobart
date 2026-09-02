@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/commandes",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/abonnements",
+      "schedule": "0 8 * * *"
     }
   ]
 }

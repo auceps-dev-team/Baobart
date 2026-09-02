@@ -16,6 +16,13 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     lien: "https://media.baobart.com/x?sig=abc",
   },
   AVIS_VERSEMENT: { nom: "Awa", montant: "12 000 F", compte: "···· 4821" },
+  RELANCE_ABONNEMENT: {
+    nom: "Awa",
+    offre: "Pass Créateur",
+    montant: "2 000 F",
+    lien: "https://baobart.com/abonnement/ab1/renouveler",
+    jours: 3,
+  },
 };
 
 describe("modèles de courriel", () => {
