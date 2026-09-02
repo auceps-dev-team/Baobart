@@ -24,6 +24,7 @@ export const MODELES = [
   "LIEN_TELECHARGEMENT",
   "AVIS_VERSEMENT",
   "RELANCE_ABONNEMENT",
+  "RECU_ABONNEMENT",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -118,6 +119,14 @@ const SCHEMAS = {
     montant: z.string().min(1).max(40),
     compte: z.string().min(1).max(60),
   }),
+  RECU_ABONNEMENT: z.object({
+    nom,
+    offre: z.string().min(1).max(120),
+    montant: z.string().min(1).max(40),
+    /** La prochaine échéance, déjà mise en forme : le modèle ne sait pas dater. */
+    prochaine: z.string().min(1).max(40),
+    lien: lien.optional(),
+  }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
 export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
@@ -201,6 +210,32 @@ ${c.lien}` : "") +
       `Pour continuer, valide depuis ce lien :\n${c.lien}\n\n` +
       `Rien n'est prélevé sans ta validation : c'est toi qui confirmes le ` +
       `paiement sur ton téléphone, à chaque fois.` +
+      SIGNATURE,
+  }),
+
+  /**
+   * Le reçu d'un renouvellement.
+   *
+   * ─────────────────────────────────────────────────────────────────────────
+   * LA PROCHAINE ÉCHÉANCE EST LE CŒUR DU MESSAGE
+   *
+   * Un reçu d'achat dit ce qu'on a reçu. Un reçu d'abonnement doit surtout dire
+   * **jusqu'à quand** on est tranquille : c'est la seule information qui évite
+   * à l'abonné de se demander chaque semaine s'il a bien payé.
+   *
+   * Et il redit qu'il n'y aura pas de prélèvement. Un abonné qui vient de payer
+   * est exactement celui qui se demande si on lui reprendra l'argent tout seul.
+   */
+  RECU_ABONNEMENT: (c) => ({
+    sujet: `Abonnement renouvelé : ${c.offre}`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Ton paiement est confirmé et ton accès continue.\n\n` +
+      `  ${c.offre}\n  ${c.montant}\n\n` +
+      `Prochaine échéance : ${c.prochaine}. Nous te préviendrons avant.\n\n` +
+      `Rien ne sera prélevé sans ta validation — c'est toi qui confirmeras le ` +
+      `paiement sur ton téléphone, comme cette fois-ci.` +
+      (c.lien ? `\n\n${c.lien}` : "") +
       SIGNATURE,
   }),
 

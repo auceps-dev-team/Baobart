@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { declencherRappel } from "@/lib/payments/encaissement/bac-a-sable";
+import type { ResultatBac } from "@/lib/payments/encaissement/bac-a-sable";
 import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
 
 /**
@@ -10,15 +10,22 @@ import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
  *
  * Ils ne sont affichés qu'en bac à sable, mais ce n'est pas ce qui protège :
  * la garde vit dans l'action serveur, qui vérifie le pilote actif et la
- * propriété de la commande. Cacher un bouton ne ferme rien.
+ * propriété du sujet. Cacher un bouton ne ferme rien.
+ *
+ * L'action arrive déjà liée à son sujet — une commande, un renouvellement.
+ * Ce composant ne connaît donc ni l'un ni l'autre : il joue l'opérateur.
  */
-export function BacASable({ orderId }: { orderId: string }) {
+export function BacASable({
+  jouerRappel,
+}: {
+  jouerRappel: (issue: "REUSSI" | "ECHOUE") => Promise<ResultatBac>;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
 
   function jouer(issue: "REUSSI" | "ECHOUE") {
     demarrer(async () => {
-      const suite = await declencherRappel(orderId, issue);
+      const suite = await jouerRappel(issue);
       setMessage(suite.ok ? `Rappel traité : ${suite.effet}.` : suite.message);
     });
   }

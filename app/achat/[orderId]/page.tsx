@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { BacASable } from "@/components/checkout/bac-a-sable";
+import { declencherRappel } from "@/lib/payments/encaissement/bac-a-sable";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
@@ -340,7 +341,9 @@ export default async function RetourPaiementPage({
             </div>
           ) : null}
 
-          {bac && enAttente ? <BacASable orderId={commande.id} /> : null}
+          {bac && enAttente ? (
+            <BacASable jouerRappel={declencherRappel.bind(null, commande.id)} />
+          ) : null}
         </div>
 
         {/* ── La commande ───────────────────────────────────────────────── */}

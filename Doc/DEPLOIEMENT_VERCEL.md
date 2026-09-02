@@ -1,6 +1,6 @@
 # Déploiement sur Vercel — mode opératoire
 
-**2 septembre 2026 · application v1.39.0**
+**2 septembre 2026 · application v1.40.0**
 
 > `SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md` décrit la stratégie et le
 > self-hosting Docker. Ce document-ci est la **procédure**, avec les valeurs qui

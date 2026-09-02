@@ -224,6 +224,22 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+/// Où en est UN paiement d'abonnement.
+///
+/// Trois états seulement, là où une commande en a huit. Un abonnement ne se
+/// livre pas, ne se conteste pas auprès d'un vendeur, et ne se rembourse pas
+/// partiellement : il n'y a rien à modéliser de plus. Ajouter des états « au
+/// cas où » fabriquerait des transitions que personne n'écrit et que personne
+/// ne teste.
+enum SubscriptionPaymentStatus {
+  /// Ouvert chez l'opérateur. L'abonné n'a encore rien validé.
+  PENDING
+  /// L'argent est arrivé, et le cycle a été avancé.
+  PAID
+  /// Refusé, interrompu, ou périmé sans réponse.
+  FAILED
+}
+
 /// À quel rythme un abonnement se renouvelle.
 ///
 /// Porté par l'abonnement et non par l'offre : deux abonnés d'un même plan
@@ -1250,11 +1266,61 @@ model Subscription {
 
   user     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan     Plan                   @relation(fields: [planId], references: [id])
-  quotas   DownloadQuota[]
-  relances SubscriptionReminder[]
+  quotas    DownloadQuota[]
+  relances  SubscriptionReminder[]
+  paiements SubscriptionPayment[]
 
   @@index([userId, status])
   @@index([status, cycleEnd])
+}
+
+/// Une tentative de paiement d'abonnement.
+///
+/// ──────────────────────────────────────────────────────────────────────────
+/// POURQUOI PAS UNE COMMANDE
+///
+/// Une commande décrit une vente ENTRE DEUX PERSONNES : elle porte des lignes,
+/// chaque ligne porte un produit, et son encaissement crédite le solde d'un
+/// vendeur. Un abonnement n'a ni produit ni vendeur — l'argent est celui de la
+/// plateforme.
+///
+/// Faire passer un renouvellement par `Order` obligerait à inventer un produit
+/// et un vendeur, et `finaliserVente` créditerait ce vendeur : on fabriquerait
+/// une dette de versement envers quelqu'un à qui l'on ne doit rien. Le défaut
+/// serait invisible jusqu'au jour du virement.
+///
+/// ──────────────────────────────────────────────────────────────────────────
+/// LA TRACE RESTE, MÊME QUAND L'ABONNÉ ABANDONNE
+///
+/// Une tentative ratée n'est pas effacée. C'est elle qui dit qu'un rail échoue
+/// trop souvent, et c'est elle qu'on montre à l'opérateur quand on le lui
+/// reproche.
+model SubscriptionPayment {
+  id             String                    @id @default(cuid())
+  subscriptionId String
+  status         SubscriptionPaymentStatus @default(PENDING)
+  /// En unités mineures ISO 4217. Figé à l'ouverture : relire le prix du plan
+  /// au moment du rappel ferait varier un paiement déjà autorisé.
+  amount         Int
+  currency       String                    @default("XOF")
+  /// L'opérateur qui a ouvert le paiement, ou « simulation ».
+  provider       String
+  /// La référence de la transaction chez lui, quand il la donne.
+  providerRef    String?
+  /// L'échéance que ce paiement couvre. Sert à relire ce qui s'est passé sans
+  /// avoir à recalculer les cycles.
+  cycleEnd       DateTime?
+  paidAt         DateTime?
+  failedAt       DateTime?
+  /// Pourquoi le paiement n'est pas passé. Texte libre : il vient de
+  /// l'opérateur, et on ne cherche pas à le normaliser.
+  failureReason  String?
+  createdAt      DateTime                  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
+  @@index([status, createdAt])
 }
 
 /// Une relance déjà partie.
@@ -1804,6 +1870,7 @@ enum EmailTemplate {
   LIEN_TELECHARGEMENT
   AVIS_VERSEMENT
   RELANCE_ABONNEMENT
+  RECU_ABONNEMENT
 }
 
 /// File d'attente des messages transactionnels.

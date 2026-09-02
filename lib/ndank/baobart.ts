@@ -61,7 +61,7 @@ import type {
  * plus qui pourraient dériver — et le jour où l'on rallonge la grâce, les
  * abonnements existants garderaient l'ancienne sans qu'on le voie.
  */
-function cycleDe(debut: Date, echeance: Date): Cycle {
+export function cycleDe(debut: Date, echeance: Date): Cycle {
   const accesJusquA = ajouterJours(echeance, REGLAGES_PAR_DEFAUT.graceJours);
 
   return {

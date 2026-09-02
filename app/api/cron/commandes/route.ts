@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { journal } from "@/lib/observabilite/journal";
 import { perimerCommandesOubliees } from "@/lib/payments/encaissement/reglement";
+import { perimerPaiementsOublies } from "@/lib/abonnements/reglement";
 
 /**
  * Le passage qui referme les commandes qu'aucun rappel n'a conclues.
@@ -22,6 +23,15 @@ import { perimerCommandesOubliees } from "@/lib/payments/encaissement/reglement"
  *
  * Une fois par jour suffit : la péremption est à vingt-quatre heures, bien
  * au-delà de tout rappel plausible.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * ELLE FAIT AUSSI LE MÉNAGE DES RENOUVELLEMENTS
+ *
+ * Un renouvellement d'abonnement abandonné est exactement le même problème :
+ * un paiement ouvert que personne ne conclut, avec la même péremption et le
+ * même rythme. Lui donner sa propre route d'ordonnanceur ajouterait une entrée
+ * de plus à configurer sur Vercel — donc une de plus à oublier, et un ménage
+ * qui ne se ferait jamais sans que rien ne le dise.
  */
 
 export const dynamic = "force-dynamic";
@@ -57,12 +67,13 @@ export async function GET(requete: Request) {
   }
 
   const fermees = await perimerCommandesOubliees();
+  const abonnements = await perimerPaiementsOublies();
 
   // Un passage vide est le cas normal. Ne journaliser que ce qui s'est passé
   // évite de noyer les incidents sous la routine.
-  if (fermees > 0) {
-    journal.info("passage de ménage des commandes", { fermees });
+  if (fermees > 0 || abonnements > 0) {
+    journal.info("passage de ménage des paiements", { fermees, abonnements });
   }
 
-  return NextResponse.json({ fermees });
+  return NextResponse.json({ fermees, abonnements });
 }

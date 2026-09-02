@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { acheterRessource } from "@/lib/checkout/actions";
 import {
   PAYS,
   demandeLeTelephone,
@@ -36,14 +35,24 @@ const LAVANDE_CLAIR = "#F4EEFC";
  * qu'indicatif, et un rail inventé est ignoré plutôt que suivi.
  *
  * Traduit de « Baobart Parcours Achat.dc.html », écran `pay`.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * IL NE SAIT PAS CE QU'ON PAIE
+ *
+ * L'action arrive déjà liée à son sujet — une ressource, un abonnement. Cet
+ * écran ne connaît donc ni produit ni abonnement : il choisit un rail et
+ * soumet. C'est ce qui permet d'avoir UN seul sélecteur de paiement plutôt
+ * qu'un par tunnel, avec la certitude que les deux proposent les mêmes rails et
+ * demandent le numéro dans les mêmes cas.
  */
 
 export function ChoixPaiement({
-  produitId,
+  action,
   operateur,
   prixFormate,
 }: {
-  produitId: string;
+  /** Déjà liée à son sujet par l'appelant. Le refus vit dedans, pas ici. */
+  action: (donnees: FormData) => Promise<void>;
   /** Le pilote actif : il décide si le numéro est demandé. */
   operateur: string;
   prixFormate: string;
@@ -70,7 +79,7 @@ export function ChoixPaiement({
 
   return (
     <form
-      action={acheterRessource.bind(null, produitId)}
+      action={action}
       style={{ display: "flex", flexDirection: "column", gap: 20 }}
     >
       {/*
@@ -79,8 +88,8 @@ export function ChoixPaiement({
         la fiche, et le geste reste un envoi de formulaire — donc traçable,
         annulable, et compréhensible sans JavaScript.
 
-        Ce que l'acheteur choisit n'est qu'indicatif : `acheterRessource`
-        revalide le rail contre la liste connue, et ignore un nom inventé.
+        Ce que l'acheteur choisit n'est qu'indicatif : l'action revalide le
+        rail contre la liste connue, et ignore un nom inventé.
       */}
       <input type="hidden" name="moyen" value={choisi} />
       <input type="hidden" name="pays" value={pays} />

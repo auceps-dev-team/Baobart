@@ -20,6 +20,11 @@ import {
   abandonnerVente,
   finaliserVente,
 } from "@/lib/payments/encaissement/reglement";
+import {
+  abandonnerRenouvellement,
+  finaliserRenouvellement,
+} from "@/lib/abonnements/reglement";
+import { paiementDeReference } from "@/lib/abonnements/renouvellement";
 
 /**
  * Appliquer à une commande ce qu'un opérateur affirme.
@@ -54,6 +59,10 @@ export type Effet =
   | "VERSE"
   /** Le virement n'est pas parti, ou est revenu. Les soldes sont rendus. */
   | "VERSEMENT_ECHOUE"
+  /** Un abonnement est renouvelé : cycle avancé, accès rouvert, reçu déposé. */
+  | "RENOUVELE"
+  /** Le renouvellement n'a pas été payé : le cycle n'a pas bougé. */
+  | "RENOUVELLEMENT_ECHOUE"
   /** Authentique et sans effet : rejeu, ou étape intermédiaire. */
   | "SANS_EFFET";
 
@@ -63,6 +72,8 @@ export type Reception =
       recu: false;
       motif:
         | "COMMANDE_INTROUVABLE"
+        /** La référence annonçait un renouvellement qui n'existe pas. */
+        | "ABONNEMENT_INTROUVABLE"
         | "VERSEMENT_INTROUVABLE"
         | "TRANSITION_REFUSEE"
         | "MONTANT_DISCORDANT"
@@ -256,6 +267,21 @@ async function appliquer(
   fournisseur: string,
   fait: FaitPaiement,
 ): Promise<Reception> {
+  // ───────────────────────────────────────────────────────────────────
+  // UN ACHAT ET UN RENOUVELLEMENT ARRIVENT PAR LE MÊME ÉVÉNEMENT
+  //
+  // Les deux sont un `charge.success` : rien dans le rappel ne les sépare.
+  // Le seul discriminant est NOTRE référence, celle qu'on a envoyée à
+  // l'ouverture — un cuid nu pour une commande, `abo-<id>` pour un abonnement.
+  //
+  // Sans cet aiguillage, un renouvellement payé serait cherché parmi les
+  // commandes, n'y serait pas, et refusé comme « commande introuvable » :
+  // l'abonné aurait payé et son accès serait coupé le lendemain.
+  const paiementAbonnement = paiementDeReference(fait.reference);
+  if (paiementAbonnement !== null) {
+    return appliquerRenouvellement(fournisseur, fait, paiementAbonnement);
+  }
+
   // Notre référence est l'identifiant de la commande : c'est ce qu'on a envoyé
   // à l'ouverture, et c'est ce que l'opérateur nous rend.
   const commande = await db.order.findUnique({
@@ -423,4 +449,153 @@ async function appliquer(
 
     return { recu: true, effet: "SANS_EFFET" };
   }
+}
+
+/**
+ * Un rappel qui parle d'un renouvellement d'abonnement.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LES MÊMES GARDES QU'UNE VENTE, ET POUR LES MÊMES RAISONS
+ *
+ * L'opérateur rejoue, annonce des montants, et se dédit. On confronte donc
+ * avant d'avancer quoi que ce soit, et on lui demande confirmation plutôt que
+ * de le croire sur signature — un secret dérobé permettrait sinon d'offrir un
+ * mois d'abonnement à qui sait forger un rappel.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * CE QUI DIFFÈRE : IL N'Y A PERSONNE À CRÉDITER
+ *
+ * Une vente crédite le solde d'un vendeur, et un paiement arrivé sur une
+ * commande refermée laisse un acheteur sans rien. Ici, l'argent est celui de la
+ * plateforme et le « produit » est du temps : un paiement arrivé en retard sur
+ * un abonnement déjà suspendu se règle tout seul, parce que `cycleSuivant`
+ * repart du jour du paiement quand l'accès était éteint.
+ *
+ * C'est pourquoi il n'y a pas d'équivalent de « PAIEMENT REÇU SUR UNE COMMANDE
+ * REFERMÉE » ici : le cas existe, et il n'est pas grave.
+ */
+async function appliquerRenouvellement(
+  fournisseur: string,
+  fait: FaitPaiement,
+  paiementId: string,
+): Promise<Reception> {
+  const paiement = await db.subscriptionPayment.findUnique({
+    where: { id: paiementId },
+    select: { id: true, status: true, amount: true, currency: true },
+  });
+
+  if (!paiement) {
+    return {
+      recu: false,
+      motif: "ABONNEMENT_INTROUVABLE",
+      detail: `Aucun paiement d'abonnement pour la référence ${fait.reference}.`,
+    };
+  }
+
+  // Une étape intermédiaire — « l'invite est partie sur le téléphone » — ne
+  // décide de rien.
+  if (fait.issue === "EN_COURS") return { recu: true, effet: "SANS_EFFET" };
+
+  if (fait.issue === "ECHOUE" || fait.issue === "RETOURNE") {
+    const referme = await abandonnerRenouvellement(
+      paiement.id,
+      `Refusé par l'opérateur (${fait.referenceOperateur ?? "sans référence"}).`,
+    );
+    return {
+      recu: true,
+      effet: referme ? "RENOUVELLEMENT_ECHOUE" : "SANS_EFFET",
+    };
+  }
+
+  // ── Succès annoncé : on confronte avant d'avancer le cycle ────────────────
+  //
+  // Même règle qu'à la vente : on refuse le manque, pas le surplus. Quelqu'un
+  // qui paierait cent francs pour un mois à deux mille est refusé ; un montant
+  // supérieur est un arrondi d'opérateur ou des frais absorbés, et refuser
+  // fabriquerait le pire cas — l'abonné a payé plus que demandé et son accès
+  // est coupé.
+  if (fait.montant !== null && fait.montant < paiement.amount) {
+    journal.erreur("renouvellement au montant insuffisant", {
+      paiement: paiement.id,
+      attendu: paiement.amount,
+      annonce: fait.montant,
+    });
+    return {
+      recu: false,
+      motif: "MONTANT_DISCORDANT",
+      detail: `Attendu ${paiement.amount}, annoncé ${fait.montant}.`,
+    };
+  }
+
+  if (fait.montant !== null && fait.montant > paiement.amount) {
+    journal.avertissement("renouvellement supérieur au montant, accepté", {
+      paiement: paiement.id,
+      attendu: paiement.amount,
+      annonce: fait.montant,
+    });
+  }
+
+  if (fait.devise !== null && fait.devise !== paiement.currency) {
+    journal.erreur("renouvellement dans une autre devise", {
+      paiement: paiement.id,
+      attendue: paiement.currency,
+      annoncee: fait.devise,
+    });
+    return {
+      recu: false,
+      motif: "DEVISE_DISCORDANTE",
+      detail: `Attendu ${paiement.currency}, annoncé ${fait.devise}.`,
+    };
+  }
+
+  // On demande à l'opérateur plutôt que de le croire. La signature prouve
+  // l'origine tant que le secret n'a pas fui ; l'interroger ferme la porte que
+  // laisserait un secret dérobé.
+  const pilote = piloteNomme(fournisseur);
+  if (pilote?.confirmer) {
+    const verdict = await pilote.confirmer(fait.reference);
+
+    if (!verdict.confirme) {
+      journal.erreur("l'opérateur ne confirme pas le renouvellement annoncé", {
+        paiement: paiement.id,
+        fournisseur,
+      });
+      return {
+        recu: false,
+        motif: "NON_CONFIRME",
+        detail: "L'opérateur ne confirme pas cette transaction.",
+      };
+    }
+
+    if (verdict.montant !== null && verdict.montant !== paiement.amount) {
+      journal.erreur("montant de renouvellement confirmé différent du nôtre", {
+        paiement: paiement.id,
+        attendu: paiement.amount,
+        confirme: verdict.montant,
+      });
+      return {
+        recu: false,
+        motif: "MONTANT_DISCORDANT",
+        detail: `Attendu ${paiement.amount}, confirmé ${verdict.montant}.`,
+      };
+    }
+  }
+
+  // La référence de l'opérateur est écrite AVANT le règlement : c'est elle qui
+  // permet de retrouver la transaction, et un règlement qui casse au milieu ne
+  // doit pas laisser un paiement encaissé sans trace de où le chercher.
+  await db.subscriptionPayment.update({
+    where: { id: paiement.id },
+    data: { providerRef: fait.referenceOperateur },
+  });
+
+  const suite = await finaliserRenouvellement(paiement.id);
+
+  if (!suite.fait) {
+    // « Déjà réglé » est le résultat normal d'un rejeu : la garde a fait son
+    // travail. « Introuvable » ne peut plus arriver ici — on vient de le lire.
+    return { recu: true, effet: "SANS_EFFET" };
+  }
+
+  return { recu: true, effet: "RENOUVELE" };
 }

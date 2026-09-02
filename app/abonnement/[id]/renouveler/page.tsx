@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { ChoixPaiement } from "@/components/checkout/choix-paiement";
+import { renouvelerAbonnement } from "@/lib/abonnements/actions";
+import {
+  MESSAGES,
+  renouvellementPossible,
+  type MotifRefus,
+} from "@/lib/abonnements/renouvellement";
 import { sessionCourante } from "@/lib/auth/session";
+import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { REGLAGES_PAR_DEFAUT, ajouterJours } from "@/lib/ndank/cycle";
@@ -39,13 +47,16 @@ export const dynamic = "force-dynamic";
 
 export default async function RenouvelerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ paiement?: string }>;
 }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
   const { id } = await params;
+  const { paiement: refus } = await searchParams;
 
   const abonnement = await db.subscription.findUnique({
     where: { id },
@@ -55,6 +66,7 @@ export default async function RenouvelerPage({
       cycleStart: true,
       cycleEnd: true,
       cancelledAt: true,
+      status: true,
       plan: { select: { name: true, priceMonthly: true } },
     },
   });
@@ -92,6 +104,14 @@ export default async function RenouvelerPage({
 
   const coupe = etat === "SUSPENDUE" || etat === "EXPIREE";
   const clos = etat === "EXPIREE" || etat === "RESILIEE";
+
+  // Le bouton n'existe que là où l'action aboutirait. Un bouton qui apparaît
+  // là où le paiement refuse promet un écran qui n'ouvre sur rien — au moment
+  // précis où quelqu'un cherche à ne pas perdre son accès.
+  const payable =
+    abonnement.status !== "CANCELLED" && renouvellementPossible();
+  const operateur = piloteCourant().nom;
+  const message = refus && refus in MESSAGES ? MESSAGES[refus as MotifRefus] : null;
 
   return (
     <main
@@ -205,40 +225,68 @@ export default async function RenouvelerPage({
           </div>
 
           {/*
-            ⚠️ Le bouton n'ouvre encore sur rien.
+            Le refus, quand l'action vient d'en renvoyer un.
 
-            Ndank sait décider et relancer ; il ne sait pas encore encaisser un
-            renouvellement, parce que le tunnel de paiement est écrit pour une
-            RESSOURCE, pas pour un abonnement. Le brancher demande une commande
-            d'un autre genre, et cette page dit franchement où l'on en est
-            plutôt que d'afficher un bouton qui échouerait.
+            Il passe par l'URL et non par un état de formulaire : cette page est
+            servie, et un aller-retour la relit entièrement — l'état de
+            l'abonnement compris, qui vient peut-être de changer.
           */}
-          <div
-            style={{
-              marginTop: 22,
-              padding: 16,
-              border: CADRE,
-              borderRadius: 16,
-              background: JAUNE,
-            }}
-          >
-            <div style={{ fontSize: 13.5, fontWeight: 800 }}>
-              Le paiement d&apos;abonnement arrive
-            </div>
+          {message ? (
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                lineHeight: 1.55,
-                marginTop: 6,
-                textWrap: "pretty",
+                marginTop: 20,
+                padding: 14,
+                border: CADRE,
+                borderRadius: 16,
+                background: ORANGE,
+                color: BLANC,
+                fontSize: 13.5,
+                fontWeight: 700,
+                lineHeight: 1.5,
               }}
             >
-              Le tunnel mobile money encaisse aujourd&apos;hui des ressources,
-              pas encore des abonnements. En attendant, écris-nous et nous
-              prolongeons ton accès à la main.
+              {message}
             </div>
-          </div>
+          ) : null}
+
+          {payable ? (
+            <div style={{ marginTop: 24, paddingTop: 22, borderTop: CADRE }}>
+              <ChoixPaiement
+                action={renouvelerAbonnement.bind(null, abonnement.id)}
+                operateur={operateur}
+                prixFormate={prix}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: 22,
+                padding: 16,
+                border: CADRE,
+                borderRadius: 16,
+                background: JAUNE,
+              }}
+            >
+              <div style={{ fontSize: 13.5, fontWeight: 800 }}>
+                {clos
+                  ? "Cet abonnement est clos"
+                  : "Le paiement n’est pas disponible"}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  lineHeight: 1.55,
+                  marginTop: 6,
+                  textWrap: "pretty",
+                }}
+              >
+                {clos
+                  ? "Il ne se renouvelle plus. Tu peux en reprendre un neuf quand tu veux."
+                  : "Aucun opérateur n’est branché pour le moment. Écris-nous et nous prolongeons ton accès à la main."}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
             <Link

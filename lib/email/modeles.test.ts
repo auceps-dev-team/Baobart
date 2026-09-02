@@ -23,6 +23,13 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     lien: "https://baobart.com/abonnement/ab1/renouveler",
     jours: 3,
   },
+  RECU_ABONNEMENT: {
+    nom: "Awa",
+    offre: "Pass Créateur",
+    montant: "2 000 F",
+    prochaine: "2 octobre 2026",
+    lien: "https://baobart.com/dashboard/abonnements",
+  },
 };
 
 describe("modèles de courriel", () => {

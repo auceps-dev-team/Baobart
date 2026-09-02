@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ChoixPaiement } from "@/components/checkout/choix-paiement";
+import { acheterRessource } from "@/lib/checkout/actions";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
@@ -123,7 +124,7 @@ export default async function ChoisirLePaiementPage({
           </p>
 
           <ChoixPaiement
-            produitId={produit.id}
+            action={acheterRessource.bind(null, produit.id)}
             operateur={operateur}
             prixFormate={prix}
           />
