@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { consigner, ressource } from "@/lib/admin/audit";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { journal } from "@/lib/observabilite/journal";
 import {
@@ -36,7 +37,11 @@ export async function fairePasserVersement(
   _precedent: EtatTransition | null,
   donnees: FormData,
 ): Promise<EtatTransition> {
-  const qui = await exigerLePouvoir("agir_sur_l_exploitation");
+  // `agir_sur_l_argent`, et non l'exploitation technique : déplacer un
+  // versement entre états, c'est décider où va de l'argent. Le rôle
+  // Comptabilité l'a, les administrateurs généralistes aussi ; personne
+  // d'autre.
+  const qui = await exigerLePouvoir("agir_sur_l_argent");
 
   // La raison n'est pas décorative : un versement échoué sans motif oblige à
   // rouvrir le dossier chez l'opérateur pour savoir ce qui s'est passé.
@@ -47,6 +52,16 @@ export async function fairePasserVersement(
   // qu'il est. On en prépare un neuf sur les soldes que l'échec a rendus.
   if (vers === "REJOUER") {
     const suite = await verserANouveau({ payoutId, auteur: qui.email });
+
+    if (suite.prepare) {
+      await consigner({
+        acteurId: qui.id,
+        action: "versement.rejouer",
+        ressource: ressource("payout", payoutId),
+        details: { montant: suite.montant },
+      });
+    }
+
     revalidatePath("/dashboard/systeme/versements");
     return suite.prepare
       ? {
@@ -109,6 +124,15 @@ export async function fairePasserVersement(
     payoutId,
     vers,
     par: qui.email,
+  });
+
+  await consigner({
+    acteurId: qui.id,
+    action: vers === "CANCELLED" ? "versement.annuler" : "versement.rejouer",
+    ressource: ressource("payout", payoutId),
+    // La référence de l'ordre chez l'opérateur : c'est par elle qu'on retrouve
+    // la transaction le jour où quelqu'un conteste.
+    details: { vers, raison: raison || undefined, reference: reference || undefined },
   });
 
   revalidatePath("/dashboard/systeme/versements");

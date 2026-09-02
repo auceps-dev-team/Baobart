@@ -7,7 +7,12 @@
  * un accès à la base — quelqu'un qui l'a déjà n'a plus rien à gagner à
  * l'exploiter.
  *
- *   node scripts/promouvoir-admin.mjs <email> [MEMBER|ADMIN|SUPER_ADMIN]
+ *   node scripts/promouvoir-admin.mjs <email> [rôle]
+ *
+ * Les rôles fonctionnels ne donnent QUE leur métier, et jamais les écrans
+ * techniques : un modérateur ne lit pas l'état de la base. « ADMIN » couvre
+ * toutes les fonctions sans distribuer les pouvoirs ; « SUPER_ADMIN » seul le
+ * peut. Voir `lib/auth/administration.ts` pour la matrice complète.
  */
 
 import { existsSync } from "node:fs";
@@ -15,7 +20,22 @@ import { createRequire } from "node:module";
 
 if (existsSync(".env")) process.loadEnvFile(".env");
 
-const ROLES = ["MEMBER", "ADMIN", "SUPER_ADMIN"];
+/**
+ * Recopié de l'enum Prisma, faute de pouvoir l'importer dans un script `.mjs`.
+ * Une valeur manquante ici rend un rôle inaccordable ; une valeur en trop
+ * échoue à l'écriture, ce qui se voit tout de suite.
+ */
+const ROLES = [
+  "MEMBER",
+  "CONTENT_MANAGER",
+  "MARKETING",
+  "MODERATOR",
+  "SUPPORT",
+  "ACCOUNTANT",
+  "COMPLIANCE",
+  "ADMIN",
+  "SUPER_ADMIN",
+];
 const [email, role = "ADMIN"] = process.argv.slice(2);
 
 if (!email) {
@@ -23,7 +43,7 @@ if (!email) {
   process.exit(1);
 }
 if (!ROLES.includes(role)) {
-  console.error(`Rôle inconnu « ${role} ». Attendu : ${ROLES.join(", ")}.`);
+  console.error(`Rôle inconnu « ${role} ». Attendu :\n  ${ROLES.join("\n  ")}`);
   process.exit(1);
 }
 

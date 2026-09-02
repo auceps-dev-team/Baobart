@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **2 septembre 2026** (v1.43.0).
+> Dernière mise à jour : **2 septembre 2026** (v1.44.0).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -112,7 +112,10 @@
 | Services listés | §3.2 | `prisma/schema.prisma` (`Commission`) | ❌ | table seule | Aucune route `app/` |
 | Événements / concours | §1 | `prisma/schema.prisma` (`Event`) | ❌ | table seule | Aucune route `app/` |
 | Forum / communautés | §3.2 | `prisma/schema.prisma` (`Community`, `ForumCategory`) | ❌ | table seule | Aucune route `app/` |
-| CMS Super Admin (7 rôles) | `SPEC_ADMIN_CMS_BAOBART.md` | — | ❌ | — | `app/dashboard/systeme/` existe mais n'est qu'un espace d'exploitation technique interne |
+| Admin — rôles fonctionnels (7) et matrice de pouvoirs | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/auth/administration.ts` | ✅ | v1.44.0, 18 tests | Une seule identité : pas de table `AdminUser` séparée — voir §17.1 de la spec. Aucun écran ne permet de s'élever, la promotion passe par la base |
+| Admin — journal d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/admin/audit.ts` | ✅ | v1.44.0, 10 tests | La table `AuditLog` existait depuis le début **et n'était jamais écrite** : un écran d'audit aurait affiché une liste vide, ce qui se lit « rien ne s'est passé ». Consigner ne peut jamais faire échouer l'acte |
+| Admin — shell `/admin` et écran d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | — | ❌ | — | `app/dashboard/systeme/` reste un espace d'exploitation technique. Les rôles fonctionnels n'ont pas encore d'écran à eux |
+| CMS — blogs, événements, jobs, services | `SPEC_ADMIN_CMS_BAOBART.md` §§4-7 | — | ❌ | — | Rien n'est écrit. La fondation (rôles, audit) l'est |
 
 ## 7. Infrastructure & exploitation
 

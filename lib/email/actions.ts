@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { consigner, ressource } from "@/lib/admin/audit";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { abandonner, relancer } from "@/lib/email/outbox";
 import { journal } from "@/lib/observabilite/journal";
@@ -34,6 +35,17 @@ export async function relancerCourriel(id: string): Promise<void> {
     par: qui.email,
   });
 
+  // Seuls les actes qui ont eu lieu entrent à l'audit. Un refus reste au
+  // journal applicatif : l'audit répond à « qu'est-ce qui a changé », pas à
+  // « qu'a-t-on essayé ».
+  if (fait) {
+    await consigner({
+      acteurId: qui.id,
+      action: "courriel.rejouer",
+      ressource: ressource("email", id),
+    });
+  }
+
   revalidatePath("/dashboard/systeme/emails");
 }
 
@@ -46,6 +58,14 @@ export async function abandonnerCourriel(id: string): Promise<void> {
     courrielId: id,
     par: qui.email,
   });
+
+  if (fait) {
+    await consigner({
+      acteurId: qui.id,
+      action: "courriel.abandonner",
+      ressource: ressource("email", id),
+    });
+  }
 
   revalidatePath("/dashboard/systeme/emails");
 }

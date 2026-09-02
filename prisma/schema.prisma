@@ -54,9 +54,42 @@ enum UserRiskState {
 /// acheteur → créateur, qui se déduit de l'activité (voir lib/auth/roles.ts).
 /// Un créateur chevronné reste MEMBER ; l'administration ne se mérite pas à
 /// l'usage, elle s'accorde.
+/// Ce qu'une personne a le droit de faire sur la plateforme.
+///
+/// ──────────────────────────────────────────────────────────────────────────
+/// UN SEUL RÔLE PAR PERSONNE, ET C'EST LA SPEC QUI LE VEUT
+///
+/// `SPEC_ADMIN_CMS_BAOBART.md` §2 décrit un champ `role` unique. Un jeu de
+/// rôles cumulables serait plus souple et plus lourd : il faudrait une table de
+/// liaison, une union de pouvoirs, et une page pour la tenir. Quelqu'un qui a
+/// besoin de deux fonctions reçoit ADMIN, qui les couvre toutes sauf la
+/// distribution des pouvoirs.
+///
+/// ──────────────────────────────────────────────────────────────────────────
+/// AUCUN N'EST HÉRITÉ
+///
+/// Les pouvoirs de chaque rôle sont écrits en entier dans
+/// `lib/auth/administration.ts`. Écrire « SUPER_ADMIN hérite d'ADMIN »
+/// économiserait trois lignes et coûterait la relecture.
 enum PlatformRole {
   MEMBER
+
+  /// Rédaction et publication éditoriale : articles, événements.
+  CONTENT_MANAGER
+  /// Sponsoring, mise en avant, infolettres.
+  MARKETING
+  /// Files de modération : offres, services, contenus signalés.
+  MODERATOR
+  /// Tickets, litiges, remboursements.
+  SUPPORT
+  /// Versements, soldes, rapports.
+  ACCOUNTANT
+  /// KYC, états de risque, juridique.
+  COMPLIANCE
+
+  /// Le généraliste : tout, sauf distribuer les pouvoirs.
   ADMIN
+  /// Tout, y compris nommer et révoquer.
   SUPER_ADMIN
 }
 

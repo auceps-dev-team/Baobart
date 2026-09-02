@@ -354,7 +354,8 @@ model ServiceOffer {                           // « Proposer mon service » (cr
 
 | Phase | Contenu admin/CMS | Statut |
 |---|---|---|
-| **M0** | Shell `/admin` + auth AdminUser + rôles + AuditLog + recherche globale | Fondation |
+| **M0** | Rôles fonctionnels + matrice de pouvoirs + `AuditLog` écrit | ✅ **v1.44.0** |
+| **M0 bis** | Shell `/admin` dédié + recherche globale + écran d'audit | à faire |
 | **M1** | Dashboard KPI (cache) + file « vendeurs à revoir » + gestion KYC (nécessaire au badge vérifié) + bibliothèque média | Avec le MVP |
 | **M2** | Payouts admin (vue, retry) + sponsors + feature flags | Avec paiements |
 | **M3** | **CMS Services** (catégories + modération des offres) + file litiges | Avec vendeurs |
@@ -402,3 +403,190 @@ model SponsorshipCampaign {
   status    String   @default("draft") // draft | scheduled | live | ended | cancelled
 }
 ```
+
+---
+
+## 17. Ce qui a été fait, et les deux écarts avec cette spec
+
+*Écrit le 2 septembre 2026, à la livraison de M0 (v1.44.0).*
+
+### 17.1 Pas de table `AdminUser` : une seule identité
+
+La spec (§2) propose une table d'administrateurs avec **sa propre
+authentification**. Le code n'en crée pas, et voici pourquoi.
+
+Baobart a déjà une authentification durcie — sessions, limitation de débit,
+réinitialisation à usage unique, hachage. En monter une seconde signifie deux
+endroits où se tromper sur la sécurité des sessions, deux parcours de mot de
+passe oublié à tenir, et deux fois la surface d'attaque — pour un gain qui
+n'existe que si les administrateurs ne sont pas aussi des utilisateurs. Chez
+Baobart, ils le sont : ils ont un profil, ils achètent, certains publient.
+
+La propriété de sécurité recherchée est ailleurs, et elle est déjà tenue :
+**aucun écran ne permet de s'élever.** La promotion passe par
+`pnpm admin:promouvoir`, donc par quelqu'un qui a déjà la main sur la base — et
+qui n'a plus rien à gagner à l'exploiter. Une faille d'autorisation dans un
+formulaire de profil ne peut pas se terminer en super administrateur.
+
+### 17.2 Un seul journal d'audit, pas deux
+
+La spec (§16) propose `AdminAuditLog` à côté de l'`AuditLog` du blueprint. Le
+code n'en garde qu'un.
+
+`AuditLog` était au schéma depuis le début **et personne n'y écrivait**. C'est
+le pire état possible : un écran d'audit aurait affiché une liste vide, et vide
+se lit « rien ne s'est passé », pas « on ne consigne rien ». En ajouter une
+seconde aurait doublé le problème au lieu de le résoudre.
+
+`lib/admin/audit.ts` l'écrit désormais, avec deux règles :
+
+- **consigner ne fait jamais échouer l'acte.** Un administrateur qui suspend un
+  compte frauduleux ne doit pas voir son geste refusé parce que la trace n'est
+  pas passée. L'échec crie dans le journal applicatif ;
+- **on consigne après, et seulement si l'acte a eu lieu.** Tracer une décision
+  refusée la ferait passer pour appliquée à la relecture.
+
+Les champs `before`/`after`/`ip` de la spec ne sont pas repris : `details` est un
+JSON libre qui les porte quand ils ont un sens, et l'adresse IP d'un
+administrateur est une donnée personnelle qu'on ne conserve pas sans raison.
+
+### 17.3 Ce que M0 a corrigé en passant
+
+`exigerLePouvoir` enchaînait sur `exigerAdministrateur`, donc exigeait
+`consulter_le_systeme` en plus du pouvoir demandé. C'était sans conséquence
+tant que tout administrateur pouvait lire l'état technique. Avec des rôles
+fonctionnels, un modérateur se serait vu refuser **son propre écran**, avec un
+404 que rien n'aurait expliqué.
+
+Deux gardes distinctes, désormais :
+
+| | Qui passe |
+|---|---|
+| `estAdministrateur` | ceux qui peuvent lire l'état technique — écrans **Système** |
+| `aAccesAuBackOffice` | quiconque porte au moins un pouvoir |
+
+Confondre les deux aurait ouvert la base, le stockage et les interrupteurs à six
+rôles d'un coup, sans qu'aucun écran ne change d'apparence.
+
+Deux actes ont aussi changé de pouvoir requis, pour dire ce qu'ils font :
+
+- changer l'état de risque d'un compte demande `gerer_la_conformite`, non
+  `agir_sur_l_exploitation` : c'est une décision sur une personne ;
+- déplacer un versement demande `agir_sur_l_argent` : c'est décider où va de
+  l'argent.
+
+Les administrateurs généralistes gardent les deux — personne n'a perdu d'accès.
+
+---
+
+## 18. Qui a le droit de publier quoi
+
+*Arbitré le 2 septembre 2026. Cette section prime sur les §§4 à 7 partout où
+elles divergent : celles-ci décrivent les écrans, celle-ci décrit les droits.*
+
+Les quatre CMS n'ont **pas** le même régime, et c'est le point qui décide de
+tout leur développement. Les traiter uniformément — la pente naturelle, puisque
+ce sont quatre listes avec un éditeur — produirait soit un blog que n'importe
+qui écrit, soit un annuaire d'offres d'emploi que personne ne peut remplir.
+
+| CMS | Qui crée | Qui modère |
+|---|---|---|
+| **Blog** | l'administration seule | — |
+| **Événements** | l'administration seule | — |
+| **Jobs** | **tout inscrit** — lecture publique, action authentifiée | l'administration, avant parution |
+| **Services** | un vendeur **abonné** et de type **Agence** ou **Freelance** | l'administration |
+
+### 18.1 Blog et Événements : l'administration, et personne d'autre
+
+Créer, modifier, supprimer : `publier_du_contenu`. Ce sont des contenus qui
+portent la voix de Baobart — un article signé du site engage le site.
+
+Conséquence pratique : **pas de fil de soumission, pas de file de modération.**
+Ce qui existe est publié par quelqu'un qui en avait le droit. Construire un
+workflow d'approbation pour ces deux-là serait écrire des écrans que personne
+n'ouvrirait jamais.
+
+### 18.2 Jobs : lecture publique, action authentifiée
+
+**Voir** une offre ne demande rien : ni compte, ni abonnement, ni badge. C'est
+un choix de référencement autant que d'accueil — un annuaire d'offres derrière
+une connexion n'est lu par personne.
+
+**Agir** demande un compte, sans exception. Déposer une offre comme y postuler :
+les deux sont des actions, et aucune n'est possible sans être inscrit.
+
+> *Arbitrage du 2 septembre 2026, en resserrement d'une première version qui
+> laissait un visiteur anonyme déposer une offre.* « Ouvert à tous » distingue
+> Jobs de Services : **tout inscrit** peut publier une offre d'emploi, là où un
+> service exige d'être vendeur, abonné et badgé. Cela ne veut pas dire « sans
+> compte ».
+
+Ce que ce resserrement change, et c'est considérable :
+
+- **plus de formulaire public qui écrit en base.** C'était la surface d'attaque
+  la plus large du projet ; elle disparaît ;
+- **la limitation de débit redevient ordinaire.** Elle porte sur le compte, pas
+  sur l'adresse IP — donc la même mécanique que partout ailleurs, au lieu d'un
+  cas particulier à écrire et à maintenir seul ;
+- **un dépôt abusif a un auteur.** On peut suspendre un compte ; on ne peut pas
+  suspendre un visiteur ;
+- **le moyen de recontact existe déjà** : c'est l'adresse du compte, vérifiée.
+
+Ce qui ne change pas : **rien ne paraît avant modération.** Un compte gratuit se
+crée en deux minutes, et l'authentification ne filtre pas les arnaques — elle
+donne seulement quelqu'un à qui les imputer. Le badge « Offre vérifiée » (§6.2)
+garde donc tout son sens.
+
+### 18.3 Services : vendeur, abonné, badgé
+
+Trois conditions cumulatives, et **aucune ne se déduit d'une autre** :
+
+1. **être vendeur** — au sens de `lib/auth/roles.ts` : avoir publié. On ne se
+   déclare pas vendeur, on le devient ;
+2. **avoir un abonnement en cours** — au sens de Ndank : `ACTIVE` ou dans la
+   grâce ;
+3. **porter le badge Freelance ou Agence.**
+
+#### Le badge n'est pas un rôle
+
+C'est le point à ne pas confondre, et il a été tranché explicitement.
+
+`PlatformRole` décrit ce qu'on a le droit de faire **dans le back-office** :
+modérer, publier un article, toucher à l'argent. Freelance et Agence ne sont
+rien de tout cela — ce sont des **vendeurs**, du côté public de la plateforme,
+qui obtiennent un privilège supplémentaire.
+
+Les mettre dans `PlatformRole` aurait deux conséquences fâcheuses :
+
+- un vendeur porterait un rôle d'administration, et se retrouverait mêlé aux
+  gardes du back-office — là où une erreur coûte cher ;
+- un rôle unique par personne ferait qu'être Freelance **remplacerait** MEMBER,
+  et l'on ne saurait plus distinguer un vendeur badgé d'un administrateur.
+
+Le badge vit donc **sur le profil**, à côté de `isVerified` qui existe déjà et
+qui dit « Créateur vérifié ». Même nature, même endroit.
+
+#### Il s'accorde, il ne se déclare pas
+
+Un badge que l'on se donne soi-même ne vaut rien — surtout sur des prestations
+payantes, où c'est précisément ce qu'un arnaqueur cocherait. Il est accordé par
+l'administration, et sa pose est **consignée à l'audit** comme tout acte
+d'administration.
+
+#### Le droit se calcule, il ne se range pas
+
+**Le piège à éviter** : une colonne `peutPublierDesServices`, qui dériverait de
+l'abonnement réel dès la première échéance manquée. Les trois conditions se
+lisent à chaque fois — `deduireProgression` pour la première, l'état Ndank pour
+la deuxième, le badge pour la troisième.
+
+C'est la même leçon que partout dans ce projet : un statut rangé en base se
+désynchronise dès qu'un passage rate son tour.
+
+#### Un abonnement suspendu ne casse pas ce qui est vendu
+
+Il retire le droit de publier de **nouvelles** offres, sans effacer celles qui
+existent ni les prestations en cours. Couper un service déjà vendu parce qu'une
+échéance est passée pénaliserait le client, qui n'y est pour rien.
+
+*Confirmé le 2 septembre 2026.*

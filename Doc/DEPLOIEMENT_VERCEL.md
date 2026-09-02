@@ -1,6 +1,6 @@
 # Déploiement sur Vercel — mode opératoire
 
-**2 septembre 2026 · application v1.43.0**
+**2 septembre 2026 · application v1.44.0**
 
 > `SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md` décrit la stratégie et le
 > self-hosting Docker. Ce document-ci est la **procédure**, avec les valeurs qui
@@ -512,16 +512,47 @@ n'importe qui devienne super administrateur. La promotion exige donc un accès
 pnpm admin:promouvoir untel@exemple.com ADMIN
 ```
 
-Trois rôles : `MEMBER` (le défaut), `ADMIN` (consulte et agit) et `SUPER_ADMIN`
-(distribue les pouvoirs). Un compte d'astreinte doit pouvoir lire un diagnostic
-à trois heures du matin sans pouvoir, du même geste, se nommer super
-administrateur.
+Neuf rôles. Les six du milieu sont **fonctionnels** : ils donnent leur métier et
+rien d'autre, et notamment **jamais les écrans techniques**.
+
+| Rôle | Ce qu'il peut faire |
+|---|---|
+| `MEMBER` | rien — le défaut |
+| `CONTENT_MANAGER` | écrire et publier articles et événements |
+| `MARKETING` | mettre en avant, sponsoriser, envoyer une infolettre |
+| `MODERATOR` | approuver ou refuser ce que publient les autres |
+| `SUPPORT` | rembourser, trancher un litige, répondre à un ticket |
+| `ACCOUNTANT` | lire et rejouer les versements |
+| `COMPLIANCE` | KYC, états de risque, suspension — et lecture de l'audit |
+| `ADMIN` | tout, **sauf** distribuer les pouvoirs |
+| `SUPER_ADMIN` | tout |
+
+Quelqu'un qui a besoin de deux fonctions reçoit `ADMIN`. Et un compte d'astreinte
+doit pouvoir lire un diagnostic à trois heures du matin sans pouvoir, du même
+geste, se nommer super administrateur : c'est toute la distance entre `ADMIN` et
+`SUPER_ADMIN`.
+
+La matrice complète vit dans `lib/auth/administration.ts`, et un test vérifie
+qu'aucun pouvoir n'y est orphelin — un pouvoir que personne ne porte est une
+garde qui refuse tout le monde, donc un écran écrit et inatteignable.
 
 La commande **ferme toutes les sessions** du compte touché. Une rétrogradation
 qui mettrait trente jours à prendre effet n'en serait pas une.
 
 L'espace d'administration répond **404** à qui n'y a pas droit — y compris à un
 membre connecté. « Accès refusé » confirmerait qu'il y a quelque chose à forcer.
+
+**Tout acte d'administration laisse une trace.** Changement d'état de risque,
+versement rejoué, courriel relancé : `AuditLog` retient qui, quoi, quand.
+Consigner ne peut jamais faire échouer l'acte — mais une trace perdue crie dans
+les journaux, parce qu'un audit troué en silence ne vaut rien.
+
+Aucun écran ne lit encore ce journal. En attendant :
+
+```sql
+SELECT "createdAt", "actorId", action, resource, details
+FROM "AuditLog" ORDER BY "createdAt" DESC LIMIT 50;
+```
 
 Un seul écran existe aujourd'hui : `/dashboard/systeme/configuration`, qui
 répond à « le déploiement ne marche pas, pourquoi ». Il classe chaque
@@ -595,7 +626,10 @@ directement en production.
 
 ### 8.5 Vérification de bout en bout
 
-Une fois en ligne, dérouler le parcours complet avec un compte réel :
+Une fois en ligne, dérouler le parcours complet avec un compte réel. Trois
+parcours, et le second est celui qui touche à l'argent :
+
+**Publier**
 
 ```
 inscription → création d'une ressource → envoi du fichier source →
@@ -603,7 +637,69 @@ envoi de l'aperçu → publication → apparition dans la grille →
 téléchargement d'une ressource gratuite → historique des téléchargements
 ```
 
-Ce parcours est celui qui fonctionne aujourd'hui de bout en bout. Il n'inclut
-pas d'achat : le passage en caisse n'existe pas (§5). Une ressource payante se
-publie et s'affiche, mais ne s'achète pas — c'est le prochain chantier, pas un
-défaut de configuration.
+**Acheter** — avec un vrai paiement de petit montant, pas en simulation :
+
+```
+fiche d'une ressource payante → choix du rail → paiement chez l'opérateur →
+retour sur /achat/[id] → attente du rappel → « c'est payé » →
+reçu reçu par courriel → fichier accessible dans « Mes achats »
+```
+
+Si la page de retour reste sur « on attend » plus de quelques minutes, le
+rappel de l'opérateur n'arrive pas : vérifier l'URL de webhook chez lui, puis
+l'écran **Système · Paiements**, qui liste les rappels reçus et refusés.
+
+**Renouveler un abonnement** :
+
+```
+/dashboard/forfait → « Renouveler maintenant » → choix du rail →
+paiement → retour sur /abonnement/[id]/paiement/[id] →
+« c'est renouvelé » + prochaine échéance → reçu par courriel
+```
+
+---
+
+### 8.6 Le pense-bête d'avant-ouverture
+
+Tout ce qui suit est déjà expliqué plus haut. Cette liste existe parce qu'il
+faut pouvoir la parcourir une dernière fois sans relire le document, et parce
+qu'**aucun de ces oublis ne provoque d'erreur visible** : le service démarre,
+les pages s'affichent, et la faute ne se voit qu'au moment où elle coûte
+quelque chose.
+
+| | À poser | Ce qui se passe si on l'oublie |
+|---|---|---|
+| ☐ | `pnpm db:deploy` | Les tables `SubscriptionPayment` et `PushSubscription` n'existent pas : tout renouvellement et toute activation de notification échouent en 500 |
+| ☐ | `RATE_LIMIT_DRIVER=redis` + `REDIS_URL` | Les compteurs vivent dans chaque instance : dix instances autorisent dix fois la limite, et la page affiche « protégé » |
+| ☐ | OTP désactivé chez Paystack | Le premier passage de versements s'arrête net et personne n'est payé ce jour-là |
+| ☐ | `SMS_DRIVER=twilio` + identifiants | Les deux derniers rappels avant coupure ne partent pas. **Jamais `console` :** il compte les relances comme envoyées sans rien envoyer |
+| ☐ | `PUSH_DRIVER=web-push` + les trois `VAPID_*` | Les relances J+2 et J+5 retombent sur le SMS, qui se paie à l'unité |
+| ☐ | `CRON_SECRET` | Les routes d'ordonnanceur répondent 404 à Vercel : aucun versement préparé, aucune relance envoyée, aucun ménage — et rien ne le signale |
+| ☐ | `S3_PUBLIC_URL` en **https** | Les aperçus ne s'affichent pas, et le navigateur bloque le contenu mixte |
+| ☐ | `CHECKOUT_SIMULATION_ENABLED` **absent** | Les ressources payantes se prennent sans payer, et les créateurs sont crédités d'un argent qui n'est jamais entré |
+| ☐ | La frontière du bucket (§8.2) | Ce qui est vendu se télécharge gratuitement — la seule erreur de cette liste qui coûte de l'argent aux créateurs |
+| ☐ | Un administrateur nommé (§7 ter) | Personne ne peut atteindre les écrans Système, y compris pour constater les points ci-dessus |
+
+L'écran **Système · Configuration** rend compte de la moitié de cette liste tout
+seul, et classe en **panne** les cas où l'application prétend faire quelque
+chose qu'elle ne fait pas. Aller le regarder une fois en ligne est le moyen le
+plus rapide de valider ce tableau.
+
+---
+
+### 8.7 Ce qui n'est pas prêt, et qu'il faut savoir avant d'annoncer
+
+Ces points ne bloquent pas un déploiement. Ils bloquent une **promesse**.
+
+- **Le profil public d'un créateur n'existe pas.** Suivre quelqu'un fonctionne,
+  mais aucun écran ne montre son travail : les liens renvoient vers
+  l'explorateur. Annoncer « suis tes créateurs préférés » serait prématuré.
+- **L'appel réel aux opérateurs de versement n'a jamais été exercé.** Le code
+  est écrit et testé hors ligne, jamais contre le vrai service. Le premier
+  cycle de versements doit être surveillé, et déclenché à la main de préférence.
+- **Aucune invitation à installer n'est affichée ailleurs que sur l'écran du
+  forfait.** L'application est installable ; peu de gens le découvriront.
+- **Le catalogue des rails par pays n'est pas vérifié auprès du compte
+  marchand.** Ce sont les opérateurs dominants de chaque marché, pas une liste
+  confirmée. Le premier paiement réel de chaque pays doit être essayé rail par
+  rail.

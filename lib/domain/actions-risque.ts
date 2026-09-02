@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { consigner, ressource } from "@/lib/admin/audit";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { appliquerEvenementRisque } from "@/lib/domain/risque";
 import type { RiskEvent } from "@/lib/domain/trust";
@@ -9,7 +10,12 @@ import type { RiskEvent } from "@/lib/domain/trust";
 /**
  * Décider du sort d'un compte, depuis l'administration.
  *
- * La garde exige `agir_sur_l_exploitation`, et l'auteur de la décision est lu
+ * La garde exige `gerer_la_conformite` — changer l'état de risque d'un compte
+ * n'est pas de l'exploitation technique, c'est une décision sur une personne.
+ * Les administrateurs généralistes gardent ce pouvoir ; le rôle Conformité l'a
+ * aussi, et lui seul parmi les rôles fonctionnels.
+ *
+ * L'auteur de la décision est lu
  * depuis la session — jamais reçu en paramètre. Un module « use server » est
  * joignable sans passer par l'écran : quelqu'un qui pourrait choisir son propre
  * nom d'auteur signerait une suspension du nom d'un collègue.
@@ -31,7 +37,7 @@ export async function deciderDuCompte(
   _precedent: EtatDecision | null,
   donnees: FormData,
 ): Promise<EtatDecision> {
-  const qui = await exigerLePouvoir("agir_sur_l_exploitation");
+  const qui = await exigerLePouvoir("gerer_la_conformite");
 
   const [brut, drapeau] = cle.split(":");
   const event = brut as RiskEvent;
@@ -61,6 +67,20 @@ export async function deciderDuCompte(
   revalidatePath("/dashboard/systeme/membres");
 
   if (!suite.applique) return { ok: false, message: suite.message };
+
+  // Consigné APRÈS l'acte, et seulement s'il a eu lieu : tracer une décision
+  // refusée la ferait passer pour appliquée à la relecture.
+  //
+  // `RiskStateChange` note déjà le changement d'état, dans la transaction de
+  // l'acte. Celui-ci n'est pas un doublon : il répond à une autre question —
+  // « qu'a fait cet administrateur ce mois-ci », en travers de toutes les
+  // ressources.
+  await consigner({
+    acteurId: qui.id,
+    action: leveSuspension ? "compte.retablir" : "risque.changer",
+    ressource: ressource("user", userId),
+    details: { de: suite.de, vers: suite.vers, evenement: event, motif },
+  });
 
   return {
     ok: true,

@@ -46,11 +46,28 @@ export async function exigerAdministrateur(): Promise<
   return utilisateur;
 }
 
-/** Même porte, mais pour un pouvoir précis — la gestion des rôles, par exemple. */
+/**
+ * La porte d'un pouvoir précis.
+ *
+ * ───────────────────────────────────────────────────────────────────────
+ * ELLE NE PASSE PLUS PAR `exigerAdministrateur`
+ *
+ * Elle le faisait, et c'était sans conséquence tant que tout administrateur
+ * pouvait consulter le système. Depuis que les rôles sont fonctionnels, un
+ * modérateur n'a plus ce pouvoir-là : enchaîner les deux gardes lui aurait
+ * fermé son propre écran, avec un 404 que rien n'aurait expliqué.
+ *
+ * Le pouvoir demandé suffit donc, et lui seul. C'est aussi plus juste à lire :
+ * une garde qui exige deux choses dont une n'est pas écrite est une garde qu'on
+ * relit mal.
+ */
 export async function exigerLePouvoir(
   pouvoir: Pouvoir,
 ): Promise<UtilisateurConnecte & { role: RolePlateforme }> {
-  const utilisateur = await exigerAdministrateur();
-  if (!peut(utilisateur.role, pouvoir)) notFound();
+  const utilisateur = await sessionCourante();
+
+  // Même réponse qu'à un membre ordinaire : 404, jamais « accès refusé ».
+  if (!utilisateur || !peut(utilisateur.role, pouvoir)) notFound();
+
   return utilisateur;
 }
