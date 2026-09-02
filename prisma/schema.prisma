@@ -24,7 +24,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   /// Connexion applicative. En production elle passe par un pooler
   /// (PgBouncer, Neon, Supabase) : une fonction serverless ouvre une connexion
   /// par invocation, et sans pooler Postgres s'épuise (PLAN §8.2-4).
@@ -342,13 +342,13 @@ enum Plateforme {
 // ============================================================================
 
 model User {
-  id              String        @id @default(cuid())
-  email           String        @unique
-  emailVerified   DateTime?
-  phone           String?       @unique // mobile money (OTP = mode principal en Afrique)
-  passwordHash    String?
-  riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
-  kycStatus       KycStatus     @default(NONE)
+  id            String        @id @default(cuid())
+  email         String        @unique
+  emailVerified DateTime?
+  phone         String?       @unique // mobile money (OTP = mode principal en Afrique)
+  passwordHash  String?
+  riskState     UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
+  kycStatus     KycStatus     @default(NONE)
 
   /// Accès à l'administration de la plateforme.
   ///
@@ -356,11 +356,11 @@ model User {
   /// passe par `pnpm admin:promouvoir`, donc par quelqu'un qui a déjà la main
   /// sur la base. Une faille dans un formulaire de profil ne doit jamais
   /// pouvoir se terminer en accès administrateur.
-  platformRole    PlatformRole  @default(MEMBER)
+  platformRole    PlatformRole @default(MEMBER)
   /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
   /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
-  refundsDisabled Boolean       @default(false)
-  defaultCurrency Currency      @default(XOF)
+  refundsDisabled Boolean      @default(false)
+  defaultCurrency Currency     @default(XOF)
 
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
   /// détermine le JOUR de la semaine où ce créateur est payé — voir
@@ -393,9 +393,9 @@ model User {
   profile        Profile?
   billing        BillingInfo?
   payoutAccounts PayoutAccount[]
-  accounts Account[]
-  sessions Session[]
-  passkeys Passkey[]
+  accounts       Account[]
+  sessions       Session[]
+  passkeys       Passkey[]
   passwordResets PasswordReset[]
 
   // équipes multi-rôles (§3.10-B)
@@ -429,8 +429,9 @@ model User {
   communityMemberships CommunityMembership[]
 
   // médias & notifications
-  mediaAssets   MediaAsset[]
-  notifications Notification[]
+  mediaAssets     MediaAsset[]
+  notifications   Notification[]
+  abonnementsPush PushSubscription[]
 
   // confiance
   riskStateChanges RiskStateChange[]
@@ -489,12 +490,12 @@ model Profile {
 /// classique — changer le numéro juste avant un versement. Gumroad garde de
 /// même l'historique de ses comptes bancaires.
 model PayoutAccount {
-  id      String       @id @default(cuid())
-  userId  String
-  method  PayoutMethod
+  id         String       @id @default(cuid())
+  userId     String
+  method     PayoutMethod
   /// Rail d'acheminement : `wave`, `om`, `mtn`, `moov`, `bank`. C'est lui qui
   /// décide du jour de la semaine où ce créateur est payé.
-  provider String
+  provider   String
   /// Numéro mobile money ou identifiant bancaire.
   accountRef String
   /// Nom du titulaire, tel que l'opérateur le connaît. Un écart avec le nom du
@@ -669,8 +670,8 @@ model PasswordReset {
 
   /// Consommé. Le jeton ne sert qu'une fois : sans cela, quiconque relit le
   /// courriel un mois plus tard reprend la main sur le compte.
-  usedAt   DateTime?
-  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -800,18 +801,18 @@ model Like {
 
 /// Même polymorphisme que `Like` : on commente un shot ou une ressource.
 model Comment {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   authorId   String
   workItemId String?
   productId  String?
   parentId   String? // réponses threadées
-  body       String   @db.Text
-  likesCount Int      @default(0)
-  isFlagged  Boolean  @default(false)
+  body       String    @db.Text
+  likesCount Int       @default(0)
+  isFlagged  Boolean   @default(false)
   /// Un commentaire retiré laisse sa place dans le fil : effacer la ligne
   /// emporterait les réponses qui s'y accrochent.
   deletedAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   workItem WorkItem? @relation(fields: [workItemId], references: [id], onDelete: Cascade)
@@ -1073,8 +1074,8 @@ model Refund {
   /// d'opérateur restent à la charge du vendeur — c'est donc lui qui finance
   /// le remboursement en entier. Ce champ n'entre dans aucun calcul : il note
   /// ce que Baobart a conservé, faute d'un compte plateforme au grand livre.
-  retainedFee  Int      @default(0)
-  createdAt    DateTime @default(now())
+  retainedFee Int      @default(0)
+  createdAt   DateTime @default(now())
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
@@ -1264,8 +1265,8 @@ model Subscription {
   cancelledAt     DateTime?
   createdAt       DateTime           @default(now())
 
-  user     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan     Plan                   @relation(fields: [planId], references: [id])
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      Plan                   @relation(fields: [planId], references: [id])
   quotas    DownloadQuota[]
   relances  SubscriptionReminder[]
   paiements SubscriptionPayment[]
@@ -1347,6 +1348,48 @@ model SubscriptionReminder {
 
   @@unique([subscriptionId, cle])
   @@index([subscriptionId])
+}
+
+/// Un navigateur qui a accepté de recevoir des notifications.
+///
+/// ───────────────────────────────────────────────────────────────────────
+/// UNE PERSONNE, PLUSIEURS APPAREILS
+///
+/// Une adresse de courriel est unique, un numéro aussi. Un abonnement push,
+/// non : quelqu'un installe Baobart sur son téléphone ET sur son ordinateur, et
+/// chaque navigateur a le sien. Une relance doit atteindre les deux — sinon
+/// elle arrive sur l'appareil resté dans un tiroir.
+///
+/// ───────────────────────────────────────────────────────────────────────
+/// L'ENDPOINT EST L'IDENTITÉ
+///
+/// C'est le service de poussée du navigateur qui le délivre, et il change quand
+/// l'utilisateur révoque puis réaccorde la permission. L'unicité est donc posée
+/// dessus : sans elle, un réabonnement du même navigateur créerait une seconde
+/// ligne, et la personne recevrait chaque relance en double.
+model PushSubscription {
+  id       String  @id @default(cuid())
+  userId   String
+  /// L'URL que le service de poussée du navigateur nous a donnée.
+  endpoint String  @unique
+  /// Les deux clés du chiffrement de bout en bout (RFC 8291). Sans elles, le
+  /// service de poussée ne pourrait pas transmettre un message chiffré — et
+  /// avec elles, lui non plus ne peut pas le lire.
+  p256dh   String
+  auth     String
+  /// De quel appareil il s'agit, pour que la personne reconnaisse le sien dans
+  /// une liste. Tronqué à l'écriture : une chaîne d'agent entière est du
+  /// pistage, pas de l'information.
+  appareil String?
+
+  createdAt  DateTime  @default(now())
+  /// Dernière poussée acceptée par le service. Sert à repérer les abonnements
+  /// qui ne servent plus sans attendre qu'ils soient déclarés morts.
+  lastSeenAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model DownloadQuota {
@@ -1896,9 +1939,9 @@ model EmailOutbox {
   /// ne jamais l'afficher tel quel dans un écran ni dans un journal.
   payload   Json
 
-  status     EmailStatus @default(PENDING)
-  attempts   Int         @default(0)
-  lastError  String?
+  status    EmailStatus @default(PENDING)
+  attempts  Int         @default(0)
+  lastError String?
 
   /// Avant cette date, la ligne n'est pas réclamée. Porte le recul progressif.
   nextAttemptAt DateTime @default(now())

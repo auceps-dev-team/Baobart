@@ -1,6 +1,6 @@
 # Déploiement sur Vercel — mode opératoire
 
-**2 septembre 2026 · application v1.40.0**
+**2 septembre 2026 · application v1.41.0**
 
 > `SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md` décrit la stratégie et le
 > self-hosting Docker. Ce document-ci est la **procédure**, avec les valeurs qui
@@ -9,7 +9,7 @@
 
 ---
 
-## ⚠️ Trois choses à ne pas oublier avant la mise en ligne
+## ⚠️ Quatre choses à ne pas oublier avant la mise en ligne
 
 Elles ne s'écrivent pas dans le code, et aucune n'échoue bruyamment. Le service
 démarre, les pages s'affichent, et la faute ne se voit qu'au moment où elle
@@ -57,6 +57,31 @@ vaut ne rien prétendre. L'écran **Système · Configuration** affiche les troi
 Poser aussi `SMS_PLAFOND_JOUR` si le défaut de 500 est mal calibré — c'est le
 seul garde-fou qui borne le coût d'une boucle de relance, et il est compté **par
 instance** : le vrai plafond se pose chez l'opérateur.
+
+
+### 4. Les clés VAPID — posées une fois, jamais rechangées
+
+`pnpm push:cles` tire la paire, et l'on pose `VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` et `PUSH_DRIVER=web-push`.
+
+Sans elles, le bouton d'activation ne s'affiche pas et les relances des paliers
+J+2 et J+5 retombent sur le SMS — qui, lui, se paie à l'unité. Chaque abonné
+qui a installé Baobart est un SMS qu'on n'envoie pas.
+
+**Le piège est de les rechanger.** La clé publique est ce à quoi chaque
+navigateur s'est abonné : en tirer une nouvelle paire ne casse pas « quelques »
+abonnements, elle les rend **tous muets d'un coup**, sans la moindre erreur.
+Les gens continuent de croire qu'ils seront prévenus, et ne le sont plus.
+
+Si la paire doit vraiment changer, vider `PushSubscription` dans la même
+opération : chacun se réinscrira à sa prochaine visite. L'écran **Système ·
+Configuration** classe en **panne** le cas « des appareils enregistrés, aucune
+clé », qui est exactement celui-là.
+
+Le service worker (`public/sw.js`) ne met **rien** en cache, délibérément : sur
+une application où l'argent circule, un cache mal invalidé sert un prix
+d'hier — et un service worker fautif reste chez les visiteurs des semaines,
+hors de portée d'un déploiement.
 
 ---
 

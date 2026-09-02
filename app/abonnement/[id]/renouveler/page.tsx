@@ -290,7 +290,7 @@ export default async function RenouvelerPage({
 
           <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
             <Link
-              href="/dashboard/abonnements"
+              href="/dashboard/forfait"
               className="sticker-press"
               style={{
                 padding: "12px 18px",
@@ -303,7 +303,7 @@ export default async function RenouvelerPage({
                 boxShadow: `4px 4px 0 ${ORANGE}`,
               }}
             >
-              Mes abonnements
+              Mon forfait
             </Link>
             <Link
               href="/dashboard"

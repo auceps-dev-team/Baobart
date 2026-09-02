@@ -135,7 +135,7 @@ export async function finaliserRenouvellement(
           offre: abonnement.plan.name,
           montant: formatMoney(paiement.amount, paiement.currency as Currency),
           prochaine: dateLisible(suivant.echeance),
-          lien: base ? `${base}/dashboard/abonnements` : undefined,
+          lien: base ? `${base}/dashboard/forfait` : undefined,
         },
       },
       tx,

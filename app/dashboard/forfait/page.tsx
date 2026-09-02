@@ -1,9 +1,14 @@
+import Link from "next/link";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 
+import { Notifications } from "@/components/push/notifications";
 import { DashboardFrame, DashboardPanel, EmptyState, ENCRE, JAUNE } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
 import { lireAbonnements, lirePlans } from "@/lib/dashboard/lectures";
 import { formatMoney } from "@/lib/i18n/money";
+import { REGLAGES_PAR_DEFAUT, ajouterJours } from "@/lib/ndank/cycle";
+import { clePubliqueVapid } from "@/lib/push/pilotes";
 
 export const metadata = { title: "Forfait — Baobart." };
 export const dynamic = "force-dynamic";
@@ -19,7 +24,20 @@ export default async function ForfaitPage() {
     lirePlans(),
     lireAbonnements(utilisateur.id),
   ]);
-  const actif = abonnements.find((a) => a.status === "ACTIVE") ?? null;
+  // EXPIRED compte aussi : c'est un abonnement suspendu faute de
+  // renouvellement, et c'est précisément celui à qui il faut montrer le bouton.
+  // Ne montrer que les ACTIVE cacherait le bouton à qui en a le plus besoin.
+  const actif =
+    abonnements.find((a) => a.status === "ACTIVE") ??
+    abonnements.find((a) => a.status === "EXPIRED") ??
+    null;
+
+  // Les deux horloges de Ndank : l'échéance dit quand payer, l'accès dit
+  // jusqu'à quand le service tient. Les confondre ferait croire à une coupure
+  // le jour de l'échéance, alors qu'il reste la grâce.
+  const accesJusquA = actif
+    ? ajouterJours(actif.cycleEnd, REGLAGES_PAR_DEFAUT.graceJours)
+    : null;
 
   return (
     <DashboardFrame utilisateur={utilisateur} titre="Forfait & pass" description="Choisis ton niveau d'accès : découverte gratuite, quotas ou usage studio.">
@@ -37,14 +55,53 @@ export default async function ForfaitPage() {
               {actif.cycleEnd.toLocaleDateString("fr-FR")} ·{" "}
               {actif.plan.downloadsPerMonth ?? "illimité"} téléchargements/mois
             </div>
+            {accesJusquA ? (
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.72 }}>
+                Accès maintenu jusqu&apos;au {accesJusquA.toLocaleDateString("fr-FR")} —
+                {" "}
+                {REGLAGES_PAR_DEFAUT.graceJours} jours de grâce après l&apos;échéance,
+                le temps de renouveler.
+              </div>
+            ) : null}
             {actif.quotas.length > 0 ? (
               <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800 }}>
                 Ce mois : {actif.quotas[0]?.used ?? 0} / {actif.quotas[0]?.limit ?? "—"}
               </div>
             ) : null}
+
+            {/*
+              Le bouton de renouvellement vit ICI et non sur « Abonnements » :
+              cette entrée-là désigne les créateurs suivis. C'est aussi la page où
+              mènent les reçus et les relances Ndank.
+            */}
+            <Link
+              href={`/abonnement/${actif.id}/renouveler` as Route}
+              className="sticker-press"
+              style={{
+                display: "inline-block",
+                marginTop: 14,
+                padding: "11px 16px",
+                border: `2.5px solid ${ENCRE}`,
+                borderRadius: 14,
+                background: JAUNE,
+                fontSize: 13.5,
+                fontWeight: 800,
+              }}
+            >
+              {actif.status === "EXPIRED" ? "Réactiver mon accès" : "Renouveler maintenant"}
+            </Link>
           </div>
         )}
       </DashboardPanel>
+
+      <div style={{ height: 18 }} />
+
+      {/*
+        Le réglage des notifications vit sur la page du forfait : c'est le seul
+        endroit où l'on vient déjà pour une échéance, donc le seul où la
+        proposition a un sens. Aucune maquette ne le couvre — il suit la charte.
+      */}
+      <Notifications clePublique={clePubliqueVapid()} />
 
       <div style={{ height: 18 }} />
 

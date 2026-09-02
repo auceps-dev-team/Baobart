@@ -228,8 +228,8 @@ export default async function RetourRenouvellementPage({
                 Réessayer
               </Bouton>
             ) : null}
-            <Bouton href="/dashboard/abonnements" principale={!echoue}>
-              Mes abonnements
+            <Bouton href="/dashboard/forfait" principale={!echoue}>
+              Mon forfait
             </Bouton>
             <Bouton href="/dashboard">Tableau de bord</Bouton>
           </div>

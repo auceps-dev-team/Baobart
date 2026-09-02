@@ -6,6 +6,7 @@ import { deposer } from "@/lib/email/outbox";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 import { PAYS_PAR_DEFAUT, paysValide } from "@/lib/payments/rails";
+import { appareilsDe, envoyerA } from "@/lib/push/abonnements";
 import { versE164 } from "@/lib/sms/numero";
 import { envoyerSms } from "@/lib/sms/pilotes";
 import { texteRelance } from "@/lib/sms/relance";
@@ -149,9 +150,10 @@ const lecture: Lecture = {
       nom: u?.profile?.displayName ?? null,
       courriel: u?.email ?? null,
       telephone,
-      // Aucune application installée tant que la PWA n'existe pas. On le dit
-      // plutôt que d'inventer un jeton : le moteur essaiera le canal suivant.
-      jetonPush: null,
+      // Les navigateurs où la personne a accepté les notifications. La liste
+      // est souvent vide — c'est une réponse normale, pas une panne : le
+      // moteur essaiera simplement le canal suivant.
+      appareils: await appareilsDe(abonneId),
     };
   },
 };
@@ -206,7 +208,7 @@ const envoi: Envoi = {
   disponible(canal, ou) {
     if (canal === "courriel") return ou.courriel !== null;
     if (canal === "sms") return ou.telephone !== null;
-    return ou.jetonPush !== null;
+    return ou.appareils.length > 0;
   },
 
   async envoyer(canal: Canal, ou: Coordonnees, message: Message) {
@@ -252,7 +254,37 @@ const envoi: Envoi = {
       return verdict.ok;
     }
 
-    // Notification : l'application n'existe pas encore.
+    if (canal === "push" && ou.appareils.length > 0) {
+      // Le titre porte l'urgence, le corps porte les faits. Une notification se
+      // lit d'un œil sur un écran verrouillé : ce qui ne tient pas dans le
+      // titre ne sera pas lu.
+      const parti = await envoyerA(ou.appareils, {
+        titre:
+          message.joursRestants <= 0
+            ? `${message.offre} — accès suspendu`
+            : `${message.offre} — ${message.joursRestants} jour${message.joursRestants > 1 ? "s" : ""}`,
+        corps:
+          message.joursRestants <= 0
+            ? `Réactive ton accès pour ${message.montant}.`
+            : `Renouvelle pour ${message.montant} avant la coupure.`,
+        lien: message.lien,
+        // Deux relances pour le même abonnement se remplacent au lieu de
+        // s'empiler : personne ne veut sept pastilles pour une échéance.
+        etiquette: `ndank-${message.cle.split(":")[0] ?? message.cle}`,
+      });
+
+      if (!parti) {
+        // Comme pour le SMS : on rend `false` sans exception. Le moteur NE
+        // NOTERA PAS une relance qui n'est jamais partie, et réessaiera —
+        // plutôt que de couper l'accès de quelqu'un jamais prévenu.
+        journal.avertissement("relance push non partie", {
+          abonnement: message.cle,
+        });
+      }
+
+      return parti;
+    }
+
     return false;
   },
 };

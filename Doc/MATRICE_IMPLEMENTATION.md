@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **2 septembre 2026** (v1.40.0).
+> Dernière mise à jour : **2 septembre 2026** (v1.41.0).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -44,6 +44,8 @@
 | Pourboires | §3.4-B | — | ❌ | — | — |
 | Parité pouvoir d'achat (PPP) | §3.4-B | — | ❌ | — | — |
 | Memberships (abonnements récurrents) | §3.4-D | `lib/ndank/*`, `lib/abonnements/*` | ✅ | v1.40.0, 22 tests d'intégration | Le mobile money ne sait pas prélever : pas de mandat, l'abonné valide chaque débit. Ndank relance (courriel, SMS), suspend et clôt ; `lib/abonnements` encaisse le renouvellement. Table `SubscriptionPayment` à part de `Order` — un abonnement n'a pas de vendeur à créditer |
+| PWA installable | — | `app/manifest.ts`, `public/sw.js`, `public/icones/` | ✅ | v1.41.0 | Le service worker ne met **rien** en cache, délibérément : sur une application où l'argent circule, un cache mal invalidé sert un prix d'hier, et un service worker fautif reste des semaines chez les visiteurs. Aucune invitation à installer n'est encore affichée |
+| Notifications poussées (Web Push) | — | `lib/push/*`, `components/push/notifications.tsx` | ✅ | v1.41.0, 21 tests | VAPID via `pnpm push:cles`. Aux paliers J+2 et J+5 la notification passe **avant** le SMS : chaque abonné installé est un SMS qu'on n'envoie pas. Rechanger la paire rend tous les abonnements muets en silence — l'écran Système classe ce cas en panne |
 | Produits « coffee » | §3.4-D | — | ❌ | — | — |
 | Précommandes | §3.9 | — | ❌ | — | — |
 | Champs personnalisés au checkout | §3.4-F | — | ❌ | — | — |

@@ -3,6 +3,7 @@ import "server-only";
 import { urlDuSite } from "@/lib/config/site";
 import { piloteLimite } from "@/lib/securite/pilotes";
 import { piloteSms } from "@/lib/sms/pilotes";
+import { pilotePush } from "@/lib/push/pilotes";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -15,6 +16,7 @@ import {
   constatAdressePublique,
   constatBase,
   constatLimitation,
+  constatPush,
   constatSms,
   constatConnexion,
   constatInterrupteurs,
@@ -103,9 +105,12 @@ const A_VENIR = [
 export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
   const production = process.env.NODE_ENV === "production";
 
-  const [etatMigrations, duDepot] = await Promise.all([
+  const [etatMigrations, duDepot, appareilsPush] = await Promise.all([
     migrations(),
     migrationsDuDepot(),
+    // Un simple compte. C'est lui qui distingue « canal absent » de
+    // « notifications muettes » — des gens qui croient être prévenus.
+    db.pushSubscription.count(),
   ]);
 
   const joignable = etatMigrations !== null;
@@ -135,6 +140,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
     constatAdressePublique({ origine: urlDuSite(), production }),
     constatLimitation({ pilote: piloteLimite().nom, production }),
     constatSms({ pilote: piloteSms().nom, production }),
+    constatPush({ pilote: pilotePush(), appareils: appareilsPush, production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),
     constatInterrupteurs({
       fermees: etatDes(process.env)

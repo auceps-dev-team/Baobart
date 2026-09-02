@@ -347,6 +347,60 @@ export function constatSms(faits: FaitsSms): Constat {
   };
 }
 
+export interface FaitsPush {
+  /** Le pilote actif : « web-push » ou « aucun ». */
+  pilote: string;
+  /** Combien de navigateurs sont enregistrés. */
+  appareils: number;
+  production: boolean;
+}
+
+/**
+ * Les notifications peuvent-elles partir ?
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * DES APPAREILS ENREGISTRÉS SANS CLÉ EST LE CAS GRAVE
+ *
+ * Aucune clé et aucun appareil : personne n'a rien accepté, rien n'est promis,
+ * et le canal est simplement absent.
+ *
+ * Mais des appareils enregistrés ALORS que la clé a disparu veut dire que des
+ * gens ont accepté les notifications et n'en recevront aucune. Ils croient être
+ * prévenus. C'est ce qui arrive quand on régénère une paire VAPID : tous les
+ * abonnements existants deviennent muets d'un coup, sans la moindre erreur.
+ */
+export function constatPush(faits: FaitsPush): Constat {
+  if (faits.pilote === "aucun") {
+    if (faits.appareils > 0) {
+      return {
+        cle: "push",
+        libelle: "NOTIFICATIONS MUETTES",
+        gravite: "panne",
+        detail: `${faits.appareils} appareil(s) enregistré(s), et aucune clé pour leur écrire. Ces personnes croient être prévenues.`,
+        remede:
+          "Repose VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY et VAPID_SUBJECT. Si la paire a changé, les abonnements existants sont définitivement muets : il faut les effacer pour que les gens se réinscrivent.",
+      };
+    }
+
+    return {
+      cle: "push",
+      libelle: "Notifications",
+      gravite: faits.production ? "attention" : "ok",
+      detail: "Aucune clé VAPID. Le bouton d'activation ne s'affiche pas.",
+      remede: faits.production
+        ? "Pose VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY et VAPID_SUBJECT (pnpm push:cles). Sans elles, les abonnés sur iPhone n'ont que le courriel — et le SMS, qui coûte."
+        : undefined,
+    };
+  }
+
+  return {
+    cle: "push",
+    libelle: "Notifications",
+    gravite: "ok",
+    detail: `Actives. ${faits.appareils} appareil(s) enregistré(s).`,
+  };
+}
+
 export interface FaitsSimulation {
   ouverte: boolean;
   production: boolean;
