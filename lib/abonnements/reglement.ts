@@ -7,6 +7,7 @@ import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 import { cycleSuivant, type Cadence, type Cycle } from "@/lib/ndank/cycle";
 import { cycleDe } from "@/lib/ndank/baobart";
+import { appareilsDe, envoyerA } from "@/lib/push/abonnements";
 
 /**
  * Ce qui se passe quand l'argent d'un renouvellement est vraiment arrivé.
@@ -145,6 +146,35 @@ export async function finaliserRenouvellement(
   });
 
   if (!regle) return { fait: false, motif: "DEJA_REGLE" };
+
+  // ───────────────────────────────────────────────────────────────────────
+  // LA CONFIRMATION, PARCE QU'ON L'A PROMISE
+  //
+  // L'écran de réglage annonce trois choses à qui active les notifications :
+  // la relance, le rappel de la veille, et la confirmation. Les deux premières
+  // partent du moteur Ndank ; celle-ci n'existerait pas sans ces lignes, et
+  // l'écran promettrait ce qui n'arrive jamais.
+  //
+  // HORS de la transaction, et sans jamais lever : un service de poussée
+  // injoignable ne doit pas défaire un renouvellement déjà payé. Le paiement
+  // est acquis, la notification est un confort.
+  try {
+    const appareils = await appareilsDe(abonnement.userId);
+    if (appareils.length > 0) {
+      await envoyerA(appareils, {
+        titre: `${abonnement.plan.name} — c'est renouvelé`,
+        corps: `Prochaine échéance : ${dateLisible(suivant.echeance)}.`,
+        lien: "/dashboard/forfait",
+        // Pas d'étiquette : une confirmation ne doit remplacer aucune relance.
+        // Les regrouper effacerait le seul message que l'abonné voulait voir.
+      });
+    }
+  } catch (cause) {
+    journal.avertissement("confirmation de renouvellement non poussée", {
+      paiement: paiement.id,
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
 
   return { fait: true, cycle: suivant };
 }

@@ -40,6 +40,8 @@ import { PORTS_BAOBART, lienDeValidation, montantLisible } from "@/lib/ndank/bao
 import { ajouterJours } from "@/lib/ndank/cycle";
 import { passer } from "@/lib/ndank/moteur";
 import { inscrire } from "@/lib/push/abonnements";
+import { finaliserRenouvellement } from "@/lib/abonnements/reglement";
+import { ouvrirRenouvellement } from "@/lib/abonnements/renouvellement";
 
 const AVANT = { ...process.env };
 const REGLAGES = { lien: lienDeValidation, montant: montantLisible };
@@ -171,9 +173,10 @@ describe("le canal de notification", () => {
   });
 
   it("laisse le courriel passer devant tant qu'il reste du temps", async () => {
-    // J-3 : `["courriel", "push"]`. Le courriel s'étend, se relit, et se
-    // retrouve ; la notification disparaît de l'écran verrouillé. Tant qu'il
-    // reste des jours, le courriel est le bon canal.
+    // Les paliers d'avant échéance sont `["courriel", "push"]`, dans cet
+    // ordre. Le courriel s'étend, se relit et se retrouve ; la notification
+    // disparaît de l'écran verrouillé. Tant qu'il reste des jours, le courriel
+    // est le bon canal — et il ne coûte rien non plus.
     await abonne({
       echeance: ajouterJours(new Date(), 2),
       avecAppareil: true,
@@ -183,5 +186,59 @@ describe("le canal de notification", () => {
 
     expect(bilan.relances).toBe(1);
     expect(envois).toHaveLength(0);
+  });
+});
+
+describe("la confirmation de renouvellement", () => {
+  it("part sur les appareils de l'abonné", async () => {
+    // L'écran de réglage annonce « CONFIRMATION » parmi ce qu'on enverra. Sans
+    // ces lignes dans `finaliserRenouvellement`, la promesse serait vide — et
+    // le test unitaire des libellés resterait vert.
+    process.env.CHECKOUT_SIMULATION_ENABLED = "1";
+
+    const { utilisateur, abonnement } = await abonne({
+      echeance: ajouterJours(new Date(), 5),
+      avecAppareil: true,
+    });
+
+    const ouverture = await ouvrirRenouvellement({
+      abonnementId: abonnement.id,
+      abonneId: utilisateur.id,
+    });
+    if (!ouverture.ok) throw new Error("ouverture refusée");
+
+    const charge = JSON.parse(envois.at(-1)!.charge) as {
+      titre: string;
+      corps: string;
+      etiquette?: string;
+    };
+
+    expect(charge.titre).toContain("renouvelé");
+    // La prochaine échéance est l'information que la personne cherche.
+    expect(charge.corps).toContain("échéance");
+    // Pas d'étiquette : une confirmation ne doit remplacer aucune relance sur
+    // l'écran verrouillé — ce serait effacer le seul message qu'on voulait voir.
+    expect(charge.etiquette).toBeUndefined();
+  });
+
+  it("ne fait pas échouer un renouvellement quand la poussée casse", async () => {
+    // Le paiement est acquis ; la notification est un confort. Une exception
+    // ici déferait un renouvellement déjà payé.
+    const { utilisateur, abonnement } = await abonne({
+      echeance: ajouterJours(new Date(), 5),
+      avecAppareil: true,
+    });
+
+    const ouverture = await ouvrirRenouvellement({
+      abonnementId: abonnement.id,
+      abonneId: utilisateur.id,
+    });
+    if (!ouverture.ok) throw new Error("ouverture refusée");
+
+    // On casse la configuration APRÈS l'ouverture : la poussée échouera.
+    delete process.env.VAPID_PRIVATE_KEY;
+
+    const suite = await finaliserRenouvellement(ouverture.paiementId);
+    expect(suite.fait).toBe(true);
   });
 });

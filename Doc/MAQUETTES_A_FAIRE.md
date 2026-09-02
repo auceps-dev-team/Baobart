@@ -1,9 +1,9 @@
 # Maquettes manquantes ou décalées — relevé du 31 août 2026
 
-**Application v1.41.0** · confronté à `Baobart Design/*.dc.html`
+**Application v1.42.0** · confronté à `Baobart Design/*.dc.html`
 
-> Mis à jour le 2 septembre 2026 : la section **A.4** ajoute les trois écrans
-> nés de l'abonnement mobile money et de l'application installable.
+> Mis à jour le 2 septembre 2026 : les trois écrans de la section **A.4** ont
+> été dessinés puis câblés. Il reste trois écrans à dessiner.
 
 ---
 
@@ -104,49 +104,27 @@ justement quand le cadre a échoué :
 - **Chargement** — l'état transitoire des écrans lourds (explorateur, tableau de
   bord)
 
-### A.4 — L'abonnement mobile money et l'application installable
+### A.4 — L'abonnement mobile money · **dessiné le 2 septembre 2026**
 
-Trois écrans arrivés en v1.40.0 et v1.41.0. Aucun n'a de modèle : leur
-apparence est de moi, et suit la charte sans plus.
+Les trois écrans sont maquettés (`Baobart Parcours Achat.dc.html`, écrans
+`renew`, `renewret`, `notifs`) et **câblés en v1.42.0**. Ils ne sont plus une
+dette ; ce qui suit est le relevé des deux endroits où le code s'écarte du
+dessin, et pourquoi.
 
-**`/abonnement/[id]/renouveler`** — où mènent toutes les relances Ndank, donc
-l'écran le plus vu par un abonné sur le point de perdre son accès. Il réutilise
-le sélecteur de rails du parcours d'achat, mais il l'entoure de trois états que
-rien ne décrit :
-- **il reste des jours** — « il te reste N jours d'accès » ;
-- **l'accès est suspendu** — un renouvellement le rétablit immédiatement, et
-  l'ancienneté est conservée ;
-- **l'abonnement est clos** — pas de bouton, on en reprend un neuf.
+**Un état de plus sur `/abonnement/[id]/renouveler`.** La maquette dessine
+trois états ; le code en rend quatre. Entre l'échéance et la coupure vit la
+**grâce** : pendant ces jours-là l'abonné a encore son accès. Lui afficher
+« Ton accès est en pause » serait faux, et le ferait renoncer en croyant avoir
+déjà tout perdu. Le quatrième état garde l'allure orange de `suspendu` et dit
+la vérité : *« Ton échéance est passée. Ton accès continue encore N jours. »*
 
-La phrase qui porte tout : *« Rien n'est prélevé sans ta validation. »* Elle
-n'est pas rassurante par politesse, elle est mécaniquement vraie — le mobile
-money ne sait pas prélever. C'est ce qui distingue un abonnement Baobart d'un
-abonnement à carte dont on a peur, et cela mériterait d'être dessiné plutôt
-qu'écrit dans un encart.
+**Les libellés de relance ne sont pas recopiés.** La maquette écrit
+« RELANCE J−7 » et « RAPPEL J−1 » ; le code les **dérive** de `PALIERS`. Un
+écran qui annonce un calendrier que le moteur ne tient pas est un mensonge que
+personne ne voit — sauf l'abonné, une fois, le jour où le message n'arrive pas.
+Le calendrier du moteur a donc été aligné sur la maquette, et non l'inverse.
 
-**`/abonnement/[id]/paiement/[paiementId]`** — le retour depuis l'opérateur,
-jumeau de `/achat/[orderId]` (§A.2) avec trois états : *en attente*,
-*renouvelé*, *refusé*. Une différence de fond : l'information principale n'est
-pas « c'est payé » mais **la prochaine échéance**. C'est la seule chose qui
-évite à quelqu'un de revenir vérifier chaque semaine.
-
-**Le réglage des notifications**, sur `/dashboard/forfait`. Cinq états, et les
-quatre derniers comptent autant que le premier :
-- **inactif** — le seul avec un bouton. Il dit à quoi sert la permission AVANT
-  de la demander : un refus est définitif côté web, on ne peut plus jamais
-  redemander ;
-- **actif** — « actives sur cet appareil », plus un moyen d'arrêter ;
-- **refusé** — il faut expliquer que ça se rétablit dans les réglages du
-  navigateur, parce que nous ne pouvons plus rien ;
-- **navigateur incapable** — sur iPhone, il faut d'abord ajouter Baobart à
-  l'écran d'accueil. Sans cette phrase, un utilisateur iOS ne comprend pas
-  pourquoi il n'a pas de bouton ;
-- **Baobart pas configuré** — aucune clé côté serveur ; on ne montre pas un
-  bouton qui échouerait.
-
-À dessiner aussi : **l'invitation à installer**. Il n'y en a aucune aujourd'hui
-— l'application est installable, et rien ne le dit. C'est pourtant là qu'est
-l'économie : chaque abonné qui installe est un SMS qu'on n'envoie pas.
+Reste à dessiner, découvert en câblant : rien sur cette famille d'écrans.
 
 ---
 
@@ -253,16 +231,15 @@ n'appartenant pas au produit.
 
 ## Récapitulatif
 
-**À dessiner en priorité** — six écrans :
+**À dessiner en priorité** — trois écrans restants :
 
 1. `/reinitialiser/[jeton]` · deux états (valable, plus valable)
 2. `/achat/[orderId]` · quatre états (attente, payé, gratuit, échoué)
 3. Les pages 404 / erreur / chargement
-4. `/abonnement/[id]/renouveler` · trois états — **le plus vu par un abonné sur
-   le point de perdre son accès**
-5. `/abonnement/[id]/paiement/[paiementId]` · trois états
-6. Le réglage des notifications · cinq états, plus l'invitation à installer
-   qui n'existe pas encore
+
+> Les trois écrans de l'abonnement mobile money — renouvellement, retour de
+> paiement, réglage des notifications — ont été dessinés et câblés en v1.42.0.
+> Voir §A.4 pour les deux endroits où le code s'écarte du dessin, et pourquoi.
 
 **À compléter** — trois décisions de conception :
 

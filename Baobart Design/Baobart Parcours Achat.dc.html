@@ -195,6 +195,242 @@
   </div>
   </sc-if>
 
+  <!-- ── RENOUVELER UN ABONNEMENT ─────────────────────────────────────── -->
+  <sc-if value="{{ isRenew }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1180px; margin:0 auto; padding:36px 26px 60px">
+
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
+      <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des trois états de l'abonnement</div>
+      <sc-for list="{{ renewStates }}" as="s" hint-placeholder-count="3">
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:24px; align-items:start">
+
+      <div style="display:flex; flex-direction:column; gap:20px; min-width:0">
+
+        <div style="border:3px solid #121212; border-radius:28px; overflow:hidden; box-shadow:8px 8px 0 #121212">
+          <div style="padding:28px 26px; background:{{ rn.bg }}; color:{{ rn.fg }}">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:18px">
+              <div style="width:70px; height:70px; flex:0 0 auto; border:3px solid #121212; border-radius:99px; background:{{ rn.dotBg }}; color:#121212; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:28px">{{ rn.glyph }}</div>
+              <div style="flex:1 1 260px; min-width:0">
+                <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.72">{{ rn.kicker }}</div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(26px,3.4vw,40px); line-height:1; letter-spacing:-1.7px; margin-top:8px; text-transform:uppercase">{{ rn.title }}</div>
+              </div>
+            </div>
+            <div style="font-size:15.5px; font-weight:600; line-height:1.5; margin-top:16px; max-width:620px; text-wrap:pretty">{{ rn.text }}</div>
+            <div style="margin-top:20px">
+              <div style="height:20px; border:3px solid #121212; border-radius:999px; background:#FFFFFF; overflow:hidden">
+                <div style="height:100%; background:#121212; width:{{ rn.gaugePct }}"></div>
+              </div>
+              <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:8px; opacity:.8">{{ rn.gaugeLabel }}</div>
+            </div>
+          </div>
+          <div style="padding:22px 26px; background:#FFFFFF">
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <sc-for list="{{ rn.facts }}" as="f" hint-placeholder-count="4">
+                <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:baseline; padding-bottom:10px; border-bottom:2px solid rgba(18,18,18,.12)">
+                  <div style="flex:0 0 200px; font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; opacity:.6">{{ f.k }}</div>
+                  <div style="flex:1 1 180px; min-width:0; font-size:14px; font-weight:700; line-height:1.4">{{ f.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- LA PROMESSE, DESSINÉE PLUTÔT QUE MISE EN ENCART -->
+        <div style="border:3px solid #121212; border-radius:28px; background:#121212; color:#FFFFFF; box-shadow:8px 8px 0 #E2622C; padding:28px 26px">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(24px,3.2vw,36px); line-height:1.02; letter-spacing:-1.5px; text-transform:uppercase; max-width:520px">Rien n'est prélevé sans ta validation<span style="color:#FFD84A">.</span></div>
+          <div style="font-size:15px; font-weight:500; line-height:1.55; margin-top:14px; max-width:620px; opacity:.88; text-wrap:pretty">Ce n'est pas une politesse commerciale. Le mobile money ne sait techniquement pas prélever : c'est toi qui valides, chez ton opérateur, à chaque échéance. Personne chez Baobart ne peut déclencher un paiement à ta place.</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:22px">
+            <div style="border:2.5px solid #FFFFFF; border-radius:18px; padding:16px">
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em; color:#FFD84A">ABONNEMENT À CARTE</div>
+              <div style="font-size:13.5px; font-weight:600; line-height:1.45; margin-top:9px; opacity:.85">Le marchand garde tes coordonnées et débite tout seul. Pour arrêter, il faut trouver comment résilier.</div>
+            </div>
+            <div style="border:2.5px solid #FFD84A; border-radius:18px; background:rgba(255,216,74,.12); padding:16px">
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em; color:#FFD84A">ABONNEMENT BAOBART</div>
+              <div style="font-size:13.5px; font-weight:600; line-height:1.45; margin-top:9px; opacity:.95">Rien n'est stocké, rien ne part sans toi. Pour arrêter : tu ne renouvelles pas. C'est tout.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MOYEN DE PAIEMENT, RÉUTILISÉ -->
+        <sc-if value="{{ rn.dead }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:22px; border:3px solid #121212; border-radius:24px; background:#DCDCDC; box-shadow:7px 7px 0 #121212">
+            <div style="width:46px; height:46px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:19px">✕</div>
+            <div style="flex:1 1 280px; min-width:0">
+              <div style="font-size:16px; font-weight:800">Aucun moyen de paiement à choisir</div>
+              <div style="font-size:13.5px; font-weight:600; line-height:1.45; margin-top:5px; opacity:.78; text-wrap:pretty">Un abonnement clos ne se renouvelle pas. Le sélecteur est absent parce qu'il n'aurait rien à faire.</div>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px; position:sticky; top:88px; min-width:0">
+        <div style="display:{{ rn.panelDisplay }}; flex-direction:column; border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:7px 7px 0 #121212; padding:22px">
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Moyen de renouvellement</div>
+          <div style="display:flex; flex-direction:column; gap:9px; margin-top:14px">
+            <sc-for list="{{ rails }}" as="r" hint-placeholder-count="4">
+              <div onClick="{{ r.pick }}" style="display:flex; align-items:center; gap:11px; padding:12px; border:2.5px solid #121212; border-radius:15px; cursor:{{ r.cursor }}; background:{{ r.bg }}; opacity:{{ r.op }}">
+                <div style="width:22px; height:22px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:11px; font-weight:800">{{ r.mark2 }}</div>
+                <div style="width:34px; height:34px; flex:0 0 auto; border:2px solid #121212; border-radius:10px; background:{{ r.mark }}; color:{{ r.markFg }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:12px">{{ r.initials }}</div>
+                <div style="flex:1 1 auto; min-width:0; font-size:13.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:18px; padding-top:16px; border-top:2.5px solid #121212">
+            <div style="font-size:14px; font-weight:800">À payer</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:28px">{{ rn.amount }}</div>
+          </div>
+          <div style="padding:15px; margin-top:16px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:4px 4px 0 #121212; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ rn.cta }}</div>
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-align:center; line-height:1.5; margin-top:11px; opacity:.65">Tu valides chez ton opérateur. Rien ne part avant.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── RETOUR D'UN RENOUVELLEMENT ───────────────────────────────────── -->
+  <sc-if value="{{ isRenewRet }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1000px; margin:0 auto; padding:36px 26px 60px">
+
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
+      <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des trois états — l'information principale est l'échéance, pas le statut</div>
+      <sc-for list="{{ renewRetStates }}" as="s" hint-placeholder-count="3">
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="border:3px solid #121212; border-radius:28px; overflow:hidden; box-shadow:8px 8px 0 #121212; background:#FFFFFF">
+      <div style="padding:30px 28px; border-bottom:3px solid #121212; background:{{ rr.bg }}; color:{{ rr.fg }}">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px">
+          <div style="width:62px; height:62px; flex:0 0 auto; border:3px solid #121212; border-radius:99px; background:{{ rr.dotBg }}; color:#121212; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:25px; animation:{{ rr.anim }}">{{ rr.glyph }}</div>
+          <div style="flex:1 1 280px; min-width:0">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.72">{{ rr.kicker }}</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(22px,2.8vw,32px); line-height:1.04; letter-spacing:-1.2px; margin-top:7px; text-transform:uppercase">{{ rr.title }}</div>
+          </div>
+        </div>
+        <div style="font-size:15px; font-weight:600; line-height:1.5; margin-top:14px; max-width:600px; text-wrap:pretty">{{ rr.text }}</div>
+      </div>
+
+      <!-- L'INFORMATION PRINCIPALE : LA PROCHAINE ÉCHÉANCE -->
+      <div style="padding:28px; border-bottom:3px solid #121212; background:#FFFFFF">
+        <div style="border:3px solid #121212; border-radius:24px; background:#EADFF9; box-shadow:6px 6px 0 #121212; padding:26px">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.16em; opacity:.65">{{ rr.nextLabel }}</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(32px,4.6vw,54px); line-height:1; letter-spacing:-2.4px; margin-top:10px; text-transform:uppercase">{{ rr.nextValue }}</div>
+          <div style="font-size:14.5px; font-weight:600; line-height:1.5; margin-top:14px; max-width:560px; text-wrap:pretty">{{ rr.nextNote }}</div>
+        </div>
+
+        <sc-if value="{{ rr.isWaiting }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:18px; padding:15px 18px; border:2.5px solid #121212; border-radius:18px; background:#FFD84A">
+            <div style="width:24px; height:24px; flex:0 0 auto; border:3px solid #121212; border-top-color:transparent; border-radius:99px; animation:spin 1s linear infinite"></div>
+            <div style="flex:1 1 240px; min-width:0">
+              <div style="font-size:14px; font-weight:800">Cette page se met à jour toute seule</div>
+              <div style="font-size:12.5px; font-weight:600; line-height:1.4; margin-top:3px; opacity:.8">Vérification toutes les 8 secondes · tentative {{ rr.tick }}. Ne repaie pas : la demande est déjà chez ton opérateur.</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ rr.isFailed }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:18px; padding:15px 18px; border:2.5px solid #121212; border-radius:18px; background:#FFD84A">
+            <div style="width:32px; height:32px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:13px">0 F</div>
+            <div style="flex:1 1 240px; min-width:0; font-size:14.5px; font-weight:800">Rien ne t'a été débité, et ton accès actuel n'a pas bougé.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="padding:24px 28px">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:13px 15px; border:2.5px solid #121212; border-radius:15px; background:#F4EEFC">
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Référence du paiement</div>
+          <div style="font-family:'Space Mono',monospace; font-size:13px; font-weight:700">PAY-2026-09-0117</div>
+          <div style="flex:1 1 auto"></div>
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">Essentiel · 5 000 F · Wave</div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:20px">
+          <sc-for list="{{ rr.actions }}" as="a" hint-placeholder-count="2">
+            <div style="flex:1 1 190px; padding:15px 22px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:{{ a.sh }}" style-hover="transform:translate(-2px,-2px)">{{ a.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ── NOTIFICATIONS + INVITATION À INSTALLER ───────────────────────── -->
+  <sc-if value="{{ isNotifs }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1000px; margin:0 auto; padding:36px 26px 60px">
+
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
+      <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des cinq états — un seul porte un bouton d'activation</div>
+      <sc-for list="{{ notifStates }}" as="s" hint-placeholder-count="5">
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="border:3px solid #121212; border-radius:28px; background:#FFFFFF; box-shadow:8px 8px 0 #121212; padding:28px">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px">
+        <div style="width:58px; height:58px; flex:0 0 auto; border:2.5px solid #121212; border-radius:16px; background:{{ nf.dotBg }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:22px">{{ nf.glyph }}</div>
+        <div style="flex:1 1 260px; min-width:0">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(21px,2.5vw,28px); line-height:1.08; letter-spacing:-1px; text-transform:uppercase">{{ nf.title }}</div>
+        </div>
+        <div style="flex:0 0 auto; padding:8px 15px; border:2.5px solid #121212; border-radius:999px; background:{{ nf.pillBg }}; color:{{ nf.pillFg }}; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.08em; white-space:nowrap">{{ nf.pill }}</div>
+      </div>
+
+      <p style="font-size:15px; font-weight:500; line-height:1.55; margin:16px 0 0; max-width:640px; opacity:.85; text-wrap:pretty">{{ nf.text }}</p>
+
+      <div style="display:flex; gap:13px; margin-top:18px; padding:16px 18px; border:2.5px solid #121212; border-radius:18px; background:{{ nf.warnBg }}">
+        <div style="width:24px; height:24px; flex:0 0 auto; border:2px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:12px; font-weight:800">!</div>
+        <div style="flex:1 1 auto; min-width:0; font-size:13.5px; font-weight:700; line-height:1.5; text-wrap:pretty">{{ nf.warn }}</div>
+      </div>
+
+      <sc-if value="{{ nf.hasButton }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:20px">
+          <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:{{ nf.ctaBg }}; box-shadow:4px 4px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ nf.cta }}</div>
+          <div style="flex:1 1 220px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.65">{{ nf.note }}</div>
+        </div>
+      </sc-if>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:20px; padding-top:18px; border-top:2.5px solid #121212">
+        <div style="flex:1 1 240px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.6">Ce que tu reçois, et rien de plus :</div>
+        <div style="flex:0 0 auto; display:flex; flex-wrap:wrap; gap:9px">
+          <div style="padding:8px 14px; border:2px solid #121212; border-radius:999px; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:10px; font-weight:700">RELANCE J−7</div>
+          <div style="padding:8px 14px; border:2px solid #121212; border-radius:999px; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:10px; font-weight:700">RAPPEL J−1</div>
+          <div style="padding:8px 14px; border:2px solid #121212; border-radius:999px; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:10px; font-weight:700">CONFIRMATION</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVITATION À INSTALLER -->
+    <sc-if value="{{ notInstalled }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; margin-top:22px; padding:26px; border:3px solid #121212; border-radius:28px; background:#C9A8F5; box-shadow:8px 8px 0 #121212">
+        <div style="width:88px; height:88px; flex:0 0 auto; border:3px solid #121212; border-radius:24px; background:#FFD84A; box-shadow:5px 5px 0 #121212; display:grid; place-items:center; position:relative; overflow:hidden">
+          <div style="font-family:'Archivo Black',sans-serif; font-size:64px; letter-spacing:-3px; opacity:.16">B</div>
+          <img src="img/baobab-ink.svg" alt="" style="position:absolute; top:13px; left:50%; transform:translateX(-50%); width:54px; display:block" />
+        </div>
+        <div style="flex:1 1 300px; min-width:0">
+          <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.14em; opacity:.7">Installer Baobart</div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(22px,2.8vw,30px); line-height:1.05; letter-spacing:-1.2px; margin-top:8px; text-transform:uppercase">Mets-nous sur ton écran d'accueil</div>
+          <div style="font-size:14.5px; font-weight:600; line-height:1.5; margin-top:11px; max-width:560px; text-wrap:pretty">Baobart s'installe comme une application : elle s'ouvre en plein écran, garde ta session, et c'est le seul moyen de recevoir les relances sur iPhone. Aucun téléchargement depuis un magasin.</div>
+        </div>
+        <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:10px">
+          <div onClick="{{ install }}" style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#121212; color:#FFFFFF; box-shadow:4px 4px 0 #FFFFFF; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #FFFFFF">Installer</div>
+          <div style="padding:13px 22px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Plus tard</div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ installed }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin-top:22px; padding:20px 24px; border:2.5px solid #121212; border-radius:24px; background:#B9E8C0; box-shadow:6px 6px 0 #121212">
+        <div style="width:46px; height:46px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:19px">✓</div>
+        <div style="flex:1 1 260px; min-width:0">
+          <div style="font-size:16px; font-weight:800">Baobart est installée sur cet appareil</div>
+          <div style="font-size:13.5px; font-weight:600; line-height:1.45; margin-top:4px; opacity:.8">Les notifications sont désormais possibles ici. Chaque abonné installé est un SMS de relance en moins.</div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
   <!-- ── 404 ───────────────────────────────────────────────────────────── -->
   <sc-if value="{{ is404 }}" hint-placeholder-val="{{ false }}">
   <div style="max-width:960px; margin:0 auto; padding:60px 26px">
@@ -275,7 +511,7 @@
 </div>
 
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960},&quot;ecran&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pay&quot;,&quot;return&quot;,&quot;404&quot;,&quot;error&quot;,&quot;loading&quot;],&quot;default&quot;:&quot;pay&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Écran&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960},&quot;ecran&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pay&quot;,&quot;return&quot;,&quot;renew&quot;,&quot;renewret&quot;,&quot;notifs&quot;,&quot;404&quot;,&quot;error&quot;,&quot;loading&quot;],&quot;default&quot;:&quot;pay&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Écran&quot;}}">
 const INK = "#121212", W = "#FFFFFF", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", LAV = "#F4EEFC", GRN = "#B9E8C0";
 
 const RAILS = [
@@ -325,13 +561,145 @@ const RETURNS = {
 const SCREENS = [
   { k: "pay", label: "Moyen de paiement", route: "/achat/nouveau" },
   { k: "return", label: "Retour opérateur", route: "/achat/[orderId]" },
+  { k: "renew", label: "Renouveler", route: "/abonnement/[id]/renouveler" },
+  { k: "renewret", label: "Retour renouvellement", route: "/abonnement/[id]/paiement/[paiementId]" },
+  { k: "notifs", label: "Notifications", route: "/dashboard/forfait" },
   { k: "404", label: "404", route: "/introuvable" },
   { k: "error", label: "Erreur", route: "/erreur" },
   { k: "loading", label: "Chargement", route: "/explorer · loading" }
 ];
 
+// ── /abonnement/[id]/renouveler ────────────────────────────────────────────
+const RENEW = {
+  reste: {
+    kicker: "Ton accès court encore", title: "Il te reste 6 jours",
+    text: "Renouveler maintenant ajoute 30 jours à la suite des 6 qui restent. Tu ne perds aucun jour payé.",
+    bg: YEL, fg: INK, glyph: "6", dotBg: W,
+    gaugePct: "20%", gaugeLabel: "6 jours sur 30",
+    dead: false,
+    facts: [
+      { k: "Forfait", v: "Essentiel · 5 000 F / mois" },
+      { k: "Échéance actuelle", v: "8 septembre 2026" },
+      { k: "Si tu renouvelles aujourd'hui", v: "nouvelle échéance : 8 octobre 2026" },
+      { k: "Ancienneté", v: "14 mois sans interruption" }
+    ],
+    cta: "Renouveler · 5 000 F"
+  },
+  suspendu: {
+    kicker: "Accès suspendu", title: "Ton accès est en pause",
+    text: "L'échéance est passée sans renouvellement. Un paiement le rétablit dans la minute, et ton ancienneté de 14 mois est conservée — tu ne repars pas de zéro.",
+    bg: ORA, fg: W, glyph: "!", dotBg: YEL,
+    gaugePct: "0%", gaugeLabel: "0 jour restant · suspendu depuis 3 jours",
+    dead: false,
+    facts: [
+      { k: "Forfait", v: "Essentiel · 5 000 F / mois" },
+      { k: "Échéance dépassée", v: "30 août 2026 · il y a 3 jours" },
+      { k: "Rétablissement", v: "immédiat après confirmation de l'opérateur" },
+      { k: "Ancienneté conservée", v: "14 mois · tes collections et achats sont intacts" }
+    ],
+    cta: "Rétablir mon accès · 5 000 F"
+  },
+  clos: {
+    kicker: "Abonnement clos", title: "Cet abonnement est terminé",
+    text: "Il a été clos le 12 juin 2026 après 90 jours sans renouvellement. On n'y touche plus : pour retrouver l'accès, il faut en reprendre un neuf.",
+    bg: "#DCDCDC", fg: INK, glyph: "✕", dotBg: W,
+    gaugePct: "0%", gaugeLabel: "clos définitivement",
+    dead: true,
+    facts: [
+      { k: "Ancien forfait", v: "Essentiel · 5 000 F / mois" },
+      { k: "Clos le", v: "12 juin 2026" },
+      { k: "Ce que tu gardes", v: "tous tes achats et téléchargements, pour toujours" },
+      { k: "Ce que tu perds", v: "le quota mensuel et les catalogues d'abonnement" }
+    ],
+    cta: "Prendre un nouvel abonnement"
+  }
+};
+
+// ── /abonnement/[id]/paiement/[paiementId] ─────────────────────────────────
+const RENEWRET = {
+  attente: {
+    kicker: "Renouvellement en cours", title: "On attend ton opérateur",
+    text: "La demande est partie. Ton opérateur répond généralement en une minute ou deux.",
+    bg: YEL, fg: INK, dotBg: W, glyph: "⏱", anim: "pulse 1.6s ease-in-out infinite",
+    isWaiting: true,
+    nextLabel: "Prochaine échéance", nextValue: "en attente", nextNote: "Elle s'affichera ici dès que l'opérateur aura confirmé.",
+    actions: [{ label: "Mon forfait", bg: W, fg: INK, sh: "4px 4px 0 #121212" }, { label: "Revenir au tableau de bord", bg: W, fg: INK, sh: "none" }]
+  },
+  renouvele: {
+    kicker: "C'est renouvelé", title: "Ton accès est prolongé",
+    text: "Le paiement est confirmé. Rien d'autre à faire jusqu'à la date ci-dessous — on te relancera avant.",
+    bg: GRN, fg: INK, dotBg: W, glyph: "✓", anim: "none",
+    isWaiting: false,
+    nextLabel: "Prochaine échéance", nextValue: "8 octobre 2026", nextNote: "Première relance le 1er octobre, puis un rappel la veille. Aucun prélèvement automatique : tu valideras toi-même.",
+    actions: [{ label: "Explorer les ressources", bg: INK, fg: W, sh: "5px 5px 0 #121212" }, { label: "Mon forfait", bg: W, fg: INK, sh: "4px 4px 0 #121212" }]
+  },
+  refuse: {
+    kicker: "Paiement refusé", title: "Le renouvellement n'est pas passé",
+    text: "Ton opérateur a refusé la transaction. Rien ne t'a été débité — tu peux réessayer, éventuellement avec un autre moyen.",
+    bg: ORA, fg: W, dotBg: YEL, glyph: "✕", anim: "none",
+    isWaiting: false, isFailed: true,
+    nextLabel: "Échéance inchangée", nextValue: "8 septembre 2026", nextNote: "Il te reste 6 jours d'accès. Passé cette date, l'accès se met en pause sans rien effacer.",
+    actions: [{ label: "Réessayer", bg: YEL, fg: INK, sh: "5px 5px 0 #121212" }, { label: "Changer de moyen", bg: W, fg: INK, sh: "4px 4px 0 #121212" }, { label: "Mon forfait", bg: W, fg: INK, sh: "none" }]
+  }
+};
+
+// ── Réglage des notifications · cinq états ─────────────────────────────────
+const NOTIFS = {
+  inactif: {
+    label: "Inactif", pill: "PAS ENCORE ACTIVÉES", pillBg: W,
+    bg: W, glyph: "◌", dotBg: LAV,
+    title: "Recevoir les relances sur cet appareil",
+    text: "À quoi ça sert avant que tu décides : un rappel une semaine avant l'échéance, un autre la veille, et la confirmation quand un renouvellement aboutit. Rien d'autre — ni promotions, ni nouveautés.",
+    warn: "Ton navigateur ne posera la question qu'une seule fois. Si tu refuses, nous ne pourrons plus jamais te la reposer : il faudra passer par ses réglages. Prends la seconde de réfléchir avant de cliquer.",
+    warnBg: YEL,
+    hasButton: true, cta: "Activer les notifications",
+    note: "Chaque abonné qui active est un SMS de relance que nous n'envoyons pas."
+  },
+  actif: {
+    label: "Actif", pill: "ACTIVES SUR CET APPAREIL", pillBg: GRN,
+    bg: W, glyph: "✓", dotBg: GRN,
+    title: "Les notifications sont actives",
+    text: "Tu recevras les relances d'échéance et les confirmations de renouvellement sur cet appareil. Elles s'arrêtent si tu te déconnectes ou si tu désinstalles l'application.",
+    warn: "Actives sur : Chrome · Android · depuis le 28 août 2026. Un autre appareil demande une activation séparée.",
+    warnBg: LAV,
+    hasButton: true, cta: "Arrêter les notifications", ctaBg: W,
+    note: "Arrêter est réversible : tu pourras réactiver depuis cet écran, la permission reste acquise."
+  },
+  refuse: {
+    label: "Refusé", pill: "REFUSÉES PAR LE NAVIGATEUR", pillBg: ORA, pillFg: W,
+    bg: W, glyph: "✕", dotBg: ORA,
+    title: "Ton navigateur les bloque",
+    text: "La permission a été refusée, et nous ne pouvons plus la redemander — c'est le navigateur qui décide, pas nous. Rien de cassé de notre côté : le bouton a disparu parce qu'il n'aurait aucun effet.",
+    warn: "Pour les rétablir : clique sur l'icône de cadenas à gauche de l'adresse, puis autorise les notifications pour baobart.africa. Recharge ensuite cette page.",
+    warnBg: YEL,
+    hasButton: false,
+    note: "En attendant, les relances continuent d'arriver par courriel et par SMS."
+  },
+  incapable: {
+    label: "Navigateur incapable", pill: "INDISPONIBLE ICI", pillBg: "#DCDCDC",
+    bg: W, glyph: "◍", dotBg: "#DCDCDC",
+    title: "Il faut d'abord installer Baobart",
+    text: "Sur iPhone et iPad, un site ouvert dans Safari ne peut pas envoyer de notifications. Une fois Baobart ajouté à ton écran d'accueil, il le peut — c'est une contrainte d'Apple, pas un choix de notre part.",
+    warn: "Ouvre le menu de partage en bas de Safari, puis « Sur l'écran d'accueil ». Rouvre Baobart depuis l'icône : le bouton d'activation apparaîtra ici.",
+    warnBg: PUR,
+    hasButton: false,
+    note: "Sans cette phrase, personne ne comprend pourquoi il n'y a pas de bouton."
+  },
+  nonconfig: {
+    label: "Baobart pas configuré", pill: "HORS SERVICE", pillBg: "#DCDCDC",
+    bg: W, glyph: "⚙", dotBg: "#DCDCDC",
+    title: "Les notifications ne sont pas encore branchées",
+    text: "Aucune clé n'est configurée côté serveur : le bouton échouerait, donc on ne le montre pas. Ce n'est pas ton appareil, c'est nous.",
+    warn: "Les relances d'échéance partent par courriel et par SMS en attendant. Aucune action de ta part n'est nécessaire.",
+    warnBg: LAV,
+    hasButton: false,
+    note: "Un bouton qui échoue est pire qu'un bouton absent."
+  }
+};
+
 class Component extends DCLogic {
-  state = { screen: null, rail: "wave", pays: "SN", ret: "attente", tick: 3 };
+  state = { screen: null, rail: "wave", pays: "SN", ret: "attente", tick: 3,
+    renew: "reste", renewret: "attente", notif: "inactif", installed: false };
 
   componentDidMount() {
     this.timer = setInterval(() => {
@@ -358,6 +726,37 @@ class Component extends DCLogic {
 
       isPay: screen === "pay",
       isReturn: screen === "return",
+      isRenew: screen === "renew",
+      isRenewRet: screen === "renewret",
+      isNotifs: screen === "notifs",
+
+      renewStates: [{ k: "reste", l: "Il reste des jours" }, { k: "suspendu", l: "Accès suspendu" }, { k: "clos", l: "Abonnement clos" }].map(s => ({
+        label: s.l, bg: (this.state.renew || "reste") === s.k ? INK : W, fg: (this.state.renew || "reste") === s.k ? W : INK,
+        pick: () => this.setState({ renew: s.k })
+      })),
+      rn: Object.assign({}, RENEW[this.state.renew || "reste"], {
+        amount: (this.state.renew || "reste") === "clos" ? "—" : "5 000 F",
+        panelDisplay: (this.state.renew || "reste") === "clos" ? "none" : "flex"
+      }),
+
+      renewRetStates: [{ k: "attente", l: "En attente" }, { k: "renouvele", l: "Renouvelé" }, { k: "refuse", l: "Refusé" }].map(s => ({
+        label: s.l, bg: (this.state.renewret || "attente") === s.k ? INK : W, fg: (this.state.renewret || "attente") === s.k ? W : INK,
+        pick: () => this.setState({ renewret: s.k })
+      })),
+      rr: Object.assign({}, RENEWRET[this.state.renewret || "attente"], {
+        tick: String(this.state.tick),
+        isFailed: !!RENEWRET[this.state.renewret || "attente"].isFailed
+      }),
+
+      notifStates: Object.keys(NOTIFS).map(k => ({
+        label: NOTIFS[k].label, bg: (this.state.notif || "inactif") === k ? INK : W, fg: (this.state.notif || "inactif") === k ? W : INK,
+        pick: () => this.setState({ notif: k })
+      })),
+      nf: Object.assign({ pillFg: INK, ctaBg: YEL }, NOTIFS[this.state.notif || "inactif"]),
+      installed: !!this.state.installed,
+      notInstalled: !this.state.installed,
+      install: () => this.setState({ installed: true }),
+
       is404: screen === "404",
       isError: screen === "error",
       isLoading: screen === "loading",

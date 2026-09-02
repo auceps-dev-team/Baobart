@@ -8,6 +8,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { lireAbonnements, lirePlans } from "@/lib/dashboard/lectures";
 import { formatMoney } from "@/lib/i18n/money";
 import { REGLAGES_PAR_DEFAUT, ajouterJours } from "@/lib/ndank/cycle";
+import { relancesAnnoncees } from "@/lib/ndank/etats";
 import { clePubliqueVapid } from "@/lib/push/pilotes";
 
 export const metadata = { title: "Forfait — Baobart." };
@@ -101,7 +102,10 @@ export default async function ForfaitPage() {
         endroit où l'on vient déjà pour une échéance, donc le seul où la
         proposition a un sens. Aucune maquette ne le couvre — il suit la charte.
       */}
-      <Notifications clePublique={clePubliqueVapid()} />
+      <Notifications
+        clePublique={clePubliqueVapid()}
+        relances={relancesAnnoncees("push")}
+      />
 
       <div style={{ height: 18 }} />
 
