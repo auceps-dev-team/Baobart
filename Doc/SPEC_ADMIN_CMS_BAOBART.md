@@ -650,7 +650,7 @@ Trois autres manques sur le même modèle :
 | **J1** | Cycle de vie + droits + schéma (`JobPosting` corrigé, `JobApplication`, enums) | ✅ |
 | **J2** | Dépôt d'une offre : formulaire authentifié, limitation de débit, état SOUMIS | ✅ |
 | **J3** | File de modération + badge « Offre vérifiée » + audit | ✅ |
-| **J4** | Lecture publique : `/jobs`, `/jobs/[id]` | à faire |
+| **J4** | Lecture publique : `/jobs`, `/jobs/[id]`, et l'écran de dépôt que J2 avait oublié | ✅ |
 | **J5** | Candidature : « Apply » authentifié, une par personne et par offre | à faire |
 
 ### 19.5 Les deux décisions, tranchées
@@ -774,3 +774,59 @@ récent. Un journal se lit du plus récent ; une file d'attente se vide du plus
 ancien. Trier à l'envers ferait vieillir indéfiniment les offres du bas pendant
 que les nouvelles passent devant — et l'annonceur le plus patient serait le plus
 mal servi.
+
+---
+
+## 21. J4 — ce que la lecture publique a révélé
+
+*Écrit le 2 septembre 2026.*
+
+### 21.1 J2 avait livré une action sans écran
+
+`lib/jobs/actions.ts` existait depuis J2 et **aucune page ne l'appelait**. Du
+code écrit et inatteignable — la famille de défaut qu'on traque partout
+ailleurs, et qu'on avait laissée passer chez soi.
+
+Ce n'est pas un test qui l'a trouvé : c'est le typage des routes, quand la
+liste a voulu un lien vers `/jobs/deposer`. Leçon à garder pour les trois CMS
+suivants : **une action serveur sans écran ne se voit dans aucune suite de
+tests**, puisque les tests l'appellent directement.
+
+### 21.2 Une seule clause de visibilité
+
+État `PUBLIE` **et** échéance non passée, écrites ensemble dans
+`clausePublique`. Les recopier à la main dans chaque requête est ce qui, un
+jour, laisserait passer l'une sans l'autre.
+
+Un test applique les deux conditions séparément **et ensemble**, parce que le
+défaut classique n'est pas d'oublier les deux : c'est d'en appliquer une.
+
+### 21.3 Trois blocs dessinés, absents à dessein
+
+| Bloc | Pourquoi il n'est pas là |
+|---|---|
+| Compteur de propositions + jauge | J5. Afficher « 12 propositions » serait inventer le chiffre sur lequel un candidat décide de postuler |
+| « Répond en moyenne sous 6 h » | Rien ne le mesure, et la métrique vient d'être abandonnée sur le profil créateur. La garder ici rétablirait par la fenêtre ce qu'on a retiré par la porte |
+| Livrables + Profil recherché | Pas des champs. La description les porte en prose ; les structurer demande de les collecter au dépôt — donc J2, pas J4 |
+
+Le bouton « Mes propositions » de l'en-tête est retiré pour la même raison
+qu'il n'y a pas de compteur : il n'ouvrirait sur rien.
+
+### 21.4 L'écran où quelqu'un envoie son CV à un inconnu
+
+Deux ajouts que la maquette ne demandait pas, et qui méritent d'être discutés :
+
+- **l'hôte de l'adresse externe est affiché avant le clic.** C'est la seule
+  information qui permette de reconnaître une adresse sans rapport avec
+  l'entreprise annoncée. Avec `noopener` et `nofollow` — on ne prête pas notre
+  référencement à une adresse qu'on n'a pas choisie ;
+- **quand l'offre n'est pas vérifiée, on le dit.** « Relue, pas vérifiée »,
+  avec l'avertissement qu'aucun recruteur sérieux ne réclame d'argent. Sans
+  cela, l'absence de badge ne se remarque pas — et c'est précisément sur les
+  offres sans badge que le risque existe.
+
+### 21.5 L'argent ne décide pas seul de l'ordre
+
+`isFeatured` passe devant, et c'est assumé — mais **à égalité c'est la
+fraîcheur qui tranche**. Un annuaire où l'argent seul ordonne cesse d'être
+consulté, et la place payante ne vaut alors plus rien.

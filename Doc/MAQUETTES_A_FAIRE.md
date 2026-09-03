@@ -1,6 +1,6 @@
 # Maquettes manquantes ou décalées — relevé du 31 août 2026
 
-**Application v1.45.0** · confronté à `Baobart Design/*.dc.html`
+**Application v1.46.0** · confronté à `Baobart Design/*.dc.html`
 
 > Mis à jour le 2 septembre 2026 : les trois écrans de la section **A.4** ont
 > été dessinés puis câblés. Il reste trois écrans à dessiner.
@@ -177,7 +177,7 @@ De `Baobart Accueil.dc.html` :
 | PAGE CATEGORIE | `/categories/[slug]` | Aucun code |
 | ~~PAGE CREATEURS · PROFIL CREATEUR~~ | `/createurs`, `/@[username]` | ✅ **câblé en v1.45.0** — voir §F pour ce qui reste |
 | PANIER | `/panier` | Aucun code — l'achat se fait à l'unité |
-| PAGE JOBS · FICHE MISSION | `/jobs` | Dépôt et modération câblés (v1.45.0) ; **la lecture publique reste à faire** |
+| ~~PAGE JOBS · FICHE MISSION~~ | `/jobs`, `/jobs/[id]` | ✅ **câblé en v1.46.0.** Trois blocs dessinés restent absents — voir §G |
 | PAGE SERVICES · FICHE SERVICE | `/services` | Aucun code (M3) |
 | PAGE CONCOURS & EVENEMENTS | `/evenements` | Aucun code (M4) |
 | PAGE SPONSORISER | `/sponsoriser` | Aucun code |
@@ -384,6 +384,58 @@ mesure — et c'est précisément sur ces chiffres-là qu'il décide d'acheter.
 Services attend son CMS, Collections publiques n'existe pas. Un seul onglet est
 affiché : des onglets vides feraient croire à une page cassée plutôt qu'à une
 page en construction.
+
+---
+
+## ⚠️ G. Les offres d'emploi — trois blocs dessinés, absents à dessein
+
+*Relevé le 2 septembre 2026 en câblant `/jobs` et la fiche mission.*
+
+`Baobart Accueil.dc.html`, sections `PAGE JOBS` et `FICHE MISSION`. Le reste est
+câblé à la lettre ; ce qui suit ne l'est pas, et pour des raisons différentes.
+
+| Bloc dessiné | Pourquoi il n'est pas affiché |
+|---|---|
+| **« N propositions »** sur chaque carte, et la jauge sur la fiche | Les candidatures arrivent avec **J5**. Aucune ne peut exister aujourd'hui : afficher un compteur serait inventer le chiffre sur lequel un candidat décide de postuler ou non |
+| **Bouton « Mes propositions »** | Même raison. Une porte qui ouvre sur le vide coûte plus cher qu'une porte absente |
+| **« Le client répond en moyenne sous 6 h »** | Rien ne le mesure — et cette métrique vient d'être **abandonnée** sur le profil créateur (§F.1). La garder ici rétablirait par la fenêtre ce qu'on a retiré par la porte |
+| **« Livrables attendus »** et **« Profil recherché »** | Ce ne sont pas des champs. La description les porte en prose |
+
+### G.1 Livrables et compétences — une décision à prendre
+
+Ce sont les deux seuls qui ne sont pas bloqués par une fonctionnalité manquante :
+ils demandent de **collecter** l'information au dépôt, donc de rouvrir le
+formulaire de J2.
+
+Trois façons de faire, et le choix vous revient :
+
+1. **Laisser en prose.** La description accepte huit mille signes ; un annonceur
+   sérieux structure déjà son texte. Rien à construire, rien à imposer.
+2. **Deux listes libres**, une ligne par livrable et par compétence. Facile à
+   remplir, facile à afficher — mais rien ne garantit qu'on les remplisse, et
+   une fiche à moitié structurée est plus laide qu'une fiche en prose.
+3. **Des compétences choisies dans une liste fermée.** C'est le seul chemin qui
+   permette un jour de **filtrer** les offres par compétence, ou de proposer une
+   mission à quelqu'un dont le profil correspond. C'est aussi le plus lourd :
+   il faut décider de la liste, et la tenir.
+
+La troisième est la seule qui apporte quelque chose que la prose ne fait pas
+déjà. Les deux autres ne font que déplacer du texte.
+
+### G.2 Deux ajouts que la maquette ne demandait pas
+
+Signalés parce qu'ils changent l'écran, et qu'il faut pouvoir les refuser :
+
+- **l'hôte de l'adresse externe est affiché avant le clic**, avec la mention que
+  la candidature se fait ailleurs. C'est la seule information qui permette de
+  reconnaître une adresse sans rapport avec l'entreprise annoncée ;
+- **quand l'offre n'est pas vérifiée, un encart le dit** — « relue, pas
+  vérifiée », avec l'avertissement qu'aucun recruteur sérieux ne réclame
+  d'argent au candidat. Sans lui, l'absence de badge ne se remarque pas, et
+  c'est précisément sur les offres sans badge que le risque existe.
+
+C'est l'écran où quelqu'un s'apprête à envoyer son CV à un inconnu. Il m'a
+semblé qu'il ne pouvait pas se contenter d'être joli.
 
 ---
 
