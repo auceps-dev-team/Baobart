@@ -41,6 +41,27 @@ const nextConfig: NextConfig = {
   // s'en passe.
   output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
   reactStrictMode: true,
+
+  /**
+   * L'adresse courte d'un créateur : `/@awa-diallo`.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * POURQUOI UNE RÉÉCRITURE PLUTÔT QU'UN DOSSIER `app/@[username]`
+   *
+   * Dans l'App Router, un dossier qui commence par `@` déclare une **route
+   * parallèle**, pas un segment d'URL. `app/@[username]` créerait donc un slot
+   * nommé `[username]` et ne servirait jamais `/@awa-diallo`.
+   *
+   * L'autre voie — un dossier dynamique à la racine — attraperait **toutes** les
+   * adresses de premier niveau et masquerait chaque route à venir.
+   *
+   * La réécriture garde l'adresse courte de la maquette et une arborescence
+   * lisible. Le `@` est obligatoire dans le motif : sans lui, on retomberait
+   * sur le problème du dossier attrape-tout.
+   */
+  async rewrites() {
+    return [{ source: "/@:username", destination: "/createurs/:username" }];
+  },
   typedRoutes: true,
 
   /**

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { estAdministrateur } from "@/lib/auth/administration";
 import type { UtilisateurConnecte } from "@/lib/auth/session";
 
 const ENCRE = "#121212";
@@ -29,7 +28,7 @@ export function DashboardFrame({
         etape={utilisateur.progression.etape}
         nom={utilisateur.nom}
         email={utilisateur.email}
-        administrateur={estAdministrateur(utilisateur.role)}
+        role={utilisateur.role}
       />
       <main style={{ flex: "1 1 auto", padding: "32px 36px", minWidth: 0 }}>
         <div

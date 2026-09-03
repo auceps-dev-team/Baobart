@@ -590,3 +590,187 @@ existent ni les prestations en cours. Couper un service déjà vendu parce qu'un
 échéance est passée pénaliserait le client, qui n'y est pour rien.
 
 *Confirmé le 2 septembre 2026.*
+
+---
+
+## 19. Plan d'exécution des quatre CMS
+
+*Écrit le 2 septembre 2026, après M0.*
+
+### 19.1 L'ordre, et pourquoi
+
+**Jobs, Services, Événements, Blog.** Ce n'est ni l'ordre de la §15, ni l'ordre
+de la facilité : c'est celui de la **contrainte**.
+
+Jobs est le plus contraint des quatre — il porte de la modération obligatoire,
+un anti-arnaque, une limitation de débit, et deux acteurs (celui qui publie,
+celui qui postule). Tout ce qu'il faut construire pour lui sert ensuite aux
+trois autres, qui en sont des versions allégées.
+
+L'ordre inverse — commencer par le blog, le plus simple — produirait un
+éditeur, une liste et un workflow taillés pour un cas sans modération, qu'il
+faudrait rouvrir entièrement en arrivant à Jobs.
+
+### 19.2 Ce que les quatre partagent
+
+Trois briques à écrire une fois, en les découvrant sur Jobs :
+
+1. **Un cycle de vie de contenu.** `BROUILLON → SOUMIS → PUBLIÉ`, plus
+   `REFUSÉ` et `RETIRÉ`. Pur, testable sans base, comme `lib/ndank/etats.ts`.
+   Le blog et les événements n'emprunteront que la moitié du chemin — leurs
+   auteurs ont déjà le droit de publier — et c'est très bien : un état non
+   atteint ne coûte rien, un état manquant coûte une réécriture.
+2. **Une file de modération.** Un écran, quatre types de contenu. La §8 la veut
+   unifiée ; la construire par CMS produirait quatre écrans jumeaux qui
+   divergeraient.
+3. **Le droit de publier, calculé.** `lib/cms/droits.ts` répond à « cette
+   personne peut-elle publier ce type de contenu », en croisant rôle, badge et
+   abonnement. Jamais une colonne : voir §18.3.
+
+### 19.3 Ce qui a déjà été trouvé dans le schéma
+
+`JobPosting` existe, et **son `status` vaut `"published"` par défaut**. Une
+offre déposée paraîtrait donc immédiatement, ce qui contredit §18.2 : la
+première arnaque serait en ligne avant qu'on l'ait lue.
+
+Trois autres manques sur le même modèle :
+
+- `status` est une chaîne libre, pas un enum — deux orthographes d'un même
+  état rendraient la file de modération inutilisable ;
+- `recruiterId` est un identifiant nu, sans relation : rien ne garantit qu'il
+  désigne un compte existant, et l'on ne peut pas remonter aux offres d'une
+  personne qu'on suspend ;
+- **il n'existe aucun modèle de candidature.** « Apply job » n'a rien où
+  écrire.
+
+### 19.4 Jobs — découpage
+
+| | Contenu |
+|---|---|
+| **J1** | Cycle de vie + droits + schéma (`JobPosting` corrigé, `JobApplication`, enums) | ✅ |
+| **J2** | Dépôt d'une offre : formulaire authentifié, limitation de débit, état SOUMIS | ✅ |
+| **J3** | File de modération + badge « Offre vérifiée » + audit | ✅ |
+| **J4** | Lecture publique : `/jobs`, `/jobs/[id]` | à faire |
+| **J5** | Candidature : « Apply » authentifié, une par personne et par offre | à faire |
+
+### 19.5 Les deux décisions, tranchées
+
+*Arbitré le 2 septembre 2026.*
+
+#### Une offre porte des candidatures, ou renvoie ailleurs — jamais les deux
+
+`applyMode` vaut `BAOBART` ou `EXTERNE`, et les deux s'excluent. Une offre qui
+accepterait l'un et l'autre laisserait le candidat ne pas savoir où aller, et
+nous ne tiendrions que la moitié des candidatures — la pire des situations pour
+répondre à quelqu'un qui se plaint de n'avoir jamais eu de réponse.
+
+**Mode `BAOBART`** : la candidature produit un `JobApplication`, une seule par
+personne et par offre. Postuler deux fois n'ajoute rien pour le recruteur et
+double son travail de tri.
+
+Une candidature dit **où quelqu'un cherche du travail**. C'est une donnée
+personnelle, et le modèle en tire les conséquences : elle disparaît avec le
+compte (`Cascade`), elle se supprime à la demande, et le document joint vit dans
+le stockage privé — jamais dans le préfixe public, où il serait téléchargeable
+par qui devine l'adresse.
+
+**Mode `EXTERNE`** : `applyUrl` renvoie sur le site de l'annonce, et **aucune
+ligne n'est conservée ici**. Garder une trace d'un acte qu'on n'a pas accompagné
+serait retenir une donnée personnelle pour rien.
+
+> ⚠️ **`applyUrl` est le vecteur d'arnaque le plus direct de tout le projet.**
+> Une URL d'hameçonnage déposée sous couvert d'offre d'emploi profite de la
+> confiance que le site lui prête. Trois règles, écrites dans le schéma :
+>
+> 1. elle est **montrée en entier au modérateur** — une URL tronquée dans la
+>    file de modération est une URL qu'on approuve sans l'avoir lue ;
+> 2. elle n'est **jamais suivie par le serveur**. Pas d'aperçu, pas de
+>    vérification automatique, pas de récupération de logo : ce serait offrir
+>    une requête sortante à quiconque dépose une offre ;
+> 3. elle part au navigateur en `nofollow noopener`, et l'écran **affiche le
+>    domaine** — le candidat doit voir où il va avant de cliquer.
+
+#### L'offre expire à son échéance, et l'expiration se déduit
+
+`deadline` décide. Passée cette date, l'offre cesse de paraître.
+
+**Aucun ordonnanceur ne bascule l'état.** C'était la solution évidente et elle
+aurait créé une seconde vérité : l'offre serait restée en ligne jusqu'au passage
+du lendemain, ou aurait disparu sans que personne ne l'ait décidé. `estPublic`
+croise donc l'état **et** l'échéance, et c'est la seule porte — écrire
+`state = PUBLIE` à la main dans une requête afficherait une offre périmée depuis
+six mois.
+
+C'est la même leçon que Ndank, qui déduit l'état d'un abonnement de ses dates
+plutôt que de le ranger.
+
+`estExpire` existe séparément, parce que les deux répondent à des questions
+différentes : le public ne voit pas une offre périmée, mais **son auteur doit
+comprendre pourquoi elle a disparu**. Lui dire « expirée » plutôt que « retirée »
+lui évite de croire qu'on la lui a refusée.
+
+Le formulaire range **la fin du jour** choisi : « jusqu'au 31 octobre » veut dire
+que le 31 compte encore. L'interprétation vit à la saisie, pas dans la lecture,
+faute de quoi elle se disperserait dans chaque écran.
+
+### 19.6 Ce que J1 a corrigé dans le schéma
+
+| | Avant | Après |
+|---|---|---|
+| État | `status String @default("published")` | `state ContentState @default(BROUILLON)` |
+| Recruteur | identifiant nu | relation, `onDelete: Cascade` |
+| Candidatures | *rien* | `JobApplication`, unique par (offre, personne) |
+| Refus | *rien* | `refusedReason`, `moderatedAt`, `moderatorId` |
+| Index | `(status, createdAt)` | `(state, deadline, createdAt)` — l'ordre de la requête publique |
+
+Le défaut du défaut valait à lui seul ce passage : **une offre déposée paraissait
+immédiatement.** La première arnaque aurait été en ligne avant qu'on l'ait lue.
+
+---
+
+## 20. Ce que J1 à J3 ont changé ailleurs
+
+*Écrit le 2 septembre 2026.*
+
+### 20.1 Le piège des rôles fonctionnels s'est propagé deux fois
+
+Il avait été attrapé dans `exigerLePouvoir` en v1.44.0. Il attendait à deux
+autres étages, et J3 l'a révélé en donnant enfin un écran à un rôle
+fonctionnel :
+
+- **la barre latérale** prenait un booléen `administrateur`, dérivé de
+  `estAdministrateur` — c'est-à-dire de « peut lire l'état technique ». Un
+  modérateur n'aurait pas vu **son propre écran**. Elle prend maintenant le
+  rôle, et chaque entrée déclare le pouvoir qu'elle exige ;
+- **l'emplacement de l'écran.** `/dashboard/systeme/*` est gardé par ce même
+  pouvoir technique. Y ranger la file l'aurait fermée aux modérateurs — ou
+  aurait obligé à élargir la garde du dossier, ce qui aurait ouvert la base et
+  les interrupteurs à six rôles d'un coup.
+
+La leçon vaut pour les trois CMS suivants : **chaque fois qu'un rôle
+fonctionnel reçoit un écran, chercher où le booléen survit encore.**
+
+### 20.2 Trois décisions de la file de modération
+
+**L'adresse externe est affichée en entier, et n'est pas cliquable.** Une URL
+tronquée dans une file est une URL qu'on approuve sans l'avoir lue. Et un
+modérateur qui ouvre par réflexe des liens déposés par des inconnus est la
+cible la plus facile de la plateforme : il faut la copier pour l'ouvrir, et ce
+demi-obstacle transforme un réflexe en décision.
+
+**Un refus exige un motif**, et le motif s'efface si l'offre est finalement
+publiée — garder l'ancien ferait afficher « refusée pour X » sur une offre en
+ligne.
+
+**Vérifier n'est pas publier.** Toute offre en ligne a été relue ; le badge dit
+qu'un humain est allé contrôler que l'entreprise existe et qu'on ne demande pas
+d'argent au candidat. Les confondre viderait le badge de son sens — un badge que
+tout le monde porte ne protège plus personne. C'est aussi pourquoi il se retire.
+
+### 20.3 La file se vide du plus ancien
+
+C'est l'inverse de partout ailleurs dans le produit, où l'on montre le plus
+récent. Un journal se lit du plus récent ; une file d'attente se vide du plus
+ancien. Trier à l'envers ferait vieillir indéfiniment les offres du bas pendant
+que les nouvelles passent devant — et l'annonceur le plus patient serait le plus
+mal servi.

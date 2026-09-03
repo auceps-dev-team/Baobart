@@ -29,9 +29,12 @@ export default async function AbonnementsPage() {
     montant: `${c.ressourcesPubliees} ${c.ressourcesPubliees > 1 ? "ressources" : "ressource"}`,
     etat: c.ressourcesPubliees > 0 ? "ACTIF" : "RIEN EN LIGNE",
     etatFond: c.ressourcesPubliees > 0 ? undefined : "#FFFFFF",
-    // Le profil public d'un créateur reste à faire : renvoyer vers l'explorateur
-    // est ce qu'on peut promettre aujourd'hui sans mentir.
-    action: { label: "Explorer", href: "/explore" },
+    // Le profil public existe désormais (v1.45.0). Un créateur sans nom
+    // d'utilisateur n'a pas d'adresse : on retombe alors sur l'explorateur
+    // plutôt que de fabriquer un lien qui mènerait à un 404.
+    action: c.username
+      ? { label: "Voir son profil", href: `/@${c.username}` }
+      : { label: "Explorer", href: "/explore" },
   }));
 
   const publiantes = suivis.filter((c) => c.ressourcesPubliees > 0).length;
@@ -48,7 +51,7 @@ export default async function AbonnementsPage() {
       <EcranDashboard
         titre="Abonnements"
         intro="Les créateurs que tu suis. Leurs nouveautés apparaîtront ici quand le fil d'actualité sera en place."
-        action={{ label: "Découvrir des créateurs", href: "/explore" }}
+        action={{ label: "Découvrir des créateurs", href: "/createurs" }}
         indicateurs={[
           {
             label: "Créateurs suivis",
@@ -75,7 +78,7 @@ export default async function AbonnementsPage() {
             titre: "Tu ne suis personne",
             texte:
               "Le bouton « Suivre » sur une fiche ajoute son créateur ici. Tu seras averti de ses nouvelles ressources.",
-            action: { label: "Découvrir des créateurs", href: "/explore" },
+            action: { label: "Découvrir des créateurs", href: "/createurs" },
           },
         }}
       />

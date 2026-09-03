@@ -72,6 +72,32 @@ export const REGLES = {
   oubli: { quota: 5, fenetreMs: 15 * 60_000 },
 
   /**
+   * Dépôt d'une offre d'emploi. Cinq par heure et par adresse.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * ELLE PROTÈGE LA FILE DE MODÉRATION, PAS LA BASE
+   *
+   * Déposer exige un compte (§18.2 de la spec admin), donc l'écriture n'est pas
+   * anonyme. Ce qu'on borne ici est autre chose : quelqu'un qui déposerait
+   * quarante offres en dix minutes noierait la file de relecture, et les vraies
+   * offres attendraient derrière.
+   *
+   * Un recruteur honnête publie une offre, parfois deux. Cinq par heure ne gêne
+   * personne.
+   */
+  "job.depot": { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
+   * Candidature. Vingt par heure et par adresse.
+   *
+   * Postuler beaucoup est normal quand on cherche du travail — c'est même le
+   * comportement qu'on veut encourager. La borne n'existe que contre l'envoi
+   * automatisé : l'unicité (une candidature par offre et par personne) fait
+   * déjà le gros du travail.
+   */
+  "job.candidature": { quota: 20, fenetreMs: 60 * 60_000 },
+
+  /**
    * Rappel d'opérateur de paiement. Trois cents par minute.
    *
    * Volontairement large : un opérateur qui rattrape un incident peut envoyer

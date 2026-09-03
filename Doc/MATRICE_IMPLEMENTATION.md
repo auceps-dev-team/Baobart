@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **2 septembre 2026** (v1.44.0).
+> Dernière mise à jour : **2 septembre 2026** (v1.45.0).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -115,7 +115,10 @@
 | Admin — rôles fonctionnels (7) et matrice de pouvoirs | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/auth/administration.ts` | ✅ | v1.44.0, 18 tests | Une seule identité : pas de table `AdminUser` séparée — voir §17.1 de la spec. Aucun écran ne permet de s'élever, la promotion passe par la base |
 | Admin — journal d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/admin/audit.ts` | ✅ | v1.44.0, 10 tests | La table `AuditLog` existait depuis le début **et n'était jamais écrite** : un écran d'audit aurait affiché une liste vide, ce qui se lit « rien ne s'est passé ». Consigner ne peut jamais faire échouer l'acte |
 | Admin — shell `/admin` et écran d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | — | ❌ | — | `app/dashboard/systeme/` reste un espace d'exploitation technique. Les rôles fonctionnels n'ont pas encore d'écran à eux |
-| CMS — blogs, événements, jobs, services | `SPEC_ADMIN_CMS_BAOBART.md` §§4-7 | — | ❌ | — | Rien n'est écrit. La fondation (rôles, audit) l'est |
+| CMS — cycle de vie et droits de publication | `SPEC_ADMIN_CMS_BAOBART.md` §18 | `lib/cms/cycle.ts`, `lib/cms/droits.ts` | ✅ | v1.45.0, 24 tests | Une seule machine à états pour les quatre CMS. Le droit se **calcule** — une colonne `peutPublierDesServices` dériverait de l'abonnement réel |
+| CMS — Jobs : dépôt et modération | `SPEC_ADMIN_CMS_BAOBART.md` §6 | `lib/jobs/*`, `app/dashboard/moderation` | ⚠️ | v1.45.0, 37 tests | Dépôt authentifié, file de relecture, badge « Offre vérifiée », audit. **Manque la lecture publique (`/jobs`) et la candidature** |
+| CMS — services, événements, blog | `SPEC_ADMIN_CMS_BAOBART.md` §§4,5,7 | — | ❌ | — | Rien n'est écrit. Le cycle de vie et la file qu'ils partageront le sont |
+| Profil public d'un créateur | `Baobart Accueil.dc.html` | `app/createurs/*`, `lib/createurs/queries.ts` | ✅ | v1.45.0, 11 tests | Répare un lien mort : on pouvait suivre quelqu'un sans pouvoir le visiter. Deux indicateurs de la maquette — vues de page, délai de réponse — sont absents faute de donnée |
 
 ## 7. Infrastructure & exploitation
 

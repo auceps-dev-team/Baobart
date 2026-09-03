@@ -10,6 +10,7 @@ import {
   ORANGE,
 } from "@/components/shell/nav-data";
 import type { EtapeCompte } from "@/lib/auth/roles";
+import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
 
 /**
@@ -28,7 +29,7 @@ export function DashboardSidebar({
   nom,
   email,
   actif,
-  administrateur = false,
+  role = "MEMBER",
 }: {
   etape: EtapeCompte;
   nom: string;
@@ -36,9 +37,13 @@ export function DashboardSidebar({
   /** Clé de l'écran ouvert, pour le marquer dans la liste. */
   actif?: string;
   /** Ajoute le groupe « Plateforme ». Faux par défaut, pour ne rien exposer par oubli. */
-  administrateur?: boolean;
+  /**
+   * Le rôle, non plus un booléen : la barre latérale montre à chacun les
+   * écrans qu'il peut vraiment ouvrir. Voir `navigationPour`.
+   */
+  role?: RolePlateforme;
 }) {
-  const groupes = navigationPour(etape, administrateur);
+  const groupes = navigationPour(etape, role);
 
   return (
     <aside

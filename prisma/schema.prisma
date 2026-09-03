@@ -466,6 +466,10 @@ model User {
   notifications   Notification[]
   abonnementsPush PushSubscription[]
 
+  // jobs
+  offresDeposees       JobPosting[]     @relation("OffresDeposees")
+  candidaturesDeposees JobApplication[] @relation("CandidaturesDeposees")
+
   // confiance
   riskStateChanges RiskStateChange[]
 
@@ -1539,8 +1543,33 @@ model UserBadge {
 // 7. JOBS, ÉVÉNEMENTS, SERVICES  (M3-M4 — FK scalaires pour l'instant)
 // ============================================================================
 
+/// L'état d'un contenu soumis à relecture.
+///
+/// Le même pour les quatre CMS — voir `lib/cms/cycle.ts`, où vivent les
+/// transitions permises. Un enum plutôt qu'une chaîne libre : deux orthographes
+/// d'un même état rendraient la file de modération inutilisable au moment
+/// précis où l'on compte ce qui attend.
+enum ContentState {
+  BROUILLON
+  SOUMIS
+  PUBLIE
+  REFUSE
+  RETIRE
+}
+
+/// Où postuler.
+enum ApplyMode {
+  /// La candidature se dépose sur Baobart. Elle produit un `JobApplication`.
+  BAOBART
+  /// L'offre renvoie ailleurs. Aucune candidature n'est conservée ici.
+  EXTERNE
+}
+
 model JobPosting {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
+  /// Qui a déposé l'offre. Une relation, non un identifiant nu : sans elle,
+  /// rien ne garantit qu'il désigne un compte, et l'on ne peut pas remonter aux
+  /// offres de quelqu'un qu'on suspend.
   recruiterId String
   title       String
   type        JobType
@@ -1549,16 +1578,92 @@ model JobPosting {
   city        String?
   salaryMin   Int?
   salaryMax   Int?
-  currency    Currency  @default(XOF)
-  description String    @db.Text
-  deadline    DateTime?
-  status      String    @default("published") // draft | published | filled | closed
-  isFeatured  Boolean   @default(false) // offre payante §2.9
-  isVerified  Boolean   @default(false) // badge « Offre vérifiée » — anti-arnaque
-  createdAt   DateTime  @default(now())
+  currency    Currency @default(XOF)
+  description String   @db.Text
 
-  @@index([status, createdAt])
-  @@index([recruiterId])
+  /// À quelle date l'offre cesse de paraître.
+  ///
+  /// L'expiration se **déduit** de cette date, elle n'est jamais rangée dans
+  /// `state` : un ordonnanceur qui basculerait l'état à minuit serait une
+  /// seconde vérité, fausse dès qu'un passage rate son tour. Voir `estPublic`.
+  ///
+  /// Le formulaire range la **fin du jour** choisi : « jusqu'au 31 octobre »
+  /// veut dire que le 31 compte encore.
+  deadline DateTime?
+
+  /// ⚠️ BROUILLON par défaut, et surtout pas PUBLIE.
+  ///
+  /// La valeur précédente était « published » : une offre déposée aurait paru
+  /// immédiatement, et la première arnaque aurait été en ligne avant qu'on l'ait
+  /// lue. Jobs est ouvert à tout inscrit ; c'est la relecture qui protège, pas
+  /// le droit d'entrée.
+  state         ContentState @default(BROUILLON)
+  /// Pourquoi l'offre a été refusée. Sans motif écrit, un refus est
+  /// impossible à expliquer à celui qui le reçoit.
+  refusedReason String?      @db.Text
+  moderatedAt   DateTime?
+  /// L'administrateur qui a tranché. L'audit porte le détail.
+  moderatorId   String?
+
+  /// Où postuler. Les deux modes s'excluent : une offre qui accepterait les
+  /// deux laisserait le candidat ne pas savoir où aller, et nous ne tiendrions
+  /// que la moitié des candidatures.
+  applyMode ApplyMode @default(BAOBART)
+  /// L'adresse externe, quand `applyMode` vaut EXTERNE.
+  ///
+  /// ⚠️ C'est le vecteur d'arnaque le plus direct de tout le projet : une URL
+  /// d'héconçage déposée sous couvert d'offre d'emploi. Trois règles :
+  /// elle est **montrée en entier** au modérateur, elle n'est **jamais suivie**
+  /// par le serveur, et elle part au navigateur en `nofollow noopener`.
+  applyUrl  String?
+
+  isFeatured Boolean  @default(false) // offre payante §2.9
+  isVerified Boolean  @default(false) // badge « Offre vérifiée » — anti-arnaque
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  recruiter    User             @relation("OffresDeposees", fields: [recruiterId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+
+  /// La requête publique : état, puis échéance, puis fraîcheur.
+  @@index([state, deadline, createdAt])
+  @@index([recruiterId, createdAt])
+}
+
+/// Une candidature déposée sur Baobart.
+///
+/// ─────────────────────────────────────────────────────────────────
+/// ELLE N'EXISTE QUE POUR LES OFFRES `BAOBART`
+///
+/// Une offre externe ne produit aucune ligne ici : le candidat part sur le site
+/// de l'annonce, et ce qu'il y fait ne nous regarde pas. En conserver une trace
+/// serait garder une donnée personnelle sur un acte qu'on n'a pas accompagné.
+///
+/// ─────────────────────────────────────────────────────────────────
+/// CE QU'ELLE PORTE EST UNE DONNÉE PERSONNELLE
+///
+/// Une candidature dit où quelqu'un cherche du travail. Elle se supprime à la
+/// demande, elle disparaît avec le compte (`Cascade`), et le document joint vit
+/// dans le stockage privé — jamais dans le préfixe public.
+model JobApplication {
+  id        String   @id @default(cuid())
+  jobId     String
+  /// Le candidat. Toujours un compte : postuler est une action, et une action
+  /// demande d'être inscrit.
+  userId    String
+  /// Le mot d'accompagnement. Borné à l'écriture.
+  message   String?  @db.Text
+  /// Le document joint, dans le stockage privé.
+  mediaId   String?
+  createdAt DateTime @default(now())
+
+  job  JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User       @relation("CandidaturesDeposees", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Une candidature par personne et par offre. Postuler deux fois n'ajoute
+  /// rien pour le recruteur et double le travail de tri.
+  @@unique([jobId, userId])
+  @@index([userId, createdAt])
 }
 
 model Event {

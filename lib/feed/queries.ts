@@ -92,12 +92,21 @@ export interface ListerFeedInput {
   cursor?: string | null;
   limit?: number;
   filtre?: Filtre;
+  /**
+   * Ne garder que les ressources d'un créateur.
+   *
+   * Le profil public s'en sert. Écrire une seconde requête pour lui aurait
+   * dupliqué le curseur composite et la forme de sortie — deux endroits où se
+   * tromper, et la pagination du profil aurait fini par boucler quand celle de
+   * l'explorateur ne bouclait plus.
+   */
+  auteurId?: string;
 }
 
 export async function listerFeed(
   input: ListerFeedInput = {},
 ): Promise<import("@/lib/feed/types").PageFeed> {
-  const { cursor = null, limit = TAILLE_PAGE, filtre = "Tous" } = input;
+  const { cursor = null, limit = TAILLE_PAGE, filtre = "Tous", auteurId } = input;
 
   const position = cursor ? decoderCurseur(cursor) : null;
 
@@ -119,6 +128,7 @@ export async function listerFeed(
   const lignes: ProduitFeed[] = await db.product.findMany({
     where: {
       status: "PUBLISHED",
+      ...(auteurId ? { sellerId: auteurId } : {}),
       ...clauseFamille(filtre),
       ...apres,
     },

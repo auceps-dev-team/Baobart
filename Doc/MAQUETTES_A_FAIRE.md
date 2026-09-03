@@ -1,6 +1,6 @@
 # Maquettes manquantes ou décalées — relevé du 31 août 2026
 
-**Application v1.43.0** · confronté à `Baobart Design/*.dc.html`
+**Application v1.45.0** · confronté à `Baobart Design/*.dc.html`
 
 > Mis à jour le 2 septembre 2026 : les trois écrans de la section **A.4** ont
 > été dessinés puis câblés. Il reste trois écrans à dessiner.
@@ -175,9 +175,9 @@ De `Baobart Accueil.dc.html` :
 | Section | Route attendue | État |
 |---|---|---|
 | PAGE CATEGORIE | `/categories/[slug]` | Aucun code |
-| PAGE CREATEURS · PROFIL CREATEUR | `/createurs`, `/@[username]` | Aucun code — **on peut suivre quelqu'un sans pouvoir visiter sa page** |
+| ~~PAGE CREATEURS · PROFIL CREATEUR~~ | `/createurs`, `/@[username]` | ✅ **câblé en v1.45.0** — voir §F pour ce qui reste |
 | PANIER | `/panier` | Aucun code — l'achat se fait à l'unité |
-| PAGE JOBS · FICHE MISSION | `/jobs` | Aucun code (micro-service M4) |
+| PAGE JOBS · FICHE MISSION | `/jobs` | Dépôt et modération câblés (v1.45.0) ; **la lecture publique reste à faire** |
 | PAGE SERVICES · FICHE SERVICE | `/services` | Aucun code (M3) |
 | PAGE CONCOURS & EVENEMENTS | `/evenements` | Aucun code (M4) |
 | PAGE SPONSORISER | `/sponsoriser` | Aucun code |
@@ -213,6 +213,180 @@ n'appartenant pas au produit.
 
 ---
 
+## 🎖 E. Les badges — liste exhaustive à dessiner
+
+*Demandée le 2 septembre 2026, en vue du système de gamification.*
+
+Le schéma porte déjà `Badge`, `UserBadge` et un enum `BadgeCode` à cinq
+valeurs — aucune n'est attribuée nulle part. Ce qui suit est la liste complète
+à couvrir, familles comprises.
+
+### ⚠️ Deux familles qui ne doivent jamais se confondre
+
+C'est **le** point de conception de tout ce système, et il se joue avant le
+premier dessin.
+
+| | **Badges de statut** | **Badges de mérite** |
+|---|---|---|
+| D'où ils viennent | **accordés** par l'administration | **calculés** depuis l'activité |
+| Ce qu'ils font | **ouvrent des droits** | ne donnent **aucun droit** |
+| Exemple | Freelance ouvre la publication de services | « 100 ventes » ne débloque rien |
+| Se perdent | par retrait, tracé à l'audit | tout seuls, quand le compte ne les vérifie plus |
+
+**Un badge de mérite ne doit jamais ouvrir un droit.** Sinon accumuler de
+l'activité devient un chemin d'élévation de privilège : quelqu'un qui publie
+cent ressources bidon obtiendrait ce qu'on réserve à un professionnel vérifié.
+
+**Un badge de statut ne doit jamais s'obtenir automatiquement.** C'est
+précisément la case qu'un arnaqueur cocherait.
+
+Visuellement, les deux familles doivent être **impossibles à confondre** : un
+statut engage Baobart — « nous avons vérifié cette personne » —, un mérite
+constate. Ce sont deux formes, deux traitements, peut-être deux emplacements.
+
+### E.1 — Statut · accordés, ouvrent des droits
+
+| Code | Nom | Comment on l'obtient | Ce qu'il ouvre |
+|---|---|---|---|
+| `VERIFIED_CREATOR` | Créateur vérifié | vérification par l'administration | mise en avant, confiance affichée |
+| `FREELANCE` | Freelance | accordé, **+ abonnement actif** | publier des services (§18.3 de la spec admin) |
+| `AGENCE` | Agence | accordé, **+ abonnement actif** | publier des services, profil d'équipe |
+| `VERIFIED_RECRUITER` | Recruteur vérifié | contrôle de l'entité qui recrute | le badge « Offre vérifiée » sur ses offres |
+| `KYC_VERIFIED` | Identité vérifiée | `KycStatus = VERIFIED` | seuils de versement relevés |
+
+> **Freelance et Agence sont exclusifs** : on est l'un ou l'autre, pas les deux.
+> Et le badge seul ne suffit pas — sans abonnement actif, le droit se referme
+> (sans effacer ce qui est déjà publié).
+
+### E.2 — Ancienneté · calculés
+
+| Code | Nom | Critère |
+|---|---|---|
+| `NEW_TALENT` | Nouveau talent | compte de moins de 90 jours **et** au moins une publication |
+| `PIONEER` | Pionnier | parmi les N premiers comptes de la plateforme |
+| `ONE_YEAR` | Un an | compte créé il y a plus d'un an |
+| `THREE_YEARS` | Trois ans | idem, trois ans |
+| `LOYAL_SUBSCRIBER` | Fidèle | 12 cycles d'abonnement **sans interruption** — Ndank sait le dire |
+
+### E.3 — Production · calculés
+
+| Code | Nom | Critère |
+|---|---|---|
+| `FIRST_PUBLICATION` | Première pierre | une ressource publiée |
+| `TEN_RESOURCES` | Atelier fourni | dix ressources publiées |
+| `FIFTY_RESOURCES` | Grand atelier | cinquante |
+| `HUNDRED_RESOURCES` | Bibliothèque | cent |
+
+### E.4 — Ventes · calculés
+
+| Code | Nom | Critère |
+|---|---|---|
+| `FIRST_SALE` | Première vente | une vente aboutie |
+| `TEN_SALES` | Dix ventes | dix |
+| `HUNDRED_SALES` | Cent ventes | cent |
+| `THOUSAND_SALES` | Mille ventes | mille |
+| `TOP_CREATOR` | Créateur du mois | dans le haut du classement **sur 30 jours glissants** |
+
+> `TOP_CREATOR` **doit expirer** — c'est à cela que sert `UserBadge.validUntil`.
+> Un badge de classement qui ne se perd jamais finit porté par tout le monde, et
+> ne veut plus rien dire.
+
+### E.5 — Qualité · calculés
+
+| Code | Nom | Critère |
+|---|---|---|
+| `WELL_RATED` | Bien noté | note ≥ 4,5 sur au moins 20 avis |
+| `NO_DISPUTE` | Sans litige | 50 ventes sans un seul litige |
+| `FAST_RESPONDER` | Répond vite | services : délai médian de réponse sous 24 h |
+
+> Le seuil d'avis compte autant que la note. « 5,0 » sur deux avis ne dit rien,
+> et l'afficher comme un mérite récompenserait la rareté.
+
+### E.6 — Communauté · calculés
+
+| Code | Nom | Critère |
+|---|---|---|
+| `COMMUNITY_PILLAR` | Pilier | 500 abonnés |
+| `HELPFUL_REVIEWER` | Bon public | 25 avis rédigés |
+| `VIP_CREATOR` | VIP | distinction éditoriale, décidée par l'administration |
+
+> `VIP_CREATOR` est le seul de cette famille qui s'accorde. Il devrait
+> probablement rejoindre E.1 le jour où il ouvrira un droit.
+
+### E.7 — Ce qu'il faut décider en dessinant
+
+1. **Où vivent-ils.** Sur le profil public seulement, ou aussi sur la vignette
+   d'une ressource, dans les résultats, à côté d'un avis ? Un badge qui apparaît
+   partout ne se voit nulle part.
+2. **Combien s'affichent à la fois.** Quelqu'un peut en porter douze. Il faut
+   une règle de troncature, et elle doit garder les statuts avant les mérites.
+3. **L'état « pas encore obtenu ».** Montrer les badges verrouillés motive, et
+   encombre. À trancher.
+4. **La forme du critère.** `Badge.criteria` est prévu pour être **publié** —
+   la transparence est déjà au schéma. L'écran doit donc pouvoir afficher
+   « il te manque 3 ventes », pas seulement un badge gris.
+5. **La perte.** Un mérite qui se perd doit-il se dire ? Perdre « Répond vite »
+   en silence est déloyal ; l'annoncer bruyamment est humiliant.
+
+### E.8 — Note technique, pour quand on câblera
+
+Un badge de mérite est **dérivé**, jamais déclaré. `UserBadge` est donc un
+**cache**, pas une vérité : tout doit pouvoir se recalculer depuis zéro, et un
+recalcul complet doit rendre exactement le même résultat.
+
+C'est la même leçon que `lib/auth/roles.ts` et que Ndank : un statut rangé en
+base se désynchronise dès qu'un passage rate son tour. Ici, le symptôme serait
+un « 100 ventes » porté par quelqu'un qui en a eu 40 remboursées.
+
+---
+
+## ⚠️ F. Le profil créateur — ce qui est câblé, ce qui reste
+
+*Relevé le 2 septembre 2026 en câblant l'écran. **Arbitré le même jour.***
+
+`Baobart Accueil.dc.html`, section `PROFIL CREATEUR`, dessine cinq indicateurs
+et une phrase d'en-tête. Deux ne reposaient sur aucune donnée.
+
+| Dessiné | Décision |
+|---|---|
+| produits | ✅ câblé — ressources **publiées**, pas `workCount` qui compte les brouillons |
+| ventes à vie | ✅ câblé |
+| abonnés | ✅ câblé |
+| **vues de page** | 🔜 **à construire** — gardé, mais rien ne les compte encore |
+| abonnements | retiré — renseigne sur la personne, pas sur son travail |
+| « répond en moyenne en 4 h » | ❌ **retiré de la maquette** |
+
+### F.1 Le délai de réponse est abandonné
+
+À retirer du dessin. Ce n'était pas seulement une donnée manquante : c'est une
+donnée **coûteuse à rendre honnête**. Répondre à quoi — un message, une
+commande, un litige ? Sur quelle fenêtre ? Et un créateur en vacances verrait sa
+moyenne s'effondrer sans avoir rien fait de mal.
+
+### F.2 Les vues de page sont gardées, et restent à construire
+
+C'est un indicateur qui parle au créateur autant qu'à l'acheteur. Trois choix
+seront à faire en l'écrivant, et aucun n'est neutre :
+
+- **compter quoi.** Une vue par chargement gonfle le chiffre à chaque
+  rafraîchissement. Une vue par visiteur et par jour dit quelque chose ;
+- **ne pas écrire à chaque requête.** Un `UPDATE` par visite sur une page
+  populaire met la base à genoux. Il faut agréger, ou écrire par lot ;
+- **les robots.** Une bonne part du trafic d'un site public est automatisée. Un
+  compteur qui les inclut mesure surtout l'appétit des moteurs.
+
+Tant que ce n'est pas fait, **l'indicateur n'est pas affiché**. Un chiffre
+inventé sur un profil public est un mensonge que l'acheteur prend pour une
+mesure — et c'est précisément sur ces chiffres-là qu'il décide d'acheter.
+
+### F.3 Trois onglets sur quatre manquent
+
+Services attend son CMS, Collections publiques n'existe pas. Un seul onglet est
+affiché : des onglets vides feraient croire à une page cassée plutôt qu'à une
+page en construction.
+
+---
+
 ## Récapitulatif
 
 **À dessiner en priorité** — deux écrans restants :
@@ -231,3 +405,7 @@ n'appartenant pas au produit.
 6. Les états « en attente » et « abandonnée » d'une commande
 
 **À trancher** : les courriels en HTML, ou pas.
+
+**À dessiner, nouvelle famille** : les badges (§E) — vingt-cinq badges en sept
+familles, dont **cinq qui ouvrent des droits** et doivent être visuellement
+impossibles à confondre avec les vingt autres.

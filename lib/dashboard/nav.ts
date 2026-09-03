@@ -1,3 +1,4 @@
+import { peut, type Pouvoir, type RolePlateforme } from "@/lib/auth/administration";
 import type { EtapeCompte } from "@/lib/auth/roles";
 
 /**
@@ -24,6 +25,17 @@ export interface EntreeNav {
   href: string | null;
   /** Pastille de la maquette (« NEW », un compteur…). */
   badge?: string;
+  /**
+   * Le pouvoir qu'il faut porter pour que cette entrée s'affiche.
+   *
+   * ─────────────────────────────────────────────────────────────────
+   * ELLE NE PROTÈGE RIEN
+   *
+   * Cacher une entrée de menu ne ferme aucune porte : la garde vit dans la
+   * page et dans l'action. Ce champ sert à ne pas MENTIR — montrer « File de
+   * modération » à un comptable lui promettrait un écran qui répondra 404.
+   */
+  pouvoir?: Pouvoir;
 }
 
 export interface EntreeNavRendue extends EntreeNav {
@@ -129,19 +141,29 @@ const RAISON_BOUTIQUE = "Disponible une fois ton premier produit publié.";
  */
 const ADMINISTRATION: EntreeNav[] = [
   {
+    cle: "a_moderation",
+    label: "File de modération",
+    glyph: "⚑",
+    href: "/dashboard/moderation",
+    pouvoir: "moderer_le_contenu",
+  },
+  {
     cle: "a_sys_config",
+    pouvoir: "consulter_le_systeme" as const,
     label: "Système · Configuration",
     glyph: "◧",
     href: "/dashboard/systeme/configuration",
   },
   {
     cle: "a_sys_emails",
+    pouvoir: "consulter_le_systeme" as const,
     label: "Système · Emails",
     glyph: "✉",
     href: "/dashboard/systeme/emails",
   },
   {
     cle: "a_sys_paiements",
+    pouvoir: "consulter_le_systeme" as const,
     label: "Système · Paiements",
     glyph: "⇄",
     href: "/dashboard/systeme/paiements",
@@ -163,23 +185,39 @@ const ADMINISTRATION: EntreeNav[] = [
 export function navigationPour(
   etape: EtapeCompte,
   /**
-   * Rien par défaut : un appelant qui oublie ce paramètre n'expose pas
+   * MEMBER par défaut : un appelant qui oublie ce paramètre n'expose pas
    * l'administration par inadvertance.
+   *
+   * ─────────────────────────────────────────────────────────────────────
+   * UN RÔLE, PAS UN BOOLÉEN
+   *
+   * C'était `administrateur: boolean`, et cela tenait tant que tout
+   * administrateur pouvait tout voir. Depuis que les rôles sont fonctionnels,
+   * un modérateur n'est pas « administrateur » au sens des écrans Système : le
+   * booléen lui aurait caché **son propre écran**, ou lui aurait montré la base
+   * de données.
+   *
+   * C'est le même piège que dans `exigerLePouvoir`, un étage plus haut.
    */
-  administrateur = false,
+  role: RolePlateforme = "MEMBER",
 ): Groupe[] {
-  const admin: Groupe[] = administrateur
-    ? [
-        {
-          titre: "Plateforme",
-          entrees: ADMINISTRATION.map((e) => ({
-            ...e,
-            actif: true,
-            raisonVerrou: null,
-          })),
-        },
-      ]
-    : [];
+  const entreesAdmin = ADMINISTRATION.filter(
+    (e) => e.pouvoir === undefined || peut(role, e.pouvoir),
+  );
+
+  const admin: Groupe[] =
+    entreesAdmin.length > 0
+      ? [
+          {
+            titre: "Plateforme",
+            entrees: entreesAdmin.map((e) => ({
+              ...e,
+              actif: true,
+              raisonVerrou: null,
+            })),
+          },
+        ]
+      : [];
 
   const acheteur: EntreeNavRendue[] = ACHETEUR.map((e) => ({
     ...e,
