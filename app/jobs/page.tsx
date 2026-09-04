@@ -87,28 +87,46 @@ export default async function JobsPage({
               </p>
             </div>
 
-            {/*
-              Un seul bouton, pas deux. La maquette en dessine un second — « Mes
-              propositions » — qui n'aurait rien à montrer tant que les
-              candidatures n'existent pas (J5). Une porte qui ouvre sur le vide
-              coûte plus cher qu'une porte absente.
-            */}
-            <Link
-              href="/jobs/deposer"
-              className="sticker-press"
-              style={{
-                padding: "12px 20px",
-                border: CADRE,
-                borderRadius: 14,
-                background: JAUNE,
-                boxShadow: `4px 4px 0 ${ENCRE}`,
-                fontSize: 13.5,
-                fontWeight: 800,
-                color: ENCRE,
-              }}
-            >
-              Publier une mission
-            </Link>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link
+                href="/jobs/deposer"
+                className="sticker-press"
+                style={{
+                  padding: "12px 20px",
+                  border: CADRE,
+                  borderRadius: 14,
+                  background: JAUNE,
+                  boxShadow: `4px 4px 0 ${ENCRE}`,
+                  fontSize: 13.5,
+                  fontWeight: 800,
+                  color: ENCRE,
+                }}
+              >
+                Publier une mission
+              </Link>
+              {/*
+                Le bouton « Mes propositions » ne s'affiche qu'à quelqu'un de
+                connecté. À un visiteur, il mènerait à la connexion : autant ne
+                pas la lui promettre.
+              */}
+              {visiteur ? (
+                <Link
+                  href="/jobs/mes-propositions"
+                  className="sticker-press"
+                  style={{
+                    padding: "12px 20px",
+                    border: CADRE,
+                    borderRadius: 14,
+                    background: BLANC,
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: ENCRE,
+                  }}
+                >
+                  Mes propositions
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           {/* ── Le filtre par type de contrat ─────────────────────────────── */}
@@ -202,6 +220,17 @@ export default async function JobsPage({
                       <span>publiée {ilYA(o.publieeLe)}</span>
                       {jours !== null ? (
                         <span>clôture dans {jours} jour{jours > 1 ? "s" : ""}</span>
+                      ) : null}
+                      {/*
+                        Le compteur ne s'affiche pas sur une offre externe : ses
+                        candidatures partent sur le site de l'annonceur, on ne
+                        les compte pas. « 0 propositions » serait un mensonge
+                        que le candidat prend pour une opportunité.
+                      */}
+                      {o.candidatures !== null ? (
+                        <span>
+                          {o.candidatures} proposition{o.candidatures > 1 ? "s" : ""}
+                        </span>
                       ) : null}
                     </div>
 

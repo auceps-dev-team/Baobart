@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { journal } from "@/lib/observabilite/journal";
 import { perimerCommandesOubliees } from "@/lib/payments/encaissement/reglement";
 import { perimerPaiementsOublies } from "@/lib/abonnements/reglement";
+import { purgerCandidaturesTerminees } from "@/lib/jobs/postuler";
 
 /**
  * Le passage qui referme les commandes qu'aucun rappel n'a conclues.
@@ -68,12 +69,17 @@ export async function GET(requete: Request) {
 
   const fermees = await perimerCommandesOubliees();
   const abonnements = await perimerPaiementsOublies();
+  // Efface les CV des candidatures dont l'offre s'est terminée. Le CV vit avec
+  // l'offre — décision du 2 septembre 2026 : le candidat n'a rien à faire
+  // pour que son fichier disparaisse à la clôture. Mutualisé sur ce cron
+  // plutôt qu'une cinquième route à configurer et à oublier.
+  const candidatures = (await purgerCandidaturesTerminees()).effacees;
 
   // Un passage vide est le cas normal. Ne journaliser que ce qui s'est passé
   // évite de noyer les incidents sous la routine.
-  if (fermees > 0 || abonnements > 0) {
-    journal.info("passage de ménage des paiements", { fermees, abonnements });
+  if (fermees > 0 || abonnements > 0 || candidatures > 0) {
+    journal.info("passage de ménage", { fermees, abonnements, candidatures });
   }
 
-  return NextResponse.json({ fermees, abonnements });
+  return NextResponse.json({ fermees, abonnements, candidatures });
 }

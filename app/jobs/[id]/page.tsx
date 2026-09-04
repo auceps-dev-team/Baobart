@@ -80,6 +80,10 @@ export default async function FicheMissionPage({
 
   const jours = joursAvantCloture(offre.echeance);
   const externe = offre.commentPostuler === "EXTERNE" && offre.urlExterne;
+  // Sur sa propre offre, le CTA « Postuler » ne veut rien dire — le module de
+  // dépôt le refuse déjà. On propose à la place le lien vers les candidatures
+  // reçues, qui est le seul écran privé du recruteur pour cette offre.
+  const estMienne = visiteur?.id === offre.recruteurId;
 
   const faits: { k: string; v: string; fond: string }[] = [
     { k: "Contrat", v: LIBELLE_TYPE[offre.type], fond: LAVANDE },
@@ -304,7 +308,31 @@ export default async function FicheMissionPage({
                 </div>
 
                 <div style={{ marginTop: 18, paddingTop: 16, borderTop: CADRE }}>
-                  {externe ? (
+                  {estMienne ? (
+                    /*
+                      Le recruteur sur sa propre offre : on l'envoie voir ce
+                      qu'elle a rapporté, plutôt qu'un « Postuler » qui
+                      refuserait.
+                    */
+                    <Link
+                      href={`/dashboard/jobs/${offre.id}/candidatures` as Route}
+                      className="sticker-press"
+                      style={{
+                        display: "block",
+                        padding: "15px 20px",
+                        border: CADRE,
+                        borderRadius: 15,
+                        background: JAUNE,
+                        boxShadow: `5px 5px 0 ${ENCRE}`,
+                        textAlign: "center",
+                        fontSize: 14.5,
+                        fontWeight: 800,
+                        color: ENCRE,
+                      }}
+                    >
+                      Voir les candidatures reçues →
+                    </Link>
+                  ) : externe ? (
                     <>
                       {/*
                         Le candidat doit savoir qu'il quitte Baobart AVANT de
@@ -356,37 +384,29 @@ export default async function FicheMissionPage({
                     </>
                   ) : (
                     /*
-                      ⚠️ La candidature sur Baobart n'existe pas encore (J5).
-                      Un bouton qui n'aboutirait à rien ferait croire à une
-                      candidature envoyée — le pire résultat possible sur cet
-                      écran. On dit franchement où l'on en est.
+                      La candidature sur Baobart, câblée en J5. Le bouton part
+                      sur `/postuler`, qui refait toutes les gardes — offre
+                      publique, pas la sienne, pas déjà postulé. La page peut
+                      donc rediriger sans que le clic mente.
                     */
-                    <div
+                    <Link
+                      href={`/jobs/${offre.id}/postuler` as Route}
+                      className="sticker-press"
                       style={{
-                        padding: 14,
+                        display: "block",
+                        padding: "15px 20px",
                         border: CADRE,
                         borderRadius: 15,
-                        background: BLANC,
+                        background: JAUNE,
+                        boxShadow: `5px 5px 0 ${ENCRE}`,
+                        textAlign: "center",
+                        fontSize: 14.5,
+                        fontWeight: 800,
+                        color: ENCRE,
                       }}
                     >
-                      <div style={{ fontSize: 13.5, fontWeight: 800 }}>
-                        La candidature en ligne arrive
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          lineHeight: 1.5,
-                          marginTop: 6,
-                          textWrap: "pretty",
-                        }}
-                      >
-                        Cet annonceur reçoit les candidatures sur Baobart, et
-                        l&apos;envoi n&apos;est pas encore ouvert. Reviens
-                        bientôt — l&apos;offre reste visible jusqu&apos;à sa
-                        clôture.
-                      </div>
-                    </div>
+                      Postuler sur Baobart
+                    </Link>
                   )}
                 </div>
               </div>

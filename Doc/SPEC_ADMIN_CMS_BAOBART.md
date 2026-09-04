@@ -651,7 +651,7 @@ Trois autres manques sur le même modèle :
 | **J2** | Dépôt d'une offre : formulaire authentifié, limitation de débit, état SOUMIS | ✅ |
 | **J3** | File de modération + badge « Offre vérifiée » + audit | ✅ |
 | **J4** | Lecture publique : `/jobs`, `/jobs/[id]`, et l'écran de dépôt que J2 avait oublié | ✅ |
-| **J5** | Candidature : « Apply » authentifié, une par personne et par offre | à faire |
+| **J5** | Candidature : « Apply » authentifié, une par personne et par offre | ✅ |
 
 ### 19.5 Les deux décisions, tranchées
 
@@ -830,3 +830,86 @@ Deux ajouts que la maquette ne demandait pas, et qui méritent d'être discutés
 `isFeatured` passe devant, et c'est assumé — mais **à égalité c'est la
 fraîcheur qui tranche**. Un annuaire où l'argent seul ordonne cesse d'être
 consulté, et la place payante ne vaut alors plus rien.
+
+---
+
+## 22. J5 — la candidature, du dépôt à la purge
+
+*Écrit le 3 septembre 2026.*
+
+### 22.1 Le CV vit avec l'offre — et disparaît à sa clôture
+
+Un candidat qui envoie son CV à un inconnu doit pouvoir savoir **quand** ce
+fichier sera effacé, sans avoir à le demander. La décision : il vit exactement
+le temps de l'offre. Retirée, refusée, expirée — le fichier part.
+
+Trois conséquences en découlent, chacune dans un module :
+
+- **la promesse elle-même** vit dans le message affiché au succès du dépôt et
+  dans l'avertissement de la page « Postuler ». Sans texte, la garantie ne se
+  voit pas ;
+- **la purge** est branchée sur le cron `commandes` existant, plutôt qu'ouvrir
+  une cinquième route. Une entrée d'ordonnanceur de plus est une entrée à
+  configurer sur Vercel — donc une à oublier, et un ménage qui ne se ferait
+  jamais sans que rien ne le dise. C'est le même raisonnement qu'en v1.40.0
+  pour les renouvellements d'abonnement ;
+- **la panne du stockage n'annule pas la ligne.** Si le fichier refuse de
+  partir, on log l'incident et on efface la ligne quand même — perdre un
+  fichier qu'on récupérera un jour par une purge de stockage est moins grave
+  que de retenter indéfiniment à chaque passage.
+
+### 22.2 Le CV n'est pas rendu dans le HTML du recruteur
+
+Une page qui rendrait cinquante URL signées les mettrait toutes en clair dans
+la source de la page. Un onglet ouvert pendant qu'un collègue jette un œil, ou
+un incident où le HTML fuit ailleurs, exposerait cinquante CV.
+
+La page candidature affiche `/api/jobs/candidatures/[id]/cv`. Cette route :
+
+- refait la garde — offre appartenant au recruteur connecté ;
+- appelle `signerTelechargement` pour **cinq minutes** ;
+- redirige (`303`) vers l'URL signée, qui n'existe donc que le temps du clic ;
+- rend `404` pour tout refus — non connecté, mauvaise offre, autrui. Dire
+  « accès refusé » apprendrait qu'un CV existe à cet identifiant.
+
+### 22.3 Le magic-byte, pas l'extension
+
+`accept="application/pdf,.pdf"` est un indice pour le navigateur, pas un
+contrôle. Un ZIP renommé `cv.pdf` passe l'attribut, et un lecteur PDF côté
+recruteur qui déroulerait un fichier arbitraire est une surface d'attaque qu'on
+ne veut pas offrir.
+
+La vérification vit dans `depotAcceptable` : les cinq premiers octets doivent
+faire `%PDF-`. C'est le seul contrôle qui ne se contourne pas en renommant.
+
+### 22.4 Le rollback du fichier
+
+L'ordre est : dépôt du fichier au stockage, puis écriture de la ligne. Si la
+ligne échoue sur l'unicité `(jobId, userId)`, le fichier a été déposé — et
+sans rattrapage, il reste orphelin. Le code demande explicitement sa
+suppression après un `P2002`.
+
+Ce cas s'observe : un envoi automatisé qui rejoue, un bouton double-cliqué.
+L'unicité protège la file de relecture ; le rollback protège le stockage.
+
+### 22.5 L'écran recruteur vit dans `/dashboard`, la garde vit dans la requête
+
+`app/dashboard/jobs/[id]/candidatures` charge l'offre avec
+`where: { id, recruiterId: utilisateur.id }`. Un curieux qui devinerait
+l'identifiant d'une offre voisine y répond `404`, sans qu'aucun message ne lui
+apprenne pourquoi.
+
+Le lien vers cet écran est posé sur la fiche publique de l'offre, réservé à
+son propre auteur — le CTA « Postuler » y est remplacé par « Voir les
+candidatures reçues ». Sans ce lien, la seule voie était l'URL directe.
+
+### 22.6 Aucune messagerie ici
+
+Le recruteur voit l'adresse du candidat en clair, avec un `mailto:` préfilé.
+Ouvrir un fil de discussion sur Baobart pour Jobs aurait été un chantier
+autonome, sans rapport avec la candidature elle-même — et sans messagerie
+générale ailleurs sur le site, ce fil aurait vécu seul, sans notifications ni
+historique cherchable. Le courrier est déjà tout cela.
+
+Cette absence est écrite à l'écran, pour que le recruteur ne cherche pas un
+bouton qui n'existe pas.

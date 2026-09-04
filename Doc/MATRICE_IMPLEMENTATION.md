@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **2 septembre 2026** (v1.46.0).
+> Dernière mise à jour : **3 septembre 2026** (v1.47.0).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -116,7 +116,7 @@
 | Admin — journal d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/admin/audit.ts` | ✅ | v1.44.0, 10 tests | La table `AuditLog` existait depuis le début **et n'était jamais écrite** : un écran d'audit aurait affiché une liste vide, ce qui se lit « rien ne s'est passé ». Consigner ne peut jamais faire échouer l'acte |
 | Admin — shell `/admin` et écran d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | — | ❌ | — | `app/dashboard/systeme/` reste un espace d'exploitation technique. Les rôles fonctionnels n'ont pas encore d'écran à eux |
 | CMS — cycle de vie et droits de publication | `SPEC_ADMIN_CMS_BAOBART.md` §18 | `lib/cms/cycle.ts`, `lib/cms/droits.ts` | ✅ | v1.45.0, 24 tests | Une seule machine à états pour les quatre CMS. Le droit se **calcule** — une colonne `peutPublierDesServices` dériverait de l'abonnement réel |
-| CMS — Jobs : dépôt, modération, lecture publique | `SPEC_ADMIN_CMS_BAOBART.md` §6 | `lib/jobs/*`, `app/jobs/*`, `app/dashboard/moderation` | ⚠️ | v1.46.0, 48 tests | Dépôt authentifié, file de relecture, badge « Offre vérifiée », audit, `/jobs` et la fiche. **Manque la candidature (J5)** — la fiche le dit franchement plutôt que d'offrir un bouton mort |
+| CMS — Jobs : dépôt, modération, lecture publique, candidature | `SPEC_ADMIN_CMS_BAOBART.md` §6, §22 | `lib/jobs/*`, `app/jobs/*`, `app/dashboard/jobs/[id]/candidatures`, `app/api/jobs/candidatures/[id]/cv`, `app/api/cron/commandes` | ✅ | v1.47.0, 72 tests | Dépôt authentifié, file de relecture, badge « Offre vérifiée », audit, `/jobs`, fiche, candidature avec CV PDF (magic-bytes), écran candidat `/jobs/mes-propositions`, écran recruteur `/dashboard/jobs/[id]/candidatures`, téléchargement CV par URL signée éphémère, purge du CV à la clôture de l'offre (branchée sur le cron `commandes`) |
 | CMS — services, événements, blog | `SPEC_ADMIN_CMS_BAOBART.md` §§4,5,7 | — | ❌ | — | Rien n'est écrit. Le cycle de vie et la file qu'ils partageront le sont |
 | Profil public d'un créateur | `Baobart Accueil.dc.html` | `app/createurs/*`, `lib/createurs/queries.ts` | ✅ | v1.45.0, 11 tests | Répare un lien mort : on pouvait suivre quelqu'un sans pouvoir le visiter. Deux indicateurs de la maquette — vues de page, délai de réponse — sont absents faute de donnée |
 

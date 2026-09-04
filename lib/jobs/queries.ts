@@ -65,6 +65,14 @@ export interface OffreEnListe {
   nouvelle: boolean;
   verifiee: boolean;
   miseEnAvant: boolean;
+  /**
+   * Combien ont déjà postulé sur Baobart.
+   *
+   * `null` pour une offre externe : la maquette veut ce chiffre pour donner à
+   * l'annonceur une idée de la concurrence, et on ne mesure pas les clics
+   * partis vers un site tiers.
+   */
+  candidatures: number | null;
 }
 
 /**
@@ -121,8 +129,14 @@ export async function listerOffres(input: {
       deadline: true,
       isVerified: true,
       isFeatured: true,
+      // Une offre externe reçoit ses candidatures ailleurs — le compteur ne
+      // veut rien dire pour elle. On le lit ici pour pouvoir rendre `null`
+      // plutôt que zéro, deux choses très différentes.
+      applyMode: true,
     },
   });
+
+  const compte = await compterCandidatures(lignes.map((o) => o.id));
 
   return lignes.map((o) => ({
     id: o.id,
@@ -140,7 +154,25 @@ export async function listerOffres(input: {
     nouvelle: maintenant.getTime() - o.createdAt.getTime() < NOUVEAUTE_MS,
     verifiee: o.isVerified,
     miseEnAvant: o.isFeatured,
+    // Une offre externe reçoit ses candidatures ailleurs — le chiffre ne
+    // veut rien dire ici.
+    candidatures: o.applyMode === "EXTERNE" ? null : compte.get(o.id) ?? 0,
   }));
+}
+
+/**
+ * Le nombre de candidatures pour un lot d'offres.
+ *
+ * Une seule requête, groupée. Sans cela, la liste ferait N+1 lectures.
+ */
+async function compterCandidatures(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const g = await db.jobApplication.groupBy({
+    by: ["jobId"],
+    where: { jobId: { in: ids } },
+    _count: { _all: true },
+  });
+  return new Map(g.map((r) => [r.jobId, r._count._all]));
 }
 
 export interface OffreComplete extends OffreEnListe {
@@ -151,6 +183,12 @@ export interface OffreComplete extends OffreEnListe {
   urlExterne: string | null;
   recruteur: string;
   recruteurUsername: string | null;
+  /**
+   * L'identifiant de qui a publié l'offre — pour que la fiche puisse
+   * reconnaître son propre auteur et lui proposer « voir les candidatures »
+   * plutôt qu'un « postuler » qui refuserait de toute façon.
+   */
+  recruteurId: string;
 }
 
 /**
@@ -187,6 +225,7 @@ export async function offrePublique(
       state: true,
       applyMode: true,
       applyUrl: true,
+      recruiterId: true,
       recruiter: {
         select: {
           email: true,
@@ -224,6 +263,11 @@ export async function offrePublique(
     urlExterne: o.applyUrl,
     recruteur: o.recruiter.profile?.displayName ?? o.recruiter.email,
     recruteurUsername: o.recruiter.profile?.username ?? null,
+    recruteurId: o.recruiterId,
+    candidatures:
+      o.applyMode === "EXTERNE"
+        ? null
+        : await db.jobApplication.count({ where: { jobId: o.id } }),
   };
 }
 

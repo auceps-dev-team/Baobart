@@ -387,17 +387,17 @@ page en construction.
 
 ---
 
-## ⚠️ G. Les offres d'emploi — trois blocs dessinés, absents à dessein
+## ⚠️ G. Les offres d'emploi — deux blocs dessinés, absents à dessein
 
-*Relevé le 2 septembre 2026 en câblant `/jobs` et la fiche mission.*
+*Relevé le 2 septembre 2026 en câblant `/jobs` et la fiche mission ;
+mis à jour le 3 septembre 2026 après J5.*
 
 `Baobart Accueil.dc.html`, sections `PAGE JOBS` et `FICHE MISSION`. Le reste est
 câblé à la lettre ; ce qui suit ne l'est pas, et pour des raisons différentes.
 
 | Bloc dessiné | Pourquoi il n'est pas affiché |
 |---|---|
-| **« N propositions »** sur chaque carte, et la jauge sur la fiche | Les candidatures arrivent avec **J5**. Aucune ne peut exister aujourd'hui : afficher un compteur serait inventer le chiffre sur lequel un candidat décide de postuler ou non |
-| **Bouton « Mes propositions »** | Même raison. Une porte qui ouvre sur le vide coûte plus cher qu'une porte absente |
+| ~~« N propositions » et bouton « Mes propositions »~~ | **Câblés en J5** — le compteur paraît sur les cartes, `/jobs/mes-propositions` existe. La jauge de la fiche reste à décider (le chiffre seul suffit-il ?) |
 | **« Le client répond en moyenne sous 6 h »** | Rien ne le mesure — et cette métrique vient d'être **abandonnée** sur le profil créateur (§F.1). La garder ici rétablirait par la fenêtre ce qu'on a retiré par la porte |
 | **« Livrables attendus »** et **« Profil recherché »** | Ce ne sont pas des champs. La description les porte en prose |
 
