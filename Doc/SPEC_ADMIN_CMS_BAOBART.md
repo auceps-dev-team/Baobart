@@ -913,3 +913,69 @@ historique cherchable. Le courrier est déjà tout cela.
 
 Cette absence est écrite à l'écran, pour que le recruteur ne cherche pas un
 bouton qui n'existe pas.
+
+---
+
+## 23. Services — découpage
+
+*Écrit le 3 septembre 2026, après J5.*
+
+### 23.1 Cinq pas, dans l'ordre de la contrainte
+
+| | Contenu |
+|---|---|
+| **S1** | Schéma : `BadgeCode` étendu (`FREELANCE` / `AGENCE`), `ServiceCategory`, `ServiceOffer` (état `BROUILLON` par défaut, catégorie non nulle) + seed des 5 catégories de la maquette + module pur `lib/services/badges.ts` pour l'exclusivité | ✅ |
+| **S2** | Dépôt d'une offre : formulaire authentifié, garde par `peutPublier("service")`, limitation de débit, état SOUMIS | à faire |
+| **S3** | File de modération : brancher `service` sur la file existante, audit | à faire |
+| **S4** | Lecture publique : `/services`, `/services/[id]`, filtre par catégorie | à faire |
+| **S5** | Bouton « Commander » : sans messagerie ici non plus, `mailto:` sur l'adresse du créateur tant qu'un fil interne n'existe pas ailleurs sur le site | à faire |
+
+### 23.2 L'exclusivité Freelance/Agence vit dans le code, pas dans le schéma
+
+La maquette des badges (E.1) le dit franchement : **Freelance et Agence
+s'excluent**. Un compte qui afficherait les deux dirait à l'acheteur qu'il
+est simultanément indépendant et structure — ce qui n'a pas de sens et brouille
+la lecture au moment précis où elle sert à décider.
+
+Trois façons d'imposer la règle, une seule qui tient :
+
+- **une contrainte SQL** demanderait de connaître les identifiants des badges
+  (`badgeId`), non leur code. Ils sont posés par un seed, et changent d'un
+  environnement à l'autre ; la contrainte n'aurait rien de portable et
+  finirait recopiée dans chaque migration ;
+- **un CHECK sur un futur `Profile.professionalBadge`** ferait tomber le
+  droit sur `Profile`, alors qu'il vit sur `UserBadge` avec `awardedAt` — les
+  deux se désynchroniseraient au premier retrait ;
+- **un module pur** rend une décision : « rien à faire », « retirer l'autre
+  d'abord », ou « refuser, déjà posé ». Il se relit sans base, se teste sans
+  monter et vit à côté de `lib/cms/droits.ts`, qui déjà connaît la
+  sémantique.
+
+`lib/services/badges.ts` porte cette décision. Six tests unitaires en
+dépendent — trois pour la pose, trois pour l'exclusivité.
+
+### 23.3 Une catégorie ne s'énumère pas — elle vit
+
+`ServiceCategory` est une table, pas un enum. Ouvrir « Vidéo » ou
+« Rédaction » demanderait sinon une migration à chaque décision d'ergonomie.
+L'administration ajoute, cache et réordonne sans livraison.
+
+Une catégorie peut être *cachée* (`isActive = false`) sans être supprimée :
+`onDelete: Restrict` sur la relation. Effacer une catégorie qui a servi
+orphelinerait ses offres, et une offre sans catégorie ne se trouve dans aucun
+filtre — donc ne se trouve pas.
+
+Le seed pose les cinq catégories de la maquette. Elles ne sont pas un contrat,
+seulement un point de départ.
+
+### 23.4 Un abonnement suspendu ne casse pas ce qui est vendu
+
+C'est la §18.3 dernière partie, et le schéma la rend possible : rien dans
+`ServiceOffer` ne dépend de l'abonnement du créateur. Le seul filtre à la
+lecture publique est l'état `PUBLIE`, jamais l'abonnement — l'échéance
+retire le droit de publier de *nouvelles* prestations sans effacer celles
+qui existent, ni couper les commandes en cours.
+
+Il n'y aura donc aucun ordonnanceur qui « archive » les services d'un abonné
+en retard. Un tel passage serait exactement le genre de seconde vérité qu'on
+évite partout ailleurs.

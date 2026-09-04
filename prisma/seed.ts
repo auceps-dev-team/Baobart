@@ -140,6 +140,22 @@ async function seedBadges() {
         "Seuil de payouts cumulés atteint. Statut automatique, objectif et transparent.",
       criteria: { cumulativePayoutsXOF: 3_000_000 },
     },
+    {
+      code: "FREELANCE" as const,
+      name: "Freelance",
+      description:
+        "Créateur indépendant. Ouvre le droit de publier sur le CMS Services, sous réserve d'être vendeur et abonné. S'exclut d'Agence.",
+      // Il n'y a pas de formule : c'est un acte d'administration, pas un
+      // calcul. Le champ `criteria` porte la règle plutôt que des chiffres.
+      criteria: { attribution: "manuelle par l'administration", exclusif: ["AGENCE"] },
+    },
+    {
+      code: "AGENCE" as const,
+      name: "Agence",
+      description:
+        "Structure de plusieurs personnes. Même règle et même exclusivité que Freelance.",
+      criteria: { attribution: "manuelle par l'administration", exclusif: ["FREELANCE"] },
+    },
   ];
 
   for (const badge of badges) {
@@ -153,13 +169,44 @@ async function seedBadges() {
   return badges.length;
 }
 
+/**
+ * Les catégories initiales du CMS Services, telles que la maquette les fixe.
+ *
+ * Une table plutôt qu'un enum : l'administration en ajoute, en cache et en
+ * réordonne sans livraison. La liste ici est le point de départ ; elle vit
+ * ensuite.
+ *
+ * L'idempotence est portée par le `slug` (unique) : rejouer le seed n'ajoute
+ * rien mais garde à jour le nom et la position.
+ */
+async function seedServiceCategories() {
+  const categories = [
+    { slug: "identite-visuelle", name: "Identité visuelle", position: 10 },
+    { slug: "illustration", name: "Illustration", position: 20 },
+    { slug: "retouche", name: "Retouche", position: 30 },
+    { slug: "motion", name: "Motion", position: 40 },
+    { slug: "mise-en-page", name: "Mise en page", position: 50 },
+  ];
+
+  for (const cat of categories) {
+    await db.serviceCategory.upsert({
+      where: { slug: cat.slug },
+      update: { name: cat.name, position: cat.position },
+      create: cat,
+    });
+  }
+
+  return categories.length;
+}
+
 async function main() {
   const plans = await seedPlans();
   const licenses = await seedLicenseTypes();
   const badges = await seedBadges();
+  const serviceCategories = await seedServiceCategories();
 
   console.log(
-    `Seed terminé : ${plans} plans, ${licenses} types de licence, ${badges} badges.`,
+    `Seed terminé : ${plans} plans, ${licenses} types de licence, ${badges} badges, ${serviceCategories} catégories de service.`,
   );
 }
 
