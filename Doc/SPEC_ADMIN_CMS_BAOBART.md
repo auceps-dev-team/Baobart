@@ -925,7 +925,7 @@ bouton qui n'existe pas.
 | | Contenu |
 |---|---|
 | **S1** | Schéma : `BadgeCode` étendu (`FREELANCE` / `AGENCE`), `ServiceCategory`, `ServiceOffer` (état `BROUILLON` par défaut, catégorie non nulle) + seed des 5 catégories de la maquette + module pur `lib/services/badges.ts` pour l'exclusivité | ✅ |
-| **S2** | Dépôt d'une offre : formulaire authentifié, garde par `peutPublier("service")`, limitation de débit, état SOUMIS | à faire |
+| **S2** | Dépôt d'une offre : formulaire authentifié, garde par `peutPublier("service")`, limitation de débit, état SOUMIS | ✅ |
 | **S3** | File de modération : brancher `service` sur la file existante, audit | à faire |
 | **S4** | Lecture publique : `/services`, `/services/[id]`, filtre par catégorie | à faire |
 | **S5** | Bouton « Commander » : sans messagerie ici non plus, `mailto:` sur l'adresse du créateur tant qu'un fil interne n'existe pas ailleurs sur le site | à faire |
@@ -979,3 +979,29 @@ qui existent, ni couper les commandes en cours.
 Il n'y aura donc aucun ordonnanceur qui « archive » les services d'un abonné
 en retard. Un tel passage serait exactement le genre de seconde vérité qu'on
 évite partout ailleurs.
+
+### 23.5 S2 — le dépôt, avec trois portes qui s'ouvrent dans l'ordre
+
+Le pas est plus court que J2, parce que la sémantique est plus simple : ni
+échéance à interpréter à la fin du jour, ni URL externe à filtrer. La
+validation refuse tout ce qui n'est pas un nombre (un « prix à débattre »
+n'existe pas ici) et impose un plancher (`1 000 F` : en dessous, les frais de
+mobile money mangent la prestation) et un plafond symbolique (`5 000 000 F` :
+un zéro de trop se voit).
+
+L'écran fait quelque chose que Jobs ne fait pas : **il annonce le refus
+avant le formulaire**. Trois conditions cumulatives (§18.3) mènent à trois
+chemins de correction distincts — s'abonner, publier une ressource, écrire
+pour le badge. Laisser saisir puis refuser à la validation ferait
+recommencer un créateur qui n'aurait, de toute façon, aucun moyen de
+publier.
+
+`lib/services/qualifications.ts` rassemble en une lecture ce qu'il faut
+savoir pour appeler `peutPublier("service")` : l'état de l'abonnement (par
+`accesOuvert` de Ndank — la même règle qui décide de l'accès au
+téléchargement) et la présence d'un badge Freelance ou Agence. On ne stocke
+pas le verdict : il se recalcule à chaque tentative.
+
+Comme Jobs, le module d'écriture n'accepte pas l'identifiant de l'auteur
+en paramètre : il est lu de la session par l'action. Le recevoir suffirait à
+publier au nom de quelqu'un d'autre.

@@ -98,6 +98,21 @@ export const REGLES = {
   "job.candidature": { quota: 20, fenetreMs: 60 * 60_000 },
 
   /**
+   * Dépôt d'un service. Cinq par heure et par adresse.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * MÊME LOGIQUE QUE `job.depot`, MÊME QUOTA
+   *
+   * Publier un service demande davantage — vendeur, badge Freelance ou Agence,
+   * abonnement — que déposer une offre d'emploi ; la limitation n'est donc
+   * pas la première barrière. Elle protège la file de modération d'un compte
+   * qui, une fois qualifié, publierait cinquante variantes de la même
+   * prestation. Un créateur honnête en publie deux ou trois ; cinq par heure
+   * laisse la porte grande ouverte.
+   */
+  "service.depot": { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
    * Rappel d'opérateur de paiement. Trois cents par minute.
    *
    * Volontairement large : un opérateur qui rattrape un incident peut envoyer
