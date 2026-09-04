@@ -926,7 +926,7 @@ bouton qui n'existe pas.
 |---|---|
 | **S1** | Schéma : `BadgeCode` étendu (`FREELANCE` / `AGENCE`), `ServiceCategory`, `ServiceOffer` (état `BROUILLON` par défaut, catégorie non nulle) + seed des 5 catégories de la maquette + module pur `lib/services/badges.ts` pour l'exclusivité | ✅ |
 | **S2** | Dépôt d'une offre : formulaire authentifié, garde par `peutPublier("service")`, limitation de débit, état SOUMIS | ✅ |
-| **S3** | File de modération : brancher `service` sur la file existante, audit | à faire |
+| **S3** | File de modération : brancher `service` sur la file existante, audit | ✅ |
 | **S4** | Lecture publique : `/services`, `/services/[id]`, filtre par catégorie | à faire |
 | **S5** | Bouton « Commander » : sans messagerie ici non plus, `mailto:` sur l'adresse du créateur tant qu'un fil interne n'existe pas ailleurs sur le site | à faire |
 
@@ -1005,3 +1005,32 @@ pas le verdict : il se recalcule à chaque tentative.
 Comme Jobs, le module d'écriture n'accepte pas l'identifiant de l'auteur
 en paramètre : il est lu de la session par l'action. Le recevoir suffirait à
 publier au nom de quelqu'un d'autre.
+
+### 23.6 S3 — une file, deux sources, aucun bouton en trop
+
+`lib/cms/moderation.ts` lit maintenant `JobPosting` et `ServiceOffer` en
+parallèle, puis mélange et trie par ancienneté avant de tronquer. Le tri à
+la fusion — plutôt qu'un `UNION` SQL — vit dans le code parce que Prisma ne
+sait pas croiser deux tables sans dénaturer le typage, et parce que la file
+reste petite (quelques dizaines de fiches sur les gros jours).
+
+Un modérateur ne travaille pas par type : il ouvre sa file le matin et la
+vide. Le sélecteur en haut de l'écran n'a jamais existé, et ne doit pas
+apparaître — lui demander de visiter deux pages garantit qu'il en
+oubliera une.
+
+**Le badge « vérifiée » n'existe pas pour un service.** Sur Jobs, il
+contrepèse le vecteur d'arnaque des URL externes ; un service n'ouvre pas
+d'URL — la commande passe par un `mailto:`. Ajouter un badge de fiche
+diluerait « Créateur vérifié » qui vit déjà sur le profil. La carte cache
+donc ce bouton pour les services, et le module `lib/services/moderation.ts`
+n'expose pas `marquerVerifiee`.
+
+En revanche, elle affiche la **catégorie, le prix et le délai** : un
+modérateur ne peut pas juger d'un prix aberrant sans le voir. C'est le
+champ `meta` de `ElementAModerer`, propre au type.
+
+L'audit consigne `contenu.approuver` / `contenu.refuser` / `contenu.retirer`
+avec la ressource `service:<id>` — les mêmes actions que pour Jobs, la
+différence de préfixe suffisant à retrouver « tout ce qui a touché ce
+service ».

@@ -8,7 +8,8 @@ import {
   trancherOffre,
   type EtatModeration,
 } from "@/lib/jobs/actions-moderation";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { trancherService } from "@/lib/services/actions-moderation";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 /**
  * Un élément de la file, avec ses trois décisions.
@@ -35,16 +36,23 @@ import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
 export function CarteAModerer({ element }: { element: ElementAModerer }) {
   const [motifOuvert, setMotifOuvert] = useState(false);
 
+  // L'action qui tranche dépend du type. On la choisit une fois, ici — les
+  // trois formulaires en dessous partagent la même signature.
+  const trancher =
+    element.type === "service" ? trancherService : trancherOffre;
+
   const [etatPublier, publier] = useActionState<EtatModeration | null, FormData>(
-    trancherOffre.bind(null, element.id, "publier"),
+    trancher.bind(null, element.id, "publier"),
     null,
   );
   const [etatRefuser, refuser] = useActionState<EtatModeration | null, FormData>(
-    trancherOffre.bind(null, element.id, "refuser"),
+    trancher.bind(null, element.id, "refuser"),
     null,
   );
 
   const erreur = etatPublier?.message ?? etatRefuser?.message ?? null;
+
+  const estService = element.type === "service";
 
   return (
     <article
@@ -62,13 +70,13 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
             padding: "5px 10px",
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
-            background: JAUNE,
+            background: estService ? LAVANDE : JAUNE,
             fontFamily: "var(--font-mono)",
             fontSize: 10,
             fontWeight: 700,
           }}
         >
-          OFFRE D&apos;EMPLOI
+          {estService ? "SERVICE" : "OFFRE D’EMPLOI"}
         </span>
         <h2 style={{ fontSize: 17, fontWeight: 800, margin: 0, flex: "1 1 240px" }}>
           {element.titre}
@@ -78,6 +86,20 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
           {element.soumisLe.toLocaleDateString("fr-FR")}
         </span>
       </div>
+
+      {element.meta ? (
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            fontWeight: 700,
+            opacity: 0.75,
+          }}
+        >
+          {element.meta}
+        </div>
+      ) : null}
 
       <p
         style={{
@@ -161,14 +183,23 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
           {motifOuvert ? "Annuler le refus" : "Refuser…"}
         </button>
 
-        <button
-          type="button"
-          onClick={() => void basculerVerification(element.id, !element.verifie)}
-          style={bouton(element.verifie ? JAUNE : BLANC)}
-          title="Une offre vérifiée est une offre dont on a contrôlé l'entreprise et l'adresse de candidature."
-        >
-          {element.verifie ? "Vérifiée ✓" : "Marquer vérifiée"}
-        </button>
+        {/*
+          Le badge « Offre vérifiée » n'existe que pour Jobs — c'est ce qui
+          contrepèse le vecteur d'arnaque des URL externes. Un service ne
+          porte pas d'URL, la commande passe par un `mailto:` sur l'adresse
+          publique du créateur ; ajouter un badge de fiche diluerait
+          « Créateur vérifié » qui vit déjà sur le profil.
+        */}
+        {estService ? null : (
+          <button
+            type="button"
+            onClick={() => void basculerVerification(element.id, !element.verifie)}
+            style={bouton(element.verifie ? JAUNE : BLANC)}
+            title="Une offre vérifiée est une offre dont on a contrôlé l'entreprise et l'adresse de candidature."
+          >
+            {element.verifie ? "Vérifiée ✓" : "Marquer vérifiée"}
+          </button>
+        )}
       </div>
 
       {motifOuvert ? (
@@ -212,7 +243,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
             className="sticker-press"
             style={{ ...bouton(ORANGE), color: BLANC, marginTop: 10 }}
           >
-            Refuser cette offre
+            {estService ? "Refuser ce service" : "Refuser cette offre"}
           </button>
         </form>
       ) : null}

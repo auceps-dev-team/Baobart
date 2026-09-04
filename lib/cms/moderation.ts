@@ -17,10 +17,10 @@ import type { TypeDeContenu } from "@/lib/cms/droits";
  * et la vide. Lui demander de visiter quatre pages pour savoir s'il lui reste
  * quelque chose garantit qu'il en oubliera une.
  *
- * Aujourd'hui seul Jobs alimente cette file. Services suivra. Blog et
- * événements n'y entreront **jamais** : leur auteur portait déjà le droit de
- * publier (§18.1), et une file où rien n'arrive est un écran qu'on cesse
- * d'ouvrir.
+ * Jobs et Services alimentent cette file, mélangés à l'écran — un modérateur
+ * ne travaille pas par type mais par ancienneté. Blog et événements n'y
+ * entreront **jamais** : leur auteur portait déjà le droit de publier
+ * (§18.1), et une file où rien n'arrive est un écran qu'on cesse d'ouvrir.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * ELLE NE DÉCIDE RIEN
@@ -41,15 +41,23 @@ export interface ElementAModerer {
   /** Depuis quand il attend. C'est ce qui décide de l'ordre. */
   soumisLe: Date;
   /**
-   * L'adresse externe, quand il y en a une.
+   * L'adresse externe, quand il y en a une (Jobs uniquement).
    *
    * ⚠️ Elle est rendue **entière**. Une URL tronquée dans une file de
    * modération est une URL qu'on approuve sans l'avoir lue — et c'est
    * exactement le vecteur d'arnaque qu'on cherche à arrêter.
    */
   urlExterne: string | null;
-  /** Déjà marqué « vérifié » ? Le badge se pose et se retire. */
+  /**
+   * Déjà marqué « vérifié » ? Le badge se pose et se retire (Jobs uniquement).
+   * Toujours `false` pour un service — il n'y a pas de badge de fiche.
+   */
   verifie: boolean;
+  /**
+   * Ce qu'on montre en plus de l'extrait, propre au type. Pour un service :
+   * la catégorie, le prix, le délai — ce dont on ne peut pas juger sans.
+   */
+  meta?: string;
 }
 
 /**
@@ -64,35 +72,84 @@ export interface ElementAModerer {
  * mal servi.
  */
 export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> {
-  const offres = await db.jobPosting.findMany({
-    where: { state: "SOUMIS" },
-    orderBy: { createdAt: "asc" },
-    take: Math.min(limite, 200),
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      applyUrl: true,
-      isVerified: true,
-      createdAt: true,
-      recruiterId: true,
-      recruiter: {
-        select: { email: true, profile: { select: { displayName: true } } },
-      },
-    },
-  });
+  // ── Sélection : on prend deux fois `limite` pour équilibrer la fusion.
+  // Après tri par date, on tronque à `limite`. Doubler évite qu'un afflux
+  // récent d'un type ne masque tout ce qui attend depuis longtemps sur
+  // l'autre.
+  const cap = Math.min(limite, 200);
 
-  return offres.map((o) => ({
-    type: "job" as const,
-    id: o.id,
-    titre: o.title,
-    extrait: o.description.slice(0, 280),
-    auteur: o.recruiter.profile?.displayName ?? o.recruiter.email,
-    auteurId: o.recruiterId,
-    soumisLe: o.createdAt,
-    urlExterne: o.applyUrl,
-    verifie: o.isVerified,
-  }));
+  const [offres, services] = await Promise.all([
+    db.jobPosting.findMany({
+      where: { state: "SOUMIS" },
+      orderBy: { createdAt: "asc" },
+      take: cap,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        applyUrl: true,
+        isVerified: true,
+        createdAt: true,
+        recruiterId: true,
+        recruiter: {
+          select: { email: true, profile: { select: { displayName: true } } },
+        },
+      },
+    }),
+    db.serviceOffer.findMany({
+      where: { state: "SOUMIS" },
+      orderBy: { createdAt: "asc" },
+      take: cap,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        startingPrice: true,
+        currency: true,
+        deliveryDays: true,
+        createdAt: true,
+        creatorId: true,
+        category: { select: { name: true } },
+        creator: {
+          select: { email: true, profile: { select: { displayName: true } } },
+        },
+      },
+    }),
+  ]);
+
+  const elements: ElementAModerer[] = [
+    ...offres.map((o) => ({
+      type: "job" as const,
+      id: o.id,
+      titre: o.title,
+      extrait: o.description.slice(0, 280),
+      auteur: o.recruiter.profile?.displayName ?? o.recruiter.email,
+      auteurId: o.recruiterId,
+      soumisLe: o.createdAt,
+      urlExterne: o.applyUrl,
+      verifie: o.isVerified,
+    })),
+    ...services.map((s) => ({
+      type: "service" as const,
+      id: s.id,
+      titre: s.title,
+      extrait: s.description.slice(0, 280),
+      auteur: s.creator.profile?.displayName ?? s.creator.email,
+      auteurId: s.creatorId,
+      soumisLe: s.createdAt,
+      // Un service ne porte pas d'URL externe : la commande passe par un
+      // `mailto:` sur l'adresse publique du créateur.
+      urlExterne: null,
+      verifie: false,
+      // Ce qui aide à trancher sur un service : catégorie, prix, délai.
+      // Le modérateur ne peut pas juger d'un prix « aberrant » sans le voir.
+      meta: `${s.category.name} · ${s.startingPrice.toLocaleString("fr-FR")} ${s.currency} · ${s.deliveryDays} j`,
+    })),
+  ];
+
+  // Le plus ancien d'abord — l'invariant partagé de la file.
+  elements.sort((a, b) => a.soumisLe.getTime() - b.soumisLe.getTime());
+  return elements.slice(0, cap);
 }
 
 /**
@@ -102,5 +159,9 @@ export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> 
  * descriptions sur chaque page du tableau de bord.
  */
 export async function combienAttendent(): Promise<number> {
-  return db.jobPosting.count({ where: { state: "SOUMIS" } });
+  const [j, s] = await Promise.all([
+    db.jobPosting.count({ where: { state: "SOUMIS" } }),
+    db.serviceOffer.count({ where: { state: "SOUMIS" } }),
+  ]);
+  return j + s;
 }
