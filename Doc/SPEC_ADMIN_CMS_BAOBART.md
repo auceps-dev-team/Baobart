@@ -927,7 +927,7 @@ bouton qui n'existe pas.
 | **S1** | Schéma : `BadgeCode` étendu (`FREELANCE` / `AGENCE`), `ServiceCategory`, `ServiceOffer` (état `BROUILLON` par défaut, catégorie non nulle) + seed des 5 catégories de la maquette + module pur `lib/services/badges.ts` pour l'exclusivité | ✅ |
 | **S2** | Dépôt d'une offre : formulaire authentifié, garde par `peutPublier("service")`, limitation de débit, état SOUMIS | ✅ |
 | **S3** | File de modération : brancher `service` sur la file existante, audit | ✅ |
-| **S4** | Lecture publique : `/services`, `/services/[id]`, filtre par catégorie | à faire |
+| **S4** | Lecture publique : `/services`, `/services/[id]`, filtre par catégorie | ✅ |
 | **S5** | Bouton « Commander » : sans messagerie ici non plus, `mailto:` sur l'adresse du créateur tant qu'un fil interne n'existe pas ailleurs sur le site | à faire |
 
 ### 23.2 L'exclusivité Freelance/Agence vit dans le code, pas dans le schéma
@@ -1034,3 +1034,31 @@ L'audit consigne `contenu.approuver` / `contenu.refuser` / `contenu.retirer`
 avec la ressource `service:<id>` — les mêmes actions que pour Jobs, la
 différence de préfixe suffisant à retrouver « tout ce qui a touché ce
 service ».
+
+### 23.7 S4 — la lecture publique, avec trois blocs de la maquette absents
+
+`/services` et `/services/[id]` sont câblés dans le même esprit que Jobs :
+lecture ouverte à tout le monde, filtre par catégorie via
+`?cat=<slug>` (un slug inconnu ou d'une catégorie retirée retombe sur
+« Tous » — mieux qu'un 404 sur un lien qu'un moteur de recherche a peut-être
+déjà indexé), tri « mise en avant devant, fraîcheur à égalité ».
+
+Ce que la maquette montre et qu'on n'affiche pas :
+
+- **un aperçu visuel par service** — le champ `portfolioMediaIds` existe
+  en base mais reste vide, aucun écran ne le remplit. Un placeholder ferait
+  passer un vrai créateur pour un profil non fini ;
+- **les avis clients et la note moyenne** — le module d'avis n'existe pas
+  encore. `ratingAvg` et `ratingCount` sont sur `ServiceOffer` mais toujours
+  à zéro. Afficher « ★ 0 · 0 avis » découragerait plus qu'il n'informerait ;
+- **le nombre de commandes livrées** — même famille. « 0 commande » fait
+  passer un nouveau créateur pour un amateur sans clients.
+
+Le CTA « Commander ce service » de la maquette est remplacé par un encart
+neutre — S5 le câble sur un `mailto:` vers l'adresse publique du créateur,
+faute de messagerie interne.
+
+Dix tests d'intégration sur les queries : le fait qu'aucun état autre que
+`PUBLIE` ne sort — quel que soit le chemin d'accès — est vérifié pour
+`SOUMIS`, `REFUSE` et `RETIRE`, plutôt que de faire confiance à la clause
+qui apparaît trois fois.
