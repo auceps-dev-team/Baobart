@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
+import { urlDuSite } from "@/lib/config/site";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
+import { urlDeContact } from "@/lib/services/contact";
 import { offrePublique } from "@/lib/services/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE } from "@/lib/systeme/charte";
 
@@ -58,6 +60,17 @@ export default async function FicheServicePage({
   // identifiant se devine mal, mais il se partage : un lien envoyé avant un
   // refus ne doit pas continuer de montrer la fiche.
   if (!offre) notFound();
+
+  // Un créateur ne peut pas se commander lui-même. On cache les CTA plutôt
+  // que d'afficher un `mailto:` vers sa propre boîte.
+  const estMienne = visiteur?.id === offre.createurId;
+
+  const base = urlDuSite() ?? "https://baobart.com";
+  const fiche = {
+    titre: offre.titre,
+    courrielCreateur: offre.createurEmail,
+    urlFiche: `${base.replace(/\/$/, "")}/services/${offre.id}`,
+  };
 
   return (
     <>
@@ -238,26 +251,115 @@ export default async function FicheServicePage({
                   <Fait k="Catégorie" v={offre.categorie.name} />
                 </div>
 
-                {/*
-                  Le CTA « Commander » n'est pas câblé ici — S5 le remplace
-                  par un `mailto:` sur l'adresse publique du créateur.
-                  Aujourd'hui, on indique juste qu'il faudra revenir.
-                */}
-                <div
-                  style={{
-                    marginTop: 18,
-                    padding: 14,
-                    border: CADRE,
-                    borderRadius: 15,
-                    background: BLANC,
-                    textAlign: "center",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Le contact avec le créateur arrive dans le prochain pas.
-                </div>
+                {estMienne ? (
+                  /*
+                    Le créateur qui regarde sa propre fiche : on lui rappelle
+                    que c'est lui qu'on contactera, plutôt que d'offrir un
+                    `mailto:` vers sa propre boîte.
+                  */
+                  <div
+                    style={{
+                      marginTop: 18,
+                      padding: 14,
+                      border: CADRE,
+                      borderRadius: 15,
+                      background: BLANC,
+                      textAlign: "center",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    C&apos;est ta prestation. Les acheteurs t&apos;écriront
+                    directement à ton adresse.
+                  </div>
+                ) : (
+                  <>
+                    {/*
+                      Deux boutons pour deux intentions, exactement comme la
+                      maquette. Un seul bouton unifié obligerait le créateur
+                      à deviner à la lecture.
+
+                      `mailto:` ouvre le client de mail par défaut, sur
+                      chaque plateforme. `rel="noopener"` par principe
+                      malgré le protocole non-http.
+                    */}
+                    <a
+                      href={urlDeContact(fiche, "commander")}
+                      className="sticker-press"
+                      rel="noopener"
+                      style={{
+                        display: "block",
+                        marginTop: 18,
+                        padding: 15,
+                        border: CADRE,
+                        borderRadius: 15,
+                        background: ENCRE,
+                        color: BLANC,
+                        textAlign: "center",
+                        fontSize: 14.5,
+                        fontWeight: 800,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Commander ce service
+                    </a>
+
+                    <a
+                      href={urlDeContact(fiche, "question")}
+                      rel="noopener"
+                      style={{
+                        display: "block",
+                        marginTop: 10,
+                        padding: 13,
+                        border: CADRE,
+                        borderRadius: 15,
+                        background: BLANC,
+                        color: ENCRE,
+                        textAlign: "center",
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Poser une question
+                    </a>
+
+                    {/*
+                      L'adresse en clair, en plus du `mailto:` — pour les
+                      cas où le lien n'ouvre pas le bon client (navigateur
+                      sans association, session distante). Le prix : les
+                      scrapers d'e-mails la trouveront. Le sens d'une fiche
+                      publique est justement de rendre le créateur
+                      joignable.
+                    */}
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10.5,
+                        textAlign: "center",
+                        marginTop: 12,
+                        opacity: 0.75,
+                        wordBreak: "break-all",
+                      }}
+                    >
+                      {offre.createurEmail}
+                    </div>
+
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10.5,
+                        textAlign: "center",
+                        marginTop: 10,
+                        opacity: 0.65,
+                      }}
+                    >
+                      La commande se fait en direct avec{" "}
+                      {offre.createur.split(" ")[0]}.
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

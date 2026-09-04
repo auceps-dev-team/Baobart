@@ -928,7 +928,7 @@ bouton qui n'existe pas.
 | **S2** | Dépôt d'une offre : formulaire authentifié, garde par `peutPublier("service")`, limitation de débit, état SOUMIS | ✅ |
 | **S3** | File de modération : brancher `service` sur la file existante, audit | ✅ |
 | **S4** | Lecture publique : `/services`, `/services/[id]`, filtre par catégorie | ✅ |
-| **S5** | Bouton « Commander » : sans messagerie ici non plus, `mailto:` sur l'adresse du créateur tant qu'un fil interne n'existe pas ailleurs sur le site | à faire |
+| **S5** | Bouton « Commander » : sans messagerie ici non plus, `mailto:` sur l'adresse du créateur tant qu'un fil interne n'existe pas ailleurs sur le site | ✅ |
 
 ### 23.2 L'exclusivité Freelance/Agence vit dans le code, pas dans le schéma
 
@@ -1062,3 +1062,39 @@ Dix tests d'intégration sur les queries : le fait qu'aucun état autre que
 `PUBLIE` ne sort — quel que soit le chemin d'accès — est vérifié pour
 `SOUMIS`, `REFUSE` et `RETIRE`, plutôt que de faire confiance à la clause
 qui apparaît trois fois.
+
+### 23.8 S5 — deux boutons `mailto:`, l'adresse en clair, aucune messagerie
+
+Le CTA « Commander » de la maquette pointe vers un `mailto:` sur l'adresse
+publique du créateur — même arbitrage qu'en §22.6 pour Jobs. Ouvrir un fil
+interne rien que pour Services demanderait un système de notifications, un
+historique cherchable, une modération : le courrier fait déjà tout cela.
+
+Deux boutons plutôt qu'un, exactement comme la maquette :
+
+- **« Commander ce service »** — sujet préfilé « Commande — <titre> »,
+  corps qui rappelle la prestation et l'URL de la fiche ;
+- **« Poser une question »** — même mécanique, sujet « Question — <titre> ».
+
+Les fondre ferait perdre l'intention au premier tri de la boîte du créateur.
+Le module `lib/services/contact.ts` compose l'URL — pur, testable, et son
+échappement fait l'objet de quatre tests unitaires : `&`, `#`, `+`,
+apostrophe, chacun casse le `mailto:` sur au moins un client sans encodage.
+
+**Deux choix d'implémentation à défendre :**
+
+1. `URLSearchParams` remplace les espaces par `+`. Outlook les interprète
+   comme des signes plus littéraux dans le sujet et le corps. On encode
+   donc chaque paramètre à la main avec `encodeURIComponent`, qui produit
+   `%20`.
+2. L'adresse du créateur apparaît en clair sous les boutons, en plus du
+   `mailto:`. Les scrapers d'e-mails la trouveront — c'est le prix d'une
+   fiche publique. La cacher (via image ou obfuscation JS) n'arrête aucun
+   scraper sérieux et rendrait l'adresse invisible aux lecteurs d'écran.
+
+Le créateur qui regarde sa propre fiche voit un rappel au lieu des boutons.
+Un `mailto:` vers sa propre boîte serait une porte qui s'ouvre sur rien.
+
+Le lien « Services » du menu principal était `href: null` — les items
+placés-là parce que la page n'existait pas retrouvent une destination avec
+S4/S5. Rien de plus qu'un point-virgule dans `nav-data.ts`.

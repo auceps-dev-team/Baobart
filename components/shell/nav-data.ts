@@ -55,8 +55,8 @@ export const MENUS: GroupeMenu[] = [
     href: null,
     items: [
       { label: "Créateurs", hint: "Annuaire des membres", glyph: "☺", href: null },
-      { label: "Services", hint: "Prestations des membres", glyph: "✦", href: null },
-      { label: "Jobs", hint: "Missions à saisir", glyph: "▤", href: null },
+      { label: "Services", hint: "Prestations des membres", glyph: "✦", href: "/services" },
+      { label: "Jobs", hint: "Missions à saisir", glyph: "▤", href: "/jobs" },
     ],
   },
   {
