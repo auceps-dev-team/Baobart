@@ -482,6 +482,10 @@ model User {
   // services — les prestations proposées par ce créateur
   servicesProposes ServiceOffer[] @relation("ServicesProposes")
 
+  // événements — ceux qu'on organise, et ceux auxquels on s'inscrit
+  evenementsOrganises   Event[]             @relation("EvenementsOrganises")
+  inscriptionsEvenements EventRegistration[] @relation("InscriptionsEvenements")
+
   // confiance
   riskStateChanges RiskStateChange[]
 
@@ -1785,40 +1789,118 @@ model ServiceOffer {
   @@index([creatorId, createdAt])
 }
 
+/// Un événement — concours, atelier, conférence, exposition.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// DEUX HORLOGES, ET C'EST CE QUE `status` CONFONDAIT
+///
+/// La version précédente portait `status String @default("upcoming")`, une
+/// chaîne libre qui répondait à deux questions sans rapport :
+///
+///   — **l'état éditorial** — ce contenu existe-t-il pour le public ? Il
+///     résulte d'une décision humaine, donc il se range. C'est `state`,
+///     le même `ContentState` que les trois autres CMS ;
+///   — **la phase** — où en est-on du calendrier ? Elle résulte du temps qui
+///     passe, donc elle se **calcule**. Voir `lib/evenements/phases.ts`.
+///
+/// Les tenir dans une colonne rendait l'une des deux fausse dès qu'on touchait
+/// à l'autre — et le défaut `"upcoming"` publiait tout événement créé, avant
+/// même qu'on ait fini de le rédiger.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// ANNULER N'EST PAS RETIRER
+///
+/// `cancelledAt` existe à part de `state`, et la distinction n'est pas
+/// cosmétique : un événement annulé doit **rester visible**. Les inscrits ont
+/// noté la date, prévu un déplacement, peut-être payé un billet — les envoyer
+/// sur une page absente les laisserait chercher.
+///
+/// `RETIRE` est pour ce qui n'aurait pas dû paraître. `cancelledAt` est pour
+/// ce qui n'aura pas lieu, et qui doit le dire.
 model Event {
-  id                String    @id @default(cuid())
-  organizerId       String
-  title             String
-  kind              EventKind
-  startsAt          DateTime
-  endsAt            DateTime
-  location          String?
-  isOnline          Boolean   @default(false)
-  ticketPrice       Int?
-  currency          Currency  @default(XOF)
-  capacity          Int?
-  status            String    @default("upcoming")
-  prizeAmount       Int?
-  jury              Json?
-  participantsCount Int       @default(0)
-  createdAt         DateTime  @default(now())
+  id          String    @id @default(cuid())
+  /// Qui organise. Une relation, non un identifiant nu : sans elle, rien ne
+  /// garantit qu'il désigne un compte, et l'on ne peut pas remonter aux
+  /// événements de quelqu'un qu'on suspend.
+  organizerId String
+  title       String
+  kind        EventKind
+  /// La présentation, en texte. Elle manquait — un événement sans description
+  /// n'est qu'une date et un titre.
+  description String    @db.Text
+  coverUrl    String?
 
+  startsAt DateTime
+  endsAt   DateTime
+  location String?
+  isOnline Boolean  @default(false)
+
+  ticketPrice Int?
+  currency    Currency @default(XOF)
+  /// `null` veut dire « sans plafond », et surtout pas zéro.
+  capacity    Int?
+
+  /// ⚠️ BROUILLON par défaut. La valeur précédente était `"upcoming"` : un
+  /// événement paraissait dès sa création, avant d'être fini de rédiger.
+  state         ContentState @default(BROUILLON)
+  /// Posée quand l'événement est annulé. Il reste visible — voir l'en-tête.
+  cancelledAt   DateTime?
+  /// Pourquoi. Un « annulé » sans raison fait écrire tous les inscrits.
+  cancelReason  String?      @db.Text
+
+  /// Concours : la dotation et le jury.
+  prizeAmount Int?
+  jury        Json?
+
+  /// Compteur dénormalisé, comme partout ailleurs (§3.9-H du plan).
+  participantsCount Int @default(0)
+  /// Place payante (§2.9) : accueil et feed.
+  isFeatured        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizer     User                @relation("EvenementsOrganises", fields: [organizerId], references: [id], onDelete: Cascade)
   registrations EventRegistration[]
 
-  @@index([status, startsAt])
+  /// La requête publique : état, puis chronologie.
+  @@index([state, startsAt])
+  @@index([organizerId, startsAt])
 }
 
+/// Une inscription à un événement.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// SE DÉSINSCRIRE EFFACE LA LIGNE
+///
+/// Il n'y a pas de colonne d'état ici, et c'est délibéré. La version
+/// précédente portait `status String @default("registered")`, qui aurait servi
+/// à marquer une désinscription — sauf que l'unicité `(eventId, userId)`
+/// aurait alors **empêché de se réinscrire**. Quelqu'un qui se désiste puis
+/// change d'avis se serait heurté à sa propre ligne annulée, sans que rien ne
+/// le dise.
+///
+/// La présence de la ligne fait donc foi. Se désinscrire l'efface, et le
+/// compteur suit.
+///
+/// La trace de ce qui a été payé est une autre affaire : un billet remboursé
+/// appartient au registre des paiements, pas à celui des présences.
 model EventRegistration {
   id         String   @id @default(cuid())
   eventId    String
+  /// Toujours un compte : s'inscrire est une action, et une action demande
+  /// d'être inscrit. `Cascade` — sans le compte, l'inscription n'existe plus.
   userId     String
-  status     String   @default("registered")
+  /// Ce qui a été réglé, quand le billet est payant.
   ticketPaid Int?
   createdAt  DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation("InscriptionsEvenements", fields: [userId], references: [id], onDelete: Cascade)
 
+  /// Une inscription par personne et par événement.
   @@unique([eventId, userId])
+  @@index([userId, createdAt])
 }
 
 model Commission {

@@ -1098,3 +1098,102 @@ Un `mailto:` vers sa propre boîte serait une porte qui s'ouvre sur rien.
 Le lien « Services » du menu principal était `href: null` — les items
 placés-là parce que la page n'existait pas retrouvent une destination avec
 S4/S5. Rien de plus qu'un point-virgule dans `nav-data.ts`.
+
+---
+
+## 24. Événements — découpage
+
+*Écrit le 10 septembre 2026, après Services.*
+
+### 24.1 Cinq pas, et un régime différent des deux précédents
+
+Événements n'est **pas** une variante de Jobs ni de Services, et le confondre
+avec eux ferait construire deux écrans inutiles. §18.1 tranche : c'est
+l'administration qui publie, et personne d'autre. Donc **pas de file de
+modération, pas de fil de soumission** — ce qui existe a été publié par
+quelqu'un qui en avait le droit.
+
+Ce qui remplace la modération comme travail principal : **les inscriptions**.
+C'est là que vit la complexité de ce CMS.
+
+| | Contenu |
+|---|---|
+| **E1** | Schéma : `Event` corrigé (relations, `ContentState`, annulation séparée), `EventRegistration` reliée à `User` + module pur `lib/evenements/phases.ts` | ✅ |
+| **E2** | Création et édition par l'administration : formulaire, garde `publier_du_contenu`, brouillon → publié | à faire |
+| **E3** | Lecture publique : `/evenements`, `/evenements/[id]`, filtre par type | à faire |
+| **E4** | Inscription : s'inscrire, se désinscrire, verrou de capacité, une par personne | à faire |
+| **E5** | Gestion des inscrits : liste, export CSV, annulation d'un événement | à faire |
+
+Les **concours** — jury, dotation, saisie des résultats (§5.2) — sortent de ce
+périmètre. Le schéma leur garde `prizeAmount` et `jury` ; les écrans viendront
+quand un premier concours sera réellement prévu, plutôt que d'être devinés.
+
+### 24.2 Deux horloges, et `status` les confondait
+
+C'est le défaut que E1 corrige, et c'est le même que J1 avait trouvé sur
+`JobPosting`. `Event.status` valait `"upcoming"` par défaut — une chaîne
+libre, qui répondait à deux questions sans rapport :
+
+- **l'état éditorial** — ce contenu existe-t-il pour le public ? Il résulte
+  d'une décision humaine, donc il se range. C'est `state`, le même
+  `ContentState` que les trois autres CMS ;
+- **la phase** — où en est-on du calendrier ? Elle résulte du temps qui passe,
+  donc elle se **calcule**, dans `lib/evenements/phases.ts`.
+
+Les tenir dans une colonne rendait l'une des deux fausse dès qu'on touchait à
+l'autre. Et le défaut `"upcoming"` publiait tout événement dès sa création,
+avant même qu'on ait fini de le rédiger.
+
+Un statut rangé aurait aussi demandé un ordonnanceur pour faire passer chaque
+événement de « à venir » à « en cours » à l'heure dite. Le jour où ce passage
+rate son tour, un atelier commencé s'annonce encore à venir — et prend des
+inscriptions pour une salle déjà pleine.
+
+### 24.3 Terminé n'est pas expiré
+
+Jobs fait disparaître une offre périmée : elle n'aide plus personne, et un
+annuaire de fantômes se vide de ses lecteurs. **Un événement passé reste
+consultable** — on vient y lire ce qui s'est produit, les résultats d'un
+concours, la composition du jury.
+
+C'est pourquoi `estPublic` accepte une échéance *facultative* : Jobs la lui
+donne, Événements ne la lui donne jamais.
+
+### 24.4 Annuler n'est pas retirer
+
+`cancelledAt` vit à part de `state`, et la distinction n'est pas cosmétique.
+
+Un événement annulé doit **rester visible**. Les inscrits ont noté la date,
+prévu un déplacement, peut-être payé un billet — les envoyer sur une page
+absente les laisserait chercher. `cancelReason` accompagne, parce qu'un
+« annulé » sans raison fait écrire tous les inscrits un par un.
+
+`RETIRE` reste pour ce qui n'aurait pas dû paraître ; `cancelledAt` pour ce
+qui n'aura pas lieu et qui doit le dire.
+
+### 24.5 On s'inscrit encore pendant, pas après
+
+Le choix mérite d'être écrit parce que l'inverse semble plus naturel : fermer
+les inscriptions au coup d'envoi. Il serait faux pour la moitié du catalogue —
+une exposition court deux semaines, un concours reste ouvert jusqu'à sa
+clôture, un atelier en ligne accepte un retardataire.
+
+C'est donc la **fin** qui ferme. Un organisateur qui veut arrêter plus tôt a
+deux moyens honnêtes : le plafond de capacité, ou l'annulation.
+
+L'ordre des refus suit la même logique qu'ailleurs : ce qui est définitif —
+annulé, terminé — passe devant ce qui peut changer. Et « déjà inscrit » passe
+devant « complet », parce que sur un événement plein les deux sont vrais et
+seul le premier renseigne la personne.
+
+### 24.6 Se désinscrire efface la ligne
+
+`EventRegistration` n'a **pas** de colonne d'état, et c'est délibéré. La
+version précédente portait `status String @default("registered")`, qui aurait
+servi à marquer une désinscription — sauf que l'unicité `(eventId, userId)`
+aurait alors **empêché de se réinscrire**. Quelqu'un qui se désiste puis change
+d'avis se serait heurté à sa propre ligne annulée, sans que rien ne le dise.
+
+La présence de la ligne fait donc foi. La trace de ce qui a été payé est une
+autre affaire : un billet remboursé appartient au registre des paiements, pas
+à celui des présences.

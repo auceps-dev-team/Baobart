@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **3 septembre 2026** (v1.48.0).
+> Dernière mise à jour : **10 septembre 2026** (v1.48.2).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -118,7 +118,8 @@
 | CMS — cycle de vie et droits de publication | `SPEC_ADMIN_CMS_BAOBART.md` §18 | `lib/cms/cycle.ts`, `lib/cms/droits.ts` | ✅ | v1.45.0, 24 tests | Une seule machine à états pour les quatre CMS. Le droit se **calcule** — une colonne `peutPublierDesServices` dériverait de l'abonnement réel |
 | CMS — Jobs : dépôt, modération, lecture publique, candidature | `SPEC_ADMIN_CMS_BAOBART.md` §6, §22 | `lib/jobs/*`, `app/jobs/*`, `app/dashboard/jobs/[id]/candidatures`, `app/api/jobs/candidatures/[id]/cv`, `app/api/cron/commandes` | ✅ | v1.47.0, 72 tests | Dépôt authentifié, file de relecture, badge « Offre vérifiée », audit, `/jobs`, fiche, candidature avec CV PDF (magic-bytes), écran candidat `/jobs/mes-propositions`, écran recruteur `/dashboard/jobs/[id]/candidatures`, téléchargement CV par URL signée éphémère, purge du CV à la clôture de l'offre (branchée sur le cron `commandes`) |
 | CMS — Services : dépôt, modération, lecture publique, contact | `SPEC_ADMIN_CMS_BAOBART.md` §7, §23 | `prisma/schema.prisma`, `lib/services/*`, `lib/cms/moderation.ts`, `components/moderation/carte.tsx`, `components/services/*`, `app/services/*` | ✅ | v1.48.0, 53 tests | S1-S5 complets : schéma+seed, exclusivité Freelance/Agence, dépôt (validation pure + `SOUMIS`), file de modération mixte Jobs+Services, audit `service:<id>`, `/services` et fiche `/services/[id]` avec filtre par catégorie, CTA « Commander » et « Poser une question » en `mailto:` (deux intentions, deux sujets préfilés — encodage manuel plutôt que URLSearchParams pour Outlook) |
-| CMS — événements, blog | `SPEC_ADMIN_CMS_BAOBART.md` §§4,5 | — | ❌ | — | Rien n'est écrit. Le cycle de vie et la file qu'ils partageront le sont |
+| CMS — Événements : schéma et phases | `SPEC_ADMIN_CMS_BAOBART.md` §5, §24 | `prisma/schema.prisma` (Event, EventRegistration), `lib/evenements/phases.ts` | ⚠️ | v1.48.2, 20 tests | E1 : `status` (chaîne libre, défaut `"upcoming"` — publiait tout à la création) remplacé par `state` + phase **calculée** des dates. `organizerId` et `EventRegistration.userId` deviennent des relations. Annuler ≠ retirer : un annulé reste visible, avec sa raison. Pas de file de modération — §18.1, l'administration seule. **Manquent E2 (création), E3 (lecture publique), E4 (inscription), E5 (inscrits + CSV)** |
+| CMS — blog | `SPEC_ADMIN_CMS_BAOBART.md` §4 | — | ❌ | — | Rien n'est écrit. Le cycle de vie qu'il partagera l'est |
 | Profil public d'un créateur | `Baobart Accueil.dc.html` | `app/createurs/*`, `lib/createurs/queries.ts` | ✅ | v1.45.0, 11 tests | Répare un lien mort : on pouvait suivre quelqu'un sans pouvoir le visiter. Deux indicateurs de la maquette — vues de page, délai de réponse — sont absents faute de donnée |
 
 ## 7. Infrastructure & exploitation
