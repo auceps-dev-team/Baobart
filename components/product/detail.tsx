@@ -43,6 +43,67 @@ function formatPoids(octets: number): string {
 }
 
 /**
+ * L'avatar, le nom et la ville du créateur — cliquables vers son profil.
+ *
+ * `minWidth: 0` sur le lien et sur la colonne de texte : sans lui, un nom long
+ * pousse « Suivre » hors de la carte au lieu de se laisser tronquer.
+ */
+function Identite({ auteur }: { auteur: FicheProduit["auteur"] }) {
+  const contenu = (
+    <>
+      <span
+        style={{
+          width: 40,
+          height: 40,
+          flex: "0 0 auto",
+          border: CADRE,
+          borderRadius: 99,
+          background: trameDe(auteur.nom),
+        }}
+      />
+      <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 800 }}>
+          {auteur.nom}
+          {auteur.verifie ? " ✓" : ""}
+        </span>
+        <span
+          style={{
+            display: "block",
+            fontSize: 11.5,
+            fontWeight: 600,
+            opacity: 0.65,
+          }}
+        >
+          {auteur.role}
+        </span>
+      </span>
+    </>
+  );
+
+  const disposition = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flex: "1 1 auto",
+    minWidth: 0,
+  } as const;
+
+  if (!auteur.username) {
+    return <span style={disposition}>{contenu}</span>;
+  }
+
+  return (
+    <Link
+      href={`/@${auteur.username}` as Route}
+      style={{ ...disposition, color: ENCRE }}
+      title={`Voir le profil de ${auteur.nom}`}
+    >
+      {contenu}
+    </Link>
+  );
+}
+
+/**
  * Le bouton de retrait, dans les trois situations possibles.
  *
  * Un bouton grisé sur une ressource qu'on possède, ou actif sur une qu'on n'a
@@ -397,31 +458,20 @@ export function DetailProduit({
               borderTop: CADRE,
             }}
           >
-            <span
-              style={{
-                width: 40,
-                height: 40,
-                border: CADRE,
-                borderRadius: 99,
-                background: trameDe(produit.auteur.nom),
-              }}
-            />
-            <span style={{ flex: "1 1 auto" }}>
-              <span style={{ display: "block", fontSize: 13.5, fontWeight: 800 }}>
-                {produit.auteur.nom}
-                {produit.auteur.verifie ? " ✓" : ""}
-              </span>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  opacity: 0.65,
-                }}
-              >
-                {produit.auteur.role}
-              </span>
-            </span>
+            {/*
+              L'identité mène au profil public — c'était le seul endroit de la
+              fiche où le nom du créateur ne conduisait nulle part, alors que
+              c'est le geste attendu après avoir aimé son travail.
+
+              Le lien enveloppe l'avatar et le nom, jamais « Suivre » : un
+              bouton d'action à l'intérieur d'un lien part sur le profil au
+              lieu de faire ce qu'il annonce.
+
+              Sans `username`, il n'y a pas d'adresse à viser — le profil se
+              sert par `/@…`, et un compte sans profil n'en a pas. On rend
+              alors la même chose, sans lien.
+            */}
+            <Identite auteur={produit.auteur} />
             <BoutonSuivre
               createurId={produit.auteur.id}
               actifInitial={social.suit}

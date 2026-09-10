@@ -4,8 +4,8 @@ import type { Route } from "next";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_MODE, LIBELLE_TYPE, TYPES, type JobType } from "@/lib/jobs/enums";
+import { budget, ilYA } from "@/lib/jobs/format";
 import { joursAvantCloture, listerOffres } from "@/lib/jobs/queries";
-import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE } from "@/lib/systeme/charte";
 
 export const metadata = {
@@ -337,31 +337,8 @@ function Pastille({
   );
 }
 
-/**
- * Le budget, tel qu'on peut l'annoncer.
- *
- * Beaucoup d'offres n'en donnent aucun, et c'est légitime. Écrire « 0 F »
- * plutôt que « non précisé » ferait croire à du travail gratuit.
- */
-export function budget(
-  min: number | null,
-  max: number | null,
-  devise: string,
-): string {
-  const d = devise as Currency;
-  if (min !== null && max !== null && min !== max) {
-    return `${formatMoney(min, d)} – ${formatMoney(max, d)}`;
-  }
-  const seul = min ?? max;
-  return seul === null ? "Budget non précisé" : formatMoney(seul, d);
-}
-
-/** « il y a 3 jours ». Approximatif à dessein : une date exacte n'aide pas ici. */
-export function ilYA(quand: Date, maintenant = new Date()): string {
-  const jours = Math.floor((maintenant.getTime() - quand.getTime()) / 86_400_000);
-  if (jours <= 0) return "aujourd'hui";
-  if (jours === 1) return "hier";
-  if (jours < 30) return `il y a ${jours} jours`;
-  const mois = Math.floor(jours / 30);
-  return `il y a ${mois} mois`;
-}
+/*
+  `budget` et `ilYA` vivaient ici, et la fiche les importait de cette page.
+  Next refuse qu'un `page.tsx` exporte autre chose que ce qu'il reconnaît —
+  la construction échouait. Ils sont dans `lib/jobs/format.ts`.
+*/

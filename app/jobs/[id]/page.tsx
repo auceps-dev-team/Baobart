@@ -6,7 +6,7 @@ import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_MODE, LIBELLE_TYPE } from "@/lib/jobs/enums";
 import { joursAvantCloture, offrePublique } from "@/lib/jobs/queries";
-import { budget, ilYA } from "@/app/jobs/page";
+import { budget, ilYA } from "@/lib/jobs/format";
 import {
   BLANC,
   CADRE,
