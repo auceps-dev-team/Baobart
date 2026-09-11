@@ -2,13 +2,16 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { FileUploader } from "@/components/dashboard/file-uploader";
+import { FormulaireProduit } from "@/components/dashboard/product-form";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { LIBELLE_PAR_FAMILLE } from "@/lib/feed/types";
 import { formatPrice } from "@/lib/i18n/money";
 import { extensionDe, formatPoids } from "@/lib/upload/formats";
 import {
   depublierRessource,
+  modifierRessource,
   publierRessource,
   supprimerRessource,
 } from "@/lib/products/actions";
@@ -92,6 +95,7 @@ export default async function ProduitDuTableauDeBord({
       previewUrl: true,
       previewKind: true,
       tags: { select: { tag: { select: { name: true } } } },
+      licenseType: { select: { code: true } },
       files: {
         where: { deletedAt: null },
         orderBy: { position: "asc" },
@@ -154,6 +158,22 @@ export default async function ProduitDuTableauDeBord({
   const publier = publierRessource.bind(null, produit.id);
   const depublier = depublierRessource.bind(null, produit.id);
   const supprimer = supprimerRessource.bind(null, produit.id);
+  const modifier = modifierRessource.bind(null, produit.id);
+
+  // Ce que le formulaire d'édition affiche au premier rendu. Les champs
+  // parlent la langue de l'écran — « Illustration », pas `ILLUSTRATION` —
+  // et c'est `LIBELLE_PAR_FAMILLE` qui fait la traduction dans ce sens.
+  const depart = {
+    titre: produit.name,
+    famille: produit.family ? (LIBELLE_PAR_FAMILLE[produit.family] ?? "") : "",
+    licence: produit.licenseType?.code ?? "COMMERCIAL",
+    motsCles: produit.tags.map((t) => t.tag.name).join(", "),
+    description: produit.description ?? "",
+    // Un prix nul s'affiche vide : le champ porte déjà la case « gratuite »,
+    // et y écrire « 0 » donnerait deux façons de dire la même chose.
+    prix: produit.price > 0 ? String(produit.price) : "",
+    gratuit: produit.price === 0,
+  };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
@@ -233,14 +253,15 @@ export default async function ProduitDuTableauDeBord({
             gap: 12,
           }}
         >
+          {/*
+            Seulement ce qui ne s'édite pas : ces trois-là se déduisent des
+            fichiers envoyés. Le reste — titre, prix, catégorie, mots-clés,
+            description — vit dans le formulaire juste en dessous, où il se
+            corrige. Les afficher aux deux endroits donnerait deux vérités à
+            tenir, et l'une des deux finirait périmée.
+          */}
           {[
-            ["Prix", formatPrice(produit.price, produit.currency)],
-            ["Catégorie", produit.family ?? "—"],
-            [
-              "Mots-clés",
-              produit.tags.map((t) => t.tag.name).join(", ") || "—",
-            ],
-            ["Description", produit.description ?? "—"],
+            ["Prix affiché", formatPrice(produit.price, produit.currency)],
             ["Fichiers sources", sources],
             ["Dimensions", dimensions],
             ["Poids total", sansFichier ? "—" : formatPoids(poidsTotal)],
@@ -258,6 +279,21 @@ export default async function ProduitDuTableauDeBord({
             </div>
           ))}
         </div>
+
+        <Section
+          titre="Modifier la fiche"
+          aide={
+            "Titre, prix, catégorie, mots-clés, description. L'adresse publique de " +
+            "la ressource ne change pas, même si tu la renommes : elle a peut-être " +
+            "déjà été partagée."
+          }
+        />
+
+        <FormulaireProduit
+          action={modifier}
+          depart={depart}
+          libelleBouton="Enregistrer les modifications"
+        />
 
         <Section
           titre="Fichiers"

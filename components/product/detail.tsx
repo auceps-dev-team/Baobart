@@ -281,6 +281,18 @@ export function DetailProduit({
     ? `center / cover no-repeat url(${produit.coverUrl})`
     : trameDe(produit.id);
 
+  /*
+    Une vidéo ou une nappe sonore sans couverture affichait une trame rayée de
+    440 pixels — alors que son extrait, jouable, attendait plus bas. On
+    montrait donc un carré vide en haut de la fiche et le vrai média en
+    dessous, sous un titre qui n'appelait pas le regard.
+
+    Quand il n'y a pas de couverture mais qu'il y a un extrait, l'extrait
+    PREND la place principale. Et il ne se répète pas plus bas : le même
+    lecteur deux fois donnerait à croire qu'il y a deux médias.
+  */
+  const extraitEnPrincipal = !produit.coverUrl && produit.extrait !== null;
+
   return (
     <div
       style={{
@@ -291,32 +303,83 @@ export function DetailProduit({
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div
-          style={{
-            border: CADRE,
-            borderRadius: 20,
-            boxShadow: `5px 5px 0 ${ENCRE}`,
-            height: 440,
-            display: "grid",
-            placeItems: "center",
-            background: visuel,
-          }}
-        >
-          {produit.coverUrl ? null : (
-            <span
-              style={{
-                padding: "8px 16px",
-                border: `2px solid ${ENCRE}`,
-                borderRadius: 999,
-                background: BLANC,
-                fontFamily: "var(--font-mono)",
-                fontSize: 13,
-              }}
-            >
-              {produit.titre}
-            </span>
-          )}
-        </div>
+        {extraitEnPrincipal && produit.extrait ? (
+          <div
+            style={{
+              border: CADRE,
+              borderRadius: 20,
+              boxShadow: `5px 5px 0 ${ENCRE}`,
+              background: produit.extrait.nature === "video" ? ENCRE : BLANC,
+              padding: produit.extrait.nature === "video" ? 0 : 22,
+              overflow: "hidden",
+              display: "grid",
+              placeItems: "center",
+              minHeight: produit.extrait.nature === "video" ? 0 : 160,
+            }}
+          >
+            {produit.extrait.nature === "video" ? (
+              <video
+                src={produit.extrait.url}
+                controls
+                preload="metadata"
+                style={{
+                  width: "100%",
+                  maxHeight: 440,
+                  display: "block",
+                  background: ENCRE,
+                }}
+              />
+            ) : (
+              <div style={{ width: "100%" }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: ".08em",
+                    opacity: 0.65,
+                    marginBottom: 12,
+                  }}
+                >
+                  Extrait
+                </div>
+                <audio
+                  src={produit.extrait.url}
+                  controls
+                  preload="metadata"
+                  style={{ width: "100%" }}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            style={{
+              border: CADRE,
+              borderRadius: 20,
+              boxShadow: `5px 5px 0 ${ENCRE}`,
+              height: 440,
+              display: "grid",
+              placeItems: "center",
+              background: visuel,
+            }}
+          >
+            {produit.coverUrl ? null : (
+              <span
+                style={{
+                  padding: "8px 16px",
+                  border: `2px solid ${ENCRE}`,
+                  borderRadius: 999,
+                  background: BLANC,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 13,
+                }}
+              >
+                {produit.titre}
+              </span>
+            )}
+          </div>
+        )}
 
         {/*
           L'extrait, quand il existe. Une nappe sonore ou un motion design ne se
@@ -324,7 +387,7 @@ export function DetailProduit({
           `preload="metadata"` — on ne télécharge pas l'extrait de toutes les
           fiches ouvertes, seulement sa durée.
         */}
-        {produit.extrait ? (
+        {produit.extrait && !extraitEnPrincipal ? (
           <div
             style={{
               border: CADRE,

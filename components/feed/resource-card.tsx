@@ -42,6 +42,24 @@ function trameDe(id: string): string {
   return `repeating-linear-gradient(135deg, ${accent} 0 8px, #FFFFFF 8px 18px)`;
 }
 
+/**
+ * Le signe du format, sur une carte qui n'a pas de visuel.
+ *
+ * Une vidéo et une police sans couverture affichaient exactement la même
+ * trame : on ne pouvait pas savoir, avant de cliquer, si l'on regardait un
+ * motion design ou un fichier de fontes. Dire « ▶ » ne remplace pas un
+ * aperçu, mais c'est une information vraie, et elle coûte un caractère.
+ *
+ * On ne met rien sur les familles qui devraient, elles, avoir une image :
+ * une illustration sans visuel est une fiche incomplète, et lui coller un
+ * pictogramme masquerait ce qu'il faut corriger.
+ */
+function glypheDe(famille: string | null): string {
+  if (famille === "Vidéo") return "▶ ";
+  if (famille === "Audio") return "♪ ";
+  return "";
+}
+
 interface ActionsProps {
   taille: number;
   rayon: number;
@@ -222,6 +240,7 @@ export function CarteMosaique(props: CarteProps) {
             textAlign: "center",
           }}
         >
+          {glypheDe(r.famille)}
           {r.title}
         </span>
       </div>
@@ -331,6 +350,7 @@ export function CarteAlaUne(props: CarteProps) {
             fontSize: 12,
           }}
         >
+          {glypheDe(r.famille)}
           {r.title}
         </span>
       </div>

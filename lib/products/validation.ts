@@ -16,6 +16,15 @@ export interface EtatProduit {
   erreur?: string;
   champ?: "titre" | "famille" | "prix" | "description";
   /**
+   * Posé par la modification quand elle a abouti.
+   *
+   * La création n'en a pas besoin : elle redirige vers la fiche, et la
+   * redirection *est* la confirmation. Une modification reste sur place — sans
+   * ce drapeau, l'écran ne bougerait pas et l'on ne saurait pas si le clic a
+   * porté.
+   */
+  ok?: boolean;
+  /**
    * Ce que la personne avait saisi.
    *
    * React 19 **vide les champs non contrôlés** quand une action de formulaire

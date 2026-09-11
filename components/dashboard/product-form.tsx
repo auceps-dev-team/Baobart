@@ -123,12 +123,23 @@ function Champ({
 
 export function FormulaireProduit({
   action,
+  depart,
+  libelleBouton = "Enregistrer le brouillon",
 }: {
   action: (etat: EtatProduit, donnees: FormData) => Promise<EtatProduit>;
+  /**
+   * Valeurs de départ, en correction. Absentes à la création.
+   *
+   * Elles ne servent qu'au premier rendu : dès que le serveur a répondu, c'est
+   * `etat.saisie` qui fait foi — sinon un refus de validation ramènerait les
+   * anciennes valeurs par-dessus ce que la personne vient de corriger.
+   */
+  depart?: EtatProduit["saisie"];
+  libelleBouton?: string;
 }) {
   const [etat, envoyer, enCours] = useActionState(action, {});
-  const saisie = etat.saisie;
-  const [gratuit, setGratuit] = useState(false);
+  const saisie = etat.saisie ?? depart;
+  const [gratuit, setGratuit] = useState(depart?.gratuit ?? false);
 
   // React vide les champs non contrôlés quand l'action se termine. On les
   // repeuple depuis ce que le serveur vient de nous renvoyer, sinon un refus
@@ -287,6 +298,30 @@ export function FormulaireProduit({
         </Champ>
 
         <div style={{ gridColumn: "1 / span 2" }}>
+          {/*
+            La création redirige vers la fiche — la redirection tient lieu de
+            confirmation. La correction reste sur place : sans ce message,
+            rien ne bougerait à l'écran et l'on ne saurait pas si le clic a
+            porté.
+          */}
+          {etat.ok ? (
+            <div
+              role="status"
+              style={{
+                marginBottom: 16,
+                padding: "13px 15px",
+                border: CADRE,
+                borderRadius: 14,
+                background: "#B9E8C0",
+                fontSize: 13,
+                fontWeight: 700,
+                animation: "popin .16s ease-out",
+              }}
+            >
+              Modifications enregistrées.
+            </div>
+          ) : null}
+
           {etat.erreur ? (
             <div
               role="alert"
@@ -330,7 +365,7 @@ export function FormulaireProduit({
                 cursor: enCours ? "wait" : "pointer",
               }}
             >
-              {enCours ? "Enregistrement…" : "Enregistrer le brouillon"}
+              {enCours ? "Enregistrement…" : libelleBouton}
             </button>
             <a
               href="/dashboard"

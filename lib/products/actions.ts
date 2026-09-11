@@ -260,3 +260,135 @@ export async function supprimerRessource(produitId: string): Promise<void> {
   revalidatePath("/dashboard");
   redirect("/dashboard/produits");
 }
+
+/**
+ * Corriger une ressource après coup.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ELLE MANQUAIT, ET C'EST LE MÊME DÉFAUT QUE §21.1
+ *
+ * On pouvait créer, publier, dépublier et supprimer — jamais **modifier**. Une
+ * faute dans un titre ou un prix mal tapé n'avait qu'une issue : supprimer et
+ * tout recommencer, ce qui perd les fichiers déjà envoyés, et se refuse dès
+ * qu'une vente a eu lieu.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE SLUG NE BOUGE PAS, MÊME SI LE TITRE CHANGE
+ *
+ * C'est la décision qui mérite d'être écrite, parce que l'inverse semble plus
+ * propre : une ressource renommée devrait avoir une URL qui lui ressemble.
+ *
+ * Sauf que cette URL est **publique**. Elle a été partagée, mise en favori,
+ * peut-être indexée. La recalculer casserait tous ces liens d'un coup, en
+ * silence, et la personne qui corrige une faute de frappe dans son titre n'a
+ * aucune raison de s'attendre à cela.
+ *
+ * Un slug est une adresse, pas un résumé. Il est choisi une fois.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ON PEUT MODIFIER UNE RESSOURCE EN LIGNE
+ *
+ * Sans la dépublier d'abord : corriger un prix ou une description sur une
+ * fiche publiée est le cas le plus courant, et obliger à la retirer la ferait
+ * disparaître des listes le temps de la correction — pour une virgule.
+ */
+export async function modifierRessource(
+  produitId: string,
+  _precedent: EtatProduit,
+  donnees: FormData,
+): Promise<EtatProduit> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) redirect("/connexion");
+
+  const produit = await ressourceDe(utilisateur.id, produitId);
+  if (!produit) notFound();
+
+  const titre = String(donnees.get("titre") ?? "").trim();
+  const familleLibelle = String(donnees.get("famille") ?? "");
+  const licence = String(donnees.get("licence") ?? "COMMERCIAL");
+  const motsClesBrut = String(donnees.get("motsCles") ?? "");
+  const motsCles = decouperMotsCles(motsClesBrut);
+  const description = String(donnees.get("description") ?? "").trim();
+  const gratuit = donnees.get("gratuit") === "on";
+  const prixBrut = String(donnees.get("prix") ?? "");
+
+  const saisie = {
+    titre,
+    famille: familleLibelle,
+    licence,
+    motsCles: motsClesBrut,
+    description,
+    prix: prixBrut,
+    gratuit,
+  };
+
+  // Les mêmes règles qu'à la création, et pour la même raison : une ressource
+  // corrigée doit rester aussi valable qu'une ressource neuve.
+  if (titre.length < 3) {
+    return { erreur: "Donne un titre d'au moins 3 caractères.", champ: "titre", saisie };
+  }
+
+  const famille =
+    (FILTRES as readonly string[]).includes(familleLibelle) &&
+    familleLibelle !== "Tous"
+      ? familleDepuisLibelle(familleLibelle as Filtre)
+      : null;
+
+  if (!famille) {
+    return { erreur: "Choisis une catégorie.", champ: "famille", saisie };
+  }
+
+  const resultatPrix = prixRetenu(prixBrut, gratuit);
+  if ("erreur" in resultatPrix) {
+    return { erreur: resultatPrix.erreur, champ: "prix", saisie };
+  }
+
+  const typeDeLicence = await db.licenseType.upsert({
+    where: { code: licence as LicenseCode },
+    update: {},
+    create: {
+      code: licence as LicenseCode,
+      title: "Licence",
+      description: "Créée automatiquement au premier dépôt.",
+    },
+    select: { id: true },
+  });
+
+  await db.product.update({
+    where: { id: produit.id },
+    data: {
+      name: titre,
+      description: description.length > 0 ? description : null,
+      family: famille as ProductFamily,
+      price: resultatPrix.prix,
+      licenseTypeId: typeDeLicence.id,
+      // `slug` absent de ce `data` : voir l'en-tête.
+    },
+  });
+
+  // Les mots-clés se remplacent en bloc plutôt que de se réconcilier un par
+  // un : la liste est courte, et un diff introduirait un ordre de suppression
+  // et d'ajout dont personne n'a besoin ici.
+  await db.productTag.deleteMany({ where: { productId: produit.id } });
+  for (const nom of motsCles) {
+    await db.productTag.create({
+      data: {
+        // `product: { connect }` plutôt que `productId` : Prisma refuse de
+        // mêler une clé étrangère brute et une relation imbriquée dans le
+        // même `data`. Le même piège est signalé plus haut, à la création.
+        product: { connect: { id: produit.id } },
+        tag: {
+          connectOrCreate: {
+            where: { slug: slugifier(nom) },
+            create: { slug: slugifier(nom), name: nom },
+          },
+        },
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/produits");
+  revalidatePath(`/dashboard/produits/${produit.id}`);
+
+  return { ok: true, saisie };
+}
