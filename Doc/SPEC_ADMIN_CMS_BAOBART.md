@@ -1119,7 +1119,7 @@ C'est là que vit la complexité de ce CMS.
 | | Contenu |
 |---|---|
 | **E1** | Schéma : `Event` corrigé (relations, `ContentState`, annulation séparée), `EventRegistration` reliée à `User` + module pur `lib/evenements/phases.ts` | ✅ |
-| **E2** | Création et édition par l'administration : formulaire, garde `publier_du_contenu`, brouillon → publié | à faire |
+| **E2** | Création et édition par l’administration : formulaire, garde `publier_du_contenu`, brouillon → publié | ✅ |
 | **E3** | Lecture publique : `/evenements`, `/evenements/[id]`, filtre par type | à faire |
 | **E4** | Inscription : s'inscrire, se désinscrire, verrou de capacité, une par personne | à faire |
 | **E5** | Gestion des inscrits : liste, export CSV, annulation d'un événement | à faire |
@@ -1197,3 +1197,44 @@ d'avis se serait heurté à sa propre ligne annulée, sans que rien ne le dise.
 La présence de la ligne fait donc foi. La trace de ce qui a été payé est une
 autre affaire : un billet remboursé appartient au registre des paiements, pas
 à celui des présences.
+
+### 24.7 E2 — écrire un événement, sans file et sans faire semblant
+
+Trois écrans sous `/dashboard/evenements` : la liste, la création, l'édition.
+Gardés par `publier_du_contenu`, et **pas** par `moderer_le_contenu` — les deux
+métiers sont distincts, et §20.1 raconte ce que coûte de les confondre.
+
+**Le chemin est `BROUILLON → PUBLIE`, directement.** `lib/cms/cycle.ts` le
+prévoit depuis J1 « pour le blog et les événements » : leur auteur porte déjà
+le droit de publier, et lui faire traverser une file l'obligerait à
+s'auto-approuver. `SOUMIS` et `REFUSE` restent donc inatteignables ici — un
+état non atteint ne coûte rien, un état manquant coûte une réécriture.
+
+**La liste montre deux colonnes d'état**, parce qu'il y a deux horloges :
+l'état éditorial et la phase calculée. Les afficher ensemble est le seul moyen
+de voir d'un coup ce qu'on cherche — *un brouillon dont la date approche*.
+
+**Les heures se saisissent en GMT**, et l'écran le dit. C'est exact pour
+Abidjan, Dakar, Bamako, Ouagadougou, Lomé et Accra ; faux d'une heure pour
+Douala. Un champ de fuseau sur `Event` réglerait le cas, mais l'inventer
+aujourd'hui ferait porter un sélecteur à tous les écrans pour une situation
+qui ne s'est pas encore présentée. La règle vit **à un seul endroit** — la
+validation, à la saisie ; la disperser dans chaque écran d'affichage
+garantirait que l'un d'eux l'oublie.
+
+**Le lieu disparaît quand l'événement passe en ligne**, et le champ avec. Le
+garder ferait saisir une adresse que la validation efface — du travail demandé
+puis jeté sans le dire. Inversement, un présentiel sans adresse est refusé :
+c'est la seule chose qui permette de venir.
+
+**La gratuité s'écrit d'une seule façon.** Vide et `0` disent la même chose,
+et la validation range `null` dans les deux cas — pour qu'aucun écran n'ait à
+traiter deux écritures du même fait.
+
+**Un billet payant ferme l'inscription en ligne**, et l'écran d'édition
+l'annonce dès maintenant : l'encaissement des billets n'est pas branché, et
+donner des places sans les faire payer serait pire que ne pas en donner. C'est
+E4 qui portera le refus.
+
+Seize tests d'intégration, dont la course entre deux personnes sur la même
+fiche et le fait qu'une seconde annulation n'écrase pas la première raison.

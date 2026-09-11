@@ -148,6 +148,15 @@ const ADMINISTRATION: EntreeNav[] = [
     pouvoir: "moderer_le_contenu",
   },
   {
+    // Le pouvoir n'est pas `moderer_le_contenu` : les événements ne passent
+    // par aucune file (§18.1), ils sont écrits par qui a le droit de publier.
+    cle: "a_evenements",
+    label: "Événements",
+    glyph: "◈",
+    href: "/dashboard/evenements",
+    pouvoir: "publier_du_contenu",
+  },
+  {
     cle: "a_sys_config",
     pouvoir: "consulter_le_systeme" as const,
     label: "Système · Configuration",
