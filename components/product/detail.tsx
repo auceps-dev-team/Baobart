@@ -137,7 +137,20 @@ function BoutonTelechargement({
           <a
             key={f.id}
             href={`/api/telechargement/${f.id}`}
-            download
+            /*
+              Pas d'attribut `download`, et c'est délibéré.
+
+              La route ne sert jamais le fichier : elle redirige vers une URL
+              signée qui porte déjà `Content-Disposition: attachment` avec le
+              vrai nom. La sauvegarde se déclenche donc toute seule, bien
+              nommée.
+
+              `download` n'ajoutait rien à ce cas — mais il abîmait l'autre :
+              quand la route REFUSE (quota épuisé, commande remboursée), elle
+              répond un message en texte brut. Avec `download`, le navigateur
+              enregistrait ce message comme un fichier « <id>.txt » qu'on ne
+              pouvait ni ouvrir ni comprendre, au lieu de l'afficher.
+            */
             className="sticker-press"
             style={{
               ...base,

@@ -40,6 +40,9 @@ type ProduitFeed = {
   price: number;
   currency: Currency;
   coverUrl: string | null;
+  /** L'extrait public, quand il existe. Sert d'aperçu de repli sur la carte. */
+  previewUrl: string | null;
+  previewKind: string | null;
   downloadsCount: number;
   salesCount: number;
   isStaffPicked: boolean;
@@ -67,6 +70,21 @@ function hauteurPour(id: string): number {
   let somme = 0;
   for (let i = 0; i < id.length; i += 1) somme += id.charCodeAt(i);
   return HAUTEURS[somme % HAUTEURS.length] as number;
+}
+
+/**
+ * L'extrait, quand les deux colonnes sont cohérentes.
+ *
+ * `previewUrl` et `previewKind` sont écrites ensemble, mais rien dans le
+ * schéma ne l'impose : une URL sans nature ne se saurait pas jouer, et une
+ * nature sans URL n'a rien à jouer. On rend `null` plutôt que de deviner.
+ */
+function extraitDe(
+  url: string | null,
+  nature: string | null,
+): { url: string; nature: "audio" | "video" } | null {
+  if (!url || (nature !== "audio" && nature !== "video")) return null;
+  return { url, nature };
 }
 
 function encoderCurseur(item: { createdAt: Date; id: string }): string {
@@ -145,6 +163,8 @@ export async function listerFeed(
       price: true,
       currency: true,
       coverUrl: true,
+      previewUrl: true,
+      previewKind: true,
       downloadsCount: true,
       salesCount: true,
       isStaffPicked: true,
@@ -170,6 +190,8 @@ export async function listerFeed(
       price: p.price,
       currency: p.currency,
       coverUrl: p.coverUrl,
+
+      extrait: extraitDe(p.previewUrl, p.previewKind),
       downloadsCount: p.downloadsCount,
       salesCount: p.salesCount,
       visualHeight: hauteurPour(p.id),
@@ -201,6 +223,8 @@ export async function listerAlaUne(
       price: true,
       currency: true,
       coverUrl: true,
+      previewUrl: true,
+      previewKind: true,
       downloadsCount: true,
       salesCount: true,
       isStaffPicked: true,
@@ -222,6 +246,8 @@ export async function listerAlaUne(
     price: p.price,
     currency: p.currency,
     coverUrl: p.coverUrl,
+
+    extrait: extraitDe(p.previewUrl, p.previewKind),
     downloadsCount: p.downloadsCount,
     salesCount: p.salesCount,
     visualHeight: 280,

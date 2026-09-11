@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import type { CarteRessource } from "@/lib/feed/types";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
@@ -58,6 +58,78 @@ function glypheDe(famille: string | null): string {
   if (famille === "Vidéo") return "▶ ";
   if (famille === "Audio") return "♪ ";
   return "";
+}
+
+/**
+ * L'extrait vidéo, joué au survol, à la place de la trame.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * RIEN NE SE CHARGE AVANT LE SURVOL
+ *
+ * C'est la contrainte qui décide de tout le reste. Une page de feed porte
+ * vingt-quatre cartes ; vingt-quatre vidéos qui se chargent à l'ouverture
+ * coûteraient des dizaines de mégaoctets — sur une connexion mobile ivoirienne,
+ * la page ne s'afficherait jamais.
+ *
+ * `preload="none"` : le navigateur ne demande rien tant qu'on n'a pas appelé
+ * `play()`. La première image apparaît donc au survol, pas avant. C'est un
+ * compromis assumé — la carte au repos reste une trame — mais l'inverse
+ * rendrait le feed inutilisable.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * MUETTE, ET C'EST CE QUI PERMET LA LECTURE AUTOMATIQUE
+ *
+ * Les navigateurs refusent `play()` sur une vidéo sonore que l'internaute n'a
+ * pas explicitement lancée. `muted` lève ce refus — et c'est de toute façon ce
+ * qu'on veut : vingt-quatre cartes qui se mettent à parler au passage de la
+ * souris seraient insupportables. Le son s'écoute sur la fiche.
+ *
+ * `play()` rend une promesse qui **rejette** quand on quitte la carte avant
+ * qu'elle n'aboutisse. On l'avale : ce n'est pas un incident, c'est une souris
+ * qui passe.
+ */
+function ApercuVideo({
+  url,
+  actif,
+  hauteur,
+}: {
+  url: string;
+  actif: boolean;
+  hauteur: number;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+
+    if (actif) {
+      void v.play().catch(() => {});
+    } else {
+      v.pause();
+      // Retour au début : sans cela, la carte reprendrait au milieu au survol
+      // suivant, et l'on ne verrait jamais le début de l'extrait.
+      v.currentTime = 0;
+    }
+  }, [actif]);
+
+  return (
+    <video
+      ref={ref}
+      src={url}
+      muted
+      loop
+      playsInline
+      preload="none"
+      style={{
+        width: "100%",
+        height: hauteur,
+        objectFit: "cover",
+        display: "block",
+        background: "#121212",
+      }}
+    />
+  );
 }
 
 interface ActionsProps {
@@ -195,6 +267,12 @@ export function CarteMosaique(props: CarteProps) {
   const d = decorer(style, r.coverUrl !== null, survolee);
   const prixGratuit = r.price === 0;
 
+  // L'extrait ne remplace que ce qui manque : une couverture choisie par le
+  // créateur passe avant, toujours. On ne joue que la vidéo — un fichier audio
+  // n'a rien à montrer, il garde son « ♪ ».
+  const apercuVideo =
+    !r.coverUrl && r.extrait?.nature === "video" ? r.extrait.url : null;
+
   return (
     <div
       onClick={props.onOpen}
@@ -219,25 +297,39 @@ export function CarteMosaique(props: CarteProps) {
           borderBottom: d.bd,
           display: "grid",
           placeItems: "center",
-          padding: 8,
+          padding: apercuVideo ? 0 : 8,
           height: r.visualHeight,
           position: "relative",
+          overflow: "hidden",
           background: r.coverUrl
             ? `center / cover no-repeat url(${r.coverUrl})`
             : trameDe(r.id),
         }}
       >
+        {apercuVideo ? (
+          <div style={{ position: "absolute", inset: 0 }}>
+            <ApercuVideo
+              url={apercuVideo}
+              actif={survolee}
+              hauteur={r.visualHeight}
+            />
+          </div>
+        ) : null}
+
         {r.isStaffPicked ? <PastilleSelection compacte /> : null}
         <span
           style={{
             padding: "6px 12px",
-            display: d.chipShow,
+            // Le cartouche disparaît pendant la lecture : il masquerait
+            // l'image même qu'on est venu regarder.
+            display: apercuVideo && survolee ? "none" : d.chipShow,
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
             background: "#FFFFFF",
             fontFamily: "var(--font-mono)",
             fontSize: 11,
             textAlign: "center",
+            position: "relative",
           }}
         >
           {glypheDe(r.famille)}
@@ -311,6 +403,10 @@ export function CarteAlaUne(props: CarteProps) {
   const d = decorer(style, r.coverUrl !== null, survolee);
   const prixGratuit = r.price === 0;
 
+  // Même règle que la mosaïque : l'extrait ne comble qu'une couverture absente.
+  const apercuVideo =
+    !r.coverUrl && r.extrait?.nature === "video" ? r.extrait.url : null;
+
   return (
     <div
       onClick={props.onOpen}
@@ -333,21 +429,29 @@ export function CarteAlaUne(props: CarteProps) {
           display: "grid",
           placeItems: "center",
           position: "relative",
+          overflow: "hidden",
           background: r.coverUrl
             ? `center / cover no-repeat url(${r.coverUrl})`
             : trameDe(r.id),
         }}
       >
+        {apercuVideo ? (
+          <div style={{ position: "absolute", inset: 0 }}>
+            <ApercuVideo url={apercuVideo} actif={survolee} hauteur={280} />
+          </div>
+        ) : null}
+
         {r.isStaffPicked ? <PastilleSelection compacte={false} /> : null}
         <span
           style={{
             padding: "7px 14px",
-            display: d.chipShow,
+            display: apercuVideo && survolee ? "none" : d.chipShow,
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
             background: "#FFFFFF",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
+            position: "relative",
           }}
         >
           {glypheDe(r.famille)}

@@ -63,6 +63,14 @@ export interface CarteRessource {
   price: number;
   currency: Currency;
   coverUrl: string | null;
+  /**
+   * L'extrait public, quand la ressource en a un.
+   *
+   * Il sert d'aperçu **de repli** sur la carte : une vidéo sans couverture
+   * montrait une trame rayée, alors qu'elle a de quoi se montrer. Rien n'est
+   * chargé tant qu'on ne survole pas — voir `resource-card.tsx`.
+   */
+  extrait: { url: string; nature: "audio" | "video" } | null;
   /** Compteurs dénormalisés affichés sur la carte — jamais un COUNT() par carte. */
   downloadsCount: number;
   salesCount: number;

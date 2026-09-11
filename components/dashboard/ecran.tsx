@@ -321,11 +321,10 @@ function LigneTableau({ ligne }: { ligne: Ligne }) {
         // Un téléchargement passe par une route d'API, pas par le routeur :
         // `Link` tenterait une navigation client sur une redirection 302.
         ligne.action.telecharger ? (
-          <a
-            href={ligne.action.href}
-            download
-            style={ACTION}
-          >
+          // Sans `download` : l'URL signée porte déjà `Content-Disposition`,
+          // et l'attribut faisait enregistrer les messages de refus comme des
+          // fichiers « .txt » illisibles. Voir `components/product/detail.tsx`.
+          <a href={ligne.action.href} style={ACTION}>
             {ligne.action.label}
           </a>
         ) : (
