@@ -83,7 +83,7 @@
 | Fiche produit + modale interceptée | §0-bis | `app/products/[slug]`, `app/@modal` | ✅ | vérifié navigateur | — |
 | Dépôt/gestion ressource | §0-bis | `app/dashboard/produits` | ✅ | vérifié navigateur | — |
 | Social (likes, follows, commentaires 2 niveaux) | §0-bis | `lib/social/*` | ✅ | 20+27 tests | — |
-| Profil public créateur | §0-bis | — | ❌ | — | Le bouton « Suivre » fonctionne, la page à visiter n'existe pas |
+| Édition du profil créateur | §0-bis | `lib/profil/*`, `components/dashboard/profil-form.tsx`, `app/dashboard/profil` | ✅ | v1.48.9, 19 tests | La vitrine `/createurs/[username]` existait depuis v1.45.0 **sans rien pour la remplir** : les colonnes du schéma étaient vides pour tout le monde et l'écran annonçait « Édition bientôt disponible ». Le nom d'utilisateur est modifiable — contrairement au slug d'un produit — parce qu'il désigne une personne, pas une chose ; l'écran prévient que l'ancienne adresse cessera de répondre. Avatar et bannière restent à faire (envoi de fichier) |
 | Staff Picked (sélection éditoriale) | §3.10-A | — | ❌ | — | Porte d'entrée pour créateurs sans vente — pas encore de solution au démarrage à froid |
 | Affiliation (peer 30j + ambassadeurs 7j) | §3.4-C | — | ❌ | — | — |
 | Wishlists suivables | §3.4-D | — | ❌ | — | — |
