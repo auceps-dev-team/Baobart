@@ -117,3 +117,87 @@ describe("message d'accompagnement", () => {
     );
   });
 });
+
+/**
+ * La section « Plateforme » — et le défaut qu'elle a porté.
+ *
+ * ─────────────────────────────────────────────────────────────────
+ * CE QUE CES TESTS GARDENT
+ *
+ * Le filtre laissait passer toute entrée d'administration qui ne déclarait
+ * pas de pouvoir : l'absence ouvrait au lieu de fermer. « Versements
+ * créateurs » et « Membres » s'affichaient donc à n'importe quel acheteur.
+ *
+ * Les pages étaient gardées — le clic tombait sur un 404 — mais le menu
+ * promettait deux écrans qui n'existaient pas pour cette personne. C'est
+ * précisément ce que le champ `pouvoir` existe pour éviter.
+ *
+ * Le type `EntreeAdmin` rend désormais l'oubli impossible à la compilation.
+ * Ces tests tiennent l'autre bout : que le filtre lise bien le rôle.
+ */
+describe("la section Plateforme", () => {
+  const plateforme = (role: Parameters<typeof navigationPour>[1]) =>
+    navigationPour("BOUTIQUE", role).find((g) => g.titre === "Plateforme");
+
+  it("n'existe pas pour un membre ordinaire", () => {
+    // Le cas qui a échoué : un créateur voyait « Versements créateurs » et
+    // « Membres ». Aucune entrée d'administration ne lui revient.
+    expect(plateforme("MEMBER")).toBeUndefined();
+  });
+
+  it("n'existe pas non plus quand aucun rôle n'est précisé", () => {
+    // Le défaut du paramètre est MEMBER : un appelant qui oublie de passer le
+    // rôle ne doit pas ouvrir le back-office par accident.
+    const groupes = navigationPour("BOUTIQUE");
+    expect(groupes.find((g) => g.titre === "Plateforme")).toBeUndefined();
+  });
+
+  it("ne donne au modérateur que sa file", () => {
+    const cles = plateforme("MODERATOR")?.entrees.map((e) => e.cle) ?? [];
+
+    expect(cles).toContain("a_moderation");
+    // Ni l'argent, ni les membres, ni l'état technique : un modérateur n'a
+    // rien à y faire (§20.1).
+    expect(cles).not.toContain("a_versements");
+    expect(cles).not.toContain("a_membres");
+    expect(cles).not.toContain("a_sys_config");
+  });
+
+  it("ne donne au rédacteur que les événements", () => {
+    const cles = plateforme("CONTENT_MANAGER")?.entrees.map((e) => e.cle) ?? [];
+
+    expect(cles).toEqual(["a_evenements"]);
+  });
+
+  it("ouvre les écrans techniques à l'administrateur", () => {
+    const cles = plateforme("ADMIN")?.entrees.map((e) => e.cle) ?? [];
+
+    for (const attendue of [
+      "a_moderation",
+      "a_evenements",
+      "a_sys_config",
+      "a_versements",
+      "a_membres",
+    ]) {
+      expect(cles).toContain(attendue);
+    }
+  });
+
+  it("accorde chaque entrée au pouvoir que sa page exige", () => {
+    // Les cinq écrans « Système » sont gardés par `exigerAdministrateur`,
+    // c'est-à-dire `consulter_le_systeme`. Un rôle qui ne l'a pas ne doit en
+    // voir aucun — sinon le menu annonce un 404.
+    for (const role of ["MODERATOR", "CONTENT_MANAGER", "SUPPORT"] as const) {
+      const cles = plateforme(role)?.entrees.map((e) => e.cle) ?? [];
+      for (const technique of [
+        "a_sys_config",
+        "a_sys_emails",
+        "a_sys_paiements",
+        "a_versements",
+        "a_membres",
+      ]) {
+        expect(cles).not.toContain(technique);
+      }
+    }
+  });
+});

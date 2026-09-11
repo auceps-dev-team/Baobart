@@ -139,7 +139,30 @@ const RAISON_BOUTIQUE = "Disponible une fois ton premier produit publié.";
  * ici. Une entrée de menu qui mène à une page vide coûte plus cher qu'une
  * entrée absente : elle donne à croire que la fonction existe.
  */
-const ADMINISTRATION: EntreeNav[] = [
+/**
+ * Une entrée d'administration **déclare toujours** son pouvoir.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI CE TYPE EXISTE
+ *
+ * `EntreeNav.pouvoir` est facultatif, parce que les entrées ordinaires — mes
+ * achats, ma boutique — n'en demandent aucun. Le filtre laissait donc passer
+ * toute entrée d'administration qui n'en déclarait pas : **l'absence ouvrait
+ * au lieu de fermer.**
+ *
+ * « Versements créateurs » et « Membres » s'affichaient ainsi à n'importe quel
+ * acheteur. Les pages, elles, étaient bien gardées — le clic tombait sur un
+ * 404. Rien ne fuyait, mais le menu promettait deux écrans qui n'existaient
+ * pas pour cette personne, ce qui est exactement ce que le champ `pouvoir`
+ * existe pour éviter.
+ *
+ * Rendre le champ obligatoire **ici seulement** déplace la garantie du soin
+ * de qui écrit vers le compilateur : une entrée ajoutée sans pouvoir ne
+ * compile plus. C'est la seule forme de vigilance qui ne s'épuise pas.
+ */
+type EntreeAdmin = EntreeNav & { pouvoir: Pouvoir };
+
+const ADMINISTRATION: EntreeAdmin[] = [
   {
     cle: "a_moderation",
     label: "File de modération",
@@ -179,12 +202,17 @@ const ADMINISTRATION: EntreeNav[] = [
   },
   {
     cle: "a_versements",
+    // `consulter_le_systeme`, et pas un pouvoir d'argent : la page est gardée
+    // par `exigerAdministrateur`, qui demande exactement celui-là. Le menu
+    // doit annoncer ce que la page exige, pas ce qu'on aurait aimé.
+    pouvoir: "consulter_le_systeme" as const,
     label: "Versements créateurs",
     glyph: "%",
     href: "/dashboard/systeme/versements",
   },
   {
     cle: "a_membres",
+    pouvoir: "consulter_le_systeme" as const,
     label: "Membres",
     glyph: "☺",
     href: "/dashboard/systeme/membres",
@@ -210,9 +238,11 @@ export function navigationPour(
    */
   role: RolePlateforme = "MEMBER",
 ): Groupe[] {
-  const entreesAdmin = ADMINISTRATION.filter(
-    (e) => e.pouvoir === undefined || peut(role, e.pouvoir),
-  );
+  // Plus de `e.pouvoir === undefined ||` : dans une liste réservée à
+  // l'administration, une entrée sans pouvoir déclaré s'affichait pour tout le
+  // monde. Le type `EntreeAdmin` rend désormais l'oubli impossible, et ce
+  // filtre n'a plus qu'une question à poser.
+  const entreesAdmin = ADMINISTRATION.filter((e) => peut(role, e.pouvoir));
 
   const admin: Groupe[] =
     entreesAdmin.length > 0
