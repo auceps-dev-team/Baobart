@@ -2,10 +2,12 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
+import { BoutonInscription } from "@/components/evenements/bouton-inscription";
 import { CompteARebours } from "@/components/evenements/compte-a-rebours";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_GENRE } from "@/lib/evenements/enums";
+import { estInscrit } from "@/lib/evenements/inscription";
 import { LIBELLE_PHASE, placesRestantes } from "@/lib/evenements/phases";
 import { evenementPublic } from "@/lib/evenements/queries";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
@@ -70,6 +72,15 @@ export default async function FicheEvenementPage({
   const restantes = placesRestantes(e.capacite, e.inscrits);
   const complet = restantes === 0;
   const termine = e.phase === "TERMINE";
+
+  // Seulement pour qui est connecté : un visiteur n'a pas d'inscription à
+  // avoir, et la question ne mérite pas une requête.
+  const inscrit = visiteur ? await estInscrit(e.id, visiteur.id) : false;
+
+  // Un billet payant reste fermé tant que l'encaissement n'est pas branché —
+  // même refus que dans `inscrire`, dit ici plutôt que découvert au clic.
+  const billetPayant = e.prixBillet !== null && e.prixBillet > 0;
+  const inscriptionOuverte = !e.annuleLe && !termine && !billetPayant;
 
   const faits: { k: string; v: string; fond: string }[] = [
     { k: "Type", v: LIBELLE_GENRE[e.genre], fond: LAVANDE },
@@ -340,29 +351,40 @@ export default async function FicheEvenementPage({
                 ) : null}
 
                 <div style={{ marginTop: 18, paddingTop: 16, borderTop: CADRE }}>
-                  <div
-                    style={{
-                      padding: 14,
-                      border: CADRE,
-                      borderRadius: 15,
-                      background: BLANC,
-                      textAlign: "center",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      lineHeight: 1.5,
-                      textWrap: "pretty",
-                    }}
-                  >
-                    {e.annuleLe
-                      ? "Les inscriptions sont closes."
-                      : termine
-                        ? "Cet événement est terminé."
-                        : complet
-                          ? "Toutes les places sont prises."
-                          : "L'inscription en ligne arrive bientôt."}
-                  </div>
+                  {inscriptionOuverte ? (
+                    <BoutonInscription
+                      evenementId={e.id}
+                      inscrit={inscrit}
+                      complet={complet}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        padding: 14,
+                        border: CADRE,
+                        borderRadius: 15,
+                        background: BLANC,
+                        textAlign: "center",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        lineHeight: 1.5,
+                        textWrap: "pretty",
+                      }}
+                    >
+                      {e.annuleLe
+                        ? "Les inscriptions sont closes."
+                        : termine
+                          ? "Cet événement est terminé."
+                          : "Les billets payants ne sont pas encore encaissés en ligne. Écris à l'organisateur."}
+                    </div>
+                  )}
 
-                  {!termine && !e.annuleLe && restantes !== null && restantes > 0 ? (
+                  {/*
+                    Le reste des places n'a de sens que tant qu'on peut les
+                    prendre — et pas quand on est déjà inscrit, où le bouton
+                    dit déjà l'essentiel.
+                  */}
+                  {inscriptionOuverte && !inscrit && restantes !== null && restantes > 0 ? (
                     <div
                       style={{
                         fontFamily: "var(--font-mono)",

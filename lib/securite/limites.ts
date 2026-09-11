@@ -113,6 +113,22 @@ export const REGLES = {
   "service.depot": { quota: 5, fenetreMs: 60 * 60_000 },
 
   /**
+   * Inscription à un événement. Trente par heure et par adresse.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * ELLE NE BORNE PAS L'INSCRIPTION, MAIS L'OSCILLATION
+   *
+   * L'unicité — une inscription par personne et par événement — empêche déjà
+   * de prendre deux places. Ce qu'on borne ici est autre chose : quelqu'un qui
+   * s'inscrit et se désinscrit en boucle ferait osciller le compteur de places
+   * de l'événement, et chaque passage écrit deux fois en base.
+   *
+   * Trente gestes par heure ne gêne personne qui parcourt un calendrier —
+   * même en changeant plusieurs fois d'avis.
+   */
+  "evenement.inscription": { quota: 30, fenetreMs: 60 * 60_000 },
+
+  /**
    * Rappel d'opérateur de paiement. Trois cents par minute.
    *
    * Volontairement large : un opérateur qui rattrape un incident peut envoyer

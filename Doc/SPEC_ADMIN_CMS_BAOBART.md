@@ -1121,7 +1121,7 @@ C'est là que vit la complexité de ce CMS.
 | **E1** | Schéma : `Event` corrigé (relations, `ContentState`, annulation séparée), `EventRegistration` reliée à `User` + module pur `lib/evenements/phases.ts` | ✅ |
 | **E2** | Création et édition par l’administration : formulaire, garde `publier_du_contenu`, brouillon → publié | ✅ |
 | **E3** | Lecture publique : `/evenements`, `/evenements/[id]`, filtre par type | ✅ |
-| **E4** | Inscription : s'inscrire, se désinscrire, verrou de capacité, une par personne | à faire |
+| **E4** | Inscription : s'inscrire, se désinscrire, verrou de capacité, une par personne | ✅ |
 | **E5** | Gestion des inscrits : liste, export CSV, annulation d'un événement | à faire |
 
 Les **concours** — jury, dotation, saisie des résultats (§5.2) — sortent de ce
@@ -1287,3 +1287,75 @@ puisse les corriger.
 
 Le lien « Concours & Événements » du menu principal, jusqu'ici `href: null`,
 retrouve sa destination.
+
+### 24.9 E4 — la dernière place ne se donne pas deux fois
+
+C'est le seul vrai problème de ce pas, et il ne se voit pas en lisant du code
+naïf. Deux personnes ouvrent la fiche au même instant, il reste une place :
+
+```
+A lit participantsCount = 49, capacity = 50  → il reste une place
+B lit participantsCount = 49, capacity = 50  → il reste une place
+A écrit 50, B écrit 50
+```
+
+Deux inscrits pour une place, et le compteur affiche 50 au lieu de 51 : on ne
+s'en aperçoit même pas. **Vérifier avant d'écrire ne suffit jamais** — entre
+la lecture et l'écriture, le monde a changé.
+
+La réservation tient donc en **une seule instruction**, où la condition et
+l'incrément sont indissociables :
+
+```sql
+UPDATE "Event" SET "participantsCount" = "participantsCount" + 1
+WHERE "id" = … AND ("capacity" IS NULL OR "participantsCount" < "capacity")
+```
+
+PostgreSQL sérialise les écritures sur une même ligne : la seconde attend la
+première, relit la valeur à jour, et sa condition devient fausse. Le nombre de
+lignes touchées dit si la place a été prise — zéro signifie « complet », et
+c'est une réponse, pas une supposition.
+
+Deux tests le prouvent, et ils ne pouvaient pas s'écrire contre un faux : il
+faut une vraie ligne PostgreSQL pour que le verrou ait quelque chose à
+verrouiller. Le second lance **dix candidats sur trois places** et vérifie que
+le compteur et le nombre de lignes tombent tous deux sur trois.
+
+### 24.10 On compense plutôt qu'on n'enveloppe
+
+La première version entourait les deux écritures d'un `$transaction`, et
+levait une exception pour dire « c'est complet ». Elle a été retirée après
+l'avoir vue échouer.
+
+Une transaction interactive **retient une connexion du pool** pendant toute sa
+durée, et le seul moyen de l'annuler est d'y lever. Utiliser une exception
+pour un cas parfaitement ordinaire faisait donc tenir des connexions sur le
+flux normal, jusqu'à épuiser le pool sous concurrence : dix tests
+d'intégration sur treize échouaient, non pas sur leurs assertions, mais sur le
+nettoyage qui n'obtenait plus de connexion.
+
+La place se rend désormais par une **écriture de compensation explicite**. Le
+prix est réel et vaut d'être écrit : si le processus meurt entre la
+réservation et l'inscription, une place reste retenue sans occupant. C'est
+rare, sans gravité — une place de trop sur un atelier — et cela se corrige en
+recomptant les lignes. Une connexion épuisée, elle, bloque tout le monde.
+
+### 24.11 Ce que l'inscription refuse, et pourquoi elle le dit avant
+
+Les règles vivent dans `peutSInscrire` (§24.5), pur et éprouvé sans base.
+S'y ajoute un refus que E2 avait annoncé : **un billet payant reste fermé**
+tant que l'encaissement n'est pas branché. Donner des places sans les faire
+payer serait pire que ne pas en donner.
+
+La fiche l'annonce **avant** le clic plutôt que de laisser le bouton refuser :
+un bouton qui ouvre sur un refus vaut moins qu'une phrase qui explique.
+
+**Se désinscrire efface la ligne** et rend la place — c'est ce que l'absence
+de colonne d'état achète (§24.6), et un test vérifie qu'on peut effectivement
+se réinscrire ensuite. Le compteur ne descend jamais sous zéro : un compteur
+désynchronisé rendrait sinon un « -1 inscrit » que la fiche afficherait tel
+quel.
+
+Le bouton de retrait est **distinct** de celui d'inscription, jamais une
+bascule : l'un rend une place, l'autre en prend une, et sur un événement
+complet la place rendue par mégarde est reprise dans la minute.

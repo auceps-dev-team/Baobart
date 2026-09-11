@@ -62,8 +62,19 @@ export default defineConfig({
           // de rien d'utile — aucun de ces tests ne boucle, ils attendent le
           // disque — et un échec aléatoire en intégration continue coûte plus
           // cher que la minute qu'on économise.
-          hookTimeout: 60_000,
-          testTimeout: 60_000,
+          //
+          // Soixante à leur tour dépassées, le 11 septembre 2026. Mesuré ce
+          // jour-là, sur cette machine : le `TRUNCATE` complet prend ~50 s, et
+          // un simple `SELECT 1` lancé par `docker exec` en prend 15 — c'est
+          // Docker Desktop sous Windows qui est lent, pas PostgreSQL et encore
+          // moins le code testé.
+          //
+          // Deux pistes ont été écartées après mesure : `synchronous_commit =
+          // off` ne change rien (le coût est dans la recréation des fichiers,
+          // pas dans le journal), et remplacer `TRUNCATE` par `DELETE`
+          // supposerait des contraintes différables que Prisma ne pose pas.
+          hookTimeout: 150_000,
+          testTimeout: 150_000,
         },
       },
     ],
