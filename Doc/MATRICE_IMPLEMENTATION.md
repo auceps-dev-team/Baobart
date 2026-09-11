@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **11 septembre 2026** (v1.48.3).
+> Dernière mise à jour : **11 septembre 2026** (v1.48.5).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -66,7 +66,7 @@
 |---|---|---|---|---|---|
 | Inscription/connexion/sessions | §0-bis | `lib/auth/*` | ✅ | 20 tests | — |
 | Rôles progressifs (acheteur→atelier→boutique) | §0-bis | `lib/auth/*` | ✅ | 11 tests | — |
-| **Mot de passe oublié** | §0-bis | `lib/auth/actions.ts:203` | ❌ | — | Coquille littérale malgré modèle d'e-mail + pilotes prêts |
+| **Mot de passe oublié** | §0-bis | `lib/auth/actions.ts` (`demanderReinitialisation`, `reinitialiserMotDePasse`), `app/mot-de-passe-oublie`, `app/reinitialiser/[jeton]` | ✅ | v1.48.5 — boucle vérifiée de bout en bout | La ligne annonçait ❌ « coquille littérale » : c'était périmé. Les deux actions, les deux écrans et le modèle de courriel existent. En développement, poser `SMTP_URL` sur un collecteur local (MailHog, Mailpit) — sans lui `EMAIL_DRIVER=smtp` échoue en silence et le lien n'arrive jamais |
 | Trust & suspension de compte | §3.8 | `lib/domain/trust.ts` | ✅ | v1.26.0 | Réactivation produits à la levée et blocage IP non exécutés (journalisés) |
 | Machine à états de risque vendeur | §3.8 | `lib/domain/trust.ts` | ⚠️ | états définis, câblage manuel seulement | Pas de détection automatique (LowBalanceFraudCheck) |
 | 2FA (TOTP + WebAuthn) | §3.6-A | — | ❌ | — | — |

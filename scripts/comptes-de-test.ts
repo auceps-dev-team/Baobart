@@ -276,29 +276,191 @@ async function poser(compte: Compte, empreinte: string) {
   return user.id;
 }
 
-async function main() {
-  refuserSiCeNEstPasDuDeveloppement();
+/**
+ * Efface les quatre comptes, pour refaire l'inscription à la main.
+ *
+ * C'est le mode qui sert le plus : tant que les adresses sont prises,
+ * `/inscription` refuse — et l'on ne peut pas éprouver le parcours qu'on
+ * voulait justement éprouver.
+ *
+ * La cascade emporte profils, produits, badges, abonnements et sessions. Rien
+ * d'autre n'est touché : le contenu de démo, les autres comptes, les
+ * catégories restent en place.
+ */
+async function purger() {
+  const emails = COMPTES.map((c) => c.email);
+  const suite = await db.user.deleteMany({ where: { email: { in: emails } } });
 
+  console.log(`\n  ${suite.count} compte(s) effacé(s).`);
+  console.log("  Les adresses sont libres — /inscription les accepte de nouveau.\n");
+  for (const e of emails) console.log(`    ${e}`);
+  console.log("");
+}
+
+/**
+ * Qualifie un compte **déjà inscrit à la main**.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI CE MODE EXISTE
+ *
+ * S'inscrire donne toujours la même chose : un membre acheteur. C'est
+ * volontaire — aucun écran ne doit permettre de s'élever, et le badge
+ * professionnel s'accorde, il ne se déclare pas (§18.3).
+ *
+ * Mais du coup, quelqu'un qui vient de tester le formulaire d'inscription ne
+ * peut pas enchaîner sur les écrans d'administration ou de services : il lui
+ * manque un rôle, un badge, un abonnement — trois choses qui ne s'obtiennent
+ * que depuis la base.
+ *
+ * Ce mode les pose sur un compte existant, sans toucher à son mot de passe :
+ * celui que la personne a choisi à l'inscription reste le sien.
+ */
+async function qualifier(email: string, profil: string) {
+  const modele = COMPTES.find((c) => c.cle === profil);
+  if (!modele) {
+    console.error(
+      `Profil inconnu : « ${profil} ».\n` +
+        `Attendu : ${COMPTES.map((c) => c.cle).join(", ")}`,
+    );
+    process.exit(1);
+  }
+
+  const existant = await db.user.findUnique({
+    where: { email },
+    select: { id: true, passwordHash: true },
+  });
+
+  if (!existant) {
+    console.error(
+      `Aucun compte à l'adresse « ${email} ».\n` +
+        `Inscris-toi d'abord sur /inscription — ce mode qualifie, il ne crée pas.`,
+    );
+    process.exit(1);
+  }
+
+  // Le mot de passe reste celui choisi à l'inscription : on ne le réécrit
+  // pas, sans quoi on renverrait la personne à un secret qu'elle n'a pas
+  // choisi — et l'on perdrait ce qu'on venait d'éprouver.
+  const empreinte = existant.passwordHash ?? (await hacherMotDePasse(MOT_DE_PASSE));
+
+  // On garde l'identité de la personne — nom d'affichage, nom d'utilisateur —
+  // et l'on ne prend du modèle que ce qui ne s'obtient pas par l'inscription.
+  const profilExistant = await db.profile.findUnique({
+    where: { userId: existant.id },
+    select: { username: true, displayName: true, city: true },
+  });
+
+  await poser(
+    {
+      ...modele,
+      email,
+      username: profilExistant?.username ?? modele.username,
+      nom: profilExistant?.displayName ?? modele.nom,
+      ville: profilExistant?.city ?? modele.ville,
+    },
+    empreinte,
+  );
+
+  console.log(`\n  « ${email} » qualifié en « ${profil} ».\n`);
+  console.log(`    rôle      ${modele.role}`);
+  if (modele.produits.length > 0) {
+    console.log(`    produits  ${modele.produits.length} publiés`);
+  }
+  if (modele.badge) console.log(`    badge     ${modele.badge}`);
+  if (modele.abonne) console.log(`    abonné    oui (30 jours devant)`);
+  console.log(`    pour      ${modele.aQuoiCaSert}`);
+  console.log(`\n  Mot de passe inchangé : celui choisi à l'inscription.\n`);
+}
+
+/** Crée les quatre comptes d'un coup, pour aller vite. */
+async function creerLesQuatre() {
   const empreinte = await hacherMotDePasse(MOT_DE_PASSE);
 
-  console.log("\nComptes de test — Baobart\n");
+  console.log("\nComptes de test — Baobart");
+  console.log("═".repeat(64));
+  console.log(`\n  MOT DE PASSE COMMUN AUX QUATRE :  ${MOT_DE_PASSE}\n`);
+  console.log("═".repeat(64));
+  console.log("");
 
   for (const compte of COMPTES) {
     const id = await poser(compte, empreinte);
     console.log(`  ${compte.email}`);
-    console.log(`    rôle      ${compte.role}`);
-    console.log(`    profil    /@${compte.username}`);
+    console.log(`    mot de passe  ${MOT_DE_PASSE}`);
+    console.log(`    rôle          ${compte.role}`);
+    console.log(`    profil        /@${compte.username}`);
     if (compte.produits.length > 0) {
-      console.log(`    produits  ${compte.produits.length} publiés`);
+      console.log(`    produits      ${compte.produits.length} publiés`);
     }
-    if (compte.badge) console.log(`    badge     ${compte.badge}`);
-    if (compte.abonne) console.log(`    abonné    oui (30 jours devant)`);
-    console.log(`    pour      ${compte.aQuoiCaSert}`);
-    console.log(`    id        ${id}`);
+    if (compte.badge) console.log(`    badge         ${compte.badge}`);
+    if (compte.abonne) console.log(`    abonné        oui (30 jours devant)`);
+    console.log(`    pour          ${compte.aQuoiCaSert}`);
+    console.log(`    id            ${id}`);
     console.log("");
   }
 
-  console.log(`  Mot de passe commun : ${MOT_DE_PASSE}\n`);
+  console.log("  ⚠ Ces comptes court-circuitent l'inscription.");
+  console.log("    Pour éprouver le formulaire lui-même :");
+  console.log("      pnpm comptes:test --purger");
+  console.log("    puis inscris-toi sur /inscription, et qualifie ensuite :");
+  console.log("      pnpm comptes:test --qualifier ton@adresse.test agence\n");
+}
+
+function aide() {
+  console.log(`
+Comptes de test — Baobart
+
+  pnpm comptes:test
+      Crée (ou remet en état) les quatre comptes, mot de passe « ${MOT_DE_PASSE} ».
+      Le plus rapide pour parcourir l'application — mais il saute l'inscription.
+
+  pnpm comptes:test --purger
+      Efface les quatre. Les adresses redeviennent libres, et /inscription
+      les accepte. C'est ce qu'il faut pour éprouver le parcours complet :
+      inscription, connexion, mot de passe oublié.
+
+  pnpm comptes:test --qualifier <email> <profil>
+      Pose sur un compte DÉJÀ inscrit ce que l'inscription ne donne pas :
+      rôle, badge professionnel, abonnement, produits publiés.
+      Le mot de passe choisi à l'inscription reste inchangé.
+
+      profils : ${COMPTES.map((c) => c.cle).join(", ")}
+
+Parcours conseillé pour tout éprouver :
+
+  1. pnpm comptes:test --purger
+  2. /inscription  — crée tes quatre comptes à la main, mot de passe au choix
+  3. /connexion    — vérifie que chacun se connecte
+  4. /mot-de-passe-oublie — sur l'un d'eux
+  5. pnpm comptes:test --qualifier admin@… admin
+     pnpm comptes:test --qualifier agence@… agence
+     (le créateur et le client n'ont rien à qualifier si tu leur publies
+      un produit toi-même depuis l'Atelier — sinon « --qualifier … createur »)
+`);
+}
+
+async function main() {
+  refuserSiCeNEstPasDuDeveloppement();
+
+  const args = process.argv.slice(2);
+
+  if (args.includes("--aide") || args.includes("-h")) return aide();
+  if (args.includes("--purger")) return purger();
+
+  const i = args.indexOf("--qualifier");
+  if (i !== -1) {
+    const email = args[i + 1];
+    const profil = args[i + 2];
+    if (!email || !profil) {
+      console.error(
+        "Usage : pnpm comptes:test --qualifier <email> <profil>\n" +
+          `Profils : ${COMPTES.map((c) => c.cle).join(", ")}`,
+      );
+      process.exit(1);
+    }
+    return qualifier(email, profil);
+  }
+
+  return creerLesQuatre();
 }
 
 main()
