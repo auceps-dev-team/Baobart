@@ -169,11 +169,26 @@ export default async function EditerEvenementPage({
                   : `${restantes} place${restantes > 1 ? "s" : ""} restante${restantes > 1 ? "s" : ""}.`}
             </div>
 
-            {/*
-              Les inscriptions elles-mêmes arrivent en E4, leur gestion en E5.
-              On annonce le compteur — qui existe — sans promettre une liste
-              qui n'ouvrirait sur rien.
-            */}
+            <Link
+              href={`/dashboard/evenements/${e.id}/inscrits` as Route}
+              className="sticker-press"
+              style={{
+                display: "block",
+                marginTop: 14,
+                padding: "11px 16px",
+                border: CADRE,
+                borderRadius: 13,
+                background: JAUNE,
+                boxShadow: `3px 3px 0 ${ENCRE}`,
+                textAlign: "center",
+                fontSize: 13,
+                fontWeight: 800,
+                color: ENCRE,
+              }}
+            >
+              Voir les inscrits →
+            </Link>
+
             <div
               style={{
                 fontSize: 12.5,
@@ -185,8 +200,8 @@ export default async function EditerEvenementPage({
                 textWrap: "pretty",
               }}
             >
-              La liste des inscrits et son export arrivent avec les
-              inscriptions.
+              La liste s&apos;exporte en CSV, et permet d&apos;écrire à tout le
+              monde en copie cachée.
             </div>
           </div>
 

@@ -1122,7 +1122,7 @@ C'est là que vit la complexité de ce CMS.
 | **E2** | Création et édition par l’administration : formulaire, garde `publier_du_contenu`, brouillon → publié | ✅ |
 | **E3** | Lecture publique : `/evenements`, `/evenements/[id]`, filtre par type | ✅ |
 | **E4** | Inscription : s'inscrire, se désinscrire, verrou de capacité, une par personne | ✅ |
-| **E5** | Gestion des inscrits : liste, export CSV, annulation d'un événement | à faire |
+| **E5** | Gestion des inscrits : liste, export CSV, annulation d'un événement | ✅ |
 
 Les **concours** — jury, dotation, saisie des résultats (§5.2) — sortent de ce
 périmètre. Le schéma leur garde `prizeAmount` et `jury` ; les écrans viendront
@@ -1359,3 +1359,68 @@ quel.
 Le bouton de retrait est **distinct** de celui d'inscription, jamais une
 bascule : l'un rend une place, l'autre en prend une, et sur un événement
 complet la place rendue par mégarde est reprise dans la minute.
+
+### 24.12 E5 — un écran d'abord, l'export ensuite
+
+La spec (§5.2) demandait « export CSV ». On aurait pu s'arrêter là : un
+bouton, un fichier. L'écran a été mis devant, et le raisonnement mérite
+d'être écrit.
+
+Un CSV ne se consulte qu'en le téléchargeant puis en ouvrant un tableur —
+trois gestes et un ordinateur. Or le moment où cette liste sert vraiment,
+c'est **à l'entrée de l'atelier**, sur un téléphone, quand on coche les
+présents. L'écran est donc la fonction principale ; l'export vient à côté,
+pour ce qu'un tableur fait mieux : trier, croiser, garder.
+
+L'écran affiche le **rang d'arrivée** — il tranche une liste d'attente et ne
+se lit nulle part ailleurs — et un compteur de contrôle : le nombre de lignes
+réelles à côté du compteur dénormalisé. S'ils divergent, on le voit là plutôt
+qu'en cherchant pourquoi un atelier s'annonce complet sans l'être.
+
+Un bouton « écrire à tout le monde » compose un `mailto:` avec les adresses
+**en copie cachée** : sans cela, les inscrits découvriraient les adresses les
+uns des autres.
+
+### 24.13 Un CSV n'est pas un fichier texte inoffensif
+
+C'est le seul vrai risque de ce pas, et il ne vise pas notre serveur.
+
+Excel et LibreOffice **exécutent** toute cellule qui commence par `=`, `+`,
+`-` ou `@`. Or les noms exportés sont saisis par les inscrits eux-mêmes.
+Quelqu'un qui s'inscrit sous le nom
+
+```
+=HYPERLINK("http://malveillant.example","Cliquez")
+```
+
+fait apparaître un lien cliquable dans le fichier que l'organisateur ouvre
+**chez lui**, hors de notre portée. L'attaque porte un nom — *injection de
+formule* — et la parade tient en un caractère : on préfixe d'une apostrophe,
+le tableur affiche alors le texte tel quel.
+
+Deux autres détails décident si le fichier s'ouvre correctement en Côte
+d'Ivoire, et aucun ne se devine :
+
+- **le séparateur est le point-virgule.** Excel configuré en français attend
+  celui-là ; avec une virgule, tout atterrit dans une seule colonne ;
+- **le fichier commence par un BOM UTF-8** — trois octets invisibles. Sans
+  eux, Excel lit en encodage local et « Gnahoré » devient « GnahorÃ© ».
+
+19 tests unitaires sur le module pur, dont la neutralisation des quatre
+amorces et le fait que l'échappement ne se perde pas entre la cellule et le
+fichier assemblé. Vérifié de bout en bout avec un inscrit au nom piégé.
+
+### 24.14 La garde vit sur la route, pas seulement sur l'écran
+
+`/api/evenements/<id>/inscrits` est une adresse devinable. Si seul l'écran
+était gardé, il suffirait de la taper pour obtenir les noms et les adresses de
+tous les inscrits — c'est le défaut dit de **référence directe non protégée**.
+
+La route refait donc la vérification, et répond `404` à tout refus : dire
+« accès refusé » apprendrait qu'il existe bien une liste à cet identifiant.
+
+Le pouvoir exigé est `publier_du_contenu`, et non « être l'organisateur ».
+Les événements sont écrits par l'administration à plusieurs (§18.1), et
+quelqu'un qui peut **annuler** un événement doit pouvoir prévenir ceux qui
+s'y étaient inscrits. Lui refuser la liste qu'il vient de vider n'aurait
+aucun sens.

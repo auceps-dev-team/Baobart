@@ -145,6 +145,71 @@ export async function evenementAEditer(
   };
 }
 
+// ════════════════════════════════════════════════════════════════ les inscrits ══
+
+export interface Inscrit {
+  id: string;
+  nom: string;
+  courriel: string;
+  username: string | null;
+  ville: string | null;
+  billetPaye: number | null;
+  inscritLe: Date;
+}
+
+/**
+ * Qui s'est inscrit — pour l'organisateur, et pour lui seul.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * C'EST UNE LISTE DE DONNÉES PERSONNELLES
+ *
+ * Des noms, des adresses de courriel, et le fait que ces personnes seront
+ * quelque part à une date donnée. Elle ne sort pas de l'écran qui la sert, et
+ * l'export n'est pas public.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE POUVOIR SUFFIT, L'IDENTITÉ DE L'ORGANISATEUR NE DÉCIDE PAS
+ *
+ * On aurait pu exiger `organizerId === moi`, comme Jobs le fait pour les
+ * candidatures. Ce serait faux ici : les événements sont écrits par
+ * l'administration (§18.1), à plusieurs, et quelqu'un qui peut **annuler** un
+ * événement doit pouvoir prévenir ceux qui s'y étaient inscrits. Lui refuser
+ * la liste qu'il vient de vider n'aurait aucun sens.
+ *
+ * La garde est donc `publier_du_contenu` — exactement le pouvoir qui permet
+ * déjà de créer, corriger et annuler — et elle vit dans la page, comme les
+ * autres écrans d'administration.
+ */
+export async function inscritsDe(evenementId: string): Promise<Inscrit[]> {
+  const lignes = await db.eventRegistration.findMany({
+    where: { eventId: evenementId },
+    // Le plus ancien d'abord : c'est l'ordre d'arrivée, et c'est celui qu'on
+    // suit pour une liste d'attente ou un émargement.
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      ticketPaid: true,
+      createdAt: true,
+      user: {
+        select: {
+          email: true,
+          profile: { select: { displayName: true, username: true, city: true } },
+        },
+      },
+    },
+  });
+
+  return lignes.map((l) => ({
+    id: l.id,
+    nom: l.user.profile?.displayName ?? l.user.email,
+    courriel: l.user.email,
+    username: l.user.profile?.username ?? null,
+    ville: l.user.profile?.city ?? null,
+    billetPaye: l.ticketPaid,
+    inscritLe: l.createdAt,
+  }));
+}
+
 // ══════════════════════════════════════════════════════════════ lecture publique ══
 
 export interface EvenementPublic {
