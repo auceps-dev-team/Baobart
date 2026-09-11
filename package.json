@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.48.3",
+  "version": "1.48.4",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -24,6 +24,7 @@
     "admin:promouvoir": "node scripts/promouvoir-admin.mjs",
     "push:cles": "node scripts/cles-push.mjs",
     "versements": "tsx --conditions=react-server --env-file=.env scripts/versements-du-cycle.ts",
+    "comptes:test": "tsx --conditions=react-server --env-file=.env scripts/comptes-de-test.ts",
     "db:e2e:setup": "node scripts/setup-test-db.mjs e2e",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

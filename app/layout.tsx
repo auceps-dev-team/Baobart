@@ -76,6 +76,31 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * `suppressHydrationWarning` SUR `<html>` ET `<body>`, ET NULLE PART AILLEURS
+ *
+ * Les extensions de navigateur écrivent dans le DOM **avant** que React
+ * hydrate. Grammarly pose `data-gr-ext-installed` sur `<body>`, ColorZilla
+ * `cz-shortcut-listen`, d'autres ajoutent une classe sur `<html>`. React
+ * compare alors ce qu'il a rendu au serveur avec un DOM que quelqu'un d'autre
+ * a modifié, et signale une divergence qui ne vient pas de nous.
+ *
+ * Rien ne permet de l'éviter côté serveur : on ne sait pas quelles extensions
+ * tournent chez le visiteur, et on ne peut pas les devancer.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * CE QUE CETTE GARDE NE FAIT PAS
+ *
+ * Elle ne vaut que pour **l'élément qui la porte**, pas pour ses descendants.
+ * Une vraie divergence dans un composant — un `Date.now()`, un format de date
+ * local, une branche `typeof window` — continuera d'être signalée là où elle
+ * se produit.
+ *
+ * C'est pour cela qu'elle est posée ici et **seulement ici** : la mettre plus
+ * bas dans l'arbre éteindrait des avertissements qui, eux, diraient quelque
+ * chose de vrai.
+ */
 export default function RootLayout({
   children,
   modal,
@@ -84,8 +109,9 @@ export default function RootLayout({
     <html
       lang="fr"
       className={`${archivo.variable} ${poppins.variable} ${spaceMono.variable}`}
+      suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         {children}
         {modal}
       </body>
