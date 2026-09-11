@@ -1120,7 +1120,7 @@ C'est là que vit la complexité de ce CMS.
 |---|---|
 | **E1** | Schéma : `Event` corrigé (relations, `ContentState`, annulation séparée), `EventRegistration` reliée à `User` + module pur `lib/evenements/phases.ts` | ✅ |
 | **E2** | Création et édition par l’administration : formulaire, garde `publier_du_contenu`, brouillon → publié | ✅ |
-| **E3** | Lecture publique : `/evenements`, `/evenements/[id]`, filtre par type | à faire |
+| **E3** | Lecture publique : `/evenements`, `/evenements/[id]`, filtre par type | ✅ |
 | **E4** | Inscription : s'inscrire, se désinscrire, verrou de capacité, une par personne | à faire |
 | **E5** | Gestion des inscrits : liste, export CSV, annulation d'un événement | à faire |
 
@@ -1238,3 +1238,52 @@ E4 qui portera le refus.
 
 Seize tests d'intégration, dont la course entre deux personnes sur la même
 fiche et le fait qu'une seconde annulation n'écrase pas la première raison.
+
+### 24.8 E3 — la lecture publique, et le piège du compte à rebours
+
+`/evenements` et `/evenements/[id]`, traduits de `Baobart Accueil.dc.html`,
+section `PAGE CONCOURS & EVENEMENTS`. Lecture ouverte à tout le monde ;
+s'inscrire demandera un compte (E4), la même asymétrie que Jobs.
+
+**Une seule clause de visibilité, et c'est une de moins que Jobs.** L'état
+`PUBLIE`, rien d'autre. Jobs en porte deux — état *et* échéance — parce
+qu'une offre périmée n'aide personne ; un événement passé, si : on vient y
+lire ce qui s'est produit (§24.3). Un annulé reste visible lui aussi, et sa
+fiche annonce l'annulation **avant le titre** — c'est ce qu'un inscrit doit
+lire en premier (§24.4).
+
+**Deux requêtes plutôt qu'un tri unique.** « Les prochains du plus proche au
+plus lointain, puis les passés du plus récent au plus ancien » ne s'exprime
+pas dans un seul `orderBy` : les deux moitiés se trient dans des sens
+opposés autour d'un pivot qui est l'instant présent. Tout rapatrier pour
+trier en mémoire chargerait des années d'archives pour afficher quarante
+lignes.
+
+**Le compte à rebours ne calcule rien au premier rendu.** C'est le piège
+exact que la documentation de React cite — *« Variable input such as
+`Date.now()` which changes each time it's called »* : le serveur rend son
+heure, le navigateur recalcule la sienne, et les deux diffèrent forcément.
+
+On n'y répond pas par `suppressHydrationWarning` : ce serait éteindre
+l'alarme au lieu de traiter la cause. Le premier rendu affiche des tirets —
+identiques des deux côtés, vérifié dans le HTML servi — et le décompte
+n'apparaît qu'après le montage, quand seul le navigateur parle. Il bat à la
+minute et non à la seconde : la maquette n'affiche pas les secondes, et les
+rafraîchir soixante fois par minute se paierait en batterie.
+
+**L'encart « Édition en cours » est élargi aux quatre genres.** La maquette
+le réserve au concours du moment ; s'il fallait un concours pour le remplir,
+la page serait vide toutes les semaines où il n'y en a pas. Un bandeau vide
+vaut moins qu'un bandeau qui annonce l'atelier de jeudi. Le décompte vise le
+début tant que l'événement n'a pas commencé, puis la fin — un compteur figé
+à zéro pendant deux semaines d'exposition ne dirait plus rien.
+
+**Deux blocs dessinés, absents :** le bouton « Proposer un événement » ne
+mène nulle part, parce que publier est réservé à l'administration (§18.1) et
+qu'un bouton qui ouvre sur un refus vaut moins qu'une phrase qui explique ;
+les trois étapes « Comment ça se passe » sont du texte éditorial que rien ne
+porte en base — les écrire en dur les ferait vieillir sans que personne ne
+puisse les corriger.
+
+Le lien « Concours & Événements » du menu principal, jusqu'ici `href: null`,
+retrouve sa destination.

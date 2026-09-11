@@ -37,9 +37,9 @@ export const MENUS: GroupeMenu[] = [
       },
       {
         label: "Concours & Événements",
-        hint: "Édition Wax Futurism en cours",
+        hint: "Ateliers, concours et expositions",
         glyph: "★",
-        href: null,
+        href: "/evenements",
       },
       {
         label: "Sponsoriser",
