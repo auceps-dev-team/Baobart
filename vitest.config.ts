@@ -49,6 +49,12 @@ export default defineConfig({
           name: "integration",
           environment: "node",
           include: ["lib/**/*.integration.test.ts"],
+          // Une fois par passage, dans le processus principal : le verrou qui
+          // interdit deux exécutions concurrentes sur `baobart_test`. Le
+          // mettre dans `setupFiles` le ferait jouer une fois par worker, et
+          // le second worker du MÊME passage se heurterait au premier.
+          globalSetup: ["./vitest.global-setup.ts"],
+          // Une fois par worker : la bascule d'URL et le TRUNCATE entre tests.
           setupFiles: ["./vitest.setup.ts"],
           // Le nettoyage entre deux tests vide une quarantaine de tables, et
           // chaque TRUNCATE force une écriture disque. Sous Docker Windows,

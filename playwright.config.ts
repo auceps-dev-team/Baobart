@@ -24,12 +24,30 @@ if (existsSync(".env")) {
  * ────────────────────────────────────────────────────────────────────────────
  * UNE BASE ET UN PORT À PART
  *
- * `baobart_e2e`, sur le port 3100. Les deux sont délibérés : le navigateur ne
+ * `baobart_e2e`, sur le port 3200. Les deux sont délibérés : le navigateur ne
  * doit pas piétiner la base d'intégration, et le serveur de test ne doit pas
  * entrer en conflit avec le `pnpm dev` que vous avez peut-être déjà ouvert.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI 3200 ET NON 3100, DEPUIS v1.51.0
+ *
+ * Ce fichier disait 3100 « pour ne pas gêner votre `pnpm dev` » — en supposant
+ * que celui-ci tournait sur 3000. Sur cette machine, 3000 est pris par une
+ * autre application : le serveur de développement a migré sur 3100, et
+ * `package.json` l'y fixe désormais.
+ *
+ * Les deux se sont donc retrouvés sur le même port, avec une conséquence
+ * discrète et grave : `reuseExistingServer` aurait fait passer toute la suite
+ * e2e **contre le serveur de développement**. Or c'est exactement ce que le
+ * bloc ci-dessous explique qu'il ne faut pas faire — la redirection après
+ * action serveur n'aboutit pas en mode développement, et deux parcours
+ * justes échouent.
+ *
+ * Un échec qui ne vient pas du code testé est pire qu'une absence de test :
+ * il apprend à ne plus croire la suite.
  */
 
-const PORT = Number(process.env.E2E_PORT ?? 3100);
+const PORT = Number(process.env.E2E_PORT ?? 3200);
 const BASE = `http://127.0.0.1:${PORT}`;
 
 const url =

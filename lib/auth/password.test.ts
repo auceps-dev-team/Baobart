@@ -11,7 +11,25 @@ import {
   manqueAuMotDePasse,
 } from "./strength";
 
-describe("hachage", () => {
+/**
+ * Ces tests sont lents PAR CONSTRUCTION, et c'est la propriété qu'on achète.
+ *
+ * `hacherMotDePasse` demande scrypt avec N = 2^16, soit ~64 Mio et un temps
+ * mesurable à chaque appel : c'est ce qui rend une attaque par dictionnaire
+ * coûteuse. Un seul test en enchaîne quatre.
+ *
+ * Le délai par défaut de Vitest est de 5 s. Il suffit sur une machine au
+ * repos, et il tombe dès qu'un build — ou un autre projet Node — occupe les
+ * cœurs à côté. L'échec obtenu désigne alors du code juste : c'est un faux
+ * positif, et il coûte une heure à qui le prend au sérieux.
+ *
+ * Trente secondes ici plutôt que dans `vitest.config.ts` : le reste de la
+ * suite unitaire doit garder un délai serré, faute de quoi une vraie boucle
+ * infinie mettrait une demi-minute à se signaler.
+ */
+const LENT = { timeout: 30_000 };
+
+describe("hachage", LENT, () => {
   it("accepte le bon mot de passe et refuse les autres", async () => {
     const empreinte = await hacherMotDePasse("motdepasse-solide");
 
@@ -53,7 +71,7 @@ describe("hachage", () => {
   });
 });
 
-describe("vérification — entrées douteuses", () => {
+describe("vérification — entrées douteuses", LENT, () => {
   it("répond faux plutôt que de lever, sur une empreinte illisible", async () => {
     for (const stocke of [
       null,

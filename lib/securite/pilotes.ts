@@ -137,6 +137,34 @@ async function connexion(): Promise<ClientRedis | null> {
   try {
     const { default: Redis } = await import("ioredis");
     client = new Redis(url, {
+      /**
+       * Toutes les clés de ce projet vivent sous un préfixe à lui.
+       *
+       * ═════════════════════════════════════════════════════════════════════
+       * REDIS ÉCOUTE SUR 6379, ET TOUT LE MONDE UTILISE 6379
+       *
+       * Postgres a été décalé sur 5433 précisément pour ça (voir
+       * `docker-compose.yml`). Redis, non — et sur une machine où plusieurs
+       * projets Node tournent ensemble, `redis://localhost:6379` peut très
+       * bien désigner le Redis du voisin : le conteneur de Baobart n'a pas
+       * réussi à prendre le port, l'application se connecte quand même, et
+       * rien ne le signale.
+       *
+       * Une clé comme `lim:connexion:<ip>:<seau>` n'a alors rien qui dise à
+       * qui elle appartient. Le compteur d'un autre projet se lit comme le
+       * nôtre : une limite se déclenche sans raison, un test de limitation
+       * échoue sur du code juste. C'est le faux positif le plus difficile à
+       * diagnostiquer, parce qu'il dépend de ce que fait l'autre projet.
+       *
+       * `keyPrefix` règle le cas sans toucher aux ports ni aux conteneurs :
+       * ioredis l'applique à toutes les commandes à clé, `eval` compris —
+       * il connaît la position des clés grâce à `numkeys`.
+       *
+       * `REDIS_PREFIX` permet de séparer deux instances du même projet, par
+       * exemple une base de test et une base de développement qui
+       * partageraient un Redis.
+       */
+      keyPrefix: process.env.REDIS_PREFIX ?? "baobart:",
       // Ne pas empiler les tentatives : si Redis est absent, on veut le savoir
       // tout de suite et laisser passer, pas retenir la requête.
       maxRetriesPerRequest: 1,

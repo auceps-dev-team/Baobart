@@ -43,6 +43,30 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   /**
+   * Où le build dépose ses artefacts.
+   *
+   * ═══════════════════════════════════════════════════════════════════════
+   * POURQUOI C'EST RÉGLABLE
+   *
+   * `next build` et `next dev` écrivent tous les deux dans `.next`. Lancer un
+   * build pendant qu'un serveur de développement tourne corrompt son cache :
+   * il répond ensuite `Cannot find module './vendor-chunks/…'` avec un 500 là
+   * où l'on attendait un 404. La panne ne ressemble en rien à sa cause, et
+   * elle survit au rechargement de la page.
+   *
+   * `NEXT_DIST_DIR=.next-verif pnpm build` permet de vérifier qu'un build
+   * passe sans toucher au serveur ouvert. Rien n'est changé par défaut : la
+   * production et l'intégration continue écrivent toujours dans `.next`.
+   *
+   * Un détail à ne pas oublier : `next build` **réécrit `tsconfig.json`** pour
+   * y ajouter le chemin de ses types — donc `.next-verif/types/…` quand on
+   * passe par ici. Le fichier est à remettre en l'état après la vérification
+   * (`git checkout -- tsconfig.json`), sinon la ligne part au commit et
+   * désigne un dossier que personne d'autre n'a.
+   */
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+
+  /**
    * L'adresse courte d'un créateur : `/@awa-diallo`.
    *
    * ───────────────────────────────────────────────────────────────────

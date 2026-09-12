@@ -8,6 +8,10 @@
  *
  * Entre chaque test, les tables sont vidées par TRUNCATE — qui ne déclenche pas
  * les triggers ligne à ligne, et contourne donc légitimement l'immuabilité.
+ *
+ * Ce fichier s'exécute **une fois par worker**. Ce qui doit n'arriver qu'une
+ * fois par passage — le verrou qui interdit deux exécutions concurrentes sur
+ * la même base — vit donc dans `vitest.global-setup.ts`, et non ici.
  */
 
 import { existsSync } from "node:fs";

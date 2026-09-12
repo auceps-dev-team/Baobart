@@ -4,6 +4,9 @@ node_modules/
 
 # next
 .next/
+# Build de vérification lancé pendant qu'un `next dev` tourne — voir
+# `distDir` dans next.config.ts.
+.next-verif/
 out/
 next-env.d.ts
 
