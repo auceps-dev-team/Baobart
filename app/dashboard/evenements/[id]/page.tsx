@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { FormulaireEvenement } from "@/components/evenements/formulaire";
 import { GestesEvenement } from "@/components/evenements/gestes";
-import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { LIBELLE_ETAT } from "@/lib/cms/cycle";
+import { accesAuxEvenements, exigerAccesAuxEvenements } from "@/lib/evenements/garde";
 import { LIBELLE_PHASE, phaseDe, placesRestantes } from "@/lib/evenements/phases";
 import { evenementAEditer, pourChampDateHeure } from "@/lib/evenements/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
@@ -19,7 +19,15 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const e = await evenementAEditer(id);
+
+  // Le titre passe par la même portée que la page.
+  //
+  // Sans cela, une agence qui tape l'identifiant d'un concours qu'elle
+  // n'organise pas verrait son titre s'afficher dans l'onglet avant que la
+  // page ne réponde 404 — la fuite la plus discrète qui soit.
+  const acces = await accesAuxEvenements();
+  const e = acces ? await evenementAEditer(id, acces.portee) : null;
+
   return { title: e ? `${e.titre} — Baobart.` : "Événement introuvable — Baobart." };
 }
 
@@ -36,10 +44,12 @@ export default async function EditerEvenementPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const utilisateur = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
   const { id } = await params;
 
-  const e = await evenementAEditer(id);
+  // `null` couvre deux cas — il n'existe pas, ou il n'est pas à toi — et les
+  // confondre est volontaire : 404 dans les deux cas, jamais « pas à toi ».
+  const e = await evenementAEditer(id, portee);
   if (!e) notFound();
 
   const phase = phaseDe(e.debut, e.fin);
@@ -63,7 +73,7 @@ export default async function EditerEvenementPage({
             color: ENCRE,
           }}
         >
-          ← Tous les événements
+          ← {portee.etendue === "TOUT" ? "Tous les événements" : "Mes événements"}
         </Link>
       }
     >
@@ -130,6 +140,7 @@ export default async function EditerEvenementPage({
             evenementId={e.id}
             etat={e.etat}
             annule={e.annuleLe !== null}
+            portee={portee}
           />
 
           <div

@@ -201,3 +201,62 @@ describe("la section Plateforme", () => {
     }
   });
 });
+
+/**
+ * La section Organiser.
+ *
+ * Elle n'existe pas pour un rôle : elle existe pour un **badge**, que rien
+ * dans `RolePlateforme` ne porte (§18.3). D'où le troisième paramètre, et
+ * d'où ces tests — le seul endroit où l'on vérifie qu'un défaut oublié ferme
+ * au lieu d'ouvrir.
+ */
+describe("la section Organiser", () => {
+  const organiser = (
+    etape: Parameters<typeof navigationPour>[0],
+    role: Parameters<typeof navigationPour>[1],
+    extras?: Parameters<typeof navigationPour>[2],
+  ) => navigationPour(etape, role, extras).find((g) => g.titre === "Organiser");
+
+  it("n'existe pas quand le paramètre est omis", () => {
+    // Le défaut ferme. C'est la même règle que pour « Plateforme », et elle a
+    // déjà coûté une correction (v1.48.8).
+    expect(organiser("BOUTIQUE", "MEMBER")).toBeUndefined();
+    expect(organiser("ACHETEUR", "MEMBER")).toBeUndefined();
+  });
+
+  it("apparaît pour une agence badgée, même sans boutique", () => {
+    // Le cas qui justifie un groupe à part : organiser n'est pas vendre. Une
+    // agence qui n'a jamais rien mis en vente reste au palier ACHETEUR.
+    const groupe = organiser("ACHETEUR", "MEMBER", { organisateur: true });
+
+    expect(groupe?.entrees.map((e) => e.cle)).toEqual(["o_evenements"]);
+    expect(groupe?.entrees[0]?.actif).toBe(true);
+    // Jamais grisée : elle ne dépend d'aucune progression de compte.
+    expect(groupe?.entrees[0]?.raisonVerrou).toBeNull();
+  });
+
+  it("laisse la place à « Plateforme » quand la personne administre", () => {
+    // Deux entrées vers le même écran feraient douter qu'il s'agisse du même.
+    // C'est « Plateforme » qui gagne : elle dit en plus qu'on voit tout.
+    const groupes = navigationPour("BOUTIQUE", "CONTENT_MANAGER", {
+      organisateur: true,
+    });
+
+    expect(groupes.find((g) => g.titre === "Organiser")).toBeUndefined();
+    expect(
+      groupes
+        .find((g) => g.titre === "Plateforme")
+        ?.entrees.map((e) => e.cle),
+    ).toContain("a_evenements");
+  });
+
+  it("ne mène jamais ailleurs que sur l'écran des événements", () => {
+    // Le groupe est ouvert à des comptes qui n'administrent rien : une entrée
+    // ajoutée ici sans y penser leur promettrait un écran gardé en 404.
+    const groupe = organiser("BOUTIQUE", "MEMBER", { organisateur: true });
+
+    for (const e of groupe?.entrees ?? []) {
+      expect(e.href).toBe("/dashboard/evenements");
+    }
+  });
+});

@@ -12,11 +12,15 @@ import { peut } from "@/lib/auth/administration";
  * uniformément, et l'on obtient soit un blog que n'importe qui écrit, soit un
  * annuaire d'offres que personne ne peut remplir.
  *
- *   BLOG, ÉVÉNEMENTS   l'administration seule
+ *   BLOG               l'administration seule
+ *   ÉVÉNEMENTS         l'administration, ou une agence badgée et abonnée
  *   JOBS               tout inscrit — lecture publique, action authentifiée
  *   SERVICES           vendeur, abonné, badgé Freelance ou Agence
  *
  * Voir `SPEC_ADMIN_CMS_BAOBART.md` §18, qui arbitre et prime sur les §§4 à 7.
+ *
+ * Les événements ont changé de régime en v1.51.0 : ils étaient rangés avec le
+ * blog, ils ne le sont plus. Le raisonnement est écrit sur leur `case`.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * LE DROIT SE CALCULE, IL NE SE RANGE PAS
@@ -77,10 +81,12 @@ export const MESSAGES: Record<Refus, string> = {
     "Ce contenu est publié par l'équipe Baobart. Écris-nous si tu as quelque chose à proposer.",
   PAS_ENCORE_VENDEUR:
     "Publie d'abord une ressource : on devient vendeur en publiant, pas en le déclarant.",
+  // Le message parle de « publier », pas de « services » : il sert aussi aux
+  // événements depuis v1.51.0, et deux messages jumeaux auraient divergé.
   BADGE_MANQUANT:
-    "Les services sont réservés aux comptes Freelance et Agence. Le badge s'accorde après vérification — écris-nous.",
+    "Publier ici demande un compte Freelance ou Agence. Le badge s'accorde après vérification — écris-nous.",
   ABONNEMENT_A_RENOUVELER:
-    "Ton abonnement doit être à jour pour publier de nouveaux services. Ceux qui sont en ligne ne bougent pas.",
+    "Ton abonnement doit être à jour pour publier du nouveau. Tes services et tes événements en ligne ne bougent pas.",
 };
 
 /**
@@ -97,15 +103,61 @@ export function peutPublier(
   if (qui === null) return { ok: false, motif: "CONNEXION_REQUISE" };
 
   switch (type) {
-    // ── Blog et événements : l'administration, et personne d'autre ─────────
+    // ── Blog : l'administration, et personne d'autre ───────────────────────
     //
-    // Ce sont des contenus qui portent la voix de Baobart. Un article signé du
-    // site engage le site.
+    // Un article signé du site engage le site. C'est la voix de Baobart, pas
+    // une tribune.
     case "article":
-    case "evenement":
       return peut(qui.role, "publier_du_contenu")
         ? { ok: true }
         : { ok: false, motif: "RESERVE_A_L_ADMINISTRATION" };
+
+    // ── Événements : l'administration, ou une agence badgée ────────────────
+    //
+    // ═══════════════════════════════════════════════════════════════════════
+    // CE CAS S'EST OUVERT, ET LA RAISON MÉRITE D'ÊTRE ÉCRITE
+    //
+    // §18.1 réservait les événements à l'administration, au même titre que le
+    // blog. C'était juste tant qu'un événement portait la voix du site — une
+    // édition de concours, une conférence Baobart.
+    //
+    // Ça ne l'est plus depuis qu'on veut que les agences organisent leurs
+    // propres ateliers. Leur demander de passer par l'équipe pour publier une
+    // date, puis pour la corriger, puis pour lire leurs inscrits, transforme
+    // l'administration en secrétariat — et la fonction ne serait pas utilisée.
+    //
+    // ═══════════════════════════════════════════════════════════════════════
+    // ON N'AJOUTE PAS DE RÔLE, ON RELIT UN BADGE
+    //
+    // La tentation serait un `PlatformRole` « ORGANISATEUR ». Ce serait la
+    // faute que §18.3 a déjà écartée pour les services : `PlatformRole` décrit
+    // ce qu'on fait **dans le back-office**, et un rôle unique par personne
+    // ferait qu'être organisateur remplacerait MEMBER.
+    //
+    // Le badge Freelance ou Agence existe, il vit sur le profil, et il
+    // s'accorde — il ne se déclare pas. C'est exactement la garantie qu'on
+    // veut ici : personne ne s'auto-proclame organisateur.
+    //
+    // ═══════════════════════════════════════════════════════════════════════
+    // POURQUOI PAS « ÊTRE VENDEUR », CONTRAIREMENT AUX SERVICES
+    //
+    // Un service **est** une vente : exiger d'avoir déjà publié une ressource
+    // y a du sens. Organiser un atelier n'en est pas une — une agence peut
+    // n'avoir jamais rien mis en vente et tenir un atelier sérieux. La
+    // condition serait un obstacle sans rapport avec le risque.
+    //
+    // L'abonnement reste exigé : publier sous son nom sur la plateforme est
+    // un privilège continu, et un badge accordé une fois ne doit pas ouvrir
+    // la porte indéfiniment à un compte qui a cessé de payer.
+    case "evenement": {
+      if (peut(qui.role, "publier_du_contenu")) return { ok: true };
+
+      if (!qui.badgeProfessionnel) return { ok: false, motif: "BADGE_MANQUANT" };
+      if (!qui.abonnementOuvert) {
+        return { ok: false, motif: "ABONNEMENT_A_RENOUVELER" };
+      }
+      return { ok: true };
+    }
 
     // ── Jobs : tout inscrit ────────────────────────────────────────────────
     //
@@ -166,19 +218,45 @@ export function peutAgir(qui: Demandeur | null): Verdict {
 
 /** Le pouvoir d'administration qui modère ce type de contenu. */
 export function pouvoirDeModeration(type: TypeDeContenu): Pouvoir {
-  // Blog et événements n'ont pas de file : leur auteur portait déjà le droit
-  // de publier. Le pouvoir rendu ici sert au retrait, qui reste possible.
+  // Le blog n'a pas de file : son auteur portait déjà le droit de publier, et
+  // le pouvoir rendu ici ne sert qu'au retrait.
+  //
+  // Les événements en ont une depuis que les agences y écrivent, et c'est
+  // encore `publier_du_contenu` qui la tient — non `moderer_le_contenu`. Qui
+  // relit un événement est qui le met en ligne : séparer les deux créerait un
+  // relecteur incapable de conclure sa propre lecture.
   return type === "article" || type === "evenement"
     ? "publier_du_contenu"
     : "moderer_le_contenu";
 }
 
 /**
- * Ce type de contenu passe-t-il par une relecture avant de paraître ?
+ * Ce contenu passe-t-il par une relecture avant de paraître ?
  *
- * Dérivé du régime, jamais écrit deux fois : c'est ce qui garantit qu'un
- * contenu ouvert à tous ne puisse pas paraître sans avoir été lu.
+ * ════════════════════════════════════════════════════════════════════════════
+ * DEUX RAISONS DE PASSER PAR LA FILE, ET UNE SEULE SUFFIT
+ *
+ * **Le CMS a une file.** Jobs et Services sont ouverts à des gens dont on ne
+ * répond pas : tout ce qui y entre est lu, même écrit par l'équipe. Un
+ * administrateur qui dépanne un créateur publie sous le nom de ce créateur —
+ * sa signature ne vaut pas relecture.
+ *
+ * **Ou l'auteur ne porte pas `publier_du_contenu`.** C'est la seconde raison,
+ * et elle est arrivée avec les agences : depuis qu'un compte badgé peut écrire
+ * un événement, « événement » ne veut plus dire « écrit par l'équipe ».
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI L'AUTEUR EST DEVENU UN PARAMÈTRE
+ *
+ * La fonction ne prenait que le type, et c'était exact tant que le type
+ * déterminait l'auteur. Ouvrir les événements a cassé ce lien — et le test
+ * « aucun contenu ouvert ne paraît sans relecture » l'a signalé avant qu'un
+ * seul écran ne soit touché.
+ *
+ * C'est l'intérêt d'un invariant écrit comme test plutôt que comme commentaire :
+ * il ne se relit pas, il se casse.
  */
-export function exigeUneRelecture(type: TypeDeContenu): boolean {
-  return type === "job" || type === "service";
+export function exigeUneRelecture(type: TypeDeContenu, qui: Demandeur): boolean {
+  if (type === "job" || type === "service") return true;
+  return !peut(qui.role, "publier_du_contenu");
 }

@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import type { Geste } from "@/lib/cms/cycle";
+import { exigerAccesAuxEvenements } from "@/lib/evenements/garde";
 import {
   MESSAGES_ECHEC,
   annuler,
@@ -16,19 +16,25 @@ import {
 import type { Saisie } from "@/lib/evenements/validation";
 
 /**
- * Les gestes de l'administration sur les événements.
+ * Les gestes sur les événements — de l'équipe comme d'une agence.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * `publier_du_contenu`, ET RIEN D'AUTRE
+ * UNE GARDE QUI REND UNE PORTÉE, PAS UN OUI OU NON
  *
- * Pas `consulter_le_systeme` : quelqu'un qui écrit des événements n'a aucune
- * raison de lire l'état de la base. Enchaîner les deux gardes lui fermerait
- * son propre écran — c'est le piège que `exigerLePouvoir` portait avant
- * v1.44.0, et que §20.1 raconte.
+ * C'était `exigerLePouvoir("publier_du_contenu")` jusqu'à v1.50.0. Cette
+ * garde-là ne sait répondre qu'à « entres-tu ? », et il fallait désormais
+ * répondre aussi à « jusqu'où ? ».
  *
- * Un module « use server » expose chacun de ses exports au navigateur. Les
- * gardes sont donc ici, pas dans les pages : cacher un formulaire ne ferme
- * rien.
+ * `exigerAccesAuxEvenements` rend les deux d'un coup, et chaque appel au
+ * module de rédaction reçoit la portée. Un geste qui l'oublierait ne
+ * compilerait pas : c'est la seule forme de vigilance qui ne s'épuise pas.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN MODULE « use server » EXPOSE CHACUN DE SES EXPORTS AU NAVIGATEUR
+ *
+ * Les gardes sont donc ici, pas dans les pages : cacher un formulaire ne ferme
+ * rien. Et l'identifiant de l'événement arrive du client — il ne prouve rien.
+ * C'est la portée, lue de la session, qui décide.
  */
 
 export type EtatFormulaire =
@@ -39,10 +45,13 @@ export async function creerEvenement(
   _precedent: EtatFormulaire | null,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
-  const qui = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur } = await exigerAccesAuxEvenements();
   const saisie = lireSaisie(donnees);
 
-  const suite = await creer({ auteurId: qui.id, saisie });
+  // `auteurId` vient de la session, jamais du formulaire : le recevoir du
+  // client suffirait à créer un événement au nom de quelqu'un d'autre — et
+  // c'est ce nom qui deviendrait la portée du propriétaire.
+  const suite = await creer({ auteurId: utilisateur.id, saisie });
 
   if (!suite.ok) {
     if (suite.motif === "REFUS") {
@@ -62,10 +71,10 @@ export async function modifierEvenement(
   _precedent: EtatFormulaire | null,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
-  await exigerLePouvoir("publier_du_contenu");
+  const { portee } = await exigerAccesAuxEvenements();
   const saisie = lireSaisie(donnees);
 
-  const suite = await modifier({ evenementId, saisie });
+  const suite = await modifier({ evenementId, saisie, portee });
 
   if (!suite.ok) {
     if (suite.motif === "REFUS") {
@@ -85,9 +94,14 @@ export async function trancherEvenement(
   evenementId: string,
   geste: Geste,
 ): Promise<EtatGeste> {
-  const qui = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
 
-  const suite = await trancher({ evenementId, geste, acteurId: qui.id });
+  const suite = await trancher({
+    evenementId,
+    geste,
+    acteurId: utilisateur.id,
+    portee,
+  });
 
   revalidatePath("/dashboard/evenements");
   revalidatePath(`/dashboard/evenements/${evenementId}`);
@@ -100,12 +114,13 @@ export async function annulerEvenement(
   _precedent: EtatGeste | null,
   donnees: FormData,
 ): Promise<EtatGeste> {
-  const qui = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
 
   const suite = await annuler({
     evenementId,
     raison: String(donnees.get("raison") ?? ""),
-    acteurId: qui.id,
+    acteurId: utilisateur.id,
+    portee,
   });
 
   revalidatePath("/dashboard/evenements");
@@ -115,9 +130,9 @@ export async function annulerEvenement(
 }
 
 export async function retablirEvenement(evenementId: string): Promise<EtatGeste> {
-  const qui = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
 
-  const suite = await retablir({ evenementId, acteurId: qui.id });
+  const suite = await retablir({ evenementId, acteurId: utilisateur.id, portee });
 
   revalidatePath("/dashboard/evenements");
   revalidatePath(`/dashboard/evenements/${evenementId}`);

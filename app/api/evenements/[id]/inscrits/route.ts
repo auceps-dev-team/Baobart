@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { peut } from "@/lib/auth/administration";
-import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { clauseDePortee } from "@/lib/evenements/acces";
 import { nomDeFichier, versCsv } from "@/lib/evenements/export-csv";
+import { accesAuxEvenements } from "@/lib/evenements/garde";
 import { inscritsDe } from "@/lib/evenements/queries";
 
 /**
@@ -25,6 +25,18 @@ import { inscritsDe } from "@/lib/evenements/queries";
  * **référence directe non protégée** : l'objet est accessible à qui connaît
  * son identifiant.
  *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ET DEPUIS v1.51.0, LA GARDE COMPTE DEUX QUESTIONS
+ *
+ * « As-tu le droit d'être ici ? » ne suffit plus : une agence badgée l'a, et
+ * ne doit pourtant lire que ses propres inscrits. La seconde question — « cet
+ * événement est-il le tien ? » — vit dans la clause de la requête, à côté de
+ * l'identifiant reçu.
+ *
+ * C'était le point le plus exposé de toute l'ouverture : une garde de rôle
+ * laissée telle quelle ici aurait rendu la liste complète de n'importe quel
+ * événement à n'importe quel compte badgé.
+ *
  * 404 pour tout refus, jamais « accès refusé » : répondre autre chose
  * apprendrait qu'il existe bien une liste à cet identifiant.
  */
@@ -34,13 +46,11 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const utilisateur = await sessionCourante();
-  if (!utilisateur || !peut(utilisateur.role, "publier_du_contenu")) {
-    return quatreCentQuatre();
-  }
+  const acces = await accesAuxEvenements();
+  if (!acces) return quatreCentQuatre();
 
-  const evenement = await db.event.findUnique({
-    where: { id },
+  const evenement = await db.event.findFirst({
+    where: { id, ...clauseDePortee(acces.portee) },
     select: { id: true, title: true },
   });
 

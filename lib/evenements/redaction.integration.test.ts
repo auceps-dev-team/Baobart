@@ -12,12 +12,15 @@
  *   — deux personnes sur la même fiche : seule la première tranche ;
  *   — annuler ne retire pas. L'état reste `PUBLIE`, la fiche reste lisible,
  *     et la raison est là pour les inscrits ;
- *   — l'audit est écrit APRÈS l'acte, jamais avant.
+ *   — l'audit est écrit APRÈS l'acte, jamais avant ;
+ *   — la portée borne CHAQUE écriture : une agence n'écrit que sur les siens,
+ *     et ne met jamais rien en ligne elle-même (v1.51.0).
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import type { Portee } from "@/lib/evenements/acces";
 import {
   annuler,
   creer,
@@ -27,12 +30,33 @@ import {
 } from "@/lib/evenements/redaction";
 import type { Saisie } from "@/lib/evenements/validation";
 
+/**
+ * La portée de l'équipe : aucune contrainte d'organisateur.
+ *
+ * Chaque écriture en prend une depuis v1.51.0. La déclarer une fois ici garde
+ * les tests existants lisibles — ils éprouvent la machine, pas les droits —
+ * et laisse le bloc « la portée » plus bas éprouver ce qu'elle borne.
+ */
+const TOUT: Portee = { etendue: "TOUT" };
+
+/** La portée d'une agence : ses propres événements, et rien d'autre. */
+const miens = (moi: string): Portee => ({ etendue: "LES_MIENS", moi });
+
 let n = 0;
 
 async function redacteur() {
   n += 1;
   return db.user.create({
     data: { email: `redac-${n}@baobart.test`, platformRole: "CONTENT_MANAGER" },
+    select: { id: true },
+  });
+}
+
+/** Une agence badgée : un MEMBER ordinaire, côté base. Le badge vit ailleurs. */
+async function organisateur() {
+  n += 1;
+  return db.user.create({
+    data: { email: `agence-${n}@baobart.test` },
     select: { id: true },
   });
 }
@@ -124,6 +148,7 @@ describe("modifier", () => {
     const suite = await modifier({
       evenementId: e.id,
       saisie: saisie({ titre: "Atelier sérigraphie — deuxième édition", capacite: "20" }),
+      portee: TOUT,
     });
 
     expect(suite.ok).toBe(true);
@@ -138,7 +163,7 @@ describe("modifier", () => {
   it("efface le lieu quand l'événement passe en ligne", async () => {
     // Sinon la fiche annonce une adresse ET un lien.
     const e = await evenement();
-    await modifier({ evenementId: e.id, saisie: saisie({ enLigne: "on" }) });
+    await modifier({ evenementId: e.id, saisie: saisie({ enLigne: "on" }), portee: TOUT });
 
     const apres = await db.event.findUniqueOrThrow({
       where: { id: e.id },
@@ -152,6 +177,7 @@ describe("modifier", () => {
     const suite = await modifier({
       evenementId: "cl00000000000000000000",
       saisie: saisie(),
+      portee: TOUT,
     });
     expect(suite).toEqual({ ok: false, motif: "INTROUVABLE" });
   });
@@ -165,6 +191,7 @@ describe("trancher", () => {
       evenementId: e.id,
       geste: "publier",
       acteurId: e.auteurId,
+      portee: TOUT,
     });
 
     expect(suite).toEqual({ ok: true, vers: "PUBLIE" });
@@ -179,7 +206,7 @@ describe("trancher", () => {
     const e = await evenement("PUBLIE");
 
     expect(
-      await trancher({ evenementId: e.id, geste: "retirer", acteurId: e.auteurId }),
+      await trancher({ evenementId: e.id, geste: "retirer", acteurId: e.auteurId, portee: TOUT }),
     ).toEqual({ ok: true, vers: "RETIRE" });
   });
 
@@ -187,7 +214,7 @@ describe("trancher", () => {
     const e = await evenement("PUBLIE");
 
     expect(
-      await trancher({ evenementId: e.id, geste: "publier", acteurId: e.auteurId }),
+      await trancher({ evenementId: e.id, geste: "publier", acteurId: e.auteurId, portee: TOUT }),
     ).toEqual({ ok: false, motif: "TRANSITION_INTERDITE" });
   });
 
@@ -197,19 +224,20 @@ describe("trancher", () => {
     const e = await evenement("PUBLIE");
 
     expect(
-      await trancher({ evenementId: e.id, geste: "soumettre", acteurId: e.auteurId }),
+      await trancher({ evenementId: e.id, geste: "soumettre", acteurId: e.auteurId, portee: TOUT }),
     ).toEqual({ ok: false, motif: "TRANSITION_INTERDITE" });
   });
 
   it("ne laisse pas deux personnes trancher la même fiche", async () => {
     const e = await evenement("BROUILLON");
 
-    await trancher({ evenementId: e.id, geste: "publier", acteurId: e.auteurId });
+    await trancher({ evenementId: e.id, geste: "publier", acteurId: e.auteurId, portee: TOUT });
     // La seconde a ouvert son écran avant, elle croit voir un brouillon.
     const seconde = await trancher({
       evenementId: e.id,
       geste: "publier",
       acteurId: e.auteurId,
+      portee: TOUT,
     });
 
     expect(seconde).toEqual({ ok: false, motif: "TRANSITION_INTERDITE" });
@@ -222,6 +250,7 @@ describe("trancher", () => {
         evenementId: "cl00000000000000000000",
         geste: "publier",
         acteurId: auteur.id,
+        portee: TOUT,
       }),
     ).toEqual({ ok: false, motif: "INTROUVABLE" });
   });
@@ -236,6 +265,7 @@ describe("annuler", () => {
       evenementId: e.id,
       raison: "La salle est inondée, on reprogramme en novembre.",
       acteurId: e.auteurId,
+      portee: TOUT,
     });
 
     expect(suite.ok).toBe(true);
@@ -254,7 +284,7 @@ describe("annuler", () => {
     const e = await evenement("PUBLIE");
 
     expect(
-      await annuler({ evenementId: e.id, raison: "  ", acteurId: e.auteurId }),
+      await annuler({ evenementId: e.id, raison: "  ", acteurId: e.auteurId, portee: TOUT }),
     ).toEqual({ ok: false, motif: "RAISON_REQUISE" });
 
     const apres = await db.event.findUniqueOrThrow({
@@ -272,11 +302,13 @@ describe("annuler", () => {
       evenementId: e.id,
       raison: "Première raison, la vraie.",
       acteurId: e.auteurId,
+      portee: TOUT,
     });
     const seconde = await annuler({
       evenementId: e.id,
       raison: "Seconde raison, en trop.",
       acteurId: e.auteurId,
+      portee: TOUT,
     });
 
     expect(seconde).toEqual({ ok: false, motif: "DEJA_ANNULE" });
@@ -297,9 +329,10 @@ describe("rétablir", () => {
       evenementId: e.id,
       raison: "Annulation posée par erreur.",
       acteurId: e.auteurId,
+      portee: TOUT,
     });
 
-    const suite = await retablir({ evenementId: e.id, acteurId: e.auteurId });
+    const suite = await retablir({ evenementId: e.id, acteurId: e.auteurId, portee: TOUT });
     expect(suite.ok).toBe(true);
 
     const apres = await db.event.findUniqueOrThrow({
@@ -312,9 +345,186 @@ describe("rétablir", () => {
 
   it("refuse de rétablir ce qui n'est pas annulé", async () => {
     const e = await evenement("PUBLIE");
-    expect(await retablir({ evenementId: e.id, acteurId: e.auteurId })).toEqual({
+    expect(await retablir({ evenementId: e.id, acteurId: e.auteurId, portee: TOUT })).toEqual({
       ok: false,
       motif: "INTROUVABLE",
     });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════ la portée ══
+
+/**
+ * Ce bloc éprouve ce que le module de rédaction refuse **sans rien savoir des
+ * badges**.
+ *
+ * C'est la division du travail : `lib/evenements/garde.ts` décide de la portée
+ * en lisant la base, et ce module l'applique. Lui passer une portée forgée est
+ * donc exactement ce qu'on veut tester — la garde peut être parfaite, si la
+ * clause n'atteint pas le `WHERE`, tout est ouvert.
+ */
+describe("la portée", () => {
+  it("empêche une agence de modifier l'événement d'un autre", async () => {
+    const e = await evenement();
+    const intrus = await organisateur();
+
+    const suite = await modifier({
+      evenementId: e.id,
+      saisie: saisie({ titre: "Titre détourné par quelqu'un d'autre" }),
+      portee: miens(intrus.id),
+    });
+
+    // « Introuvable », et non « pas à toi » : la réponse ne doit pas apprendre
+    // que cet identifiant désigne un vrai événement.
+    expect(suite).toEqual({ ok: false, motif: "INTROUVABLE" });
+
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { title: true },
+    });
+    expect(apres.title).toBe("Atelier sérigraphie sur wax");
+  });
+
+  it("laisse une agence modifier le sien", async () => {
+    const moi = await organisateur();
+    const cree = await creer({ auteurId: moi.id, saisie: saisie() });
+    if (!cree.ok) throw new Error("création ratée");
+
+    const suite = await modifier({
+      evenementId: cree.evenementId,
+      saisie: saisie({ capacite: "30" }),
+      portee: miens(moi.id),
+    });
+
+    expect(suite.ok).toBe(true);
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: cree.evenementId },
+      select: { capacity: true },
+    });
+    expect(apres.capacity).toBe(30);
+  });
+
+  it("refuse à une agence de publier, même son propre événement", async () => {
+    const moi = await organisateur();
+    const cree = await creer({ auteurId: moi.id, saisie: saisie() });
+    if (!cree.ok) throw new Error("création ratée");
+
+    const suite = await trancher({
+      evenementId: cree.evenementId,
+      geste: "publier",
+      acteurId: moi.id,
+      portee: miens(moi.id),
+    });
+
+    expect(suite).toEqual({ ok: false, motif: "GESTE_RESERVE" });
+
+    // Et rien n'a bougé en base : le refus est posé AVANT la lecture.
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: cree.evenementId },
+      select: { state: true },
+    });
+    expect(apres.state).toBe("BROUILLON");
+  });
+
+  it("lui laisse l'envoyer en relecture", async () => {
+    const moi = await organisateur();
+    const cree = await creer({ auteurId: moi.id, saisie: saisie() });
+    if (!cree.ok) throw new Error("création ratée");
+
+    const suite = await trancher({
+      evenementId: cree.evenementId,
+      geste: "soumettre",
+      acteurId: moi.id,
+      portee: miens(moi.id),
+    });
+
+    expect(suite).toEqual({ ok: true, vers: "SOUMIS" });
+  });
+
+  it("répond GESTE_RESERVE avant de dire si l'événement existe", async () => {
+    // L'ordre des refus est une garde à lui seul : si l'on testait
+    // l'existence d'abord, la différence entre « introuvable » et « réservé »
+    // dirait lesquels des identifiants essayés sont réels.
+    const intrus = await organisateur();
+
+    const suite = await trancher({
+      evenementId: "cl00000000000000000000",
+      geste: "publier",
+      acteurId: intrus.id,
+      portee: miens(intrus.id),
+    });
+
+    expect(suite).toEqual({ ok: false, motif: "GESTE_RESERVE" });
+  });
+
+  it("empêche une agence d'annuler l'événement d'un autre", async () => {
+    const e = await evenement("PUBLIE");
+    const intrus = await organisateur();
+
+    const suite = await annuler({
+      evenementId: e.id,
+      raison: "Sabotage par quelqu'un qui n'organise pas cet événement.",
+      acteurId: intrus.id,
+      portee: miens(intrus.id),
+    });
+
+    expect(suite).toEqual({ ok: false, motif: "INTROUVABLE" });
+
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { cancelledAt: true },
+    });
+    expect(apres.cancelledAt).toBeNull();
+  });
+
+  it("empêche une agence de lever l'annulation d'un autre", async () => {
+    const e = await evenement("PUBLIE");
+    const proprietaire = e.auteurId;
+    await annuler({
+      evenementId: e.id,
+      raison: "Salle indisponible, report à une date ultérieure.",
+      acteurId: proprietaire,
+      portee: TOUT,
+    });
+
+    const intrus = await organisateur();
+    const suite = await retablir({
+      evenementId: e.id,
+      acteurId: intrus.id,
+      portee: miens(intrus.id),
+    });
+
+    expect(suite).toEqual({ ok: false, motif: "INTROUVABLE" });
+
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { cancelledAt: true },
+    });
+    expect(apres.cancelledAt).not.toBeNull();
+  });
+
+  it("laisse l'administration agir sur l'événement d'une agence", async () => {
+    // L'autre moitié de la règle, et elle compte autant : quelqu'un doit
+    // pouvoir relire, publier, et au besoin retirer ce qu'une agence a écrit.
+    const moi = await organisateur();
+    const cree = await creer({ auteurId: moi.id, saisie: saisie() });
+    if (!cree.ok) throw new Error("création ratée");
+
+    const relecteur = await redacteur();
+    await trancher({
+      evenementId: cree.evenementId,
+      geste: "soumettre",
+      acteurId: moi.id,
+      portee: miens(moi.id),
+    });
+
+    const suite = await trancher({
+      evenementId: cree.evenementId,
+      geste: "publier",
+      acteurId: relecteur.id,
+      portee: TOUT,
+    });
+
+    expect(suite).toEqual({ ok: true, vers: "PUBLIE" });
   });
 });

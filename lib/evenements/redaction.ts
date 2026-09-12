@@ -4,23 +4,36 @@ import { consigner, ressource } from "@/lib/admin/audit";
 import { appliquer, type Geste } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
+import { clauseDePortee, gestePermis, type Portee } from "@/lib/evenements/acces";
 import { valider, type Refus, type Saisie } from "@/lib/evenements/validation";
 
 /**
  * Écrire un événement — créer, corriger, publier, retirer, annuler.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * PAS DE FILE, ET DONC PAS DE `SOUMIS`
+ * DEUX CHEMINS, SELON QUI ÉCRIT
  *
- * §18.1 : le blog et les événements sont publiés par l'administration, et par
- * personne d'autre. L'auteur porte déjà le droit de publier — lui faire
- * traverser une file l'obligerait à s'auto-approuver, c'est-à-dire à faire
- * semblant.
+ * L'équipe va de `BROUILLON` à `PUBLIE` directement : elle porte déjà le droit
+ * de publier, et lui faire traverser une file l'obligerait à s'auto-approuver,
+ * c'est-à-dire à faire semblant.
  *
- * Le chemin est donc `BROUILLON → PUBLIE`, que `lib/cms/cycle.ts` prévoit
- * explicitement pour ces deux-là. `SOUMIS` et `REFUSE` restent inatteignables
- * ici, et c'est très bien : un état non atteint ne coûte rien, un état
- * manquant coûte une réécriture.
+ * Une agence badgée passe par `BROUILLON → SOUMIS → PUBLIE`. Le badge dit que
+ * le compte a été vérifié, pas que sa fiche est juste — et une fiche
+ * d'événement collecte des noms, des adresses et des présences à une date.
+ *
+ * Les deux chemins existent déjà dans `lib/cms/cycle.ts` ; ce qui les sépare
+ * n'est pas la machine à états mais la **portée**, et c'est
+ * `lib/evenements/acces.ts` qui la calcule. `SOUMIS` et `REFUSE`, longtemps
+ * inatteignables ici, ne le sont plus depuis v1.51.0 — la preuve qu'un état
+ * non emprunté ne coûte rien, tandis qu'un état manquant coûte une réécriture.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA PORTÉE EST DANS LE `WHERE`, PAS DANS UN `IF`
+ *
+ * Chaque écriture épingle `organizerId` dans sa clause plutôt que de relire
+ * l'événement puis de comparer. Deux raisons : la vérification et l'écriture
+ * sont alors le même acte — rien ne peut changer entre les deux — et une
+ * requête qui oublie la clause se repère à l'œil nu.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * L'AUTEUR N'EST PAS UN PARAMÈTRE LIBRE
@@ -39,7 +52,9 @@ export type Echec =
   /** Annuler demande de dire pourquoi. */
   | { motif: "RAISON_REQUISE" }
   /** Déjà annulé — rien à faire, et ce n'est pas une erreur. */
-  | { motif: "DEJA_ANNULE" };
+  | { motif: "DEJA_ANNULE" }
+  /** Le geste existe, mais pas pour cette portée : publier, refuser. */
+  | { motif: "GESTE_RESERVE" };
 
 /**
  * `object` et non `void` comme défaut : `{ ok: true } & void` s'effondre en
@@ -58,6 +73,8 @@ export const MESSAGES_ECHEC: Record<Echec["motif"], string> = {
   RAISON_REQUISE:
     "Écris pourquoi l'événement est annulé : c'est ce que liront les inscrits.",
   DEJA_ANNULE: "Cet événement est déjà annulé.",
+  GESTE_RESERVE:
+    "La mise en ligne revient à l'équipe Baobart. Envoie ta fiche en relecture : on te répond sous 48 h.",
 };
 
 /** Crée un événement, en brouillon. */
@@ -105,6 +122,7 @@ export async function creer(input: {
 export async function modifier(input: {
   evenementId: string;
   saisie: Saisie;
+  portee: Portee;
 }): Promise<Suite> {
   const verdict = valider(input.saisie);
   if (!verdict.ok) return { ok: false, motif: "REFUS", refus: verdict.refus };
@@ -112,7 +130,9 @@ export async function modifier(input: {
   const e = verdict.evenement;
 
   const ecrit = await db.event.updateMany({
-    where: { id: input.evenementId },
+    // La portée est dans le `WHERE` : une agence qui poste l'identifiant d'un
+    // autre événement écrit zéro ligne, et repart avec « introuvable ».
+    where: { id: input.evenementId, ...clauseDePortee(input.portee) },
     data: {
       title: e.titre,
       description: e.description,
@@ -143,9 +163,19 @@ export async function trancher(input: {
   evenementId: string;
   geste: Geste;
   acteurId: string;
+  portee: Portee;
 }): Promise<Suite<{ vers: string }>> {
-  const evenement = await db.event.findUnique({
-    where: { id: input.evenementId },
+  // Le droit AU GESTE d'abord, avant même de savoir si l'événement existe.
+  //
+  // L'ordre n'est pas indifférent : tester l'existence en premier apprendrait,
+  // par la différence entre « introuvable » et « réservé », lesquels des
+  // identifiants essayés correspondent à de vrais événements.
+  if (!gestePermis(input.portee, input.geste)) {
+    return { ok: false, motif: "GESTE_RESERVE" };
+  }
+
+  const evenement = await db.event.findFirst({
+    where: { id: input.evenementId, ...clauseDePortee(input.portee) },
     select: { id: true, state: true, title: true },
   });
 
@@ -155,7 +185,11 @@ export async function trancher(input: {
   if (!transition.ok) return { ok: false, motif: "TRANSITION_INTERDITE" };
 
   const ecrit = await db.event.updateMany({
-    where: { id: evenement.id, state: evenement.state },
+    where: {
+      id: evenement.id,
+      state: evenement.state,
+      ...clauseDePortee(input.portee),
+    },
     data: { state: transition.vers },
   });
 
@@ -196,12 +230,17 @@ export async function annuler(input: {
   evenementId: string;
   raison: string;
   acteurId: string;
+  portee: Portee;
 }): Promise<Suite> {
   const raison = input.raison.trim();
   if (raison.length < RAISON_MIN) return { ok: false, motif: "RAISON_REQUISE" };
 
-  const evenement = await db.event.findUnique({
-    where: { id: input.evenementId },
+  // Annuler n'est pas dans `GESTES_ORGANISATEUR` : ce n'est pas une transition
+  // de la machine à états, c'est une date posée sur la ligne. Un organisateur
+  // annule donc le sien — c'est même le geste pour lequel il a le moins de
+  // temps à perdre à demander la permission.
+  const evenement = await db.event.findFirst({
+    where: { id: input.evenementId, ...clauseDePortee(input.portee) },
     select: { id: true, title: true, cancelledAt: true },
   });
 
@@ -211,7 +250,11 @@ export async function annuler(input: {
   // `cancelledAt: null` dans le WHERE : deux annulations simultanées ne
   // doivent pas écraser la première raison par la seconde.
   const ecrit = await db.event.updateMany({
-    where: { id: evenement.id, cancelledAt: null },
+    where: {
+      id: evenement.id,
+      cancelledAt: null,
+      ...clauseDePortee(input.portee),
+    },
     data: { cancelledAt: new Date(), cancelReason: raison },
   });
 
@@ -239,9 +282,14 @@ export async function annuler(input: {
 export async function retablir(input: {
   evenementId: string;
   acteurId: string;
+  portee: Portee;
 }): Promise<Suite> {
   const ecrit = await db.event.updateMany({
-    where: { id: input.evenementId, cancelledAt: { not: null } },
+    where: {
+      id: input.evenementId,
+      cancelledAt: { not: null },
+      ...clauseDePortee(input.portee),
+    },
     data: { cancelledAt: null, cancelReason: null },
   });
 

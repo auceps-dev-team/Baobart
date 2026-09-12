@@ -2,15 +2,28 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import type { EtatContenu } from "@/lib/cms/cycle";
+import { clauseDePortee, type Portee } from "@/lib/evenements/acces";
 import type { EventKind } from "@/lib/evenements/enums";
 import { phaseDe, type Phase } from "@/lib/evenements/phases";
 
 /**
- * Ce que l'administration lit des événements.
+ * Ce que le tableau de bord lit des événements.
  *
- * La lecture **publique** vit ailleurs (E3) et ne montrera que `PUBLIE`. Ici on
- * voit tout — brouillons compris — parce que c'est l'écran depuis lequel on
- * travaille.
+ * La lecture **publique** vit plus bas dans ce fichier et ne montre que
+ * `PUBLIE`. Ici on voit tout — brouillons compris — parce que c'est l'écran
+ * depuis lequel on travaille.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * CHAQUE LECTURE PREND UNE PORTÉE, ET C'EST OBLIGATOIRE
+ *
+ * Depuis v1.51.0, ces écrans ne servent plus la seule administration : une
+ * agence badgée y gère ses propres événements. La question « jusqu'où vois-tu ? »
+ * se pose donc à chaque requête.
+ *
+ * `Portee` est un paramètre **requis**, jamais une option avec un défaut
+ * permissif. Un défaut à « tout » serait exactement le défaut qu'on a payé
+ * dans `lib/dashboard/nav.ts` : l'oubli ouvrirait au lieu de fermer. Ici,
+ * l'oubli ne compile pas.
  */
 
 export interface LigneAdmin {
@@ -50,18 +63,19 @@ export interface EvenementAEditer {
 }
 
 /**
- * Tous les événements, du plus proche au plus lointain.
+ * Les événements de cette portée, du plus proche au plus lointain.
  *
- * Trié par date de début **décroissante** : l'écran d'administration sert à
- * préparer ce qui vient, et ce qui vient est en haut. Trier par date de
- * création mettrait un brouillon d'il y a six mois avant l'atelier de la
- * semaine prochaine.
+ * Trié par date de début **décroissante** : l'écran sert à préparer ce qui
+ * vient, et ce qui vient est en haut. Trier par date de création mettrait un
+ * brouillon d'il y a six mois avant l'atelier de la semaine prochaine.
  */
-export async function listerPourAdministration(
+export async function listerDansLaPortee(
+  portee: Portee,
   limite = 100,
   maintenant = new Date(),
 ): Promise<LigneAdmin[]> {
   const lignes = await db.event.findMany({
+    where: clauseDePortee(portee),
     orderBy: { startsAt: "desc" },
     take: Math.min(limite, 300),
     select: {
@@ -99,12 +113,23 @@ export async function listerPourAdministration(
   }));
 }
 
-/** Un événement, pour l'écran d'édition. `null` s'il n'existe plus. */
+/**
+ * Un événement, pour l'écran d'édition.
+ *
+ * `null` s'il n'existe plus **ou s'il sort de la portée** — les deux se
+ * confondent volontairement. L'écran répond 404 dans les deux cas, et une
+ * agence qui tape l'identifiant d'un concours qu'elle n'organise pas
+ * n'apprend pas qu'il existe.
+ *
+ * `findFirst` et non `findUnique` : on ajoute une condition à la clé primaire,
+ * ce que `findUnique` n'accepte pas.
+ */
 export async function evenementAEditer(
   id: string,
+  portee: Portee,
 ): Promise<EvenementAEditer | null> {
-  const e = await db.event.findUnique({
-    where: { id },
+  const e = await db.event.findFirst({
+    where: { id, ...clauseDePortee(portee) },
     select: {
       id: true,
       title: true,
@@ -168,17 +193,24 @@ export interface Inscrit {
  * l'export n'est pas public.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * LE POUVOIR SUFFIT, L'IDENTITÉ DE L'ORGANISATEUR NE DÉCIDE PAS
+ * CETTE FONCTION NE GARDE RIEN, ET C'EST DIT ICI POUR QU'ON NE S'Y TROMPE PAS
  *
- * On aurait pu exiger `organizerId === moi`, comme Jobs le fait pour les
- * candidatures. Ce serait faux ici : les événements sont écrits par
- * l'administration (§18.1), à plusieurs, et quelqu'un qui peut **annuler** un
- * événement doit pouvoir prévenir ceux qui s'y étaient inscrits. Lui refuser
- * la liste qu'il vient de vider n'aurait aucun sens.
+ * Elle rend les inscrits de l'événement qu'on lui nomme, sans poser de
+ * question. La garde vit **avant** elle, chez ses deux appelants — l'écran
+ * `/dashboard/evenements/<id>/inscrits` et la route d'export CSV — et elle a
+ * la même forme aux deux endroits : on charge d'abord l'événement avec
+ * `clauseDePortee(portee)` dans le `where` ; s'il ne revient rien, on répond
+ * 404 et l'on n'arrive jamais ici.
  *
- * La garde est donc `publier_du_contenu` — exactement le pouvoir qui permet
- * déjà de créer, corriger et annuler — et elle vit dans la page, comme les
- * autres écrans d'administration.
+ * Jusqu'à v1.50.0 la garde était `publier_du_contenu`, et ce commentaire
+ * expliquait pourquoi l'identité de l'organisateur ne décidait pas — les
+ * événements étaient écrits par l'équipe, à plusieurs. Depuis que les agences
+ * y écrivent, elle décide : une liste de noms, d'adresses et de présences à
+ * une date n'appartient qu'à qui organise.
+ *
+ * L'administration, elle, garde l'accès à toutes — c'est `Portee.TOUT` qui le
+ * dit, et il faut bien que quelqu'un puisse prévenir les inscrits d'un
+ * événement qu'on vient d'annuler.
  */
 export async function inscritsDe(evenementId: string): Promise<Inscrit[]> {
   const lignes = await db.eventRegistration.findMany({

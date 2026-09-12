@@ -1424,3 +1424,113 @@ Les événements sont écrits par l'administration à plusieurs (§18.1), et
 quelqu'un qui peut **annuler** un événement doit pouvoir prévenir ceux qui
 s'y étaient inscrits. Lui refuser la liste qu'il vient de vider n'aurait
 aucun sens.
+
+---
+
+## §25 Les événements s'ouvrent aux agences badgées
+
+*Arbitrage du 12 septembre 2026. Prime sur §18.1 pour le seul CMS Événements,
+et sur la dernière partie de §24.14.*
+
+### 25.1 Ce qui a changé, et pourquoi
+
+§18.1 rangeait les événements avec le blog : l'administration, et personne
+d'autre. C'était juste tant qu'un événement portait la voix du site — une
+édition de concours, une conférence Baobart.
+
+Ça ne l'est plus dès lors qu'une agence veut annoncer son propre atelier. La
+faire passer par l'équipe pour publier une date, puis pour corriger une heure,
+puis pour lire ses inscrits, transforme l'administration en secrétariat. Une
+fonction à ce prix ne sert pas.
+
+Le blog, lui, ne bouge pas : un article signé du site engage le site.
+
+### 25.2 Aucun rôle nouveau — un badge relu
+
+La demande initiale était « leur donner un accès sans créer plus de rôle », en
+déplaçant leur connexion sur **un lien unique** qui ouvrirait le CMS.
+
+Ce lien a été écarté. Une URL qui authentifie est une URL qui fuit : elle part
+dans l'historique, les favoris, l'en-tête `Referer` d'un lien sortant, les
+journaux du proxy, une capture d'écran. Elle ne s'expire pas, ne se révoque pas
+individuellement — la révoquer casse le lien de tout le monde — et elle ne dit
+pas **qui** a agi.
+
+La règle retenue : **une porte de connexion, des espaces séparés derrière.**
+`/connexion` reste unique ; après identification, l'agence voit « Mes
+événements », gardé par le badge et filtré sur ses propres lignes.
+
+Le droit se calcule à deux signaux, jamais rangés en colonne :
+
+- le **badge** Freelance ou Agence, accordé après vérification (§18.3) ;
+- l'**abonnement** ouvert, au sens de Ndank.
+
+Être vendeur n'est **pas** exigé, contrairement aux services. Un service est
+une vente ; un atelier n'en est pas une, et une agence qui n'a jamais rien mis
+en vente peut en tenir un.
+
+### 25.3 Une agence ne publie pas elle-même
+
+Elle écrit, puis **envoie en relecture**. L'équipe lit et met en ligne.
+
+C'est ce qui rend l'ouverture sûre : le badge dit que le compte a été vérifié,
+pas que sa fiche est juste — et une fiche d'événement collecte des noms, des
+adresses et des présences à une date.
+
+Les gestes ouverts à un organisateur sont donc `soumettre`, `retirer` et
+`reprendre`. `publier` et `refuser` restent à l'équipe. `retirer` lui est
+ouvert parce que dépublier n'est pas mettre en ligne : qui s'aperçoit d'une
+erreur doit pouvoir l'ôter tout de suite.
+
+L'annulation, qui n'est pas une transition d'état mais une date posée sur la
+ligne, reste ouverte à l'organisateur de l'événement.
+
+### 25.4 La portée, et non un booléen
+
+`lib/evenements/acces.ts` rend une `Portee` : `TOUT` pour qui porte
+`publier_du_contenu`, `LES_MIENS` pour une agence. Elle produit le fragment de
+`where` que **chaque** lecture et **chaque** écriture étale dans sa clause.
+
+C'est un paramètre requis, jamais une option à défaut permissif : l'oubli ne
+compile pas. La leçon vient de `lib/dashboard/nav.ts` (v1.48.8), où l'absence
+de déclaration ouvrait au lieu de fermer.
+
+Le refus se confond volontairement avec l'absence : hors portée, une requête
+rend `null`, l'écran répond `404`, et personne n'apprend que l'identifiant
+essayé désigne un vrai événement. Le titre d'onglet passe par la même portée —
+c'est une fuite comme une autre.
+
+### 25.5 Ce que §24.14 disait, et ce qu'il faut lire désormais
+
+§24.14 justifiait que la liste des inscrits soit gardée par le pouvoir et non
+par l'identité de l'organisateur. Ce raisonnement valait quand les événements
+étaient écrits par l'équipe, à plusieurs.
+
+Il ne vaut plus : une liste de noms, d'adresses et de présences n'appartient
+qu'à qui organise. La route `/api/evenements/<id>/inscrits` et l'écran
+correspondant bornent donc leur requête à la portée, en plus de la garde
+d'entrée. L'administration garde l'accès à toutes — il faut bien que quelqu'un
+puisse prévenir les inscrits d'un événement qu'on vient d'annuler.
+
+C'était le point le plus exposé de toute l'ouverture : une garde de rôle
+laissée telle quelle y aurait rendu la liste complète de n'importe quel
+événement à n'importe quel compte badgé.
+
+### 25.6 Ce que cette ouverture ne règle pas
+
+**Le refus motivé n'existe pas.** La machine à états connaît `REFUSE`, mais
+`trancher` ne porte pas de raison et l'écran n'affiche pas le bouton. L'équipe
+dispose de `retirer` : la fiche quitte la vue, l'agence peut la reprendre en
+brouillon et la renvoyer. Le circuit se ferme, **la raison manque** — et sans
+messagerie dans le produit (§22.6), l'agence n'a aucun moyen de l'apprendre.
+Le chantier est celui qu'`annuler` a déjà fait pour l'annulation.
+
+**Rien n'avertit l'équipe d'une soumission.** Un événement soumis attend dans
+la liste ; il faut ouvrir l'écran pour le voir. Les événements ne rejoignent
+pas la file de `/dashboard/moderation`, qui est gardée par
+`moderer_le_contenu` alors qu'un événement se publie avec
+`publier_du_contenu`.
+
+**Le badge n'est pas révocable depuis un écran.** Il s'accorde et se retire en
+base. Couper l'accès d'une agence qui abuse demande donc une intervention
+manuelle — l'abonnement expiré, lui, ferme tout seul.

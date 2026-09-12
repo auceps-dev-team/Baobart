@@ -171,8 +171,9 @@ const ADMINISTRATION: EntreeAdmin[] = [
     pouvoir: "moderer_le_contenu",
   },
   {
-    // Le pouvoir n'est pas `moderer_le_contenu` : les événements ne passent
-    // par aucune file (§18.1), ils sont écrits par qui a le droit de publier.
+    // Le pouvoir n'est pas `moderer_le_contenu` : les événements soumis par
+    // les agences sont relus par qui a le droit de les publier, et cet écran
+    // est celui-là même. Voir `pouvoirDeModeration` dans `lib/cms/droits.ts`.
     cle: "a_evenements",
     label: "Événements",
     glyph: "◈",
@@ -219,6 +220,33 @@ const ADMINISTRATION: EntreeAdmin[] = [
   },
 ];
 
+/**
+ * L'entrée d'une agence badgée vers ses propres événements.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI UN GROUPE À PART, ET NON UNE LIGNE DANS « MA BOUTIQUE »
+ *
+ * Organiser n'est pas vendre. Une agence badgée peut tenir un atelier sans
+ * avoir jamais mis une ressource en vente — son groupe « Ma boutique » serait
+ * alors intégralement grisé, et l'entrée qui l'intéresse, perdue au milieu.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ET POURQUOI PAS DANS « PLATEFORME »
+ *
+ * Parce que ce groupe-là veut dire « tu administres Baobart ». Une agence
+ * n'administre rien : elle gère ses propres lignes. Ranger son entrée avec la
+ * file de modération lui laisserait croire l'inverse — et le jour où l'on
+ * ajouterait une entrée au groupe sans y penser, elle la verrait.
+ */
+const ORGANISATEUR: EntreeNav[] = [
+  {
+    cle: "o_evenements",
+    label: "Mes événements",
+    glyph: "◈",
+    href: "/dashboard/evenements",
+  },
+];
+
 export function navigationPour(
   etape: EtapeCompte,
   /**
@@ -237,6 +265,17 @@ export function navigationPour(
    * C'est le même piège que dans `exigerLePouvoir`, un étage plus haut.
    */
   role: RolePlateforme = "MEMBER",
+  /**
+   * Ce que le rôle ne dit pas.
+   *
+   * `organisateur` vient d'un **badge**, pas d'un `RolePlateforme` — c'est
+   * tout le sens de §18.3, et la raison pour laquelle il ne peut pas se
+   * déduire de `role`. Il faut donc le passer, et il se lit en base : voir
+   * `accesAuxEvenements` dans `lib/evenements/garde.ts`.
+   *
+   * Faux par défaut : l'oubli ferme, il n'ouvre pas.
+   */
+  extras: { organisateur?: boolean } = {},
 ): Groupe[] {
   // Plus de `e.pouvoir === undefined ||` : dans une liste réservée à
   // l'administration, une entrée sans pouvoir déclaré s'affichait pour tout le
@@ -250,6 +289,23 @@ export function navigationPour(
           {
             titre: "Plateforme",
             entrees: entreesAdmin.map((e) => ({
+              ...e,
+              actif: true,
+              raisonVerrou: null,
+            })),
+          },
+        ]
+      : [];
+
+  // Réservé à qui n'administre pas : l'équipe a déjà « Événements » dans
+  // « Plateforme », et deux entrées vers le même écran feraient douter qu'il
+  // s'agisse du même.
+  const organiser: Groupe[] =
+    extras.organisateur === true && entreesAdmin.length === 0
+      ? [
+          {
+            titre: "Organiser",
+            entrees: ORGANISATEUR.map((e) => ({
               ...e,
               actif: true,
               raisonVerrou: null,
@@ -273,6 +329,7 @@ export function navigationPour(
         titre: "Vendre",
         entrees: [{ ...PORTE_CREATION, actif: true, raisonVerrou: null }],
       },
+      ...organiser,
       ...admin,
     ];
   }
@@ -295,6 +352,7 @@ export function navigationPour(
   return [
     { titre: null, entrees: acheteur },
     { titre: "Ma boutique", entrees: createur },
+    ...organiser,
     ...admin,
   ];
 }

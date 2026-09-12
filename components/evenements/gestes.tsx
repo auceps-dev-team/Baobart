@@ -2,8 +2,9 @@
 
 import { useActionState, useState, useTransition } from "react";
 
-import type { EtatContenu, Geste } from "@/lib/cms/cycle";
+import type { EtatContenu } from "@/lib/cms/cycle";
 import { LIBELLE_GESTE, gestesDepuis } from "@/lib/cms/cycle";
+import { gestePermis, type Portee } from "@/lib/evenements/acces";
 import {
   annulerEvenement,
   retablirEvenement,
@@ -22,6 +23,13 @@ import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
  * « Publier » sur un événement déjà publié promettrait une action qui répond
  * « transition interdite » — et ferait chercher la panne du mauvais côté.
  *
+ * Deux filtres, et pas un : ce que la **machine** permet depuis cet état, puis
+ * ce que la **portée** permet à cette personne. Une agence ne voit donc jamais
+ * « Publier », même sur un brouillon où la transition existe.
+ *
+ * Cacher le bouton ne ferme rien — l'action serveur repose la question et rend
+ * `GESTE_RESERVE`. Ce filtre-ci sert à ne pas mentir, pas à protéger.
+ *
  * ════════════════════════════════════════════════════════════════════════════
  * ANNULER DEMANDE UNE RAISON, ET LE CHAMP S'OUVRE AVANT LE BOUTON
  *
@@ -33,10 +41,17 @@ export function GestesEvenement({
   evenementId,
   etat,
   annule,
+  portee,
 }: {
   evenementId: string;
   etat: EtatContenu;
   annule: boolean;
+  /**
+   * Sert **uniquement** à choisir les boutons. Elle ne contient rien de secret
+   * — le rôle et l'identifiant de qui regarde — et la décision qui compte est
+   * reprise côté serveur à chaque clic.
+   */
+  portee: Portee;
 }) {
   const [enCours, demarrer] = useTransition();
   const [retour, setRetour] = useState<EtatGeste | null>(null);
@@ -47,11 +62,23 @@ export function GestesEvenement({
     null,
   );
 
-  // Seuls les gestes que la machine autorise. `soumettre` et `refuser`
-  // n'arrivent jamais ici : les événements n'ont pas de file (§18.1).
+  // Ce que la machine permet depuis cet état, puis ce que la portée permet à
+  // cette personne.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // `refuser` EST ÉCARTÉ, ET C'EST UNE DETTE ASSUMÉE
+  //
+  // La machine le permet depuis `SOUMIS`, mais un refus sans motif ne vaut
+  // rien : l'agence verrait « Refusé » sans savoir quoi corriger, et il n'y a
+  // pas de messagerie dans le produit (§22.6) pour le lui dire autrement.
+  //
+  // Écrire le champ de motif demanderait de porter une raison jusqu'à
+  // `trancher`, qui n'en prend pas — c'est le chantier que `annuler` a déjà
+  // fait pour l'annulation. En attendant, l'équipe dispose de `retirer` : la
+  // fiche quitte la vue, l'agence peut la reprendre en brouillon et la
+  // renvoyer. Le circuit se ferme, la raison manque.
   const gestes = gestesDepuis(etat).filter(
-    (g): g is Extract<Geste, "publier" | "retirer" | "reprendre"> =>
-      g === "publier" || g === "retirer" || g === "reprendre",
+    (g) => g !== "refuser" && gestePermis(portee, g),
   );
 
   const message = retour?.message ?? etatAnnulation?.message ?? null;
@@ -97,6 +124,13 @@ export function GestesEvenement({
         </div>
       ) : null}
 
+      {portee.etendue === "LES_MIENS" ? (
+        <p style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.5, marginBottom: 12, opacity: 0.75 }}>
+          La mise en ligne revient à l&apos;équipe Baobart. Envoie ta fiche en
+          relecture : tant qu&apos;elle est en brouillon, personne ne la voit.
+        </p>
+      ) : null}
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
         {gestes.map((g) => (
           <button
@@ -109,7 +143,7 @@ export function GestesEvenement({
                 setRetour(await trancherEvenement(evenementId, g));
               })
             }
-            style={bouton(g === "publier" ? VERT : BLANC)}
+            style={bouton(g === "publier" || g === "soumettre" ? VERT : BLANC)}
           >
             {LIBELLE_GESTE[g]}
           </button>

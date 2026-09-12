@@ -2,18 +2,34 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
-import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { LIBELLE_ETAT } from "@/lib/cms/cycle";
+import { intitule } from "@/lib/evenements/acces";
 import { LIBELLE_GENRE } from "@/lib/evenements/enums";
+import { exigerAccesAuxEvenements } from "@/lib/evenements/garde";
 import { LIBELLE_PHASE } from "@/lib/evenements/phases";
-import { listerPourAdministration } from "@/lib/evenements/queries";
+import { listerDansLaPortee } from "@/lib/evenements/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Événements — Baobart." };
 export const dynamic = "force-dynamic";
 
 /**
- * Les événements, vus de l'administration.
+ * Les événements — tous, ou les siens.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN SEUL ÉCRAN POUR DEUX PUBLICS, ET C'EST LE POINT
+ *
+ * L'équipe éditoriale y voit tout ; une agence badgée n'y voit que ce qu'elle
+ * organise. Ce n'est pas le même contenu, mais c'est le même écran — et c'est
+ * ce qui fait que l'ouverture aux agences n'a rien coûté en surface.
+ *
+ * Écrire un second tableau de bord « organisateur » aurait paru plus propre.
+ * Il aurait surtout créé deux endroits où corriger le même bogue, dont un
+ * qu'on relit deux fois moins souvent.
+ *
+ * Ce qui change entre les deux publics tient dans une `Portee`, calculée une
+ * fois par la garde et traversée par la requête. Voir
+ * `lib/evenements/acces.ts`.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * PAS SOUS `/dashboard/systeme`
@@ -32,14 +48,15 @@ export const dynamic = "force-dynamic";
  * ce qui manque : un brouillon dont la date approche est le cas qu'on cherche.
  */
 export default async function EvenementsAdminPage() {
-  const utilisateur = await exigerLePouvoir("publier_du_contenu");
-  const evenements = await listerPourAdministration();
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
+  const evenements = await listerDansLaPortee(portee);
+  const mots = intitule(portee);
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
-      titre="Événements"
-      description="Concours, ateliers, conférences, expositions. Rien ne paraît tant que c'est un brouillon."
+      titre={mots.titre}
+      description={mots.description}
       action={
         <Link
           href={"/dashboard/evenements/nouveau" as Route}
@@ -72,8 +89,9 @@ export default async function EvenementsAdminPage() {
         >
           <div style={{ fontSize: 17, fontWeight: 800 }}>Aucun événement</div>
           <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, marginTop: 8 }}>
-            Crée le premier — il naîtra en brouillon, et ne paraîtra que
-            lorsque tu le publieras.
+            {portee.etendue === "TOUT"
+              ? "Crée le premier — il naîtra en brouillon, et ne paraîtra que lorsque tu le publieras."
+              : "Crée le premier — il naîtra en brouillon. Tu l'enverras en relecture quand la fiche sera prête."}
           </p>
         </div>
       ) : (
@@ -150,7 +168,12 @@ export default async function EvenementsAdminPage() {
                   {e.inscrits} inscrit{e.inscrits > 1 ? "s" : ""}
                   {e.capacite !== null ? ` / ${e.capacite}` : ""}
                 </span>
-                <span>par {e.organisateur}</span>
+                {/*
+                  L'organisateur ne s'affiche qu'à qui voit ceux des autres.
+                  Répéter son propre nom sur chacune de ses lignes n'apprend
+                  rien et occupe la place d'une information utile.
+                */}
+                {portee.etendue === "TOUT" ? <span>par {e.organisateur}</span> : null}
               </div>
             </Link>
           ))}

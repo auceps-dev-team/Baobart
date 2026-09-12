@@ -3,7 +3,7 @@ import type { Route } from "next";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { FormulaireEvenement } from "@/components/evenements/formulaire";
-import { exigerLePouvoir } from "@/lib/auth/acces-administration";
+import { exigerAccesAuxEvenements } from "@/lib/evenements/garde";
 import { BLANC, CADRE, ENCRE, JAUNE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Nouvel événement — Baobart." };
@@ -15,15 +15,23 @@ export const dynamic = "force-dynamic";
  * Il naît en brouillon, toujours : on écrit rarement une fiche juste du
  * premier coup, et le défaut précédent du schéma — publier à la création —
  * mettait en ligne des textes à moitié rédigés.
+ *
+ * La phrase d'accompagnement change selon la portée. Promettre « tu le
+ * publieras » à une agence qui devra passer par la relecture serait la
+ * laisser chercher un bouton qui n'apparaîtra jamais.
  */
 export default async function NouvelEvenementPage() {
-  const utilisateur = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
       titre="Nouvel événement"
-      description="Il naîtra en brouillon. Tu le publieras quand la fiche sera prête."
+      description={
+        portee.etendue === "TOUT"
+          ? "Il naîtra en brouillon. Tu le publieras quand la fiche sera prête."
+          : "Il naîtra en brouillon. Tu l'enverras en relecture quand la fiche sera prête — l'équipe Baobart le met en ligne."
+      }
       action={
         <Link
           href={"/dashboard/evenements" as Route}

@@ -12,6 +12,7 @@ import {
 import type { EtapeCompte } from "@/lib/auth/roles";
 import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
+import { accesAuxEvenements } from "@/lib/evenements/garde";
 
 /**
  * Barre latérale du tableau de bord, traduite de « Baobart Dashboard.dc.html ».
@@ -20,11 +21,28 @@ import { navigationPour } from "@/lib/dashboard/nav";
  * navigation qui grandit. Les entrées verrouillées restent visibles et
  * expliquent ce qui les ouvrira — les cacher priverait la personne de la carte
  * du chemin qu'elle est en train de parcourir.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ELLE EST DEVENUE ASYNCHRONE, ET ÇA COÛTE DEUX REQUÊTES
+ *
+ * L'entrée « Mes événements » dépend d'un **badge**, pas d'un rôle : rien dans
+ * la session ne permet de la décider. Il faut donc lire, et la lecture vit ici
+ * plutôt que dans les neuf écrans qui montent cette barre — sans quoi l'entrée
+ * apparaîtrait sur certains et pas sur d'autres, ce qui est pire que de ne pas
+ * l'avoir.
+ *
+ * Le coût est réel et se mesure : une lecture de session, plus deux lectures
+ * — badge et abonnement — pour qui n'administre pas. `accesAuxEvenements`
+ * évite les deux dernières quand le rôle suffit déjà à trancher.
+ *
+ * Le jour où cela pèse, la réponse n'est pas de remonter la lecture dans les
+ * écrans : c'est d'envelopper `sessionCourante` dans le `cache()` de React,
+ * qui dédoublonne les appels d'un même rendu.
  */
 
 const CADRE = `2.5px solid ${ENCRE}`;
 
-export function DashboardSidebar({
+export async function DashboardSidebar({
   etape,
   nom,
   email,
@@ -43,7 +61,10 @@ export function DashboardSidebar({
    */
   role?: RolePlateforme;
 }) {
-  const groupes = navigationPour(etape, role);
+  // Le badge ne se lit pas dans la session : `null` ici veut dire « ni
+  // l'équipe, ni une agence à jour », donc pas d'entrée.
+  const acces = await accesAuxEvenements();
+  const groupes = navigationPour(etape, role, { organisateur: acces !== null });
 
   return (
     <aside

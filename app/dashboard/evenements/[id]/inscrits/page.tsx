@@ -3,8 +3,9 @@ import type { Route } from "next";
 import { notFound } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
-import { exigerLePouvoir } from "@/lib/auth/acces-administration";
+import { clauseDePortee } from "@/lib/evenements/acces";
 import { LIBELLE_GENRE, type EventKind } from "@/lib/evenements/enums";
+import { accesAuxEvenements, exigerAccesAuxEvenements } from "@/lib/evenements/garde";
 import { LIBELLE_PHASE, phaseDe, placesRestantes } from "@/lib/evenements/phases";
 import { inscritsDe } from "@/lib/evenements/queries";
 import { db } from "@/lib/db";
@@ -19,7 +20,17 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const e = await db.event.findUnique({ where: { id }, select: { title: true } });
+
+  // Bornée à la portée, comme la page : un titre d'onglet est une fuite comme
+  // une autre.
+  const acces = await accesAuxEvenements();
+  const e = acces
+    ? await db.event.findFirst({
+        where: { id, ...clauseDePortee(acces.portee) },
+        select: { title: true },
+      })
+    : null;
+
   return { title: e ? `Inscrits — ${e.title}` : "Inscrits — Baobart." };
 }
 
@@ -39,6 +50,18 @@ export async function generateMetadata({
  * mieux — trier, croiser, garder.
  *
  * ════════════════════════════════════════════════════════════════════════════
+ * LA PORTÉE GARDE CETTE PAGE, ET C'EST LA GARDE LA PLUS IMPORTANTE DU MODULE
+ *
+ * Une liste de noms, d'adresses de courriel et de présences à une date : c'est
+ * ce qu'on trouve ici. Tant que les événements appartenaient à l'équipe, le
+ * pouvoir `publier_du_contenu` suffisait. Depuis que les agences y écrivent,
+ * il faut en plus que l'événement soit **le sien**.
+ *
+ * Le filtre est dans la requête qui charge l'événement, pas dans un `if` après
+ * coup : si elle rend `null`, on répond 404 et `inscritsDe` n'est jamais
+ * appelé.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
  * L'ADRESSE EST EN CLAIR, ET C'EST ASSUMÉ
  *
  * C'est la seule voie de retour vers un inscrit — il n'y a pas de messagerie
@@ -51,11 +74,11 @@ export default async function InscritsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const utilisateur = await exigerLePouvoir("publier_du_contenu");
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
   const { id } = await params;
 
-  const evenement = await db.event.findUnique({
-    where: { id },
+  const evenement = await db.event.findFirst({
+    where: { id, ...clauseDePortee(portee) },
     select: {
       id: true,
       title: true,
