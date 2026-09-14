@@ -382,7 +382,19 @@ describe("exécution d'un versement", () => {
         where: { template: "AVIS_VERSEMENT" },
       });
       expect(avis).toHaveLength(1);
-      expect(avis[0]?.idempotencyKey).toBe(`versement-${versement.id}`);
+      // La clé porte son canal depuis que l'aiguilleur écrit sur deux files.
+      // Ce qui la rend unique reste le versement lui-même.
+      expect(avis[0]?.idempotencyKey).toBe(`courriel:versement-${versement.id}`);
+
+      // Et le créateur en garde une trace dans l'application : un avis de
+      // versement est ce qu'on ressort quand on conteste un montant.
+      const cloche = await db.notification.findMany({
+        where: { type: "VERSEMENT_ENVOYE" },
+      });
+      expect(cloche).toHaveLength(1);
+      expect(cloche[0]?.lien).toBe("/dashboard/versements");
+      // Le montant y figure aussi : c'est ce qu'on lit sans ouvrir.
+      expect(cloche[0]?.titre).toContain(formatMoney(a.net, "XOF"));
 
       // Le montant annoncé est celui du versement — le net —, pas le brut de la
       // vente. Un créateur qui lit 10 000 et reçoit 8 850 croit à une erreur.

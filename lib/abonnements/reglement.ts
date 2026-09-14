@@ -2,11 +2,11 @@ import "server-only";
 
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
-import { deposer } from "@/lib/email/outbox";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 import { cycleSuivant, type Cadence, type Cycle } from "@/lib/ndank/cycle";
 import { cycleDe } from "@/lib/ndank/baobart";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { appareilsDe, envoyerA } from "@/lib/push/abonnements";
 
 /**
@@ -123,19 +123,40 @@ export async function finaliserRenouvellement(
     });
 
     const base = urlDuSite();
+    const nom = abonne.profile?.displayName ?? abonne.email;
+    const montant = formatMoney(paiement.amount, paiement.currency as Currency);
+    const prochaine = dateLisible(suivant.echeance);
 
-    await deposer(
+    // ════════════════════════════════════════════════════════════════════════
+    // PAR L'AIGUILLEUR, ET TOUJOURS DANS LA TRANSACTION
+    //
+    // C'était un `deposer` direct : le reçu partait par courriel, et rien
+    // n'en restait dans l'application. Quelqu'un qui relève sa boîte une fois
+    // par mois n'avait aucun moyen de retrouver la preuve d'un prélèvement.
+    //
+    // Le `tx` est passé tel quel, et c'est le point à ne pas perdre : le reçu
+    // s'écrit dans la MÊME transaction que le paiement. S'il partait après,
+    // un processus qui meurt entre le `COMMIT` et l'avis laisserait un
+    // abonnement encaissé sans reçu ; s'il partait avant, une panne
+    // d'expéditeur ferait échouer le paiement.
+    //
+    // La clé ne change pas : `abo-recu-<paiementId>`. Les anciens courriels
+    // déjà déposés portaient cette clé nue, les nouveaux la portent préfixée
+    // par le canal — un reçu déjà envoyé ne peut donc pas repartir, puisque
+    // le paiement, lui, ne se rejoue pas.
+    await notifier(
       {
-        // La même clé quel que soit le chemin : un rejeu ne peut pas produire
-        // un second reçu, même s'il vient d'un autre événement.
+        destinataireId: abonnement.userId,
+        evenement: "ABONNEMENT_RECU",
         cle: `abo-recu-${paiement.id}`,
-        destinataire: abonne.email,
-        modele: "RECU_ABONNEMENT",
+        titre: `Abonnement ${abonnement.plan.name} renouvelé`,
+        corps: `${montant} prélevés. Prochaine échéance le ${prochaine}.`,
+        lien: "/dashboard/forfait",
         charge: {
-          nom: abonne.profile?.displayName ?? abonne.email,
+          nom,
           offre: abonnement.plan.name,
-          montant: formatMoney(paiement.amount, paiement.currency as Currency),
-          prochaine: dateLisible(suivant.echeance),
+          montant,
+          prochaine,
           lien: base ? `${base}/dashboard/forfait` : undefined,
         },
       },

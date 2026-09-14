@@ -177,7 +177,7 @@ describe("l'argent", () => {
     expect(ligne.processorFee).toBe(attendu.processorFee);
   });
 
-  it("dépose un reçu dans la file, une seule fois", async () => {
+  it("dépose un reçu dans la file ET dans la cloche, une seule fois", async () => {
     const vendeur = await creerUtilisateur("vendeur");
     const acheteur = await creerUtilisateur("acheteur");
     const produit = await creerProduit({ vendeurId: vendeur.id, prix: 4500 });
@@ -190,7 +190,21 @@ describe("l'argent", () => {
     });
     expect(recus).toHaveLength(1);
     expect(recus[0]?.recipient).toBe(acheteur.email);
-    expect(recus[0]?.idempotencyKey).toBe(`recu-${r.orderItemId}`);
+    // La clé porte désormais son canal : l'aiguilleur écrit sur deux files et
+    // doit pouvoir les distinguer. Ce qui la rend unique reste le fait —
+    // l'identifiant de la ligne de commande.
+    expect(recus[0]?.idempotencyKey).toBe(`courriel:recu-${r.orderItemId}`);
+
+    // Depuis v1.52.1, l'acheteur en garde une trace dans l'application. C'est
+    // le canal qu'on maîtrise : un courriel perdu ne fait plus disparaître la
+    // preuve de ce qui a été payé.
+    const avis = await db.notification.findMany({
+      where: { userId: acheteur.id },
+    });
+    expect(avis).toHaveLength(1);
+    expect(avis[0]?.type).toBe("ACHAT_CONFIRME");
+    expect(avis[0]?.lien).toBe("/dashboard/achats");
+    expect(avis[0]?.cle).toBe(`in-app:recu-${r.orderItemId}`);
   });
 });
 

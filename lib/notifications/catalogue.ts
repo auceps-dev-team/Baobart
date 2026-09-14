@@ -107,6 +107,7 @@ export type EvenementNotifiable =
   | "TELECHARGEMENT_PRET"
   | "COMMANDE_REMBOURSEE"
   | "ABONNEMENT_A_RENOUVELER"
+  | "ABONNEMENT_RECU"
   | "EVENEMENT_ANNULE"
   // ── Vendeur, créateur, organisateur ─────────────────────────────────────
   | "VENTE_REALISEE"
@@ -167,6 +168,16 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     libelle: "Abonnement à renouveler",
     explication: "Avant que l'accès ne se ferme.",
     modele: "RELANCE_ABONNEMENT",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  ABONNEMENT_RECU: {
+    audience: "acheteur",
+    libelle: "Reçu d'abonnement",
+    explication: "Ton abonnement a été renouvelé, avec la prochaine échéance.",
+    // Même raison que le reçu d'achat : c'est une preuve de paiement. Un
+    // abonnement se conteste, et sans reçu on ne conteste rien.
+    imperatif: true,
+    modele: "RECU_ABONNEMENT",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   EVENEMENT_ANNULE: {

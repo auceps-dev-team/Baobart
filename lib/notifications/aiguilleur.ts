@@ -13,6 +13,18 @@ import {
 import { lirePreferences } from "@/lib/notifications/preferences";
 
 /**
+ * Ce dont l'aiguilleur a besoin, et rien de plus.
+ *
+ * Un `Pick` plutôt que `typeof db` : la signature dit exactement quelles
+ * tables sont touchées, et un client de transaction — qui n'expose pas
+ * `$transaction` — la satisfait.
+ */
+export type ClientNotifications = Pick<
+  typeof db,
+  "user" | "notification" | "notificationPreference" | "emailOutbox"
+>;
+
+/**
  * La porte unique par où passe tout ce qu'on annonce à quelqu'un.
  *
  * ════════════════════════════════════════════════════════════════════════════
@@ -52,6 +64,26 @@ import { lirePreferences } from "@/lib/notifications/preferences";
  * Les deux canaux la portent : `Notification.cle` est unique, et `EmailOutbox`
  * l'exigeait déjà. On la suffixe par canal pour que le courriel et l'in-app ne
  * se marchent pas dessus.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * IL SAIT ENTRER DANS UNE TRANSACTION
+ *
+ * C'est ce qui manquait à la première version, et cela l'empêchait de servir
+ * là où elle est le plus utile.
+ *
+ * Un reçu d'achat s'écrit **dans la transaction du paiement** — c'est la règle
+ * posée sur `EmailOutbox` : « un message part après la transaction qui le
+ * justifie. S'il partait pendant, une commande annulée aurait déjà envoyé son
+ * reçu ; s'il partait avant, une panne d'expéditeur ferait échouer la
+ * commande. »
+ *
+ * Un aiguilleur qui ouvre ses propres connexions casse cette garantie : entre
+ * le `COMMIT` du paiement et l'écriture de l'avis, le processus peut mourir, et
+ * l'acheteur ne reçoit jamais son reçu d'un paiement bien encaissé.
+ *
+ * `notifier(avis, tx)` écrit donc les deux canaux avec le client qu'on lui
+ * donne. Sans second argument, il prend le client global — le cas des avis qui
+ * suivent un fait déjà écrit, comme un refus de publication.
  */
 
 export interface Avis {
@@ -113,11 +145,14 @@ export interface Livraison {
  * exactement le genre de paramètre qu'un appelant finit par remplir avec ce
  * qu'il a sous la main.
  */
-export async function notifier(avis: Avis): Promise<Livraison> {
+export async function notifier(
+  avis: Avis,
+  client: ClientNotifications = db,
+): Promise<Livraison> {
   const vide: Livraison = { canaux: [], doublons: [], echecs: [] };
 
   try {
-    const destinataire = await db.user.findUnique({
+    const destinataire = await client.user.findUnique({
       where: { id: avis.destinataireId },
       select: { id: true, email: true },
     });
@@ -133,7 +168,7 @@ export async function notifier(avis: Avis): Promise<Livraison> {
       return vide;
     }
 
-    const preferences = await lirePreferences(destinataire.id);
+    const preferences = await lirePreferences(destinataire.id, client);
     const canaux = canauxPour(avis.evenement, preferences);
 
     const livraison: Livraison = { canaux: [], doublons: [], echecs: [] };
@@ -141,8 +176,8 @@ export async function notifier(avis: Avis): Promise<Livraison> {
     for (const canal of canaux) {
       const pose =
         canal === "IN_APP"
-          ? await ecrireDansLaCloche(destinataire.id, avis)
-          : await deposerLeCourriel(destinataire.email, avis);
+          ? await ecrireDansLaCloche(destinataire.id, avis, client)
+          : await deposerLeCourriel(destinataire.email, avis, client);
 
       if (pose === "pose") livraison.canaux.push(canal);
       else if (pose === "doublon") livraison.doublons.push(canal);
@@ -161,13 +196,28 @@ export async function notifier(avis: Avis): Promise<Livraison> {
 
     return livraison;
   } catch (cause) {
-    // On ne relance jamais : prévenir est une conséquence de l'acte, pas une
-    // condition. Voir l'en-tête.
+    // ════════════════════════════════════════════════════════════════════════
+    // ON NE RELANCE JAMAIS — SAUF DANS UNE TRANSACTION
+    //
+    // Prévenir est une conséquence de l'acte, pas une condition : avaler
+    // l'erreur est ce qui empêche un webhook de paiement de répondre 500
+    // parce que la cloche n'a pas sonné.
+    //
+    // Mais à l'intérieur d'une transaction, une requête qui a échoué a déjà
+    // mis celle-ci en erreur : PostgreSQL refuse tout le reste jusqu'au
+    // `ROLLBACK`. Avaler l'exception laisserait l'appelant continuer d'écrire
+    // dans une transaction morte, et croire que ça passe — le vrai échec
+    // n'apparaîtrait qu'au `COMMIT`, sans rapport avec sa cause.
+    //
+    // On relance donc, et c'est l'appelant qui décide : la transaction du
+    // paiement doit échouer franchement plutôt que de s'encaisser à moitié.
     journal.erreur("avis non livré", {
       evenement: avis.evenement,
       cle: avis.cle,
       cause: cause instanceof Error ? cause.message : String(cause),
     });
+
+    if (client !== db) throw cause;
     return vide;
   }
 }
@@ -185,9 +235,10 @@ type Issue =
 async function ecrireDansLaCloche(
   utilisateurId: string,
   avis: Avis,
+  client: ClientNotifications,
 ): Promise<Issue> {
   try {
-    await db.notification.create({
+    await client.notification.create({
       data: {
         userId: utilisateurId,
         type: avis.evenement,
@@ -210,6 +261,7 @@ async function ecrireDansLaCloche(
 async function deposerLeCourriel(
   adresse: string,
   avis: Avis,
+  client: ClientNotifications,
 ): Promise<Issue> {
   const modele = CATALOGUE[avis.evenement].modele;
 
@@ -218,12 +270,15 @@ async function deposerLeCourriel(
   // texte serait pire que pas de courriel.
   if (modele === null) return "sans_modele";
 
-  const suite = await deposer({
-    cle: `courriel:${avis.cle}`,
-    destinataire: adresse,
-    modele,
-    charge: avis.charge ?? {},
-  });
+  const suite = await deposer(
+    {
+      cle: `courriel:${avis.cle}`,
+      destinataire: adresse,
+      modele,
+      charge: avis.charge ?? {},
+    },
+    client,
+  );
 
   if (suite.depose) return "pose";
 

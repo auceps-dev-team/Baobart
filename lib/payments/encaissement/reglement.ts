@@ -3,7 +3,7 @@ import "server-only";
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
 import { encaisserLigne } from "@/lib/domain/orders";
-import { deposer } from "@/lib/email/outbox";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { formatMoney } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 
@@ -42,7 +42,17 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
       quantity: true,
       orderId: true,
       product: { select: { name: true, currency: true } },
-      order: { select: { buyer: { select: { email: true, profile: { select: { displayName: true } } } } } },
+      order: {
+        select: {
+          buyer: {
+            // `id` en plus de l'adresse : l'aiguilleur lit le compte pour
+            // écrire dans sa cloche, et il ne prend pas une adresse en
+            // paramètre — la recevoir permettrait d'envoyer le reçu de
+            // quelqu'un à l'adresse d'un autre.
+            select: { id: true, email: true, profile: { select: { displayName: true } } },
+          },
+        },
+      },
     },
   });
 
@@ -59,13 +69,27 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
       data: { status: "COMPLETED" },
     });
 
-    await deposer(
+    // ════════════════════════════════════════════════════════════════════════
+    // PAR L'AIGUILLEUR, ET TOUJOURS DANS LA TRANSACTION
+    //
+    // C'était un `deposer` direct : le reçu partait par courriel, et rien n'en
+    // restait dans l'application. Un acheteur qui relève sa boîte rarement
+    // n'avait aucune trace de ce qu'il venait de payer.
+    //
+    // Le `tx` est passé tel quel, et c'est ce qui ne doit pas se perdre :
+    // l'avis s'écrit dans la MÊME transaction que la clôture de la commande.
+    // Le raisonnement du bloc ci-dessus vaut pour les deux canaux — commande
+    // close et reçu perdu ne se voit nulle part.
+    await notifier(
       {
+        destinataireId: acheteur.id,
+        evenement: "ACHAT_CONFIRME",
         // La même clé quel que soit le chemin : un rejeu ne peut pas produire
         // un second reçu, même s'il vient d'un autre événement.
         cle: `recu-${orderItemId}`,
-        destinataire: acheteur.email,
-        modele: "RECU_ACHAT",
+        titre: `Achat confirmé — ${ligne.product.name}`,
+        corps: `${formatMoney(ligne.price * ligne.quantity, ligne.product.currency)} payés. Tu retrouves ta ressource dans tes achats.`,
+        lien: "/dashboard/achats",
         charge: {
           nom: acheteur.profile?.displayName ?? acheteur.email,
           ressource: ligne.product.name,

@@ -3,7 +3,7 @@ import "server-only";
 import type { Currency, PayoutMethod, PayoutStatus } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import { deposer } from "@/lib/email/outbox";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { formatMoney } from "@/lib/i18n/money";
 import { masquerCompte } from "@/lib/payments/gains";
 import {
@@ -200,6 +200,9 @@ async function transiter(
         accountRef: true,
         user: {
           select: {
+            // `id` pour l'aiguilleur : il lit le compte pour écrire dans sa
+            // cloche, et ne prend pas d'adresse en paramètre.
+            id: true,
             payoutsPausedAt: true,
             payoutsPausedReason: true,
             email: true,
@@ -247,15 +250,29 @@ async function transiter(
     // quand il est arrivé. La clé tient au versement, donc un rejeu de la même
     // transition n'enverrait pas deux avis.
     if (vers === "PROCESSING") {
-      await deposer(
+      const montant = formatMoney(versement.amount, versement.currency);
+      const compte = masquerCompte(versement.accountRef);
+
+      // Par l'aiguilleur depuis v1.52.1, et toujours avec le `tx`.
+      //
+      // Le créateur en garde une trace dans l'application : un avis de
+      // versement est ce qu'on ressort quand on conteste un montant, et il ne
+      // doit pas dépendre d'un courriel retrouvé.
+      //
+      // `VERSEMENT_ENVOYE` est impératif au catalogue : aucune préférence ne
+      // peut le couper. On ne se rend pas sourd à l'annonce d'un paiement.
+      await notifier(
         {
+          destinataireId: versement.user.id,
+          evenement: "VERSEMENT_ENVOYE",
           cle: `versement-${payoutId}`,
-          destinataire: versement.user.email,
-          modele: "AVIS_VERSEMENT",
+          titre: `Versement de ${montant} en route`,
+          corps: `Vers ${compte}. Compte trois jours ouvrés avant de le voir arriver.`,
+          lien: "/dashboard/versements",
           charge: {
             nom: versement.user.profile?.displayName ?? versement.user.email,
-            montant: formatMoney(versement.amount, versement.currency),
-            compte: masquerCompte(versement.accountRef),
+            montant,
+            compte,
           },
         },
         tx,

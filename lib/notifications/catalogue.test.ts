@@ -118,11 +118,15 @@ describe("les impératifs", () => {
 
     expect(imperatifs.sort()).toEqual(
       [
+        // De l'argent qui bouge, dans un sens ou dans l'autre.
         "ACHAT_CONFIRME",
+        "ABONNEMENT_RECU",
         "COMMANDE_REMBOURSEE",
-        "CONTENU_REFUSE",
-        "EVENEMENT_ANNULE",
         "VERSEMENT_ENVOYE",
+        // Une décision qui n'a aucun autre canal vers son auteur.
+        "CONTENU_REFUSE",
+        // Un déplacement prévu, parfois payé.
+        "EVENEMENT_ANNULE",
       ].sort(),
     );
   });

@@ -40,11 +40,19 @@ import {
  * l'écran n'offrait pas de la changer.
  */
 
-/** Ce que la personne a changé, sous la forme que le module pur attend. */
+/**
+ * Ce que la personne a changé, sous la forme que le module pur attend.
+ *
+ * Accepte un client de transaction : lue depuis l'aiguilleur, cette requête
+ * doit partir sur la même connexion que les écritures qui la suivent. Une
+ * lecture hors transaction y verrait un état d'avant, et surtout ouvrirait une
+ * seconde connexion pendant qu'une transaction en tient déjà une.
+ */
 export async function lirePreferences(
   utilisateurId: string,
+  client: Pick<typeof db, "notificationPreference"> = db,
 ): Promise<Preferences> {
-  const lignes = await db.notificationPreference.findMany({
+  const lignes = await client.notificationPreference.findMany({
     where: { userId: utilisateurId },
     select: { evenement: true, canal: true, actif: true },
   });

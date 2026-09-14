@@ -258,6 +258,41 @@ describe("le rappel de l'opérateur", () => {
     expect(courriel.template).toBe("RECU_ABONNEMENT");
     expect((courriel.payload as { prochaine: string }).prochaine.length)
       .toBeGreaterThan(0);
+
+    // Depuis v1.52.1, le reçu passe par l'aiguilleur : il laisse aussi une
+    // trace dans l'application. C'est ce qui permet de retrouver la preuve
+    // d'un prélèvement sans relever sa boîte.
+    //
+    // Les deux écritures sont dans la MÊME transaction que le paiement. Si
+    // l'une manquait ici, c'est que l'atomicité a été perdue en route.
+    const avis = await db.notification.findFirstOrThrow({
+      where: { userId: utilisateur.id },
+      select: { type: true, titre: true, corps: true, lien: true, readAt: true },
+    });
+    expect(avis.type).toBe("ABONNEMENT_RECU");
+    expect(avis.lien).toBe("/dashboard/forfait");
+    expect(avis.corps).toMatch(/Prochaine échéance/);
+    expect(avis.readAt).toBeNull();
+  });
+
+  it("n'écrit ni reçu ni avis quand le paiement ne passe pas", async () => {
+    // L'autre moitié de l'atomicité, et la plus importante : un paiement qui
+    // ne se règle pas ne doit laisser aucune trace de reçu. Avant que
+    // l'aiguilleur sache entrer dans la transaction, l'avis serait parti
+    // quand même — et l'abonné aurait lu « renouvelé » sans l'être.
+    const echeance = ajouterJours(new Date(), 2);
+    const { paiementId } = await ouvert(echeance);
+
+    // Un paiement déjà réglé : la garde d'état refuse, rien ne doit s'écrire.
+    await db.subscriptionPayment.update({
+      where: { id: paiementId },
+      data: { status: "PAID" },
+    });
+
+    await recevoir("bac-a-sable", fait(referenceDe(paiementId)), {});
+
+    expect(await db.emailOutbox.count()).toBe(0);
+    expect(await db.notification.count()).toBe(0);
   });
 
   it("n'avance le cycle qu'une fois, même rejoué", async () => {

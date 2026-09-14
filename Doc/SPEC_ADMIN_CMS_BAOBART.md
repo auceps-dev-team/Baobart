@@ -1689,23 +1689,66 @@ canal ouvert. Trois propriétés qui doivent tenir :
 Douze événements au catalogue, répartis sur les deux publics — cinq côté
 acheteur, sept côté vendeur ou organisateur.
 
-**Branché dans cette version :**
+**Branché :**
 
-| Événement | Déclenché par |
-| --- | --- |
-| `CONTENU_REFUSE` | `trancher(… "refuser")`, avec le motif en corps |
-| `CONTENU_PUBLIE` | `trancher(… "publier")` |
-| `EVENEMENT_ANNULE` | `annuler()`, à chaque inscrit |
+| Événement | Déclenché par | Depuis |
+| --- | --- | --- |
+| `CONTENU_REFUSE` | `trancher(… "refuser")`, avec le motif en corps | v1.52.0 |
+| `CONTENU_PUBLIE` | `trancher(… "publier")` | v1.52.0 |
+| `EVENEMENT_ANNULE` | `annuler()`, à chaque inscrit | v1.52.0 |
+| `ABONNEMENT_RECU` | `reglerRenouvellement()`, dans sa transaction | v1.52.1 |
+| `ACHAT_CONFIRME` | `finaliserVente()`, dans sa transaction | v1.52.1 |
+| `VERSEMENT_ENVOYE` | `marquerVersementEnvoye()`, dans sa transaction | v1.52.1 |
 
-**Au catalogue mais pas encore déclenché :** `ACHAT_CONFIRME`,
-`TELECHARGEMENT_PRET`, `COMMANDE_REMBOURSEE`, `ABONNEMENT_A_RENOUVELER`,
-`VENTE_REALISEE`, `VERSEMENT_ENVOYE`, `CANDIDATURE_RECUE`,
-`INSCRIPTION_EVENEMENT`, `NOUVEL_ABONNE`.
+**Au catalogue mais pas encore déclenché :** `TELECHARGEMENT_PRET`,
+`COMMANDE_REMBOURSEE`, `ABONNEMENT_A_RENOUVELER`, `VENTE_REALISEE`,
+`CANDIDATURE_RECUE`, `INSCRIPTION_EVENEMENT`, `NOUVEL_ABONNE`.
 
-Les quatre premiers **envoient déjà un courriel** par leur propre chemin, hors
-aiguilleur. Les y faire passer est le prochain pas, et il n'est pas anodin :
-c'est toucher au reçu d'achat et à l'avis de versement, deux courriels qui
-marchent. On les déplacera un par un, avec leurs tests.
+### 27.5 L'aiguilleur entre dans une transaction
+
+Les trois reçus repris en v1.52.1 étaient déposés avec un `tx`, et c'est ce qui
+a d'abord bloqué leur reprise : l'intention d'envoi s'écrit dans la **même
+transaction** que le fait qui la justifie. C'est la règle posée sur
+`EmailOutbox` — « s'il partait pendant, une commande annulée aurait déjà envoyé
+son reçu ; s'il partait avant, une panne d'expéditeur ferait échouer la
+commande ».
+
+Un aiguilleur qui ouvre ses propres connexions casse cette garantie. Entre le
+`COMMIT` du paiement et l'écriture de l'avis, le processus peut mourir, et
+l'acheteur ne reçoit jamais le reçu d'un paiement bien encaissé.
+
+`notifier(avis, client)` prend donc un client Prisma, comme `deposer` le
+faisait déjà, et écrit les deux canaux avec.
+
+**Une exception à « il ne lève jamais ».** Avaler l'erreur est ce qui empêche
+un webhook de paiement de répondre 500 parce que la cloche n'a pas sonné. Mais
+dans une transaction, une requête qui a échoué a déjà mis celle-ci en erreur :
+PostgreSQL refuse tout le reste jusqu'au `ROLLBACK`. Avaler l'exception
+laisserait l'appelant écrire dans une transaction morte et croire que ça passe
+— le vrai échec n'apparaîtrait qu'au `COMMIT`, sans rapport avec sa cause.
+`notifier` relance donc quand on lui a passé un client, et se tait sinon.
+
+**Les clés portent leur canal** : `recu-<id>` devient `courriel:recu-<id>` et
+`in-app:recu-<id>`. Ce qui les rend uniques reste le fait. Les lignes écrites
+avant portent la clé nue, et un reçu déjà envoyé ne peut pas repartir — ce qui
+garde le chemin n'est pas la clé mais la transition d'état : une commande
+finalisée ne se refinalise pas.
+
+### 27.6 La relance d'abonnement est un cas à part
+
+Elle avait été annoncée comme la reprise la plus simple. C'est l'inverse.
+
+Elle part par le port `Envoi` de Ndank, qui **décide lui-même du canal** et
+escalade courriel → SMS → push jusqu'à ce qu'un canal accepte. La faire passer
+par l'aiguilleur mettrait deux décideurs de canal sur le même message : soit
+l'avis part deux fois, soit l'escalade de Ndank est cassée.
+
+Ses `Coordonnees` ne portent d'ailleurs pas d'identifiant de compte — seulement
+un nom, une adresse, un numéro et des appareils.
+
+Elle reste donc sur son chemin. Ce qui manque est plus étroit : une trace dans
+l'application quand une relance est effectivement partie, quel que soit le
+canal qui l'a prise.
 
 **Sept événements n'ont pas de modèle de courriel** et ne sont donc livrés
 qu'en in-app. Le catalogue le dit (`modele: null`) et l'écran de réglages
