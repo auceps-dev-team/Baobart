@@ -1601,3 +1601,129 @@ compter par rôle depuis cette version ; le menu ne l'affiche pas. C'est une
 requête par page de tableau de bord, et le gain n'a pas paru le valoir.
 
 **Le badge reste non révocable depuis un écran** — inchangé depuis §25.6.
+
+---
+
+## §27 Les notifications
+
+*14 septembre 2026. Comble le premier manque de §26.4 — « rien ne prévient
+l'organisateur » — mais dépasse largement les événements.*
+
+### 27.1 Ce que fait notre référent, et ce qu'il ne fait pas
+
+Gumroad (`antiwork/gumroad`, MIT) a été relu avant de décider. Constats
+vérifiés dans le code, pas supposés :
+
+- **Aucun centre de notifications in-app.** Pas de modèle `Notification` parmi
+  ses 270+ modèles — seulement `community_notification_setting.rb`, qui règle
+  le chat communautaire.
+- **Le courriel est le canal.** 21 mailers dans `app/mailers`, segmentés par
+  audience (`customer_mailer`, `creator_mailer`, `follower_mailer`,
+  `affiliate_mailer`, `comment_mailer`…) **et par priorité** :
+  `customer_low_priority_mailer` existe à côté de `customer_mailer`.
+- **Le push est mobile.** `app/services/push_notification_service/{ios,android}.rb`
+  via rpush → APNS et FCM. Pas de push web.
+- **La délivrabilité est un chantier à part entière** : `email_suppression_manager`,
+  `email_engagement_dynamo_store`, `email_router_fallback_service`,
+  `handle_email_event_info` pour les rebonds et les plaintes.
+
+### 27.2 Ce qu'on lui reprend, et ce qu'on lui refuse
+
+**Repris — l'unité de préférence est le couple (événement × canal).** Chez
+Gumroad, `enable_payment_email` et `enable_payment_push_notification` sont deux
+réglages distincts. La raison tient en un exemple : quelqu'un veut la sonnerie
+de sa vente sur son téléphone et pas un courriel de plus. Un interrupteur
+global ne sait pas exprimer ça, et devient donc un interrupteur « tout couper ».
+
+Le défaut est même encodé dans le nom chez lui : `disable_comments_email` est
+actif par défaut, `enable_free_downloads_email` ne l'est pas.
+
+**Refusé — le stockage.** Ce sont des bits dans une seule colonne entière
+(`has_flags`), et le flag 54 est atteint. Illisible en base, non requêtable :
+« qui reçoit encore les reçus ? » devient un parcours de table. Baobart range
+une ligne par couple dans `NotificationPreference`, et **seulement les écarts**
+— l'absence veut dire « le défaut du code s'applique », ce qui permet de
+changer un défaut sans migrer une table.
+
+**Refusé — l'absence de centre in-app.** C'est le point où le contexte diverge.
+Gumroad saute cet écran parce que ses créateurs vivent dans leur boîte mail et
+qu'il a une application native pour la sonnerie. Baobart n'a ni l'un ni
+l'autre, et une part importante de ses utilisateurs relève sa boîte rarement.
+Le courriel reste indispensable ; il ne peut pas être le seul canal, car ce qui
+s'y perd est perdu.
+
+**Ajouté — l'impératif.** Tous les réglages de Gumroad se coupent. Certains
+avis ne le devraient pas : un versement, un remboursement, un reçu, un refus de
+publication, l'annulation d'un événement où l'on est inscrit. Ce ne sont pas
+des nouvelles, ce sont des actes qui engagent quelqu'un. La liste est
+volontairement courte — cinq entrées — parce qu'une liste d'impératifs qui
+s'allonge est une liste dont plus personne ne tient compte.
+
+### 27.3 Une porte unique
+
+Avant, chaque module décidait seul d'envoyer un courriel. Ce n'était pas une
+politique de notification, c'était une collection d'oublis.
+
+`lib/notifications/aiguilleur.ts` est désormais la seule porte. Un appelant dit
+**ce qui s'est passé**, pas comment le livrer :
+
+```
+notifier({ destinataireId, evenement, cle, titre, corps, lien, charge })
+```
+
+L'aiguilleur lit les préférences, consulte le catalogue, et écrit sur chaque
+canal ouvert. Trois propriétés qui doivent tenir :
+
+- **il ne lève jamais.** Prévenir est une conséquence de l'acte, pas une
+  condition : un webhook de paiement qui répond 500 parce que la cloche n'a pas
+  sonné est un paiement que l'opérateur rejouera indéfiniment ;
+- **l'idempotence vient de l'appelant.** `cle` est dérivée du fait —
+  `refus-evenement-<id>` — et les deux canaux la portent ;
+- **il distingue un canal fermé d'une livraison ratée.** `Livraison.echecs`
+  existe parce que la première version confondait les deux : une charge de
+  courriel malformée rendait la même réponse qu'une préférence coupée. Un avis
+  qui ne part jamais et que personne ne remarque est pire qu'un avis absent.
+
+### 27.4 Ce qui est couvert, et ce qui ne l'est pas
+
+Douze événements au catalogue, répartis sur les deux publics — cinq côté
+acheteur, sept côté vendeur ou organisateur.
+
+**Branché dans cette version :**
+
+| Événement | Déclenché par |
+| --- | --- |
+| `CONTENU_REFUSE` | `trancher(… "refuser")`, avec le motif en corps |
+| `CONTENU_PUBLIE` | `trancher(… "publier")` |
+| `EVENEMENT_ANNULE` | `annuler()`, à chaque inscrit |
+
+**Au catalogue mais pas encore déclenché :** `ACHAT_CONFIRME`,
+`TELECHARGEMENT_PRET`, `COMMANDE_REMBOURSEE`, `ABONNEMENT_A_RENOUVELER`,
+`VENTE_REALISEE`, `VERSEMENT_ENVOYE`, `CANDIDATURE_RECUE`,
+`INSCRIPTION_EVENEMENT`, `NOUVEL_ABONNE`.
+
+Les quatre premiers **envoient déjà un courriel** par leur propre chemin, hors
+aiguilleur. Les y faire passer est le prochain pas, et il n'est pas anodin :
+c'est toucher au reçu d'achat et à l'avis de versement, deux courriels qui
+marchent. On les déplacera un par un, avec leurs tests.
+
+**Sept événements n'ont pas de modèle de courriel** et ne sont donc livrés
+qu'en in-app. Le catalogue le dit (`modele: null`) et l'écran de réglages
+l'affiche en toutes lettres plutôt que d'offrir un interrupteur qui n'enverrait
+rien.
+
+**Le push web n'est pas livré.** L'infrastructure existe (`lib/push/`,
+chiffrement RFC 8291, VAPID, purge des abonnements morts) et ne sert qu'aux
+relances Ndank. Le canal est **déclaré** dans le catalogue et la table de
+préférences, à `false` partout : l'allumer plus tard ne demandera pas de
+migration.
+
+**Prévenir chaque inscrit coûte deux requêtes.** Sur un atelier de douze
+places, c'est invisible ; sur un concours de mille inscrits, quelques milliers
+de requêtes après coup. On ne plafonne pas : une annulation qui ne préviendrait
+que les trois cents premiers serait pire que pas d'avis, parce que personne ne
+saurait qui manque. Le jour où cela pèse, c'est l'aiguilleur qui apprendra à
+traiter une liste.
+
+**Rien ne gère les rebonds ni les plaintes.** C'est le grand chantier que
+Gumroad a fait et que Baobart n'a pas : une adresse morte reçoit indéfiniment.

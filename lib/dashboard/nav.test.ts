@@ -288,3 +288,56 @@ describe("la section Organiser", () => {
     }
   });
 });
+
+/**
+ * L'entrée « Notifications » et sa pastille.
+ *
+ * Elle vit dans le groupe acheteur, et c'est le point : le centre de
+ * notifications n'est pas un écran de vendeur. Un acheteur y trouve ses reçus
+ * et l'annulation de l'événement où il s'était inscrit.
+ */
+describe("les notifications dans le menu", () => {
+  const cles = (etape: Parameters<typeof navigationPour>[0]) =>
+    navigationPour(etape).flatMap((g) => g.entrees).map((e) => e.cle);
+
+  it("apparaissent à tous les paliers, y compris au premier", () => {
+    // Quelqu'un qui n'a jamais rien vendu reçoit quand même des reçus.
+    expect(cles("ACHETEUR")).toContain("notifications");
+    expect(cles("ATELIER")).toContain("notifications");
+    expect(cles("BOUTIQUE")).toContain("notifications");
+  });
+
+  it("n'affichent aucune pastille quand tout est lu", () => {
+    // Une pastille qui dit « 0 » est une pastille qui dit qu'il n'y a rien —
+    // exactement le contraire de ce à quoi elle sert.
+    const entree = navigationPour("BOUTIQUE", "MEMBER", { nonLues: 0 })
+      .flatMap((g) => g.entrees)
+      .find((e) => e.cle === "notifications");
+
+    expect(entree?.badge).toBeUndefined();
+  });
+
+  it("comptent les non-lues, et se plafonnent à 99+", () => {
+    const badge = (nonLues: number) =>
+      navigationPour("BOUTIQUE", "MEMBER", { nonLues })
+        .flatMap((g) => g.entrees)
+        .find((e) => e.cle === "notifications")?.badge;
+
+    expect(badge(3)).toBe("3");
+    expect(badge(99)).toBe("99");
+    // Au-delà, « 1 248 » pousserait le libellé hors de la barre.
+    expect(badge(100)).toBe("99+");
+    expect(badge(4820)).toBe("99+");
+  });
+
+  it("ne posent la pastille que sur cette entrée", () => {
+    // Le filtre se fait sur la clé : une erreur y mettrait un compteur sur
+    // « Profil », et personne ne saurait ce qu'il compte.
+    const avecBadge = navigationPour("BOUTIQUE", "MEMBER", { nonLues: 7 })
+      .flatMap((g) => g.entrees)
+      .filter((e) => e.badge === "7")
+      .map((e) => e.cle);
+
+    expect(avecBadge).toEqual(["notifications"]);
+  });
+});

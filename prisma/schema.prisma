@@ -473,6 +473,7 @@ model User {
   // médias & notifications
   mediaAssets     MediaAsset[]
   notifications   Notification[]
+  notificationPreferences NotificationPreference[]
   abonnementsPush PushSubscription[]
 
   // jobs
@@ -2035,17 +2036,95 @@ model ForumPost {
   @@index([topicId, createdAt])
 }
 
+/// Le centre de notifications, dans l'application.
+///
+/// La table existait depuis le début et n'était **jamais écrite** : un écran
+/// l'aurait affichée vide, ce qui se lit « il ne s'est rien passé ». Elle est
+/// alimentée depuis v1.52.0 par `lib/notifications/aiguilleur.ts`.
+///
+/// Notre référent — Gumroad — n'a pas cet écran : il est courriel d'abord, et
+/// pousse sur mobile via son application native. Baobart n'a ni l'un ni
+/// l'autre, et ses utilisateurs ne vivent pas dans leur boîte mail. Le centre
+/// in-app est donc le seul canal qu'on maîtrise de bout en bout.
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String
-  type      String // reply | mention | sale | follow | payout…
-  payload   Json      @default("{}")
+  id     String @id @default(cuid())
+  userId String
+  /// Le code de l'événement — voir `EvenementNotifiable` dans
+  /// `lib/notifications/catalogue.ts`. Une chaîne plutôt qu'un enum : ajouter
+  /// un type de notification ne doit pas demander une migration.
+  type   String
+
+  /// Ce qui empêche le doublon, sur la même règle que `EmailOutbox`.
+  ///
+  /// Dérivée du fait qui justifie l'avis — « vente-<orderItemId> » — et non
+  /// d'un hasard : un webhook rejoué par l'opérateur doit retomber sur la même
+  /// clé et se faire refuser, plutôt que de poser une seconde ligne dans la
+  /// cloche de quelqu'un.
+  cle    String @unique
+
+  /// Ce qu'on affiche. Deux champs plutôt qu'un rendu à la lecture : le texte
+  /// d'une notification doit rester ce qu'il était au moment des faits, même
+  /// si la ressource qu'il décrit a changé de nom depuis.
+  titre String
+  corps String @db.Text
+  /// Où elle mène. `null` quand il n'y a rien à ouvrir.
+  lien  String?
+
+  /// Le détail, pour l'avenir. Jamais affiché tel quel : il peut porter un
+  /// lien de téléchargement.
+  payload Json @default("{}")
+
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  /// `readAt` dans l'index : la question posée à chaque chargement de page est
+  /// « combien de non-lues ? », et elle doit se répondre sans parcourir.
   @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+/// Ce que quelqu'un a choisi de ne plus recevoir, ou de recevoir en plus.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// UNE LIGNE PAR COUPLE (ÉVÉNEMENT × CANAL)
+///
+/// C'est l'unité de préférence, reprise de Gumroad : quelqu'un peut vouloir la
+/// sonnerie de sa vente sans un courriel de plus. Un interrupteur global ne sait
+/// pas exprimer ça, et devient donc un interrupteur « tout couper ».
+///
+/// Ce qu'on ne reprend PAS de lui : le rangement. Chez Gumroad ce sont des bits
+/// dans une colonne entière (`has_flags`), et le flag 54 est atteint —
+/// illisible en base, et « qui reçoit encore les reçus ? » devient un parcours
+/// de table.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// SEULEMENT CE QUI A ÉTÉ CHANGÉ
+///
+/// Pas de ligne pour chaque couple à l'inscription : l'absence veut dire « le
+/// défaut du code s'applique ». C'est ce qui permet de changer un défaut sans
+/// migrer une table — personne ne porte une copie figée de ce qu'on avait
+/// décidé le jour de son inscription.
+model NotificationPreference {
+  id        String  @id @default(cuid())
+  userId    String
+  /// Code d'événement, comme `Notification.type`.
+  evenement String
+  /// COURRIEL | IN_APP | PUSH. PUSH se range déjà bien qu'il ne soit pas
+  /// livré : l'allumer plus tard ne demandera pas de migration.
+  canal     String
+  actif     Boolean
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Un seul réglage par couple. Sans cette contrainte, deux écritures
+  /// concurrentes laisseraient deux lignes contradictoires, et la lecture
+  /// dépendrait de l'ordre.
+  @@unique([userId, evenement, canal])
+  @@index([userId])
 }
 
 // ============================================================================

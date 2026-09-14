@@ -12,7 +12,9 @@ import {
 import type { EtapeCompte } from "@/lib/auth/roles";
 import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
+import { sessionCourante } from "@/lib/auth/session";
 import { accesAuxEvenements } from "@/lib/evenements/garde";
+import { combienNonLues } from "@/lib/notifications/queries";
 
 /**
  * Barre latérale du tableau de bord, traduite de « Baobart Dashboard.dc.html ».
@@ -63,8 +65,25 @@ export async function DashboardSidebar({
 }) {
   // Le badge ne se lit pas dans la session : `null` ici veut dire « ni
   // l'équipe, ni une agence à jour », donc pas d'entrée.
+  //
+  // Le compteur de non-lues se lit ici pour la même raison que l'accès aux
+  // événements : il doit être juste sur les neuf écrans qui montent cette
+  // barre, et non sur ceux qui auront pensé à le passer. C'est un `count` sur
+  // un index, pas une liste — voir `combienNonLues`.
   const acces = await accesAuxEvenements();
-  const groupes = navigationPour(etape, role, { organisateur: acces !== null });
+
+  // L'identifiant ne figure pas dans les propriétés de cette barre — elle
+  // reçoit un nom et une adresse, pas un compte. Plutôt que de le faire
+  // passer par les neuf écrans qui la montent, on relit la session : c'est
+  // une lecture indexée sur une empreinte de jeton, et l'alternative serait
+  // neuf occasions d'oublier le paramètre.
+  const moi = acces?.utilisateur ?? (await sessionCourante());
+  const nonLues = moi ? await combienNonLues(moi.id) : 0;
+
+  const groupes = navigationPour(etape, role, {
+    organisateur: acces !== null,
+    nonLues,
+  });
 
   return (
     <aside

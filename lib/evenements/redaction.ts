@@ -3,6 +3,7 @@ import "server-only";
 import { consigner, ressource } from "@/lib/admin/audit";
 import { appliquer, type Geste } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { journal } from "@/lib/observabilite/journal";
 import { clauseDePortee, gestePermis, type Portee } from "@/lib/evenements/acces";
 import { valider, type Refus, type Saisie } from "@/lib/evenements/validation";
@@ -197,7 +198,7 @@ export async function trancher(input: {
 
   const evenement = await db.event.findFirst({
     where: { id: input.evenementId, ...clauseDePortee(input.portee) },
-    select: { id: true, state: true, title: true },
+    select: { id: true, state: true, title: true, organizerId: true },
   });
 
   if (!evenement) return { ok: false, motif: "INTROUVABLE" };
@@ -263,6 +264,44 @@ export async function trancher(input: {
     vers: transition.vers,
   });
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRÉVENIR L'ORGANISATEUR — LE CHAÎNON QUI MANQUAIT
+  //
+  // Jusqu'ici, un refus était muet : la fiche quittait la vue, et son auteur
+  // l'apprenait en revenant la consulter. Le motif existait en base sans
+  // qu'aucun canal ne le porte.
+  //
+  // Deux gardes autour de cet appel :
+  //
+  //   — `acteurId !== organizerId` : on ne se prévient pas soi-même. L'équipe
+  //     qui publie son propre événement n'a pas besoin qu'on le lui annonce ;
+  //   — `notifier` ne lève jamais. Un avis qui échoue ne doit pas défaire la
+  //     transition qui vient d'être écrite.
+  if (input.acteurId !== evenement.organizerId) {
+    if (input.geste === "refuser") {
+      await notifier({
+        destinataireId: evenement.organizerId,
+        evenement: "CONTENU_REFUSE",
+        cle: `refus-evenement-${evenement.id}-${transition.vers}`,
+        titre: `« ${evenement.title} » n'a pas été retenu`,
+        corps: motif,
+        lien: `/dashboard/evenements/${evenement.id}`,
+        charge: { titre: evenement.title, motif },
+      });
+    } else if (input.geste === "publier") {
+      await notifier({
+        destinataireId: evenement.organizerId,
+        evenement: "CONTENU_PUBLIE",
+        cle: `publication-evenement-${evenement.id}`,
+        titre: `« ${evenement.title} » est en ligne`,
+        corps:
+          "Ta fiche a été relue et publiée. Elle est désormais visible de tout le monde, et les inscriptions sont ouvertes.",
+        lien: `/evenements/${evenement.id}`,
+        charge: { titre: evenement.title },
+      });
+    }
+  }
+
   return { ok: true, vers: transition.vers };
 }
 
@@ -323,7 +362,70 @@ export async function annuler(input: {
 
   journal.info("événement annulé", { evenement: evenement.id });
 
+  await prevenirLesInscrits(evenement.id, evenement.title, raison);
+
   return { ok: true };
+}
+
+/**
+ * Dire aux inscrits que l'événement n'aura pas lieu.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * C'EST LE SEUL AVIS QUI FAIT VRAIMENT ÉCONOMISER QUELQUE CHOSE
+ *
+ * La fiche reste en ligne, marquée annulée, avec la raison — c'est ce que
+ * l'en-tête d'`annuler` explique. Mais personne ne relit une fiche dont il a
+ * noté la date : on y va, simplement. Sans avis, l'annulation est parfaitement
+ * documentée et parfaitement invisible.
+ *
+ * D'où `EVENEMENT_ANNULE` marqué impératif dans le catalogue : quelqu'un a
+ * prévu un déplacement, parfois payé un billet. Lui permettre de couper cet
+ * avis reviendrait à lui permettre de venir devant une porte fermée.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN AVIS PAR PERSONNE, ET ÇA SE PAIE
+ *
+ * `notifier` lit le compte et ses préférences à chaque appel : deux requêtes
+ * par inscrit, plus les écritures. Sur un atelier de douze places, c'est
+ * invisible ; sur un concours de mille inscrits, cela fait quelques milliers de
+ * requêtes après coup.
+ *
+ * On l'accepte pour l'instant, et on ne plafonne pas : une annulation qui ne
+ * préviendrait que les trois cents premiers serait pire que pas d'avis du tout,
+ * parce que personne ne saurait qui manque. Le jour où cela pèse, c'est
+ * l'aiguilleur qui apprendra à traiter une liste, pas ce module à en couper une.
+ *
+ * Rien ici ne lève : l'annulation est déjà écrite, et un avis qui échoue ne
+ * doit pas la défaire.
+ */
+async function prevenirLesInscrits(
+  evenementId: string,
+  titre: string,
+  raison: string,
+): Promise<void> {
+  const inscrits = await db.eventRegistration.findMany({
+    where: { eventId: evenementId },
+    select: { userId: true },
+  });
+
+  for (const { userId } of inscrits) {
+    await notifier({
+      destinataireId: userId,
+      evenement: "EVENEMENT_ANNULE",
+      // La clé porte l'événement ET la personne : un seul avis chacun, et un
+      // rejeu de l'annulation n'en pose pas un second.
+      cle: `annulation-${evenementId}-${userId}`,
+      titre: `« ${titre} » est annulé`,
+      corps: raison,
+      lien: `/evenements/${evenementId}`,
+      charge: { titre, raison },
+    });
+  }
+
+  journal.info("inscrits prévenus de l'annulation", {
+    evenement: evenementId,
+    inscrits: inscrits.length,
+  });
 }
 
 /**

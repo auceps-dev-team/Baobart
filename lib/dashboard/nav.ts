@@ -58,6 +58,10 @@ export interface EntreeNavRendue extends EntreeNav {
 /** Entrées acheteur — présentes à tous les paliers. */
 const ACHETEUR: EntreeNav[] = [
   { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard" },
+  // Juste après l'aperçu, et dans le groupe acheteur : ce n'est pas un écran
+  // de vendeur. Un acheteur y trouve ses reçus et, surtout, l'annulation de
+  // l'événement où il s'était inscrit.
+  { cle: "notifications", label: "Notifications", glyph: "◔", href: "/dashboard/notifications" },
   { cle: "profil", label: "Profil", glyph: "☺", href: "/dashboard/profil" },
   {
     cle: "achats",
@@ -294,7 +298,17 @@ export function navigationPour(
    *
    * Faux par défaut : l'oubli ferme, il n'ouvre pas.
    */
-  extras: { organisateur?: boolean } = {},
+  extras: {
+    organisateur?: boolean;
+    /**
+     * Combien de notifications attendent d'être lues.
+     *
+     * Sert la pastille de l'entrée « Notifications ». `undefined` l'efface —
+     * un « 0 » affiché serait une pastille qui dit qu'il n'y a rien, ce qui
+     * est exactement le contraire de ce qu'une pastille sert à faire.
+     */
+    nonLues?: number;
+  } = {},
 ): Groupe[] {
   // Plus de `e.pouvoir === undefined ||` : dans une liste réservée à
   // l'administration, une entrée sans pouvoir déclaré s'affichait pour tout le
@@ -337,8 +351,15 @@ export function navigationPour(
         ]
       : [];
 
+  const nonLues = extras.nonLues ?? 0;
+
   const acheteur: EntreeNavRendue[] = ACHETEUR.map((e) => ({
     ...e,
+    // La pastille ne s'affiche qu'au-delà de zéro, et se plafonne : « 99+ »
+    // tient dans la largeur, « 1 248 » pousse le libellé hors de la barre.
+    ...(e.cle === "notifications" && nonLues > 0
+      ? { badge: nonLues > 99 ? "99+" : String(nonLues) }
+      : {}),
     actif: true,
     raisonVerrou: null,
   }));
