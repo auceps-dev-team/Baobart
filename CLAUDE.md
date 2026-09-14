@@ -57,7 +57,7 @@ ressources que deux exécutions se **corrompent** vraiment.
 
 | Ressource | Isolation | Où c'est écrit |
 | --- | --- | --- |
-| Base d'intégration | verrou de fichier par URL de base : un seul passage à la fois | `vitest.setup.ts` |
+| Base d'intégration | verrou de fichier par URL de base : un seul passage à la fois | `vitest.global-setup.ts` |
 | Base de test / e2e | deux bases distinctes, `baobart_test` et `baobart_e2e` | `scripts/setup-test-db.mjs` |
 | PostgreSQL | port hôte **5433**, jamais 5432 | `docker-compose.yml` |
 | Serveur de développement | port **3100**, fixé | `package.json` |
@@ -77,15 +77,69 @@ l'application se connecte quand même à celui du voisin**, sans rien signaler.
 Le préfixe Redis protège les clés ; les objets MinIO, non. Vérifier
 `docker compose up -d` avant d'incriminer un test de téléversement.
 
-### Lire un échec d'intégration
+### Après toute migration : remigrer la base de test
 
-Sur cette machine, un `TRUNCATE` complet prend environ **55 secondes** — c'est
-Docker Desktop sous Windows, pas le code. Un fichier de 24 tests met donc une
-vingtaine de minutes, et la connexion peut lâcher en route.
+`pnpm db:migrate` (`prisma migrate dev`) applique la migration à la base de
+**développement** et à elle seule. `baobart_test` ne bouge pas.
+
+Le symptôme arrive quinze minutes plus tard, au milieu d'un passage
+d'intégration, sous la forme d'une erreur Prisma qui ressemble à un bogue de
+code :
+
+```
+The column `Event.refusedReason` does not exist in the current database.
+```
+
+Le réflexe : après toute migration, avant tout passage d'intégration,
+
+```sh
+node scripts/setup-test-db.mjs        # ou : pnpm db:test:setup
+```
+
+Il détruit `baobart_test`, la recrée et rejoue toutes les migrations. C'est
+rapide — il n'y a rien dedans entre deux passages, le `TRUNCATE` s'en charge.
+
+### Une base de test fraîche va dix-huit fois plus vite
+
+Mesuré le 14 septembre 2026, les mêmes 37 tests d'intégration :
+
+```
+~55 s par test      sur une base vieille de plusieurs semaines
+ ~3 s par test      après node scripts/setup-test-db.mjs
+```
+
+Soit **107 secondes au lieu de plus d'une demi-heure**. Le coupable n'était pas
+Docker : c'est la fragmentation de `baobart_test`. Chaque `TRUNCATE` recrée les
+fichiers d'une table, et une base qu'on vide des milliers de fois finit par
+traîner derrière elle des fichiers que personne ne relit.
+
+Le commentaire de `vitest.config.ts` attribuait ces 55 secondes à « Docker
+Desktop sous Windows ». C'était une mesure juste et une explication fausse : le
+`SELECT 1` lent qu'on avait mesuré à côté disait le coût de `docker exec`, pas
+celui de PostgreSQL.
+
+**Recréer la base de test fait donc partie de la routine**, pas seulement après
+une migration. Les délais de 150 s restent en place : ils ne coûtent rien quand
+tout va vite, et ils évitent un échec aléatoire le jour où la base a vieilli.
+
+### Lire un échec d'intégration
 
 `Can't reach database server at localhost:5433` **n'est pas un échec de test** :
 c'est le port-forward de Docker qui a cédé sous la charge. Vérifier
 `docker ps` et rejouer, ne rien corriger dans le code.
+
+Distinguer aussi, dans les vrais échecs, **ce qui accuse le test** de **ce qui
+accuse le code**. Les deux sont arrivés le même jour :
+
+- `expected { ok: true } to equal { ok: false, motif: "MOTIF_REQUIS" }` — le
+  test passait « trop court » (onze caractères) à une règle qui en exige huit.
+  Le code avait raison.
+- `expected 2026-09-14T09:57:22Z to be null` — le code posait « relu le… » au
+  moment où l'organisateur ENVOYAIT sa fiche, le nommant relecteur de son
+  propre travail. Le test avait raison.
+
+Rien dans la forme des deux messages ne les distingue. Seule la relecture de
+l'intention le fait.
 
 ### Écrire un test qui ne dépendra pas de la charge
 

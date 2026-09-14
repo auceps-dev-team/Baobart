@@ -79,6 +79,21 @@ export default defineConfig({
           // off` ne change rien (le coût est dans la recréation des fichiers,
           // pas dans le journal), et remplacer `TRUNCATE` par `DELETE`
           // supposerait des contraintes différables que Prisma ne pose pas.
+          //
+          // ⚠️ CORRECTION DU 14 SEPTEMBRE 2026 — l'explication était fausse.
+          //
+          // Ce n'était pas Docker. Après `node scripts/setup-test-db.mjs`, qui
+          // détruit et recrée `baobart_test`, les MÊMES 37 tests passent de
+          // ~55 s à ~3 s chacun : 107 secondes au total au lieu d'une
+          // demi-heure. C'est la fragmentation de la base qui coûtait, pas le
+          // système de fichiers de l'hôte.
+          //
+          // Le `SELECT 1` mesuré à 15 s ne mesurait pas PostgreSQL : il
+          // mesurait `docker exec`, c'est-à-dire la création d'un processus
+          // dans un conteneur. Une mesure juste, sur le mauvais objet.
+          //
+          // Ces délais restent : ils ne coûtent rien quand tout va vite, et
+          // ils évitent un échec aléatoire le jour où la base a vieilli.
           hookTimeout: 150_000,
           testTimeout: 150_000,
         },
