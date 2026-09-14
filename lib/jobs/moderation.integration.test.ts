@@ -71,8 +71,8 @@ describe("la file", () => {
       data: { state: "PUBLIE" },
     });
 
-    expect(await fileDeModeration()).toHaveLength(1);
-    expect(await combienAttendent()).toBe(1);
+    expect(await fileDeModeration("ADMIN")).toHaveLength(1);
+    expect(await combienAttendent("ADMIN")).toBe(1);
   });
 
   it("rend l'adresse externe en entier", async () => {
@@ -82,7 +82,7 @@ describe("la file", () => {
       "https://recruteur.example/offres/tres/longue/adresse?ref=abcdefghijklmnop";
     await offreSoumise({ url });
 
-    const file = await fileDeModeration();
+    const file = await fileDeModeration("ADMIN");
     expect(file[0]!.urlExterne).toBe(url);
   });
 
@@ -96,7 +96,7 @@ describe("la file", () => {
     });
     await offreSoumise();
 
-    const file = await fileDeModeration();
+    const file = await fileDeModeration("ADMIN");
     expect(file[0]!.id).toBe(vieille.id);
   });
 });

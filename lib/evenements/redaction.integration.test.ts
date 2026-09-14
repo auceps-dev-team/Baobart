@@ -528,3 +528,196 @@ describe("la portée", () => {
     expect(suite).toEqual({ ok: true, vers: "PUBLIE" });
   });
 });
+
+// ══════════════════════════════════════════════════════════════════ le refus ══
+
+/**
+ * Un refus sans motif est indéfendable.
+ *
+ * C'est la règle de Jobs et de Services, et elle pèse davantage ici : une
+ * agence qui voit sa fiche disparaître n'a aucun autre canal pour demander
+ * pourquoi — il n'y a pas de messagerie dans le produit (§22.6).
+ */
+describe("refuser", () => {
+  /** Un événement écrit par une agence, envoyé en relecture. */
+  async function soumis() {
+    const moi = await organisateur();
+    const cree = await creer({ auteurId: moi.id, saisie: saisie() });
+    if (!cree.ok) throw new Error("création ratée");
+
+    const envoi = await trancher({
+      evenementId: cree.evenementId,
+      geste: "soumettre",
+      acteurId: moi.id,
+      portee: miens(moi.id),
+    });
+    if (!envoi.ok) throw new Error("soumission ratée");
+
+    return { id: cree.evenementId, organisateurId: moi.id };
+  }
+
+  it("exige un motif, et n'écrit rien sans lui", async () => {
+    const e = await soumis();
+    const relecteur = await redacteur();
+
+    const suite = await trancher({
+      evenementId: e.id,
+      geste: "refuser",
+      acteurId: relecteur.id,
+      portee: TOUT,
+      // Cinq caractères, sous le seuil de huit. « trop court » en faisait
+      // onze — le test passait pour un refus alors qu'il décrivait un
+      // acceptation, et c'est le code qui avait raison.
+      motif: "court",
+    });
+
+    expect(suite).toEqual({ ok: false, motif: "MOTIF_REQUIS" });
+
+    // L'état n'a pas bougé : le refus du motif intervient AVANT l'écriture.
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { state: true, refusedReason: true, moderatedAt: true },
+    });
+    expect(apres.state).toBe("SOUMIS");
+    expect(apres.refusedReason).toBeNull();
+    // Rien de relu non plus : envoyer sa fiche en relecture n'est pas la
+    // relire. Poser la date sur `soumettre` faisait de l'organisateur le
+    // relecteur de son propre travail.
+    expect(apres.moderatedAt).toBeNull();
+  });
+
+  it("ne marque pas « relu » quand l'auteur envoie ou reprend sa fiche", async () => {
+    // Le pendant du test précédent, sur le chemin qui réussit : après une
+    // soumission, la fiche attend — personne ne l'a encore lue.
+    const e = await soumis();
+
+    const apresSoumission = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { moderatedAt: true, moderatorId: true },
+    });
+    expect(apresSoumission.moderatedAt).toBeNull();
+    expect(apresSoumission.moderatorId).toBeNull();
+
+    // Et après un vrai verdict, la trace est là.
+    const relecteur = await redacteur();
+    await trancher({
+      evenementId: e.id,
+      geste: "publier",
+      acteurId: relecteur.id,
+      portee: TOUT,
+    });
+
+    const apresVerdict = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { moderatedAt: true, moderatorId: true },
+    });
+    expect(apresVerdict.moderatedAt).not.toBeNull();
+    expect(apresVerdict.moderatorId).toBe(relecteur.id);
+  });
+
+  it("range le motif, l'état et la trace de relecture", async () => {
+    const e = await soumis();
+    const relecteur = await redacteur();
+
+    const suite = await trancher({
+      evenementId: e.id,
+      geste: "refuser",
+      acteurId: relecteur.id,
+      portee: TOUT,
+      motif: "La date est déjà passée, et le lieu n'est pas renseigné.",
+    });
+
+    expect(suite).toEqual({ ok: true, vers: "REFUSE" });
+
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { state: true, refusedReason: true, moderatorId: true, moderatedAt: true },
+    });
+    expect(apres.state).toBe("REFUSE");
+    expect(apres.refusedReason).toContain("déjà passée");
+    expect(apres.moderatorId).toBe(relecteur.id);
+    expect(apres.moderatedAt).not.toBeNull();
+  });
+
+  it("efface le motif dès qu'une autre décision est prise", async () => {
+    // Garder l'ancien ferait afficher « refusée pour X » sur une fiche
+    // finalement publiée — le genre de détail qui fait douter de tout l'écran.
+    const e = await soumis();
+    const relecteur = await redacteur();
+
+    await trancher({
+      evenementId: e.id,
+      geste: "refuser",
+      acteurId: relecteur.id,
+      portee: TOUT,
+      motif: "Il manque le lieu exact de l'atelier.",
+    });
+
+    // L'organisateur reprend sa fiche en brouillon pour la corriger.
+    const reprise = await trancher({
+      evenementId: e.id,
+      geste: "reprendre",
+      acteurId: e.organisateurId,
+      portee: miens(e.organisateurId),
+    });
+    expect(reprise).toEqual({ ok: true, vers: "BROUILLON" });
+
+    const apres = await db.event.findUniqueOrThrow({
+      where: { id: e.id },
+      select: { state: true, refusedReason: true },
+    });
+    expect(apres.state).toBe("BROUILLON");
+    expect(apres.refusedReason).toBeNull();
+  });
+
+  it("reste fermé à l'organisateur, motif ou pas", async () => {
+    // On ne se refuse pas à soi-même. Et le refus du GESTE passe avant celui
+    // du motif : fournir un texte valable ne contourne pas la portée.
+    const e = await soumis();
+
+    const suite = await trancher({
+      evenementId: e.id,
+      geste: "refuser",
+      acteurId: e.organisateurId,
+      portee: miens(e.organisateurId),
+      motif: "Un motif parfaitement valable et assez long.",
+    });
+
+    expect(suite).toEqual({ ok: false, motif: "GESTE_RESERVE" });
+  });
+
+  it("laisse l'organisateur corriger puis renvoyer", async () => {
+    // Le circuit complet : soumis → refusé → brouillon → soumis. C'est ce qui
+    // fait que le refus n'est pas une impasse.
+    const e = await soumis();
+    const relecteur = await redacteur();
+
+    await trancher({
+      evenementId: e.id,
+      geste: "refuser",
+      acteurId: relecteur.id,
+      portee: TOUT,
+      motif: "La description ne dit pas ce qu'on apprend.",
+    });
+    await trancher({
+      evenementId: e.id,
+      geste: "reprendre",
+      acteurId: e.organisateurId,
+      portee: miens(e.organisateurId),
+    });
+    await modifier({
+      evenementId: e.id,
+      saisie: saisie({ description: "Deux jours d'atelier : préparation de l'écran, encres, séchage. On repart avec trois tirages sur tissu, et le matériel est fourni." }),
+      portee: miens(e.organisateurId),
+    });
+
+    const renvoi = await trancher({
+      evenementId: e.id,
+      geste: "soumettre",
+      acteurId: e.organisateurId,
+      portee: miens(e.organisateurId),
+    });
+
+    expect(renvoi).toEqual({ ok: true, vers: "SOUMIS" });
+  });
+});

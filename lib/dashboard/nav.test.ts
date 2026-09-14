@@ -152,6 +152,25 @@ describe("la section Plateforme", () => {
     expect(groupes.find((g) => g.titre === "Plateforme")).toBeUndefined();
   });
 
+  it("montre la file à l'éditorial aussi, pas seulement au modérateur", () => {
+    // Depuis v1.51.1, la file mélange trois CMS qui n'exigent pas le même
+    // pouvoir. L'entrée déclare donc deux pouvoirs, et un seul suffit — sinon
+    // elle se fermerait à tout le monde sauf l'administrateur.
+    //
+    // Ce que chacun y VOIT est une autre question, tranchée par
+    // `typesRelusPar`. Le menu dit seulement que la porte s'ouvre.
+    for (const role of ["MODERATOR", "CONTENT_MANAGER", "ADMIN"] as const) {
+      expect(plateforme(role)?.entrees.map((e) => e.cle)).toContain(
+        "a_moderation",
+      );
+    }
+  });
+
+  it("ne l'ouvre pas à qui ne relit rien", () => {
+    const cles = plateforme("ACCOUNTANT")?.entrees.map((e) => e.cle) ?? [];
+    expect(cles).not.toContain("a_moderation");
+  });
+
   it("ne donne au modérateur que sa file", () => {
     const cles = plateforme("MODERATOR")?.entrees.map((e) => e.cle) ?? [];
 
@@ -163,10 +182,19 @@ describe("la section Plateforme", () => {
     expect(cles).not.toContain("a_sys_config");
   });
 
-  it("ne donne au rédacteur que les événements", () => {
+  it("ne donne au rédacteur que le contenu, jamais l'exploitation", () => {
     const cles = plateforme("CONTENT_MANAGER")?.entrees.map((e) => e.cle) ?? [];
 
-    expect(cles).toEqual(["a_evenements"]);
+    // Deux entrées depuis v1.51.1, et la seconde est une conséquence, non un
+    // ajout : les événements soumis par les agences attendent dans la file, et
+    // c'est `publier_du_contenu` qui les y tranche.
+    expect(cles).toEqual(["a_moderation", "a_evenements"]);
+
+    // Ce qui ne bouge pas, et c'est le vrai objet de ce test : ni l'argent, ni
+    // les membres, ni l'état technique (§20.1).
+    expect(cles).not.toContain("a_versements");
+    expect(cles).not.toContain("a_membres");
+    expect(cles).not.toContain("a_sys_config");
   });
 
   it("ouvre les écrans techniques à l'administrateur", () => {

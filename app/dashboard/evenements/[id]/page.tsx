@@ -104,6 +104,62 @@ export default async function EditerEvenementPage({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          {/*
+            ════════════════════════════════════════════════════════════════
+            LE MOTIF DE REFUS PASSE AVANT TOUT LE RESTE
+
+            C'est la première chose que l'organisateur doit lire en ouvrant sa
+            fiche refusée, et la SEULE qu'il recevra : il n'y a pas de
+            messagerie dans le produit (§22.6). L'enfouir sous le formulaire
+            reviendrait à ne pas l'écrire.
+
+            Il reste affiché après une remise en brouillon tant qu'une nouvelle
+            décision ne l'a pas effacé — on corrige en le relisant.
+          */}
+          {e.raisonRefus ? (
+            <div
+              style={{
+                border: CADRE,
+                borderRadius: 20,
+                background: ORANGE,
+                color: BLANC,
+                boxShadow: `4px 4px 0 ${ENCRE}`,
+                padding: 18,
+              }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 800 }}>
+                Fiche refusée à la relecture
+              </div>
+              {e.relueLe ? (
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10.5,
+                    marginTop: 4,
+                    opacity: 0.85,
+                  }}
+                >
+                  le {e.relueLe.toLocaleDateString("fr-FR", { timeZone: "UTC" })}
+                </div>
+              ) : null}
+              <p
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                  marginTop: 10,
+                  textWrap: "pretty",
+                }}
+              >
+                {e.raisonRefus}
+              </p>
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 10, opacity: 0.9 }}>
+                Corrige la fiche, remets-la en brouillon, puis renvoie-la en
+                relecture. Rien n&apos;est perdu.
+              </div>
+            </div>
+          ) : null}
+
           {e.annuleLe ? (
             <div
               style={{

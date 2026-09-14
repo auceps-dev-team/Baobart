@@ -2,12 +2,14 @@
 
 import { useActionState, useState } from "react";
 
+import type { TypeDeContenu } from "@/lib/cms/droits";
 import type { ElementAModerer } from "@/lib/cms/moderation";
 import {
   basculerVerification,
   trancherOffre,
   type EtatModeration,
 } from "@/lib/jobs/actions-moderation";
+import { trancherEvenementAvecMotif } from "@/lib/evenements/actions";
 import { trancherService } from "@/lib/services/actions-moderation";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme/charte";
 
@@ -37,9 +39,9 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
   const [motifOuvert, setMotifOuvert] = useState(false);
 
   // L'action qui tranche dépend du type. On la choisit une fois, ici — les
-  // trois formulaires en dessous partagent la même signature.
-  const trancher =
-    element.type === "service" ? trancherService : trancherOffre;
+  // formulaires en dessous partagent la même signature, et c'est justement ce
+  // qui permet à un seul composant de servir trois CMS.
+  const trancher = ACTIONS[element.type];
 
   const [etatPublier, publier] = useActionState<EtatModeration | null, FormData>(
     trancher.bind(null, element.id, "publier"),
@@ -52,7 +54,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
 
   const erreur = etatPublier?.message ?? etatRefuser?.message ?? null;
 
-  const estService = element.type === "service";
+  const apparence = APPARENCES[element.type];
 
   return (
     <article
@@ -70,13 +72,13 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
             padding: "5px 10px",
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
-            background: estService ? LAVANDE : JAUNE,
+            background: apparence.fond,
             fontFamily: "var(--font-mono)",
             fontSize: 10,
             fontWeight: 700,
           }}
         >
-          {estService ? "SERVICE" : "OFFRE D’EMPLOI"}
+          {apparence.libelle}
         </span>
         <h2 style={{ fontSize: 17, fontWeight: 800, margin: 0, flex: "1 1 240px" }}>
           {element.titre}
@@ -190,7 +192,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
           publique du créateur ; ajouter un badge de fiche diluerait
           « Créateur vérifié » qui vit déjà sur le profil.
         */}
-        {estService ? null : (
+        {element.type === "job" ? (
           <button
             type="button"
             onClick={() => void basculerVerification(element.id, !element.verifie)}
@@ -199,7 +201,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
           >
             {element.verifie ? "Vérifiée ✓" : "Marquer vérifiée"}
           </button>
-        )}
+        ) : null}
       </div>
 
       {motifOuvert ? (
@@ -243,7 +245,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
             className="sticker-press"
             style={{ ...bouton(ORANGE), color: BLANC, marginTop: 10 }}
           >
-            {estService ? "Refuser ce service" : "Refuser cette offre"}
+            {apparence.refus}
           </button>
         </form>
       ) : null}
@@ -265,3 +267,49 @@ function bouton(fond: string) {
     color: ENCRE,
   } as const;
 }
+
+/**
+ * Ce qui distingue les trois types, rangé plutôt qu'égrené en ternaires.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI UNE TABLE, DEPUIS QU'IL Y EN A TROIS
+ *
+ * À deux types, `estService ? … : …` se lisait. À trois, chaque ternaire
+ * imbriqué devient une occasion d'oublier un cas — et le compilateur ne le
+ * dirait pas, puisqu'une branche manquante rend simplement l'autre.
+ *
+ * `Record<TypeDeContenu, …>` fait l'inverse : ajouter un CMS ne compile plus
+ * tant que sa ligne n'est pas écrite. C'est le même choix que `MESSAGES` dans
+ * `lib/cms/droits.ts`, et pour la même raison.
+ *
+ * `article` y figure donc, alors que le blog n'a pas d'écran : la file ne lui
+ * enverra jamais rien, mais le type l'exige, et une ligne inerte coûte moins
+ * cher qu'un `as` qui désarmerait la garantie.
+ */
+const APPARENCES: Record<
+  TypeDeContenu,
+  { libelle: string; fond: string; refus: string }
+> = {
+  job: { libelle: "OFFRE D’EMPLOI", fond: JAUNE, refus: "Refuser cette offre" },
+  service: { libelle: "SERVICE", fond: LAVANDE, refus: "Refuser ce service" },
+  evenement: { libelle: "ÉVÉNEMENT", fond: VERT, refus: "Refuser cette fiche" },
+  article: { libelle: "ARTICLE", fond: BLANC, refus: "Refuser cet article" },
+};
+
+/**
+ * Qui tranche, selon le type.
+ *
+ * Les trois actions partagent la signature qu'impose `useActionState` —
+ * `(id, geste, précédent, données)`. C'est ce qui permet à ce composant de
+ * servir trois CMS sans savoir lequel il affiche.
+ *
+ * Le blog pointe sur l'action des événements et ne sera jamais appelé : la
+ * file ne contient pas d'article. Écrire une quatrième action morte serait
+ * plus trompeur que cette ligne.
+ */
+const ACTIONS: Record<TypeDeContenu, typeof trancherOffre> = {
+  job: trancherOffre,
+  service: trancherService,
+  evenement: trancherEvenementAvecMotif,
+  article: trancherEvenementAvecMotif,
+};

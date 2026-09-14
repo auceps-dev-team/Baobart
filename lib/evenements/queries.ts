@@ -59,6 +59,10 @@ export interface EvenementAEditer {
   dotation: number | null;
   annuleLe: Date | null;
   raisonAnnulation: string | null;
+  /** Pourquoi la relecture a refusé la fiche. `null` si elle ne l'a pas été. */
+  raisonRefus: string | null;
+  /** Quand quelqu'un a tranché pour la dernière fois. */
+  relueLe: Date | null;
   inscrits: number;
 }
 
@@ -145,6 +149,8 @@ export async function evenementAEditer(
       prizeAmount: true,
       cancelledAt: true,
       cancelReason: true,
+      refusedReason: true,
+      moderatedAt: true,
       participantsCount: true,
     },
   });
@@ -166,6 +172,8 @@ export async function evenementAEditer(
     dotation: e.prizeAmount,
     annuleLe: e.cancelledAt,
     raisonAnnulation: e.cancelReason,
+    raisonRefus: e.refusedReason,
+    relueLe: e.moderatedAt,
     inscrits: e.participantsCount,
   };
 }

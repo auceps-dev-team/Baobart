@@ -51,6 +51,8 @@ export type Echec =
   | { motif: "TRANSITION_INTERDITE" }
   /** Annuler demande de dire pourquoi. */
   | { motif: "RAISON_REQUISE" }
+  /** Refuser aussi — et ce n'est pas la même raison, ni le même public. */
+  | { motif: "MOTIF_REQUIS" }
   /** Déjà annulé — rien à faire, et ce n'est pas une erreur. */
   | { motif: "DEJA_ANNULE" }
   /** Le geste existe, mais pas pour cette portée : publier, refuser. */
@@ -64,6 +66,7 @@ export type Echec =
 export type Suite<T = object> = ({ ok: true } & T) | ({ ok: false } & Echec);
 
 const RAISON_MIN = 8;
+const MOTIF_MIN = 8;
 
 export const MESSAGES_ECHEC: Record<Echec["motif"], string> = {
   REFUS: "",
@@ -72,6 +75,8 @@ export const MESSAGES_ECHEC: Record<Echec["motif"], string> = {
     "Quelqu'un vient de changer l'état de cet événement. Rafraîchis la page.",
   RAISON_REQUISE:
     "Écris pourquoi l'événement est annulé : c'est ce que liront les inscrits.",
+  MOTIF_REQUIS:
+    "Écris pourquoi tu refuses : c'est la seule chose qu'on pourra montrer à l'organisateur.",
   DEJA_ANNULE: "Cet événement est déjà annulé.",
   GESTE_RESERVE:
     "La mise en ligne revient à l'équipe Baobart. Envoie ta fiche en relecture : on te répond sous 48 h.",
@@ -153,17 +158,33 @@ export async function modifier(input: {
 }
 
 /**
- * Publie, retire, ou remet en brouillon.
+ * Publie, refuse, retire, soumet, ou remet en brouillon.
  *
  * La condition d'état vit dans le `WHERE` : deux personnes peuvent avoir
  * ouvert la même fiche, et seule la première doit trancher. La seconde repart
  * sans rien casser, et sa page se rafraîchira.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN REFUS SANS MOTIF EST INDÉFENDABLE
+ *
+ * C'est la leçon déjà payée sur Jobs et Services, et elle vaut davantage ici :
+ * une agence qui voit sa fiche disparaître n'a **aucun autre canal** pour
+ * demander pourquoi — il n'y a pas de messagerie dans le produit (§22.6).
+ *
+ * Le motif est donc exigé, pas par politesse : c'est la seule trace de ce
+ * qu'on a vu, et la seule chose qu'on pourra montrer trois mois plus tard.
+ *
+ * Il est effacé sur toute décision AUTRE qu'un refus. Garder l'ancien ferait
+ * afficher « refusée pour X » sur une fiche finalement publiée — le genre de
+ * détail qui fait douter de tout l'écran.
  */
 export async function trancher(input: {
   evenementId: string;
   geste: Geste;
   acteurId: string;
   portee: Portee;
+  /** Exigé sur `refuser`, ignoré partout ailleurs. */
+  motif?: string;
 }): Promise<Suite<{ vers: string }>> {
   // Le droit AU GESTE d'abord, avant même de savoir si l'événement existe.
   //
@@ -184,13 +205,36 @@ export async function trancher(input: {
   const transition = appliquer(evenement.state, input.geste);
   if (!transition.ok) return { ok: false, motif: "TRANSITION_INTERDITE" };
 
+  const motif = (input.motif ?? "").trim();
+  if (input.geste === "refuser" && motif.length < MOTIF_MIN) {
+    return { ok: false, motif: "MOTIF_REQUIS" };
+  }
+
   const ecrit = await db.event.updateMany({
     where: {
       id: evenement.id,
       state: evenement.state,
       ...clauseDePortee(input.portee),
     },
-    data: { state: transition.vers },
+    data: {
+      state: transition.vers,
+      refusedReason: input.geste === "refuser" ? motif : null,
+      // ────────────────────────────────────────────────────────────────────
+      // LA TRACE DE RELECTURE NE SE POSE QUE SUR UN VERDICT
+      //
+      // `publier` et `refuser` sont les deux issues d'une relecture. Les
+      // autres gestes n'en sont pas : `soumettre` et `reprendre` sont ceux de
+      // l'AUTEUR sur sa propre fiche, et `retirer` est un dépublication que
+      // l'audit consigne déjà.
+      //
+      // Les poser partout, comme la première version le faisait, faisait
+      // apparaître « relu le… » à la seconde même où l'organisateur envoyait
+      // sa fiche — en le nommant relecteur de son propre travail. C'est un
+      // test d'intégration qui l'a montré, pas une relecture de code.
+      ...(input.geste === "publier" || input.geste === "refuser"
+        ? { moderatedAt: new Date(), moderatorId: input.acteurId }
+        : {}),
+    },
   });
 
   if (ecrit.count !== 1) return { ok: false, motif: "TRANSITION_INTERDITE" };
@@ -198,9 +242,19 @@ export async function trancher(input: {
   // Consigné après l'acte, et seulement s'il a eu lieu.
   await consigner({
     acteurId: input.acteurId,
-    action: input.geste === "publier" ? "contenu.publier" : "contenu.retirer",
+    action:
+      input.geste === "publier"
+        ? "contenu.publier"
+        : input.geste === "refuser"
+          ? "contenu.refuser"
+          : "contenu.retirer",
     ressource: ressource("evenement", evenement.id),
-    details: { de: evenement.state, vers: transition.vers, titre: evenement.title },
+    details: {
+      de: evenement.state,
+      vers: transition.vers,
+      titre: evenement.title,
+      ...(motif ? { motif } : {}),
+    },
   });
 
   journal.info("événement tranché", {

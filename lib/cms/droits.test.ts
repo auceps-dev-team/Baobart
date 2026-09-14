@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { pouvoirsDe } from "@/lib/auth/administration";
+
 import {
   MESSAGES,
   exigeUneRelecture,
@@ -7,6 +9,7 @@ import {
   peutLire,
   peutPublier,
   pouvoirDeModeration,
+  typesRelusPar,
   type Demandeur,
   type Refus,
   type TypeDeContenu,
@@ -181,6 +184,51 @@ describe("la modération", () => {
   });
 });
 
+describe("qui relit quoi", () => {
+  it("donne au modérateur les CMS ouverts, et rien d'autre", () => {
+    // Jobs et Services sont ouverts à des gens dont on ne répond pas ; c'est
+    // le métier du modérateur. Les événements ne sont pas à lui : les publier
+    // demande `publier_du_contenu`, et il ne l'a pas.
+    expect(typesRelusPar("MODERATOR")).toEqual(["job", "service"]);
+  });
+
+  it("donne à l'éditorial les événements, et rien d'autre", () => {
+    // Il peut mettre un événement en ligne — c'est même le seul à pouvoir le
+    // faire. Lui montrer des offres d'emploi lui promettrait des boutons qui
+    // répondraient non.
+    expect(typesRelusPar("CONTENT_MANAGER")).toEqual(["evenement"]);
+  });
+
+  it("donne tout à l'administrateur", () => {
+    expect(typesRelusPar("ADMIN")).toEqual(["job", "service", "evenement"]);
+  });
+
+  it("ne donne rien à qui ne relit pas", () => {
+    // Un membre, un comptable : la file ne leur montre rien, et la page leur
+    // répond 404. Les deux doivent s'accorder.
+    expect(typesRelusPar("MEMBER")).toEqual([]);
+    expect(typesRelusPar("ACCOUNTANT")).toEqual([]);
+  });
+
+  it("n'y met jamais le blog", () => {
+    // Rien n'y est soumis — son auteur porte déjà le droit de publier. Une
+    // file qui compte un type sans dépôt promet ce qui n'arrive pas.
+    for (const role of ["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER"] as const) {
+      expect(typesRelusPar(role)).not.toContain("article");
+    }
+  });
+
+  it("n'ouvre la file qu'à ce que la personne peut trancher", () => {
+    // L'invariant, et la seule raison d'être de cette fonction : tout type
+    // affiché doit être un type dont on porte le pouvoir de modération.
+    for (const role of ["MEMBER", "MODERATOR", "CONTENT_MANAGER", "ADMIN"] as const) {
+      for (const type of typesRelusPar(role)) {
+        expect(peutModerer(role, type)).toBe(true);
+      }
+    }
+  });
+});
+
 describe("les messages", () => {
   it("existent pour chaque refus", () => {
     // Un refus sans message afficherait « undefined » à quelqu'un qui essaie
@@ -198,3 +246,11 @@ describe("les messages", () => {
     expect(MESSAGES.ABONNEMENT_A_RENOUVELER).toContain("ne bougent pas");
   });
 });
+
+/** Relu depuis la matrice, jamais deviné. */
+function peutModerer(
+  role: Parameters<typeof typesRelusPar>[0],
+  type: TypeDeContenu,
+): boolean {
+  return pouvoirsDe(role).includes(pouvoirDeModeration(type));
+}

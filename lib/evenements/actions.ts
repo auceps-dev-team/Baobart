@@ -103,6 +103,50 @@ export async function trancherEvenement(
     portee,
   });
 
+  // La file se vide aussi depuis cet écran : soumettre l'y met, publier l'en
+  // retire. Oublier cette ligne ferait afficher une file périmée à qui vient
+  // d'y agir depuis ailleurs.
+  revalidatePath("/dashboard/moderation");
+  revalidatePath("/dashboard/evenements");
+  revalidatePath(`/dashboard/evenements/${evenementId}`);
+
+  return suite.ok ? { ok: true } : { ok: false, message: MESSAGES_ECHEC[suite.motif] };
+}
+
+/**
+ * La même décision, mais depuis un formulaire.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * DEUX ACTIONS POUR UN SEUL GESTE, ET CE N'EST PAS UN DOUBLON
+ *
+ * `trancherEvenement` part d'un **clic** : un bouton, une transition, rien à
+ * saisir — c'est `useTransition` côté client. Celle-ci part d'un
+ * **formulaire**, parce qu'un refus porte un texte — c'est `useActionState`,
+ * dont la signature impose l'état précédent et le `FormData`.
+ *
+ * Les deux appellent le même `trancher`, qui porte toute la règle. Ce qui est
+ * dupliqué ici est une forme d'appel, pas une décision.
+ *
+ * Elle sert aux deux écrans où l'on tranche : la file de modération, et la
+ * fiche de l'événement.
+ */
+export async function trancherEvenementAvecMotif(
+  evenementId: string,
+  geste: Geste,
+  _precedent: EtatGeste | null,
+  donnees: FormData,
+): Promise<EtatGeste> {
+  const { utilisateur, portee } = await exigerAccesAuxEvenements();
+
+  const suite = await trancher({
+    evenementId,
+    geste,
+    acteurId: utilisateur.id,
+    portee,
+    motif: String(donnees.get("motif") ?? ""),
+  });
+
+  revalidatePath("/dashboard/moderation");
   revalidatePath("/dashboard/evenements");
   revalidatePath(`/dashboard/evenements/${evenementId}`);
 

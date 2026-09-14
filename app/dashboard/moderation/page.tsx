@@ -1,6 +1,7 @@
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { CarteAModerer } from "@/components/moderation/carte";
-import { exigerLePouvoir } from "@/lib/auth/acces-administration";
+import { exigerUnDesPouvoirs } from "@/lib/auth/acces-administration";
+import { typesRelusPar } from "@/lib/cms/droits";
 import { fileDeModeration } from "@/lib/cms/moderation";
 import { BLANC, CADRE, ENCRE, VERT } from "@/lib/systeme/charte";
 
@@ -29,14 +30,22 @@ export const dynamic = "force-dynamic";
  * indéfiniment les offres du bas pendant que les nouvelles passent devant.
  */
 export default async function ModerationPage() {
-  const utilisateur = await exigerLePouvoir("moderer_le_contenu");
-  const file = await fileDeModeration();
+  // Deux pouvoirs ouvrent cet écran, et ils ne montrent pas la même chose :
+  // `moderer_le_contenu` donne Jobs et Services, `publier_du_contenu` donne les
+  // événements. Exiger les deux l'aurait fermé à tout le monde sauf
+  // l'administrateur.
+  const utilisateur = await exigerUnDesPouvoirs(
+    "moderer_le_contenu",
+    "publier_du_contenu",
+  );
+  const file = await fileDeModeration(utilisateur.role);
+  const types = typesRelusPar(utilisateur.role);
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
       titre="File de modération"
-      description="Rien ne paraît sans être passé par ici. Le plus ancien d'abord."
+      description={`${LIBELLES_TYPE.filter((l) => types.includes(l.type)).map((l) => l.pluriel).join(", ")} — rien ne paraît sans être passé par ici. Le plus ancien d'abord.`}
     >
       {file.length === 0 ? (
         <div
@@ -52,8 +61,8 @@ export default async function ModerationPage() {
             La file est vide
           </div>
           <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, marginTop: 8 }}>
-            Rien n&apos;attend de décision. Les nouvelles offres apparaîtront ici
-            dès leur dépôt.
+            Rien n&apos;attend de décision. Ce qui sera soumis apparaîtra ici,
+            du plus ancien au plus récent.
           </p>
         </div>
       ) : (
@@ -84,3 +93,16 @@ export default async function ModerationPage() {
     </DashboardFrame>
   );
 }
+
+/**
+ * Ce que la description annonce, selon ce que la personne peut trancher.
+ *
+ * Écrire « offres, services et événements » à un modérateur qui ne verra
+ * jamais d'événement lui ferait chercher pourquoi il n'en a pas. Le titre d'un
+ * écran fait partie de sa garde : il dit ce qu'on regarde.
+ */
+const LIBELLES_TYPE = [
+  { type: "job" as const, pluriel: "Offres d'emploi" },
+  { type: "service" as const, pluriel: "services" },
+  { type: "evenement" as const, pluriel: "événements" },
+];

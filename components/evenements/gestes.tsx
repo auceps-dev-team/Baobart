@@ -9,6 +9,7 @@ import {
   annulerEvenement,
   retablirEvenement,
   trancherEvenement,
+  trancherEvenementAvecMotif,
   type EtatGeste,
 } from "@/lib/evenements/actions";
 import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
@@ -56,6 +57,12 @@ export function GestesEvenement({
   const [enCours, demarrer] = useTransition();
   const [retour, setRetour] = useState<EtatGeste | null>(null);
   const [motifOuvert, setMotifOuvert] = useState(false);
+  const [refusOuvert, setRefusOuvert] = useState(false);
+
+  const [etatRefus, refuserAction] = useActionState<EtatGeste | null, FormData>(
+    trancherEvenementAvecMotif.bind(null, evenementId, "refuser"),
+    null,
+  );
 
   const [etatAnnulation, annulerAction] = useActionState<EtatGeste | null, FormData>(
     annulerEvenement.bind(null, evenementId),
@@ -66,22 +73,21 @@ export function GestesEvenement({
   // cette personne.
   //
   // ══════════════════════════════════════════════════════════════════════════
-  // `refuser` EST ÉCARTÉ, ET C'EST UNE DETTE ASSUMÉE
+  // `refuser` SORT DE CETTE LISTE, MAIS IL EXISTE
   //
-  // La machine le permet depuis `SOUMIS`, mais un refus sans motif ne vaut
-  // rien : l'agence verrait « Refusé » sans savoir quoi corriger, et il n'y a
-  // pas de messagerie dans le produit (§22.6) pour le lui dire autrement.
-  //
-  // Écrire le champ de motif demanderait de porter une raison jusqu'à
-  // `trancher`, qui n'en prend pas — c'est le chantier que `annuler` a déjà
-  // fait pour l'annulation. En attendant, l'équipe dispose de `retirer` : la
-  // fiche quitte la vue, l'agence peut la reprendre en brouillon et la
-  // renvoyer. Le circuit se ferme, la raison manque.
+  // Il porte un motif, donc un formulaire — pas un clic. Il a son propre bloc
+  // plus bas, comme l'annulation, pour la même raison : `useActionState` et
+  // `useTransition` ne se branchent pas de la même façon.
   const gestes = gestesDepuis(etat).filter(
     (g) => g !== "refuser" && gestePermis(portee, g),
   );
 
-  const message = retour?.message ?? etatAnnulation?.message ?? null;
+  // Refuser n'a de sens que sur ce qui attend une décision, et seulement pour
+  // qui peut trancher. On ne se refuse pas à soi-même.
+  const peutRefuser = etat === "SOUMIS" && gestePermis(portee, "refuser");
+
+  const message =
+    retour?.message ?? etatRefus?.message ?? etatAnnulation?.message ?? null;
 
   return (
     <div
@@ -149,6 +155,17 @@ export function GestesEvenement({
           </button>
         ))}
 
+        {peutRefuser ? (
+          <button
+            type="button"
+            disabled={enCours}
+            onClick={() => setRefusOuvert((o) => !o)}
+            style={bouton(BLANC)}
+          >
+            {refusOuvert ? "Ne pas refuser" : "Refuser…"}
+          </button>
+        ) : null}
+
         {annule ? (
           <button
             type="button"
@@ -176,20 +193,38 @@ export function GestesEvenement({
         )}
       </div>
 
+      {refusOuvert && peutRefuser ? (
+        <form action={refuserAction} style={{ marginTop: 14 }}>
+          <label htmlFor={`motif-${evenementId}`} style={etiquette}>
+            Pourquoi tu refuses cette fiche
+          </label>
+          <textarea
+            id={`motif-${evenementId}`}
+            name="motif"
+            required
+            minLength={8}
+            rows={3}
+            placeholder="Ce que l'organisateur lira sur sa fiche."
+            style={champ}
+          />
+          <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 8, opacity: 0.75 }}>
+            C&apos;est la <strong>seule chose</strong> que l&apos;organisateur
+            verra : il n&apos;y a pas de messagerie. Dis ce qu&apos;il faut
+            corriger, pas seulement ce qui ne va pas.
+          </div>
+          <button
+            type="submit"
+            className="sticker-press"
+            style={{ ...bouton(ORANGE), color: BLANC, marginTop: 10 }}
+          >
+            Refuser cette fiche
+          </button>
+        </form>
+      ) : null}
+
       {motifOuvert && !annule ? (
         <form action={annulerAction} style={{ marginTop: 14 }}>
-          <label
-            htmlFor={`raison-${evenementId}`}
-            style={{
-              display: "block",
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              textTransform: "uppercase",
-              letterSpacing: ".1em",
-              opacity: 0.6,
-              marginBottom: 6,
-            }}
-          >
+          <label htmlFor={`raison-${evenementId}`} style={etiquette}>
             Pourquoi cette annulation
           </label>
           <textarea
@@ -199,18 +234,7 @@ export function GestesEvenement({
             minLength={8}
             rows={3}
             placeholder="Ce que liront les inscrits sur la fiche."
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              border: CADRE,
-              borderRadius: 14,
-              background: "#F4EEFC",
-              fontFamily: "inherit",
-              fontSize: 13.5,
-              fontWeight: 500,
-              outline: "none",
-              resize: "vertical",
-            }}
+            style={champ}
           />
           <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 8, opacity: 0.75 }}>
             L&apos;événement <strong>reste en ligne</strong>, marqué annulé. Les
@@ -244,3 +268,34 @@ function bouton(fond: string) {
     color: ENCRE,
   } as const;
 }
+
+/**
+ * Les deux textes de cet écran partagent leur habillage.
+ *
+ * Ils ne partagent surtout pas leur sens : la raison d'annulation s'adresse
+ * aux INSCRITS d'un événement qui n'aura pas lieu, le motif de refus à
+ * l'ORGANISATEUR d'une fiche qui ne paraîtra pas. Deux champs, deux publics,
+ * une seule mise en forme.
+ */
+const etiquette = {
+  display: "block",
+  fontFamily: "var(--font-mono)",
+  fontSize: 10.5,
+  textTransform: "uppercase",
+  letterSpacing: ".1em",
+  opacity: 0.6,
+  marginBottom: 6,
+} as const;
+
+const champ = {
+  width: "100%",
+  padding: "12px 14px",
+  border: CADRE,
+  borderRadius: 14,
+  background: "#F4EEFC",
+  fontFamily: "inherit",
+  fontSize: 13.5,
+  fontWeight: 500,
+  outline: "none",
+  resize: "vertical",
+} as const;

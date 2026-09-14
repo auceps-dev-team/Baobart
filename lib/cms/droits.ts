@@ -231,6 +231,30 @@ export function pouvoirDeModeration(type: TypeDeContenu): Pouvoir {
 }
 
 /**
+ * Les types de contenu qu'un rôle a le droit de relire.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA FILE DE MODÉRATION N'EST PAS LA MÊME POUR TOUT LE MONDE
+ *
+ * Jobs et Services demandent `moderer_le_contenu` ; les événements
+ * `publier_du_contenu`, parce que qui relit un événement est qui le met en
+ * ligne. Un modérateur verrait donc des fiches sur lesquelles ses boutons
+ * échoueraient, et un éditorial des offres qui ne le regardent pas.
+ *
+ * La correspondance n'est pas rangée ici une seconde fois : elle se relit
+ * depuis `pouvoirDeModeration`. Le jour où un CMS change de pouvoir, la file
+ * suit toute seule.
+ *
+ * `article` en est absent volontairement. Le blog n'a pas d'écran, rien n'y
+ * sera jamais soumis, et compter un type sans dépôt ferait afficher une file
+ * qui promet ce qui n'arrive pas.
+ */
+export function typesRelusPar(role: RolePlateforme): TypeDeContenu[] {
+  const candidats: TypeDeContenu[] = ["job", "service", "evenement"];
+  return candidats.filter((t) => peut(role, pouvoirDeModeration(t)));
+}
+
+/**
  * Ce contenu passe-t-il par une relecture avant de paraître ?
  *
  * ════════════════════════════════════════════════════════════════════════════

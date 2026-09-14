@@ -1,7 +1,9 @@
 import "server-only";
 
+import type { RolePlateforme } from "@/lib/auth/administration";
+import { typesRelusPar, type TypeDeContenu } from "@/lib/cms/droits";
 import { db } from "@/lib/db";
-import type { TypeDeContenu } from "@/lib/cms/droits";
+import { LIBELLE_GENRE, type EventKind } from "@/lib/evenements/enums";
 
 /**
  * La file de relecture, tous contenus confondus.
@@ -17,10 +19,30 @@ import type { TypeDeContenu } from "@/lib/cms/droits";
  * et la vide. Lui demander de visiter quatre pages pour savoir s'il lui reste
  * quelque chose garantit qu'il en oubliera une.
  *
- * Jobs et Services alimentent cette file, mélangés à l'écran — un modérateur
- * ne travaille pas par type mais par ancienneté. Blog et événements n'y
- * entreront **jamais** : leur auteur portait déjà le droit de publier
- * (§18.1), et une file où rien n'arrive est un écran qu'on cesse d'ouvrir.
+ * Jobs, Services et Événements l'alimentent, mélangés à l'écran — un
+ * modérateur ne travaille pas par type mais par ancienneté.
+ *
+ * Les événements y sont entrés en v1.51.1. Ce commentaire disait qu'ils n'y
+ * entreraient « jamais », et c'était exact tant que leur auteur portait déjà
+ * le droit de publier (§18.1). Depuis que les agences badgées en écrivent
+ * (§25), une fiche d'événement attend une relecture comme une offre d'emploi.
+ *
+ * Le blog, lui, n'y entrera pas : il reste écrit par l'équipe seule.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ELLE NE MONTRE QUE CE QU'ON PEUT TRANCHER
+ *
+ * Les trois types n'exigent pas le même pouvoir : Jobs et Services demandent
+ * `moderer_le_contenu`, les événements `publier_du_contenu` — parce que qui
+ * relit un événement est qui le met en ligne.
+ *
+ * Un modérateur verrait donc des fiches sur lesquelles ses boutons
+ * échoueraient ; un éditorial, des offres qui ne le regardent pas. La file
+ * filtre donc **par pouvoir**, en relisant `pouvoirDeModeration` plutôt qu'en
+ * rangeant la correspondance une seconde fois.
+ *
+ * C'est la même règle qu'en v1.48.8 pour le menu : ne jamais promettre un
+ * écran — ici un bouton — qui répondra non.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * ELLE NE DÉCIDE RIEN
@@ -71,15 +93,19 @@ export interface ElementAModerer {
  * les nouvelles passent devant — et l'annonceur le plus patient serait le plus
  * mal servi.
  */
-export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> {
+export async function fileDeModeration(
+  role: RolePlateforme,
+  limite = 50,
+): Promise<ElementAModerer[]> {
+  const types = new Set(typesRelusPar(role));
   // ── Sélection : on prend deux fois `limite` pour équilibrer la fusion.
   // Après tri par date, on tronque à `limite`. Doubler évite qu'un afflux
   // récent d'un type ne masque tout ce qui attend depuis longtemps sur
   // l'autre.
   const cap = Math.min(limite, 200);
 
-  const [offres, services] = await Promise.all([
-    db.jobPosting.findMany({
+  const [offres, services, evenements] = await Promise.all([
+    !types.has("job") ? [] : db.jobPosting.findMany({
       where: { state: "SOUMIS" },
       orderBy: { createdAt: "asc" },
       take: cap,
@@ -96,7 +122,7 @@ export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> 
         },
       },
     }),
-    db.serviceOffer.findMany({
+    !types.has("service") ? [] : db.serviceOffer.findMany({
       where: { state: "SOUMIS" },
       orderBy: { createdAt: "asc" },
       take: cap,
@@ -111,6 +137,26 @@ export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> 
         creatorId: true,
         category: { select: { name: true } },
         creator: {
+          select: { email: true, profile: { select: { displayName: true } } },
+        },
+      },
+    }),
+    !types.has("evenement") ? [] : db.event.findMany({
+      where: { state: "SOUMIS" },
+      orderBy: { createdAt: "asc" },
+      take: cap,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        kind: true,
+        startsAt: true,
+        location: true,
+        isOnline: true,
+        capacity: true,
+        createdAt: true,
+        organizerId: true,
+        organizer: {
           select: { email: true, profile: { select: { displayName: true } } },
         },
       },
@@ -145,6 +191,32 @@ export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> 
       // Le modérateur ne peut pas juger d'un prix « aberrant » sans le voir.
       meta: `${s.category.name} · ${s.startingPrice.toLocaleString("fr-FR")} ${s.currency} · ${s.deliveryDays} j`,
     })),
+    ...evenements.map((e) => ({
+      type: "evenement" as const,
+      id: e.id,
+      titre: e.title,
+      extrait: e.description.slice(0, 280),
+      auteur: e.organizer.profile?.displayName ?? e.organizer.email,
+      auteurId: e.organizerId,
+      soumisLe: e.createdAt,
+      // Pas d'adresse externe : on s'inscrit sur Baobart, pas ailleurs.
+      urlExterne: null,
+      verifie: false,
+      // Ce dont on ne peut pas juger sans : quand, où, combien de places. Une
+      // date passée ou un lieu absent se voient d'un coup d'œil, et ce sont
+      // les deux motifs de refus les plus fréquents.
+      meta: [
+        LIBELLE_GENRE[e.kind as EventKind],
+        e.startsAt.toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        }),
+        e.isOnline ? "en ligne" : (e.location ?? "lieu non précisé"),
+        e.capacity === null ? "sans plafond" : `${e.capacity} places`,
+      ].join(" · "),
+    })),
   ];
 
   // Le plus ancien d'abord — l'invariant partagé de la file.
@@ -158,10 +230,17 @@ export async function fileDeModeration(limite = 50): Promise<ElementAModerer[]> 
  * Séparé de la lecture : afficher un compteur ne doit pas charger cinquante
  * descriptions sur chaque page du tableau de bord.
  */
-export async function combienAttendent(): Promise<number> {
-  const [j, s] = await Promise.all([
-    db.jobPosting.count({ where: { state: "SOUMIS" } }),
-    db.serviceOffer.count({ where: { state: "SOUMIS" } }),
+export async function combienAttendent(role: RolePlateforme): Promise<number> {
+  const types = new Set(typesRelusPar(role));
+
+  const [j, s, e] = await Promise.all([
+    !types.has("job") ? 0 : db.jobPosting.count({ where: { state: "SOUMIS" } }),
+    !types.has("service")
+      ? 0
+      : db.serviceOffer.count({ where: { state: "SOUMIS" } }),
+    !types.has("evenement")
+      ? 0
+      : db.event.count({ where: { state: "SOUMIS" } }),
   ]);
-  return j + s;
+  return j + s + e;
 }

@@ -1518,19 +1518,86 @@ laissée telle quelle y aurait rendu la liste complète de n'importe quel
 
 ### 25.6 Ce que cette ouverture ne règle pas
 
-**Le refus motivé n'existe pas.** La machine à états connaît `REFUSE`, mais
-`trancher` ne porte pas de raison et l'écran n'affiche pas le bouton. L'équipe
-dispose de `retirer` : la fiche quitte la vue, l'agence peut la reprendre en
-brouillon et la renvoyer. Le circuit se ferme, **la raison manque** — et sans
-messagerie dans le produit (§22.6), l'agence n'a aucun moyen de l'apprendre.
-Le chantier est celui qu'`annuler` a déjà fait pour l'annulation.
-
-**Rien n'avertit l'équipe d'une soumission.** Un événement soumis attend dans
-la liste ; il faut ouvrir l'écran pour le voir. Les événements ne rejoignent
-pas la file de `/dashboard/moderation`, qui est gardée par
-`moderer_le_contenu` alors qu'un événement se publie avec
-`publier_du_contenu`.
+*Les deux premiers manques ont été comblés le 14 septembre 2026 — voir §26.*
 
 **Le badge n'est pas révocable depuis un écran.** Il s'accorde et se retire en
 base. Couper l'accès d'une agence qui abuse demande donc une intervention
 manuelle — l'abonnement expiré, lui, ferme tout seul.
+
+---
+
+## §26 Le refus motivé, et la file qui le porte
+
+*14 septembre 2026. Comble les deux premiers manques de §25.6.*
+
+### 26.1 Pourquoi le refus ne pouvait pas rester muet
+
+L'équipe disposait de `retirer` : la fiche quittait la vue, l'agence pouvait la
+reprendre en brouillon et la renvoyer. Le circuit se fermait, **la raison
+manquait**.
+
+C'est plus grave ici que sur Jobs ou Services. Il n'y a pas de messagerie dans
+le produit (§22.6) : une agence qui voit sa fiche disparaître n'a **aucun autre
+canal** pour demander pourquoi. Le motif n'est donc pas une politesse, c'est le
+seul canal.
+
+`Event.refusedReason` porte le texte, sous le même nom que sur `JobPosting` et
+`ServiceOffer` — trois CMS, une convention. Il est exigé à partir de huit
+caractères, et **effacé dès qu'une autre décision est prise** : garder l'ancien
+ferait afficher « refusée pour X » sur une fiche finalement publiée.
+
+Deux colonnes de raison cohabitent sur `Event`, et elles ne se remplacent pas :
+`cancelReason` s'adresse aux **inscrits** d'un événement qui n'aura pas lieu,
+`refusedReason` à l'**organisateur** d'une fiche qui ne paraîtra pas. Les
+fondre ferait lire à des inscrits le motif d'un refus éditorial.
+
+### 26.2 Les événements entrent dans la file
+
+`lib/cms/moderation.ts` disait qu'ils n'y entreraient « jamais ». C'était exact
+tant que leur auteur portait déjà le droit de publier (§18.1). Depuis §25, une
+fiche d'événement attend une relecture comme une offre d'emploi — et rien
+n'avertissait l'équipe qu'elle attendait.
+
+Le blog, lui, n'y entrera pas : il reste écrit par l'équipe seule.
+
+### 26.3 La file ne montre que ce qu'on peut trancher
+
+C'est le point qui demandait un arbitrage. Les trois CMS n'exigent pas le même
+pouvoir :
+
+| CMS | Pouvoir de relecture |
+| --- | --- |
+| Jobs, Services | `moderer_le_contenu` |
+| Événements | `publier_du_contenu` |
+
+Un modérateur y verrait donc des fiches dont les boutons échoueraient ; un
+éditorial, des offres qui ne le regardent pas.
+
+Trois voies étaient possibles. **Élargir le pouvoir des événements à
+`moderer_le_contenu`** aurait permis à un modérateur de mettre un événement en
+ligne — or c'est précisément ce que §18.1 réserve. **Tout montrer à tout le
+monde** aurait promis des boutons qui répondent non, la faute déjà payée en
+v1.48.8 sur le menu. Retenu : **filtrer par pouvoir**, via `typesRelusPar`, qui
+relit `pouvoirDeModeration` au lieu de ranger la correspondance une seconde
+fois.
+
+L'écran s'ouvre donc à `exigerUnDesPouvoirs("moderer_le_contenu",
+"publier_du_contenu")` — **au moins un**, jamais les deux : les exiger tous les
+deux l'aurait fermé à tout le monde sauf l'administrateur. Entrer ne veut pas
+dire tout voir : la garde ouvre la porte, la requête borne ce qu'on trouve
+derrière.
+
+L'entrée de menu déclare les deux pouvoirs pour la même raison, et
+`EntreeNav.pouvoir` accepte désormais une liste — « au moins un suffit ».
+
+### 26.4 Ce qui reste ouvert
+
+**Rien ne prévient encore l'organisateur.** Il découvre le refus en ouvrant sa
+fiche. Un courriel à la décision serait le prolongement naturel — la
+plateforme en envoie déjà (`lib/email`), il n'y a pas d'obstacle technique.
+
+**Aucune pastille de compteur sur l'entrée de menu.** `combienAttendent` sait
+compter par rôle depuis cette version ; le menu ne l'affiche pas. C'est une
+requête par page de tableau de bord, et le gain n'a pas paru le valoir.
+
+**Le badge reste non révocable depuis un écran** — inchangé depuis §25.6.

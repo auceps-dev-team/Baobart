@@ -71,3 +71,33 @@ export async function exigerLePouvoir(
 
   return utilisateur;
 }
+
+/**
+ * La porte d'un écran que plusieurs pouvoirs ouvrent.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI « AU MOINS UN » ET NON « TOUS »
+ *
+ * La file de modération mélange trois CMS qui n'exigent pas le même pouvoir :
+ * Jobs et Services demandent `moderer_le_contenu`, les événements
+ * `publier_du_contenu`. Exiger les deux fermerait l'écran au modérateur ET à
+ * l'éditorial, c'est-à-dire à tout le monde sauf l'administrateur.
+ *
+ * Entrer ne veut donc pas dire tout voir : la file, elle, ne montre à chacun
+ * que les types qu'il peut trancher (`typesRelusPar`). C'est la division
+ * habituelle — la garde ouvre la porte, la requête borne ce qu'on trouve
+ * derrière.
+ *
+ * 404 pour tout refus, comme partout ailleurs dans ce fichier.
+ */
+export async function exigerUnDesPouvoirs(
+  ...pouvoirs: readonly Pouvoir[]
+): Promise<UtilisateurConnecte & { role: RolePlateforme }> {
+  const utilisateur = await sessionCourante();
+
+  if (!utilisateur || !pouvoirs.some((p) => peut(utilisateur.role, p))) {
+    notFound();
+  }
+
+  return utilisateur;
+}

@@ -1847,6 +1847,20 @@ model Event {
   cancelledAt   DateTime?
   /// Pourquoi. Un « annulé » sans raison fait écrire tous les inscrits.
   cancelReason  String?      @db.Text
+  /// Pourquoi la fiche a été refusée à la relecture.
+  ///
+  /// Deux colonnes de raison sur la même table, et elles ne se remplacent pas :
+  /// `cancelReason` s'adresse aux INSCRITS d'un événement qui n'aura pas lieu,
+  /// `refusedReason` s'adresse à l'ORGANISATEUR d'une fiche qui ne paraîtra
+  /// pas. Les fondre ferait lire à des inscrits le motif d'un refus éditorial.
+  ///
+  /// Même nom que sur `JobPosting` et `ServiceOffer` : trois CMS, une seule
+  /// convention, et rien à retenir de plus en passant de l'un à l'autre.
+  refusedReason String?      @db.Text
+  /// Qui a relu, et quand. L'audit porte le détail ; ces deux colonnes servent
+  /// à l'écran, qui ne doit pas avoir à le parcourir pour afficher une date.
+  moderatedAt   DateTime?
+  moderatorId   String?
 
   /// Concours : la dotation et le jury.
   prizeAmount Int?

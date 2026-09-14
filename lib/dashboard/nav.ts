@@ -34,8 +34,19 @@ export interface EntreeNav {
    * Cacher une entrée de menu ne ferme aucune porte : la garde vit dans la
    * page et dans l'action. Ce champ sert à ne pas MENTIR — montrer « File de
    * modération » à un comptable lui promettrait un écran qui répondra 404.
+   *
+   * ─────────────────────────────────────────────────────────────────
+   * UN POUVOIR, OU PLUSIEURS AU CHOIX
+   *
+   * Une liste veut dire « au moins un suffit », jamais « tous ». La file de
+   * modération en est l'exemple : elle s'ouvre à `moderer_le_contenu` comme à
+   * `publier_du_contenu`, parce qu'elle mélange des CMS qui n'exigent pas le
+   * même. Exiger les deux la fermerait à tout le monde sauf l'administrateur.
+   *
+   * L'entrée doit annoncer ce que la PAGE exige, et la page utilise
+   * `exigerUnDesPouvoirs`. Les deux disent donc la même chose.
    */
-  pouvoir?: Pouvoir;
+  pouvoir?: Pouvoir | readonly Pouvoir[];
 }
 
 export interface EntreeNavRendue extends EntreeNav {
@@ -160,7 +171,12 @@ const RAISON_BOUTIQUE = "Disponible une fois ton premier produit publié.";
  * de qui écrit vers le compilateur : une entrée ajoutée sans pouvoir ne
  * compile plus. C'est la seule forme de vigilance qui ne s'épuise pas.
  */
-type EntreeAdmin = EntreeNav & { pouvoir: Pouvoir };
+// `Omit` avant l'intersection : croiser un champ facultatif avec un champ
+// requis du même nom produit l'intersection des DEUX types, et non le second.
+// Ici cela donnait `Pouvoir & readonly Pouvoir[]`, que rien ne satisfait.
+type EntreeAdmin = Omit<EntreeNav, "pouvoir"> & {
+  pouvoir: Pouvoir | readonly Pouvoir[];
+};
 
 const ADMINISTRATION: EntreeAdmin[] = [
   {
@@ -168,7 +184,10 @@ const ADMINISTRATION: EntreeAdmin[] = [
     label: "File de modération",
     glyph: "⚑",
     href: "/dashboard/moderation",
-    pouvoir: "moderer_le_contenu",
+    // Deux pouvoirs, et un seul suffit : la file mélange Jobs et Services
+    // (`moderer_le_contenu`) avec les événements (`publier_du_contenu`).
+    // Chacun n'y voit que ce qu'il peut trancher — voir `typesRelusPar`.
+    pouvoir: ["moderer_le_contenu", "publier_du_contenu"],
   },
   {
     // Le pouvoir n'est pas `moderer_le_contenu` : les événements soumis par
@@ -281,7 +300,11 @@ export function navigationPour(
   // l'administration, une entrée sans pouvoir déclaré s'affichait pour tout le
   // monde. Le type `EntreeAdmin` rend désormais l'oubli impossible, et ce
   // filtre n'a plus qu'une question à poser.
-  const entreesAdmin = ADMINISTRATION.filter((e) => peut(role, e.pouvoir));
+  const entreesAdmin = ADMINISTRATION.filter((e) =>
+    (Array.isArray(e.pouvoir) ? e.pouvoir : [e.pouvoir as Pouvoir]).some((p) =>
+      peut(role, p),
+    ),
+  );
 
   const admin: Groupe[] =
     entreesAdmin.length > 0
