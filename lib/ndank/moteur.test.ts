@@ -34,10 +34,12 @@ function faussePorts(
 
   const marchent = options.canauxQuiMarchent ?? ["courriel", "sms", "push"];
   const ou: Coordonnees = options.coordonnees ?? {
+    abonneId: "u-awa",
     nom: "Awa",
     courriel: "abonne@ndank.test",
     telephone: "+2250700000000",
     appareils: ["appareil-1"],
+    refuses: [],
   };
 
   const ports: Ports = {
@@ -66,6 +68,11 @@ function faussePorts(
     },
     envoi: {
       disponible(canal, coord) {
+        // Le port le dit : un canal fermé par son destinataire se comporte
+        // exactement comme un canal absent. Le faux doit tenir le contrat,
+        // sinon il éprouve autre chose que ce que l'adaptateur fera.
+        if (coord.refuses.includes(canal)) return false;
+
         if (canal === "courriel") return coord.courriel !== null;
         if (canal === "sms") return coord.telephone !== null;
         return coord.appareils.length > 0;
@@ -182,10 +189,12 @@ describe("le passage quotidien", () => {
     const a = abonnement();
     const f = faussePorts([a], {
       coordonnees: {
+        abonneId: "u-sans-rien",
         nom: null,
         courriel: null,
         telephone: "+225",
         appareils: [],
+        refuses: [],
       },
       canauxQuiMarchent: ["courriel", "sms", "push"],
     });
@@ -280,5 +289,56 @@ describe("l'aperçu montré à l'abonné", () => {
     expect(apercuDe(a, ajouterJours(a.cycle.echeance, 5)).etat).toBe(
       "A_RENOUVELER",
     );
+  });
+});
+
+describe("les canaux que l'abonné a fermés", () => {
+  it("se comportent exactement comme des canaux absents", async () => {
+    // Le moteur choisit QUEL canal essayer ; l'hôte sait ce que la personne a
+    // accepté. Sans ce croisement, quelqu'un qui coupe les courriels de
+    // relance continuerait d'en recevoir — et l'écran de réglages mentirait.
+    const a = abonnement();
+    const f = faussePorts([a], {
+      coordonnees: {
+        abonneId: "u-sans-courriel",
+        nom: "Awa",
+        courriel: "abonne@ndank.test",
+        telephone: "+2250700000000",
+        appareils: ["appareil-1"],
+        refuses: ["courriel"],
+      },
+      canauxQuiMarchent: ["courriel", "sms", "push"],
+    });
+
+    // Trois jours avant l'échéance : le premier palier, celui du courriel.
+    await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
+
+    // Le courriel avait la priorité du palier et n'a pas été essayé.
+    expect(f.envois.map((e) => e.canal)).not.toContain("courriel");
+  });
+
+  it("laissent l'abonné injoignable quand il les a tous fermés", async () => {
+    // C'est juste : quelqu'un qui a tout coupé est quelqu'un qu'on ne peut
+    // plus prévenir, et cela doit se voir AVANT de couper un accès.
+    const a = abonnement();
+    const f = faussePorts([a], {
+      coordonnees: {
+        abonneId: "u-tout-ferme",
+        nom: "Awa",
+        courriel: "abonne@ndank.test",
+        telephone: null,
+        appareils: ["appareil-1"],
+        refuses: ["courriel", "push"],
+      },
+      canauxQuiMarchent: ["courriel", "sms", "push"],
+    });
+
+    const bilan = await passer(f.ports, REGLAGES, ajouterJours(a.cycle.echeance, -3));
+
+    expect(f.envois).toHaveLength(0);
+    expect(bilan.injoignables).toBeGreaterThan(0);
+    // Et surtout : la relance n'est PAS notée. Ne rien avoir envoyé ne doit
+    // pas empêcher de réessayer demain.
+    expect(bilan.relances).toBe(0);
   });
 });

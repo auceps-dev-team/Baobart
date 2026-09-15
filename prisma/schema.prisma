@@ -2346,6 +2346,21 @@ enum EmailTemplate {
   AVIS_VERSEMENT
   RELANCE_ABONNEMENT
   RECU_ABONNEMENT
+
+  /// Ajoutés en v1.52.2. Ces avis existaient déjà et n'étaient livrés qu'en
+  /// in-app : le catalogue des notifications les portait avec `modele: null`,
+  /// et l'écran de réglages l'annonçait en toutes lettres.
+  ///
+  /// L'ordre suit `lib/email/modeles.ts`, et les deux listes doivent rester
+  /// identiques — un test le vérifie.
+  COMMANDE_REMBOURSEE
+  EVENEMENT_ANNULE
+  VENTE_REALISEE
+  CONTENU_PUBLIE
+  CONTENU_REFUSE
+  CANDIDATURE_RECUE
+  INSCRIPTION_EVENEMENT
+  NOUVEL_ABONNE
 }
 
 /// File d'attente des messages transactionnels.

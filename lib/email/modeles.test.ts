@@ -30,6 +30,35 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     prochaine: "2 octobre 2026",
     lien: "https://baobart.com/dashboard/abonnements",
   },
+
+  // Les huit de v1.52.2. `nom` y figure partout sans qu'aucun appelant ne le
+  // passe : c'est l'aiguilleur qui l'ajoute, depuis le compte qu'il vient de
+  // lire pour trouver l'adresse.
+  COMMANDE_REMBOURSEE: {
+    nom: "Awa",
+    ressource: "Pack textures",
+    montant: "4 500 F",
+    raison: "Fichier illisible sur mobile.",
+  },
+  EVENEMENT_ANNULE: {
+    nom: "Awa",
+    titre: "Atelier sérigraphie sur wax",
+    raison: "La salle est inondée, on reporte à novembre.",
+  },
+  VENTE_REALISEE: {
+    nom: "Awa",
+    ressource: "Pack textures",
+    montant: "4 500 F",
+  },
+  CONTENU_PUBLIE: { nom: "Awa", titre: "Atelier sérigraphie sur wax" },
+  CONTENU_REFUSE: {
+    nom: "Awa",
+    titre: "Atelier sérigraphie sur wax",
+    motif: "La date est déjà passée, et le lieu n'est pas renseigné.",
+  },
+  CANDIDATURE_RECUE: { nom: "Awa", offre: "Illustrateur — mission 3 mois" },
+  INSCRIPTION_EVENEMENT: { nom: "Awa", titre: "Atelier sérigraphie sur wax" },
+  NOUVEL_ABONNE: { nom: "Awa" },
 };
 
 describe("modèles de courriel", () => {
@@ -112,5 +141,25 @@ describe("modèles de courriel", () => {
     it("refuse un modèle inconnu", () => {
       expect(() => rendre("INEXISTANT" as Modele, {})).toThrow(ChargeInvalide);
     });
+  });
+});
+
+/**
+ * Les deux listes doivent rester identiques.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI CE TEST EXISTE
+ *
+ * `MODELES` vit en TypeScript, `EmailTemplate` en base. Rien dans le langage
+ * ne les relie : ajouter un modèle sans migration compile parfaitement, et
+ * échoue **au dépôt**, en production, sur un `invalid input value for enum`.
+ *
+ * Le test coûte trois lignes et attrape exactement cet oubli-là.
+ */
+describe("la liste des modèles et l'enum de la base", () => {
+  it("portent exactement les mêmes valeurs", async () => {
+    const { EmailTemplate } = await import("@prisma/client");
+
+    expect([...MODELES].sort()).toEqual(Object.keys(EmailTemplate).sort());
   });
 });

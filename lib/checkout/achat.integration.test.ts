@@ -206,6 +206,32 @@ describe("l'argent", () => {
     expect(avis[0]?.lien).toBe("/dashboard/achats");
     expect(avis[0]?.cle).toBe(`in-app:recu-${r.orderItemId}`);
   });
+
+  it("prévient aussi le vendeur, du brut et pas du net", async () => {
+    // Avant v1.52.2, une vente ne se savait qu'en ouvrant son tableau de bord.
+    // C'est la notification emblématique de notre référent.
+    const vendeur = await creerUtilisateur("vendeur");
+    const acheteur = await creerUtilisateur("acheteur");
+    const produit = await creerProduit({ vendeurId: vendeur.id, prix: 4500 });
+
+    const r = await acheter({ produitId: produit.id, acheteurId: acheteur.id });
+    if (!r.ok) throw new Error("achat refusé");
+
+    const cote = await db.notification.findMany({
+      where: { userId: vendeur.id },
+    });
+    expect(cote).toHaveLength(1);
+    expect(cote[0]?.type).toBe("VENTE_REALISEE");
+    expect(cote[0]?.lien).toBe("/dashboard/ventes");
+    // Le BRUT, celui que l'acheteur a payé. Le net dépend des frais et vit
+    // dans les gains : les confondre ici ferait croire à une erreur de calcul.
+    expect(cote[0]?.corps).toContain("4");
+    expect(cote[0]?.cle).toBe(`in-app:vente-${r.orderItemId}`);
+
+    // Et les deux avis sont distincts : l'acheteur a le sien, le vendeur le
+    // sien. Une clé partagée en aurait fait disparaître un.
+    expect(await db.notification.count()).toBe(2);
+  });
 });
 
 describe("refus", () => {

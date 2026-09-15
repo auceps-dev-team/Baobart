@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { meriteSignalement } from "@/lib/social/moderation";
 import {
   peutRetirerCommentaire,
@@ -134,6 +135,31 @@ export async function basculerSuiviDe(
     if (!estDoublon(erreur)) {
       return { ok: false, message: "Impossible d'enregistrer ton suivi." };
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRÉVENIR LE CRÉATEUR, AU PREMIER SUIVI SEULEMENT
+  //
+  // `existant` était nul : c'est donc un suivi qui commence, pas un
+  // désabonnement. Le distinguer ici évite l'avis le plus agaçant qui soit —
+  // celui qui se répète quand quelqu'un hésite et clique deux fois.
+  //
+  // La clé porte le couple (suiveur, suivi) et non la date : quelqu'un qui se
+  // désabonne puis revient ne repose pas un second avis. C'est délibéré — le
+  // créateur a déjà été prévenu de ce suivi-là, et le lui redire n'apprend
+  // rien.
+  //
+  // Défaut courriel à `false` au catalogue : c'est, avec les inscriptions,
+  // l'événement le plus fréquent et le moins actionnable.
+  if (!existant) {
+    await notifier({
+      destinataireId: createurId,
+      evenement: "NOUVEL_ABONNE",
+      cle: `abonne-${userId}-${createurId}`,
+      titre: "Nouvel abonné",
+      corps: "Quelqu'un suit désormais ta boutique.",
+      lien: "/dashboard/boutique",
+    });
   }
 
   const [abonnes, abonnements, apres] = await Promise.all([

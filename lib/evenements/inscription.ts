@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { journal } from "@/lib/observabilite/journal";
 import { peutSInscrire, type RefusInscription } from "@/lib/evenements/phases";
 
@@ -74,6 +75,9 @@ async function etatPour(evenementId: string, userId: string) {
         capacity: true,
         participantsCount: true,
         ticketPrice: true,
+        // Pour prévenir celui qui organise, une fois l'inscription écrite.
+        organizerId: true,
+        title: true,
       },
     }),
     db.eventRegistration.findUnique({
@@ -156,6 +160,34 @@ export async function inscrire(input: {
   journal.info("inscription à un événement", {
     evenement: evenement.id,
     capacite: evenement.capacity,
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRÉVENIR L'ORGANISATEUR — EN IN-APP SEULEMENT, PAR DÉFAUT
+  //
+  // C'est l'événement le plus fréquent du catalogue : un atelier de cent
+  // places, ce sont cent avis. Son défaut courriel est donc à `false` — cent
+  // courriels en un après-midi font marquer l'expéditeur comme indésirable, et
+  // ce qu'on perd ensuite, ce sont les reçus d'achat.
+  //
+  // Qui veut quand même le courriel peut l'allumer : c'est tout l'intérêt
+  // d'une préférence par couple plutôt que d'un interrupteur global.
+  //
+  // HORS TRANSACTION, et volontairement : l'inscription n'en a pas. Elle
+  // tient par un verrou de capacité atomique suivi d'une compensation
+  // explicite (voir l'en-tête). Un avis qui échoue ne doit surtout pas
+  // déclencher cette compensation — la place est bien prise.
+  await notifier({
+    destinataireId: evenement.organizerId,
+    evenement: "INSCRIPTION_EVENEMENT",
+    cle: `inscription-${evenement.id}-${input.userId}`,
+    titre: `Nouvelle inscription — ${evenement.title}`,
+    corps:
+      evenement.capacity === null
+        ? "Quelqu'un vient de s'inscrire."
+        : `Quelqu'un vient de s'inscrire. Il reste ${Math.max(0, evenement.capacity - evenement.participantsCount - 1)} place(s).`,
+    lien: `/dashboard/evenements/${evenement.id}/inscrits`,
+    charge: { titre: evenement.title },
   });
 
   return { ok: true };

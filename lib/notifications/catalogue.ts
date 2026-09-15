@@ -160,7 +160,7 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     explication: "L'argent repart vers ton moyen de paiement.",
     // Un mouvement d'argent dans l'autre sens. Même raison que le reçu.
     imperatif: true,
-    modele: null,
+    modele: "COMMANDE_REMBOURSEE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   ABONNEMENT_A_RENOUVELER: {
@@ -187,7 +187,7 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     // Quelqu'un a noté la date et prévu un déplacement. Ne pas le prévenir,
     // c'est le laisser venir devant une porte fermée.
     imperatif: true,
-    modele: null,
+    modele: "EVENEMENT_ANNULE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
 
@@ -196,7 +196,7 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     audience: "vendeur",
     libelle: "Nouvelle vente",
     explication: "Quelqu'un vient d'acheter une de tes ressources.",
-    modele: null,
+    modele: "VENTE_REALISEE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   VERSEMENT_ENVOYE: {
@@ -211,7 +211,7 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     audience: "vendeur",
     libelle: "Publication acceptée",
     explication: "Ce que tu as soumis est en ligne.",
-    modele: null,
+    modele: "CONTENU_PUBLIE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   CONTENU_REFUSE: {
@@ -222,21 +222,21 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     // la fiche disparaît, et son auteur n'a aucun moyen d'apprendre pourquoi.
     // Le rendre optionnel reviendrait à rendre le refus muet à nouveau.
     imperatif: true,
-    modele: null,
+    modele: "CONTENU_REFUSE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   CANDIDATURE_RECUE: {
     audience: "vendeur",
     libelle: "Candidature reçue",
     explication: "Quelqu'un a postulé à ton offre.",
-    modele: null,
+    modele: "CANDIDATURE_RECUE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   INSCRIPTION_EVENEMENT: {
     audience: "vendeur",
     libelle: "Inscription à ton événement",
     explication: "Quelqu'un vient de s'inscrire.",
-    modele: null,
+    modele: "INSCRIPTION_EVENEMENT",
     // Courriel éteint : un atelier de cent places ferait cent courriels. La
     // liste des inscrits est déjà consultable, et elle s'exporte.
     defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
@@ -245,7 +245,7 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     audience: "vendeur",
     libelle: "Nouvel abonné",
     explication: "Quelqu'un suit désormais ta boutique.",
-    modele: null,
+    modele: "NOUVEL_ABONNE",
     // Même raison : c'est l'événement le plus fréquent et le moins actionnable.
     defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
   },

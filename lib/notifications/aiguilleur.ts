@@ -108,6 +108,24 @@ export interface Avis {
    * affichée directement : elle peut porter un lien de téléchargement.
    */
   charge?: Record<string, unknown>;
+  /**
+   * Ne livrer que sur ces canaux-là.
+   *
+   * ════════════════════════════════════════════════════════════════════════
+   * POUR LE CAS OÙ QUELQU'UN D'AUTRE A DÉJÀ ENVOYÉ
+   *
+   * La relance d'abonnement est le seul exemple aujourd'hui, et il suffit à
+   * justifier ce champ. Elle part par le moteur Ndank, qui **choisit
+   * lui-même** son canal et escalade courriel → SMS → push jusqu'à ce que
+   * l'un accepte. Quand il a réussi, il reste à en garder une trace dans
+   * l'application — et seulement ça : repasser par le courriel enverrait le
+   * même message deux fois.
+   *
+   * C'est une RESTRICTION, jamais une autorisation : la liste est croisée
+   * avec ce que les préférences permettent. On ne peut donc pas s'en servir
+   * pour forcer un canal que la personne a fermé.
+   */
+  canaux?: readonly Canal[];
 }
 
 export interface Livraison {
@@ -154,7 +172,12 @@ export async function notifier(
   try {
     const destinataire = await client.user.findUnique({
       where: { id: avis.destinataireId },
-      select: { id: true, email: true },
+      // Le nom d'affichage en plus : voir `charge` plus bas.
+      select: {
+        id: true,
+        email: true,
+        profile: { select: { displayName: true } },
+      },
     });
 
     if (!destinataire) {
@@ -169,7 +192,14 @@ export async function notifier(
     }
 
     const preferences = await lirePreferences(destinataire.id, client);
-    const canaux = canauxPour(avis.evenement, preferences);
+
+    // L'intersection, dans cet ordre : ce que les préférences ouvrent, puis ce
+    // que l'appelant restreint. Jamais l'inverse — une restriction ne doit pas
+    // pouvoir ouvrir.
+    const ouverts = canauxPour(avis.evenement, preferences);
+    const canaux = avis.canaux
+      ? ouverts.filter((c) => avis.canaux?.includes(c))
+      : ouverts;
 
     const livraison: Livraison = { canaux: [], doublons: [], echecs: [] };
 
@@ -177,7 +207,12 @@ export async function notifier(
       const pose =
         canal === "IN_APP"
           ? await ecrireDansLaCloche(destinataire.id, avis, client)
-          : await deposerLeCourriel(destinataire.email, avis, client);
+          : await deposerLeCourriel(
+              destinataire.email,
+              avis,
+              client,
+              destinataire.profile?.displayName ?? null,
+            );
 
       if (pose === "pose") livraison.canaux.push(canal);
       else if (pose === "doublon") livraison.doublons.push(canal);
@@ -258,10 +293,30 @@ async function ecrireDansLaCloche(
   }
 }
 
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE NOM EST AJOUTÉ ICI, PAS PAR L'APPELANT
+ *
+ * Tous les modèles de courriel commencent par « Bonjour <nom> ». Le faire
+ * passer par chaque appel voudrait dire l'écrire à une dizaine d'endroits, et
+ * en oublier un ferait échouer le rendu **au dépôt** — c'est-à-dire loin de
+ * l'endroit où l'oubli a eu lieu.
+ *
+ * L'aiguilleur a déjà lu le compte pour trouver l'adresse ; il en tire le nom
+ * sans requête de plus.
+ *
+ * Ce que l'appelant passe l'emporte : un modèle qui veut nommer quelqu'un
+ * d'AUTRE que son destinataire — « <nom> vient de s'inscrire » — écrit son
+ * propre `nom` et il est conservé.
+ *
+ * Zod retire les clés qu'un schéma ne déclare pas : ajouter `nom` à un modèle
+ * qui n'en veut pas ne casse rien.
+ */
 async function deposerLeCourriel(
   adresse: string,
   avis: Avis,
   client: ClientNotifications,
+  nom: string | null,
 ): Promise<Issue> {
   const modele = CATALOGUE[avis.evenement].modele;
 
@@ -275,7 +330,7 @@ async function deposerLeCourriel(
       cle: `courriel:${avis.cle}`,
       destinataire: adresse,
       modele,
-      charge: avis.charge ?? {},
+      charge: { nom: nom ?? adresse, ...avis.charge },
     },
     client,
   );

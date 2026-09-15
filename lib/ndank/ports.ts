@@ -49,6 +49,22 @@ export interface AbonnementLu {
 
 /** Où joindre l'abonné. Chaque champ peut manquer. */
 export interface Coordonnees {
+  /**
+   * Qui c'est, du point de vue de l'hôte.
+   *
+   * ────────────────────────────────────────────────────────────────────────
+   * POURQUOI UN IDENTIFIANT DANS UN OBJET « OÙ JOINDRE »
+   *
+   * Le port promet « où joindre l'abonné », et un identifiant n'est pas une
+   * adresse. Il est là quand même, pour une raison précise : l'hôte doit
+   * pouvoir, après un envoi réussi, rattacher la relance à un compte — chez
+   * Baobart, pour en garder une trace dans l'application.
+   *
+   * L'alternative était de le faire ressortir d'une seconde lecture depuis
+   * l'identifiant d'abonnement. Cela marcherait, et cela ferait une requête
+   * de plus pour une donnée que `coordonnees()` avait déjà en main.
+   */
+  abonneId: string;
   /** Comment l'appeler. `null` quand on ne sait pas — on dira « Bonjour ». */
   nom: string | null;
   courriel: string | null;
@@ -72,6 +88,29 @@ export interface Coordonnees {
    * L'hôte met ce qu'il veut derrière la poignée.
    */
   appareils: string[];
+  /**
+   * Les canaux que l'abonné a fermés, et qu'il ne faut donc pas essayer.
+   *
+   * ─────────────────────────────────────────────────────────────────────
+   * DEUX DÉCIDEURS DE CANAL, UN SEUL ARBITRE
+   *
+   * Le moteur choisit **quel** canal essayer, dans l'ordre du palier. L'hôte,
+   * lui, sait ce que la personne a accepté de recevoir. Sans ce champ, les
+   * deux décisions ne se rencontrent jamais : quelqu'un qui coupe les
+   * courriels de relance continue d'en recevoir, parce que le moteur ne
+   * connaît pas ses réglages.
+   *
+   * Le renseigner ici plutôt que d'interroger l'hôte à chaque essai est ce
+   * qui garde `disponible()` **synchrone** : la lecture se fait une fois,
+   * dans `coordonnees()`, qui est déjà asynchrone et lit déjà le compte.
+   *
+   * Un canal fermé se comporte exactement comme un canal absent : le moteur
+   * passe au suivant, et compte l'abonné parmi les injoignables s'il n'en
+   * reste aucun. C'est juste — quelqu'un qui a tout coupé est quelqu'un
+   * qu'on ne peut plus prévenir, et cela doit se voir avant de couper un
+   * accès.
+   */
+  refuses: readonly Canal[];
 }
 
 /**

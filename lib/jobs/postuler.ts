@@ -5,6 +5,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { estPublic } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
+import { notifier } from "@/lib/notifications/aiguilleur";
 import { journal } from "@/lib/observabilite/journal";
 import { deposerObjet, supprimerObjet } from "@/lib/upload/storage";
 import {
@@ -97,6 +98,8 @@ export async function postuler(input: {
       deadline: true,
       applyMode: true,
       recruiterId: true,
+      // Pour prévenir le recruteur, une fois la candidature écrite.
+      title: true,
     },
   });
 
@@ -145,6 +148,27 @@ export async function postuler(input: {
         mediaId: media.id,
       },
       select: { id: true },
+    });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PRÉVENIR LE RECRUTEUR
+    //
+    // Sans cet avis, une candidature attend qu'on pense à ouvrir l'écran —
+    // et un candidat qui n'a pas de réponse conclut que l'offre est morte.
+    //
+    // Hors transaction, et il n'y en a pas ici : le média et la candidature
+    // sont écrits l'un après l'autre, avec un rattrapage explicite en cas
+    // d'échec. Un avis raté ne doit pas déclencher ce rattrapage — la
+    // candidature, elle, est bien enregistrée.
+    await notifier({
+      destinataireId: offre.recruiterId,
+      evenement: "CANDIDATURE_RECUE",
+      cle: `candidature-${candidature.id}`,
+      titre: `Candidature reçue — ${offre.title}`,
+      corps:
+        "Quelqu'un vient de postuler à ton offre. Le CV est joint à sa fiche.",
+      lien: `/dashboard/jobs/${offre.id}/candidatures`,
+      charge: { offre: offre.title },
     });
 
     return { ok: true, candidatureId: candidature.id };

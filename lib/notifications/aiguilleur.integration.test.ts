@@ -82,9 +82,13 @@ describe("la livraison", () => {
     expect(await db.emailOutbox.count({ where: { recipient: moi.email } })).toBe(1);
   });
 
-  it("n'envoie pas de courriel quand l'événement n'a pas de modèle", async () => {
-    // État transitoire assumé : l'avis est livré en in-app seulement. Un
-    // courriel sans texte serait pire que pas de courriel.
+  it("livre sur les deux canaux un refus de publication", async () => {
+    // Ce test disait l'inverse jusqu'en v1.52.2 : `CONTENU_REFUSE` n'avait pas
+    // de modèle de courriel, et n'était livré qu'en in-app. C'était un état
+    // transitoire, il est levé — les huit modèles manquants ont été écrits.
+    //
+    // Il compte double ici : un refus est le SEUL canal vers l'auteur d'une
+    // fiche écartée, puisqu'il n'y a pas de messagerie (§22.6).
     const moi = await personne();
 
     const suite = await notifier({
@@ -93,10 +97,15 @@ describe("la livraison", () => {
       cle: `refus-${moi.id}`,
       titre: "Ta fiche n'a pas été retenue",
       corps: "La date est déjà passée.",
+      charge: {
+        titre: "Atelier sérigraphie",
+        motif: "La date est déjà passée, et le lieu n'est pas renseigné.",
+      },
     });
 
-    expect(suite.canaux).toEqual(["IN_APP"]);
-    expect(await db.emailOutbox.count()).toBe(0);
+    expect(suite.canaux.sort()).toEqual(["COURRIEL", "IN_APP"]);
+    expect(suite.echecs).toEqual([]);
+    expect(await db.emailOutbox.count({ where: { recipient: moi.email } })).toBe(1);
     expect(await db.notification.count({ where: { userId: moi.id } })).toBe(1);
   });
 
@@ -311,20 +320,16 @@ describe("ce qui devait partir et n'est pas parti", () => {
     expect(await db.notification.count({ where: { userId: moi.id } })).toBe(1);
   });
 
-  it("ne compte pas comme un échec l'absence de modèle", async () => {
-    // `CONTENU_REFUSE` n'a pas encore de courriel, et le catalogue le dit.
-    // Ce n'est pas une panne, c'est un état transitoire assumé.
-    const moi = await personne();
+  it("ne laisse plus aucun événement sans modèle de courriel", async () => {
+    // L'état transitoire est levé : les huit `modele: null` du catalogue ont
+    // reçu leur texte en v1.52.2. Ce test garde l'acquis — un neuvième
+    // événement ajouté sans modèle le ferait tomber, et c'est le moment où
+    // l'on veut y penser, pas trois mois plus tard devant une file vide.
+    const { CATALOGUE, EVENEMENTS } = await import(
+      "@/lib/notifications/catalogue"
+    );
 
-    const suite = await notifier({
-      destinataireId: moi.id,
-      evenement: "CONTENU_REFUSE",
-      cle: `refus-sans-modele-${moi.id}`,
-      titre: "Ta fiche n'a pas été retenue",
-      corps: "La date est déjà passée.",
-    });
-
-    expect(suite.canaux).toEqual(["IN_APP"]);
-    expect(suite.echecs).toEqual([]);
+    const sansModele = EVENEMENTS.filter((e) => CATALOGUE[e].modele === null);
+    expect(sansModele).toEqual([]);
   });
 });

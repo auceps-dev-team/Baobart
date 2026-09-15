@@ -6,6 +6,8 @@ import { deposer } from "@/lib/email/outbox";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 import { PAYS_PAR_DEFAUT, paysValide } from "@/lib/payments/rails";
+import { notifier } from "@/lib/notifications/aiguilleur";
+import { lirePreferences } from "@/lib/notifications/preferences";
 import { appareilsDe, envoyerA } from "@/lib/push/abonnements";
 import { versE164 } from "@/lib/sms/numero";
 import { envoyerSms } from "@/lib/sms/pilotes";
@@ -146,10 +148,34 @@ const lecture: Lecture = {
       ? versE164(u.phone, paysValide(u.profile?.country ?? undefined))
       : null;
 
+    // ────────────────────────────────────────────────────────────────
+    // CE QUE LA PERSONNE A FERMÉ FERME AUSSI LE CANAL DE NDANK
+    //
+    // Le moteur choisit QUEL canal essayer ; l'hôte sait ce qu'on a accepté
+    // de recevoir. Sans cette lecture, les deux décisions ne se rencontrent
+    // jamais, et quelqu'un qui coupe les courriels de relance continue d'en
+    // recevoir — l'écran de réglages mentirait.
+    //
+    // La lecture se fait ici, une fois, parce que `coordonnees()` est déjà
+    // asynchrone et lit déjà le compte. C'est ce qui permet à `disponible()`
+    // de rester synchrone, comme le port le demande.
+    //
+    // Le SMS n'a pas de réglage : il n'est pas au catalogue des
+    // notifications, et il ne part qu'au dernier palier, quand l'accès est
+    // sur le point de se fermer. Lui donner un interrupteur demanderait
+    // d'abord de décider s'il peut se couper — ce n'est pas tranché.
+    const prefs = await lirePreferences(abonneId);
+    const reglage = prefs.ABONNEMENT_A_RENOUVELER ?? {};
+    const refuses: Canal[] = [];
+    if (reglage.COURRIEL === false) refuses.push("courriel");
+    if (reglage.PUSH === false) refuses.push("push");
+
     return {
+      abonneId,
       nom: u?.profile?.displayName ?? null,
       courriel: u?.email ?? null,
       telephone,
+      refuses,
       // Les navigateurs où la personne a accepté les notifications. La liste
       // est souvent vide — c'est une réponse normale, pas une panne : le
       // moteur essaiera simplement le canal suivant.
@@ -172,8 +198,12 @@ const ecriture: Ecriture = {
         data: { subscriptionId: abonnementId, cle, canaux },
       });
     } catch {
-      // Doublon : l'autre passage a gagné. C'est le résultat voulu.
+      // Doublon : l'autre passage a gagné. C'est le résultat voulu — et on
+      // sort AVANT l'avis, sans quoi le perdant en écrirait un second.
+      return;
     }
+
+    await tracerDansLApplication(abonnementId, cle);
   },
 
   async suspendre(abonnementId) {
@@ -206,6 +236,10 @@ const ecriture: Ecriture = {
 
 const envoi: Envoi = {
   disponible(canal, ou) {
+    // Fermé par son destinataire : exactement comme absent. Le moteur passera
+    // au canal suivant, et le comptera injoignable s'il n'en reste aucun.
+    if (ou.refuses.includes(canal)) return false;
+
     if (canal === "courriel") return ou.courriel !== null;
     if (canal === "sms") return ou.telephone !== null;
     return ou.appareils.length > 0;
@@ -300,4 +334,62 @@ export function lienDeValidation(abonnement: AbonnementLu): string {
 /** Le montant, écrit comme Baobart l'écrit partout ailleurs. */
 export function montantLisible(abonnement: AbonnementLu): string {
   return formatMoney(abonnement.montant, abonnement.devise as Currency);
+}
+
+/**
+ * Garder une trace de la relance dans l'application.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ICI, ET PAS DANS `envoyer`
+ *
+ * `noterRelance` est appelée **une fois**, et seulement quand un canal a
+ * effectivement pris le message. `envoyer`, elle, est appelée une fois par
+ * canal essayé : y écrire l'avis le poserait autant de fois qu'il y a eu
+ * d'échecs avant le succès.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * RESTREINTE À L'IN-APP, ET C'EST TOUT L'INTÉRÊT
+ *
+ * Ndank vient d'envoyer le message sur le canal qu'il a choisi. Repasser par
+ * le courriel de l'aiguilleur enverrait le même message deux fois. La
+ * restriction est croisée avec les préférences — elle ne peut donc pas ouvrir
+ * un canal que la personne a fermé.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * CE QU'ELLE NE COUVRE PAS
+ *
+ * Un abonné dont TOUS les canaux externes sont fermés ou absents est compté
+ * « injoignable » par le moteur, qui n'appelle alors pas `noterRelance` — et
+ * n'a donc aucun avis, pas même dans l'application. C'est discutable : il va
+ * perdre son accès sans avoir rien vu. Le corriger demande un crochet que le
+ * port n'a pas, et cela se décide côté Ndank.
+ *
+ * Rien ici ne lève : la relance est partie, et un avis raté ne doit pas la
+ * faire noter deux fois demain.
+ */
+async function tracerDansLApplication(
+  abonnementId: string,
+  cle: string,
+): Promise<void> {
+  const abonnement = await db.subscription.findUnique({
+    where: { id: abonnementId },
+    select: { userId: true, plan: { select: { name: true } } },
+  });
+
+  if (!abonnement) return;
+
+  await notifier({
+    destinataireId: abonnement.userId,
+    evenement: "ABONNEMENT_A_RENOUVELER",
+    // La même clé que la relance : un passage rejoué retombe dessus et se
+    // fait refuser, comme la ligne `SubscriptionReminder` elle-même.
+    cle: `ndank-${cle}`,
+    titre: `Ton abonnement ${abonnement.plan.name} arrive à échéance`,
+    // Pas de nombre de jours ici : le message exact — ton, échéance, palier —
+    // est celui que Ndank vient d'envoyer par courriel ou SMS. Le répéter de
+    // mémoire, depuis une seconde lecture, risquerait de le contredire.
+    corps: "Renouvelle pour garder ton accès. Le détail est dans le message qu'on vient de t'envoyer.",
+    lien: "/dashboard/forfait",
+    canaux: ["IN_APP"],
+  });
 }

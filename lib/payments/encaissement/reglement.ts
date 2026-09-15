@@ -41,7 +41,7 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
       price: true,
       quantity: true,
       orderId: true,
-      product: { select: { name: true, currency: true } },
+      product: { select: { name: true, currency: true, sellerId: true } },
       order: {
         select: {
           buyer: {
@@ -110,6 +110,46 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
       },
       tx,
     );
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ET LE VENDEUR, QUI N'ÉTAIT PRÉVENU DE RIEN
+    //
+    // C'est le manque le plus visible du système avant v1.52.2 : une vente ne
+    // se savait qu'en ouvrant son tableau de bord. Chez notre référent, c'est
+    // même la notification emblématique — la sonnerie de vente pousse sur son
+    // application mobile.
+    //
+    // Le montant annoncé est le BRUT de la ligne, et c'est délibéré : c'est le
+    // prix que l'acheteur a payé, donc celui qui figure sur la fiche. Le net
+    // dépend des frais et du régime, et il apparaît sur l'écran des gains. Les
+    // confondre dans une notification ferait croire à une erreur de calcul à
+    // qui comparerait les deux.
+    //
+    // Dans la même transaction que le reste : un vendeur prévenu d'une vente
+    // qui n'a finalement pas été encaissée est pire qu'un vendeur non prévenu.
+    //
+    // Pas d'avis quand on achète sa propre ressource — le cas est déjà refusé
+    // à l'achat, mais la garde ne coûte rien et dit l'intention.
+    if (ligne.product.sellerId !== acheteur.id) {
+      await notifier(
+        {
+          destinataireId: ligne.product.sellerId,
+          evenement: "VENTE_REALISEE",
+          cle: `vente-${orderItemId}`,
+          titre: `Vente — ${ligne.product.name}`,
+          corps: `${formatMoney(ligne.price * ligne.quantity, ligne.product.currency)} encaissés. Le net après frais apparaît dans tes gains.`,
+          lien: "/dashboard/ventes",
+          charge: {
+            ressource: ligne.product.name,
+            montant: formatMoney(
+              ligne.price * ligne.quantity,
+              ligne.product.currency,
+            ),
+          },
+        },
+        tx,
+      );
+    }
   });
 }
 

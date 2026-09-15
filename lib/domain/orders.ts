@@ -20,6 +20,8 @@ import {
   type FeeRegime,
 } from "@/lib/domain/fees";
 import { db } from "@/lib/db";
+import { formatMoney } from "@/lib/i18n/money";
+import { notifier } from "@/lib/notifications/aiguilleur";
 
 export class LigneDejaEncaisseeError extends Error {
   constructor(orderItemId: string, state: string) {
@@ -268,6 +270,37 @@ export async function rembourserLigne(input: {
       refundId: remboursement.id,
       date,
     });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PRÉVENIR L'ACHETEUR — DE L'ARGENT QUI REPART
+    //
+    // `COMMANDE_REMBOURSEE` est impératif au catalogue, et pour la même raison
+    // que le reçu : c'est un mouvement d'argent. Quelqu'un doit pouvoir dire
+    // quand et combien lui a été rendu, sans dépendre d'un courriel retrouvé.
+    //
+    // Dans la transaction, comme le reste : un avis de remboursement envoyé
+    // pour un remboursement qui n'a finalement pas abouti est pire que pas
+    // d'avis du tout.
+    //
+    // La clé porte le remboursement, pas la ligne de commande : un
+    // remboursement partiel peut être suivi d'un autre, et les deux méritent
+    // chacun leur avis.
+    await notifier(
+      {
+        destinataireId: ligne.order.buyerId,
+        evenement: "COMMANDE_REMBOURSEE",
+        cle: `remboursement-${remboursement.id}`,
+        titre: `Remboursement — ${ligne.product.name}`,
+        corps: `${formatMoney(amount, ligne.product.currency)} repartent vers ton moyen de paiement. Compte quelques jours selon l'opérateur.`,
+        lien: "/dashboard/achats",
+        charge: {
+          ressource: ligne.product.name,
+          montant: formatMoney(amount, ligne.product.currency),
+          ...(reason ? { raison: reason } : {}),
+        },
+      },
+      tx,
+    );
 
     return { remboursement, mouvement, retenu, aCharge: amount };
   }, { isolationLevel: "Serializable" });

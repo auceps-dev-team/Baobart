@@ -1700,9 +1700,27 @@ acheteur, sept côté vendeur ou organisateur.
 | `ACHAT_CONFIRME` | `finaliserVente()`, dans sa transaction | v1.52.1 |
 | `VERSEMENT_ENVOYE` | `marquerVersementEnvoye()`, dans sa transaction | v1.52.1 |
 
-**Au catalogue mais pas encore déclenché :** `TELECHARGEMENT_PRET`,
-`COMMANDE_REMBOURSEE`, `ABONNEMENT_A_RENOUVELER`, `VENTE_REALISEE`,
-`CANDIDATURE_RECUE`, `INSCRIPTION_EVENEMENT`, `NOUVEL_ABONNE`.
+| `ABONNEMENT_A_RENOUVELER` | `noterRelance()`, en in-app seulement — voir §27.6 | v1.52.2 |
+| `VENTE_REALISEE` | `finaliserVente()`, dans sa transaction | v1.52.2 |
+| `COMMANDE_REMBOURSEE` | `rembourserLigne()`, dans sa transaction | v1.52.2 |
+| `CANDIDATURE_RECUE` | `postuler()` | v1.52.2 |
+| `INSCRIPTION_EVENEMENT` | `sInscrire()` | v1.52.2 |
+| `NOUVEL_ABONNE` | `basculerSuivi()`, au premier suivi seulement | v1.52.2 |
+
+**Seul `TELECHARGEMENT_PRET` n'a pas de déclencheur.** Son modèle de courriel
+existait avant ce chantier et n'a jamais été appelé : le lien de
+téléchargement se prend depuis l'écran des achats, qui revérifie tout à chaque
+clic. Une URL signée envoyée par courriel ne revérifie plus rien — c'est écrit
+sur le reçu d'achat. L'événement reste au catalogue pour le jour où l'on
+décidera de l'envoyer, et ce jour-là il faudra d'abord trancher cette question.
+
+**Les huit modèles de courriel manquants ont été écrits** (v1.52.2). Plus aucun
+événement n'est `modele: null`, et un test garde l'acquis — un neuvième
+événement ajouté sans modèle le fait tomber.
+
+`MODELES` et l'enum Prisma `EmailTemplate` sont tenus alignés par un test. Rien
+dans le langage ne les relie : ajouter un modèle sans migration compile
+parfaitement et échoue en production sur un `invalid input value for enum`.
 
 ### 27.5 L'aiguilleur entre dans une transaction
 
@@ -1746,9 +1764,31 @@ l'avis part deux fois, soit l'escalade de Ndank est cassée.
 Ses `Coordonnees` ne portent d'ailleurs pas d'identifiant de compte — seulement
 un nom, une adresse, un numéro et des appareils.
 
-Elle reste donc sur son chemin. Ce qui manque est plus étroit : une trace dans
-l'application quand une relance est effectivement partie, quel que soit le
-canal qui l'a prise.
+Elle reste donc sur son chemin, et la réconciliation tient en deux ajouts au
+port `Coordonnees` (v1.52.2) :
+
+- **`abonneId`**, pour que l'hôte rattache la relance à un compte ;
+- **`refuses`**, les canaux que la personne a fermés dans ses réglages.
+
+`disponible()` traite un canal refusé exactement comme un canal absent : le
+moteur passe au suivant, et compte l'abonné injoignable s'il n'en reste aucun.
+C'est juste — quelqu'un qui a tout coupé est quelqu'un qu'on ne peut plus
+prévenir, et cela doit se voir **avant** de couper un accès.
+
+La lecture des préférences se fait dans `coordonnees()`, déjà asynchrone et qui
+lit déjà le compte. C'est ce qui garde `disponible()` synchrone, comme le port
+l'exige.
+
+La trace in-app se pose dans **`noterRelance`** — appelée une fois, et
+seulement quand un canal a pris le message. La poser dans `envoyer` l'aurait
+écrite autant de fois qu'il y a eu d'échecs avant le succès. Elle est
+restreinte à `IN_APP` via le champ `Avis.canaux`, une **restriction** croisée
+avec les préférences : elle ne peut jamais ouvrir un canal fermé.
+
+**Ce qu'elle ne couvre pas.** Un abonné dont tous les canaux externes sont
+fermés ou absents est compté injoignable, `noterRelance` n'est pas appelée, et
+il n'a donc aucun avis — pas même dans l'application. Il perdra son accès sans
+avoir rien vu. Le corriger demande un crochet que le port n'a pas.
 
 **Sept événements n'ont pas de modèle de courriel** et ne sont donc livrés
 qu'en in-app. Le catalogue le dit (`modele: null`) et l'écran de réglages

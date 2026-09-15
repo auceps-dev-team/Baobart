@@ -25,6 +25,20 @@ export const MODELES = [
   "AVIS_VERSEMENT",
   "RELANCE_ABONNEMENT",
   "RECU_ABONNEMENT",
+  // ── Ajoutés en v1.52.2, pour les avis qui n'avaient que l'in-app ────────
+  //
+  // Ils étaient déclarés `modele: null` au catalogue des notifications : les
+  // événements existaient, se rangeaient dans la cloche, et ne partaient
+  // jamais par courriel. L'écran de réglages l'annonçait en toutes lettres
+  // plutôt que d'offrir un interrupteur inerte — c'est cet aveu qu'on retire.
+  "COMMANDE_REMBOURSEE",
+  "EVENEMENT_ANNULE",
+  "VENTE_REALISEE",
+  "CONTENU_PUBLIE",
+  "CONTENU_REFUSE",
+  "CANDIDATURE_RECUE",
+  "INSCRIPTION_EVENEMENT",
+  "NOUVEL_ABONNE",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -127,6 +141,43 @@ const SCHEMAS = {
     prochaine: z.string().min(1).max(40),
     lien: lien.optional(),
   }),
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // LES HUIT DE v1.52.2
+  //
+  // Chaque schéma décrit EXACTEMENT ce que son appelant passe déjà — pas un
+  // champ de plus. Un schéma plus riche que la charge réelle ferait échouer le
+  // rendu au dépôt, et l'aiguilleur le compterait en `echecs` sans que
+  // personne ne l'ait demandé.
+  //
+  // `nom` figure partout sans qu'aucun appelant ne le passe : c'est
+  // l'aiguilleur qui l'ajoute, depuis le compte qu'il vient de lire.
+  COMMANDE_REMBOURSEE: z.object({
+    nom,
+    ressource: z.string().min(1).max(160),
+    montant: z.string().min(1).max(40),
+    /** Le motif, quand il y en a un. Beaucoup de remboursements n'en ont pas. */
+    raison: z.string().max(400).optional(),
+  }),
+  EVENEMENT_ANNULE: z.object({
+    nom,
+    titre: z.string().min(1).max(160),
+    raison: z.string().min(1).max(1000),
+  }),
+  VENTE_REALISEE: z.object({
+    nom,
+    ressource: z.string().min(1).max(160),
+    montant: z.string().min(1).max(40),
+  }),
+  CONTENU_PUBLIE: z.object({ nom, titre: z.string().min(1).max(160) }),
+  CONTENU_REFUSE: z.object({
+    nom,
+    titre: z.string().min(1).max(160),
+    motif: z.string().min(1).max(1000),
+  }),
+  CANDIDATURE_RECUE: z.object({ nom, offre: z.string().min(1).max(160) }),
+  INSCRIPTION_EVENEMENT: z.object({ nom, titre: z.string().min(1).max(160) }),
+  NOUVEL_ABONNE: z.object({ nom }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
 export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
@@ -245,6 +296,144 @@ ${c.lien}` : "") +
       `Bonjour ${c.nom},\n\n` +
       `Un versement de ${c.montant} part vers ${c.compte}.\n\n` +
       `Le délai dépend de l'opérateur — compte un à trois jours ouvrés.` +
+      SIGNATURE,
+  }),
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // LES HUIT DE v1.52.2
+  //
+  // Une règle tenue partout : le courriel dit ce qui s'est passé et où aller,
+  // jamais « connecte-toi pour voir ». Un message qui oblige à ouvrir un écran
+  // pour apprendre son contenu ne sert à rien à qui relève sa boîte dans le
+  // bus.
+  COMMANDE_REMBOURSEE: (c) => ({
+    sujet: `Remboursement : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `${c.montant} repartent vers ton moyen de paiement, pour ` +
+      `« ${c.ressource} ».
+
+` +
+      (c.raison ? `Motif : ${c.raison}
+
+` : "") +
+      `Le délai dépend de l'opérateur — compte quelques jours. L'accès à la ` +
+      `ressource est retiré.` +
+      SIGNATURE,
+  }),
+
+  EVENEMENT_ANNULE: (c) => ({
+    // Le titre dans le sujet, et pas seulement « Annulation » : c'est ce qu'on
+    // lit dans une liste de messages, et il faut savoir LEQUEL est annulé sans
+    // ouvrir.
+    sujet: `Annulé : ${c.titre}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `L'événement « ${c.titre} », auquel tu étais inscrit, n'aura pas ` +
+      `lieu.
+
+` +
+      `La raison donnée par l'organisateur :
+${c.raison}
+
+` +
+      `Tu n'as rien à faire : ton inscription est annulée avec l'événement.` +
+      SIGNATURE,
+  }),
+
+  VENTE_REALISEE: (c) => ({
+    sujet: `Vente : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `${c.montant} viennent d'être encaissés sur « ${c.ressource} ».
+
+` +
+      // Le brut et le net se distinguent ici, sinon le créateur croit à une
+      // erreur en comparant ce message à son écran de gains.
+      `C'est le prix payé par l'acheteur. Ce qui te revient, après frais, ` +
+      `apparaît dans tes gains.` +
+      SIGNATURE,
+  }),
+
+  CONTENU_PUBLIE: (c) => ({
+    sujet: `En ligne : ${c.titre}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `« ${c.titre} » a été relu et publié. C'est visible de tout le monde, ` +
+      `et les inscriptions sont ouvertes.` +
+      SIGNATURE,
+  }),
+
+  CONTENU_REFUSE: (c) => ({
+    sujet: `Non retenu : ${c.titre}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `« ${c.titre} » ne paraîtra pas en l'état. Voici pourquoi :
+
+` +
+      `${c.motif}
+
+` +
+      // Le refus n'est pas une impasse, et il faut le dire : sans cette
+      // phrase, on croit que c'est terminé.
+      `Corrige la fiche, remets-la en brouillon, puis renvoie-la en ` +
+      `relecture. Rien n'est perdu.` +
+      SIGNATURE,
+  }),
+
+  CANDIDATURE_RECUE: (c) => ({
+    sujet: `Candidature : ${c.offre}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Quelqu'un vient de postuler à « ${c.offre} ». Le CV est joint à sa ` +
+      `fiche, dans l'écran des candidatures.
+
+` +
+      // Rappel utile : le CV disparaît à la clôture de l'offre (§22).
+      `Les CV sont conservés le temps de l'offre, puis supprimés.` +
+      SIGNATURE,
+  }),
+
+  INSCRIPTION_EVENEMENT: (c) => ({
+    sujet: `Inscription : ${c.titre}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Quelqu'un vient de s'inscrire à « ${c.titre} ».
+
+` +
+      // Ce message est éteint par défaut, précisément parce qu'il peut
+      // arriver cent fois. On le rappelle à qui l'a allumé.
+      `Tu reçois ce message parce que tu as demandé un courriel par ` +
+      `inscription. La liste complète s'exporte depuis l'écran des inscrits.` +
+      SIGNATURE,
+  }),
+
+  NOUVEL_ABONNE: (c) => ({
+    sujet: "Un nouvel abonné sur Baobart",
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Quelqu'un suit désormais ta boutique. Tes prochaines publications ` +
+      `apparaîtront dans son fil.
+
+` +
+      `Tu reçois ce message parce que tu l'as demandé — il est éteint par ` +
+      `défaut.` +
       SIGNATURE,
   }),
 };
