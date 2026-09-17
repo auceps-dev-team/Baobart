@@ -9,9 +9,10 @@ import {
   trancherOffre,
   type EtatModeration,
 } from "@/lib/jobs/actions-moderation";
+import { trancherArticleAvecMotif } from "@/lib/blog/actions";
 import { trancherEvenementAvecMotif } from "@/lib/evenements/actions";
 import { trancherService } from "@/lib/services/actions-moderation";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 /**
  * Un élément de la file, avec ses trois décisions.
@@ -282,9 +283,8 @@ function bouton(fond: string) {
  * tant que sa ligne n'est pas écrite. C'est le même choix que `MESSAGES` dans
  * `lib/cms/droits.ts`, et pour la même raison.
  *
- * `article` y figure donc, alors que le blog n'a pas d'écran : la file ne lui
- * enverra jamais rien, mais le type l'exige, et une ligne inerte coûte moins
- * cher qu'un `as` qui désarmerait la garantie.
+ * `article` n'y était qu'une ligne inerte jusqu'en v1.53.0 — le blog n'avait
+ * pas d'écran. Il en a un, et sa relecture est offerte : la ligne sert.
  */
 const APPARENCES: Record<
   TypeDeContenu,
@@ -293,7 +293,7 @@ const APPARENCES: Record<
   job: { libelle: "OFFRE D’EMPLOI", fond: JAUNE, refus: "Refuser cette offre" },
   service: { libelle: "SERVICE", fond: LAVANDE, refus: "Refuser ce service" },
   evenement: { libelle: "ÉVÉNEMENT", fond: VERT, refus: "Refuser cette fiche" },
-  article: { libelle: "ARTICLE", fond: BLANC, refus: "Refuser cet article" },
+  article: { libelle: "ARTICLE", fond: MAUVE, refus: "Refuser cet article" },
 };
 
 /**
@@ -303,13 +303,13 @@ const APPARENCES: Record<
  * `(id, geste, précédent, données)`. C'est ce qui permet à ce composant de
  * servir trois CMS sans savoir lequel il affiche.
  *
- * Le blog pointe sur l'action des événements et ne sera jamais appelé : la
- * file ne contient pas d'article. Écrire une quatrième action morte serait
- * plus trompeur que cette ligne.
+ * Les quatre sont désormais de vraies actions : `article` pointait sur celle
+ * des événements tant que le blog n'existait pas, et c'était une ligne qu'on
+ * n'aurait pas aimé voir appelée par erreur.
  */
 const ACTIONS: Record<TypeDeContenu, typeof trancherOffre> = {
   job: trancherOffre,
   service: trancherService,
   evenement: trancherEvenementAvecMotif,
-  article: trancherEvenementAvecMotif,
+  article: trancherArticleAvecMotif,
 };

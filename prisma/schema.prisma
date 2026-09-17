@@ -473,6 +473,7 @@ model User {
   // médias & notifications
   mediaAssets     MediaAsset[]
   notifications   Notification[]
+  blogPosts       BlogPost[]
   notificationPreferences NotificationPreference[]
   abonnementsPush PushSubscription[]
 
@@ -2245,6 +2246,96 @@ model PostDelivery {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, status])
+}
+
+/// Un article du blog Baobart.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// `ContentState`, ET NON LE `status` DE §4.1
+///
+/// La spec demandait une chaîne : `draft | review | published | archived`.
+/// §18 prime sur les §§4 à 7, et impose le cycle partagé des quatre CMS —
+/// c'est lui qui garantit qu'un état ajouté un jour vaille pour tous, et que
+/// « retiré » veuille dire la même chose partout.
+///
+///   draft     → BROUILLON
+///   review    → SOUMIS
+///   published → PUBLIE
+///   archived  → RETIRE
+///
+/// `REFUSE` s'y ajoute gratuitement, et sert : §4.3 voulait qu'un second
+/// administrateur relise, et un relecteur doit pouvoir dire non avec un motif.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// LA RELECTURE EST OFFERTE, PAS IMPOSÉE
+///
+/// §4.3 la voulait obligatoire. §18.1 dit que l'auteur d'un article porte déjà
+/// le droit de publier — lui faire traverser une file l'obligerait à
+/// s'auto-approuver, c'est-à-dire à faire semblant.
+///
+/// Les deux se rejoignent : `BROUILLON → SOUMIS` existe et l'écran l'offre,
+/// `BROUILLON → PUBLIE` aussi. Qui veut un second regard le demande.
+model BlogPost {
+  id       String @id @default(cuid())
+  authorId String
+  title    String
+  /// L'adresse publique. Unique, et elle ne change plus après publication —
+  /// même règle que les ressources : un lien partagé ne doit pas mourir.
+  slug     String @unique
+
+  /// Le résumé des cartes. `null` veut dire « déduis-le du premier
+  /// paragraphe » — voir `extraitAutomatique`. Le ranger vide plutôt que
+  /// calculé permet de changer la façon de le déduire sans réécrire la table.
+  excerpt  String?
+  /// Markdown restreint, jamais d'HTML. Voir `lib/blog/corps.ts` : ce projet
+  /// ne rend d'HTML nulle part, et un blog n'est pas une raison de commencer.
+  body     String  @db.Text
+  coverUrl String?
+
+  categoryId String?
+  state      ContentState @default(BROUILLON)
+  /// Pourquoi la relecture a refusé. Même nom que sur les trois autres CMS.
+  refusedReason String?   @db.Text
+  moderatedAt   DateTime?
+  moderatorId   String?
+
+  /// « À la une » sur la liste. Un booléen plutôt qu'un rang : on met en avant
+  /// ou non, et classer dix articles à la main est un écran que personne
+  /// n'ouvre.
+  isFeatured Boolean @default(false)
+
+  /// SEO. `null` partout veut dire « prends le titre et l'extrait » : deux
+  /// champs vides valent mieux que deux champs recopiés qui divergeront.
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+
+  publishedAt DateTime?
+  /// Compteur dénormalisé, comme ailleurs (§3.9-H du plan).
+  viewsCount  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  /// La liste publique lit « publiés, du plus récent » ; l'administration lit
+  /// « tous, du plus récent ». Un seul index sert les deux.
+  @@index([state, publishedAt])
+  @@index([authorId, createdAt])
+}
+
+/// Les rubriques du blog.
+///
+/// Sans `position` : l'ordre d'affichage est alphabétique, et une poignée de
+/// rubriques ne se réordonne pas — c'est un écran de plus pour un gain nul.
+model BlogCategory {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  posts BlogPost[]
 }
 
 // ============================================================================

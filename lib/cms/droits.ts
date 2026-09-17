@@ -245,12 +245,17 @@ export function pouvoirDeModeration(type: TypeDeContenu): Pouvoir {
  * depuis `pouvoirDeModeration`. Le jour où un CMS change de pouvoir, la file
  * suit toute seule.
  *
- * `article` en est absent volontairement. Le blog n'a pas d'écran, rien n'y
- * sera jamais soumis, et compter un type sans dépôt ferait afficher une file
- * qui promet ce qui n'arrive pas.
+ * `article` en faisait exception jusqu'en v1.53.0 : le blog n'avait pas
+ * d'écran, rien n'y était jamais soumis, et compter un type sans dépôt aurait
+ * fait afficher une file qui promet ce qui n'arrive pas.
+ *
+ * Le blog existe désormais. Sa relecture n'est pas obligatoire — §18.1 dit que
+ * son auteur porte déjà le droit de publier — mais elle est **offerte** : un
+ * rédacteur qui veut un second regard soumet son article, et il doit alors
+ * atterrir quelque part. Cet endroit est la file.
  */
 export function typesRelusPar(role: RolePlateforme): TypeDeContenu[] {
-  const candidats: TypeDeContenu[] = ["job", "service", "evenement"];
+  const candidats: TypeDeContenu[] = ["job", "service", "evenement", "article"];
   return candidats.filter((t) => peut(role, pouvoirDeModeration(t)));
 }
 

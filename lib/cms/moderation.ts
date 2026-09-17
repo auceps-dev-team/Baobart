@@ -27,7 +27,10 @@ import { LIBELLE_GENRE, type EventKind } from "@/lib/evenements/enums";
  * le droit de publier (§18.1). Depuis que les agences badgées en écrivent
  * (§25), une fiche d'événement attend une relecture comme une offre d'emploi.
  *
- * Le blog, lui, n'y entrera pas : il reste écrit par l'équipe seule.
+ * Le blog les a rejoints en v1.53.0. Sa relecture n'est pas obligatoire —
+ * §18.1 dit que son auteur porte déjà le droit de publier — mais elle est
+ * **offerte** : un rédacteur qui veut un second regard soumet son article, et
+ * il doit alors atterrir quelque part.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * ELLE NE MONTRE QUE CE QU'ON PEUT TRANCHER
@@ -104,7 +107,7 @@ export async function fileDeModeration(
   // l'autre.
   const cap = Math.min(limite, 200);
 
-  const [offres, services, evenements] = await Promise.all([
+  const [offres, services, articles, evenements] = await Promise.all([
     !types.has("job") ? [] : db.jobPosting.findMany({
       where: { state: "SOUMIS" },
       orderBy: { createdAt: "asc" },
@@ -137,6 +140,22 @@ export async function fileDeModeration(
         creatorId: true,
         category: { select: { name: true } },
         creator: {
+          select: { email: true, profile: { select: { displayName: true } } },
+        },
+      },
+    }),
+    !types.has("article") ? [] : db.blogPost.findMany({
+      where: { state: "SOUMIS" },
+      orderBy: { createdAt: "asc" },
+      take: cap,
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        createdAt: true,
+        authorId: true,
+        category: { select: { name: true } },
+        author: {
           select: { email: true, profile: { select: { displayName: true } } },
         },
       },
@@ -191,6 +210,21 @@ export async function fileDeModeration(
       // Le modérateur ne peut pas juger d'un prix « aberrant » sans le voir.
       meta: `${s.category.name} · ${s.startingPrice.toLocaleString("fr-FR")} ${s.currency} · ${s.deliveryDays} j`,
     })),
+    ...articles.map((a) => ({
+      type: "article" as const,
+      id: a.id,
+      titre: a.title,
+      extrait: a.body.slice(0, 280),
+      auteur: a.author.profile?.displayName ?? a.author.email,
+      auteurId: a.authorId,
+      soumisLe: a.createdAt,
+      // Un article ne renvoie nulle part : il se lit sur Baobart.
+      urlExterne: null,
+      verifie: false,
+      meta: a.category
+        ? `${a.category.name} · ${a.body.length} signes`
+        : `${a.body.length} signes`,
+    })),
     ...evenements.map((e) => ({
       type: "evenement" as const,
       id: e.id,
@@ -233,14 +267,17 @@ export async function fileDeModeration(
 export async function combienAttendent(role: RolePlateforme): Promise<number> {
   const types = new Set(typesRelusPar(role));
 
-  const [j, s, e] = await Promise.all([
+  const [j, s, a, e] = await Promise.all([
     !types.has("job") ? 0 : db.jobPosting.count({ where: { state: "SOUMIS" } }),
     !types.has("service")
       ? 0
       : db.serviceOffer.count({ where: { state: "SOUMIS" } }),
+    !types.has("article")
+      ? 0
+      : db.blogPost.count({ where: { state: "SOUMIS" } }),
     !types.has("evenement")
       ? 0
       : db.event.count({ where: { state: "SOUMIS" } }),
   ]);
-  return j + s + e;
+  return j + s + a + e;
 }

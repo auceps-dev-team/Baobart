@@ -194,6 +194,15 @@ const ADMINISTRATION: EntreeAdmin[] = [
     pouvoir: ["moderer_le_contenu", "publier_du_contenu"],
   },
   {
+    cle: "a_blog",
+    label: "Blog",
+    glyph: "✎",
+    href: "/dashboard/blog",
+    // Le seul des quatre CMS qui reste fermé (§18.1) : un article signé du
+    // site engage le site. Pas de badge qui ouvre, comme pour les événements.
+    pouvoir: "publier_du_contenu",
+  },
+  {
     // Le pouvoir n'est pas `moderer_le_contenu` : les événements soumis par
     // les agences sont relus par qui a le droit de les publier, et cet écran
     // est celui-là même. Voir `pouvoirDeModeration` dans `lib/cms/droits.ts`.

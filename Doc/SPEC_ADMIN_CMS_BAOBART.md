@@ -1810,3 +1810,99 @@ traiter une liste.
 
 **Rien ne gère les rebonds ni les plaintes.** C'est le grand chantier que
 Gumroad a fait et que Baobart n'a pas : une adresse morte reçoit indéfiniment.
+
+---
+
+## §28 Le blog — ce qu'on a fait de §4
+
+*17 septembre 2026. Quatrième et dernier CMS.*
+
+### 28.1 Pas de TipTap, et pas d'HTML du tout
+
+§4.2 demandait TipTap et un corps en HTML sanitisé. Refusé, et la raison n'est
+pas le coût de l'éditeur.
+
+**Ce projet ne rend d'HTML nulle part.** Vérifié avant de décider : pas un seul
+`dangerouslySetInnerHTML`, pas de sanitiseur, aucune dépendance qui en produit.
+Tout ce qui s'affiche passe par React, qui échappe. C'est une propriété rare et
+elle se perd en une ligne — le jour où l'on accepte de l'HTML stocké, la
+question n'est plus « le site est-il sûr » mais « le sanitiseur est-il à jour »,
+ce qui est une bien moins bonne question.
+
+À la place : un sous-ensemble de Markdown analysé **en blocs** que React
+affiche. Aucune chaîne d'HTML n'existe à aucun moment — ni en base, ni en
+mémoire, ni dans la réponse. Il n'y a donc rien à sanitiser.
+
+Cinq marques : `#`, `##`, `-`, `>`, ` ``` ` ; deux en ligne : `**gras**` et
+`[texte](url)`. Pas d'italique — `*` sert déjà de puce chez beaucoup de gens.
+
+Ce que ça coûte : ni tableaux, ni vidéos embarquées, ni images dans le corps.
+Pour un blog écrit par trois personnes de l'équipe, c'est un bon marché.
+
+**Les liens sont filtrés dans le module pur**, pas à l'affichage : un schéma
+hors `http`, `https` et `mailto` perd son adresse et ne reste que du texte —
+`javascript:` compris. Le faire là rend la règle éprouvable sans navigateur.
+
+### 28.2 `ContentState`, et non le `status` de §4.1
+
+§18 prime sur les §§4 à 7 : le cycle partagé des quatre CMS s'applique.
+`draft → BROUILLON`, `review → SOUMIS`, `published → PUBLIE`,
+`archived → RETIRE`. `REFUSE` s'y ajoute gratuitement, et sert.
+
+### 28.3 La relecture est offerte, pas imposée
+
+§4.3 la voulait obligatoire — un second administrateur valide. §18.1 dit que
+l'auteur d'un article porte déjà le droit de publier, et lui faire traverser
+une file l'obligerait à s'auto-approuver.
+
+Les deux se rejoignent sans qu'on tranche : `BROUILLON → SOUMIS` existe et
+l'écran l'offre, `BROUILLON → PUBLIE` aussi. Deux boutons côte à côte. Qui veut
+un second regard le demande ; qui écrit la brève du vendredi ne s'invente pas
+un relecteur.
+
+C'est ce qui a fait entrer `article` dans la file de modération, dont il était
+exclu — « le blog n'a pas d'écran, rien n'y sera jamais soumis ».
+
+### 28.4 L'adresse se fige à la première parution
+
+Même règle que les ressources : un lien partagé ne doit pas mourir parce que
+quelqu'un a corrigé une faute dans un titre.
+
+Avant la parution, le slug suit le titre — personne ne l'a encore. C'est
+`publishedAt` qui tranche, **pas l'état** : un article publié puis archivé a
+laissé des liens derrière lui, et son adresse doit continuer de répondre.
+
+`publishedAt` se pose une fois et ne bouge plus. Republier un archivé ne le
+rend pas neuf, et remonter sa date le ferait repasser en tête de liste.
+
+### 28.5 Le SEO se replie, il ne recopie pas
+
+`seoTitle` et `seoDescription` restent vides par défaut. Recopiés du titre à la
+création, ils divergeraient au premier changement et personne ne penserait à
+les rouvrir. Le repli se fait à l'affichage, où il est toujours à jour.
+
+**Le JSON-LD est le seul `dangerouslySetInnerHTML` du projet.** Il n'existe pas
+d'autre façon de poser un `<script>` de données structurées. La première
+version se contentait de `JSON.stringify`, avec un commentaire affirmant qu'un
+titre contenant `</script>` en serait rendu inoffensif — **c'était faux** :
+`JSON.stringify` échappe les guillemets, pas les chevrons. Chaque `<` est donc
+remplacé par sa forme unicode.
+
+### 28.6 Ce qui reste
+
+**La couverture est une adresse, pas un téléversement.** §4.2 voulait un envoi
+avec recadrage et variantes. L'infrastructure existe (`lib/upload`, MediaAsset)
+mais la brancher ici est un chantier à part.
+
+**La publication planifiée n'existe pas.** §4.3 la voulait (`scheduledAt` + job
+qui publie à l'heure). La colonne n'a même pas été créée : une colonne qui
+n'est jamais lue est une promesse qu'on croit tenue.
+
+**Les rubriques n'ont pas d'écran de gestion.** Elles se créent en base. Une
+poignée de rubriques ne justifie pas un CRUD complet — mais il faudra le dire à
+qui voudra en ajouter une.
+
+**Le compteur de vues compte des affichages, pas des lecteurs.** Rien ne
+distingue deux visites d'une même personne : ce projet ne pose pas
+d'identifiant sur ses visiteurs. L'écran d'administration le dit en toutes
+lettres plutôt que de laisser croire à une audience.

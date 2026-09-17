@@ -185,10 +185,10 @@ describe("la section Plateforme", () => {
   it("ne donne au rédacteur que le contenu, jamais l'exploitation", () => {
     const cles = plateforme("CONTENT_MANAGER")?.entrees.map((e) => e.cle) ?? [];
 
-    // Deux entrées depuis v1.51.1, et la seconde est une conséquence, non un
-    // ajout : les événements soumis par les agences attendent dans la file, et
-    // c'est `publier_du_contenu` qui les y tranche.
-    expect(cles).toEqual(["a_moderation", "a_evenements"]);
+    // Trois entrées depuis v1.53.0 : la file (les contenus soumis attendent
+    // là, et c'est `publier_du_contenu` qui les y tranche), le blog, et les
+    // événements. Les trois relèvent du même pouvoir éditorial.
+    expect(cles).toEqual(["a_moderation", "a_blog", "a_evenements"]);
 
     // Ce qui ne bouge pas, et c'est le vrai objet de ce test : ni l'argent, ni
     // les membres, ni l'état technique (§20.1).

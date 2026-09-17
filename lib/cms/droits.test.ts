@@ -192,15 +192,20 @@ describe("qui relit quoi", () => {
     expect(typesRelusPar("MODERATOR")).toEqual(["job", "service"]);
   });
 
-  it("donne à l'éditorial les événements, et rien d'autre", () => {
-    // Il peut mettre un événement en ligne — c'est même le seul à pouvoir le
-    // faire. Lui montrer des offres d'emploi lui promettrait des boutons qui
+  it("donne à l'éditorial ce qu'il publie, et rien d'autre", () => {
+    // Événements et articles : les deux se publient avec `publier_du_contenu`.
+    // Lui montrer des offres d'emploi lui promettrait des boutons qui
     // répondraient non.
-    expect(typesRelusPar("CONTENT_MANAGER")).toEqual(["evenement"]);
+    expect(typesRelusPar("CONTENT_MANAGER")).toEqual(["evenement", "article"]);
   });
 
   it("donne tout à l'administrateur", () => {
-    expect(typesRelusPar("ADMIN")).toEqual(["job", "service", "evenement"]);
+    expect(typesRelusPar("ADMIN")).toEqual([
+      "job",
+      "service",
+      "evenement",
+      "article",
+    ]);
   });
 
   it("ne donne rien à qui ne relit pas", () => {
@@ -210,12 +215,19 @@ describe("qui relit quoi", () => {
     expect(typesRelusPar("ACCOUNTANT")).toEqual([]);
   });
 
-  it("n'y met jamais le blog", () => {
-    // Rien n'y est soumis — son auteur porte déjà le droit de publier. Une
-    // file qui compte un type sans dépôt promet ce qui n'arrive pas.
+  it("y met le blog depuis qu'il existe", () => {
+    // Jusqu'en v1.53.0, `article` en était exclu : le blog n'avait pas
+    // d'écran, et compter un type sans dépôt aurait promis ce qui n'arrive
+    // pas.
+    //
+    // Sa relecture n'est toujours pas obligatoire — §18.1 — mais elle est
+    // offerte, et un article soumis doit atterrir quelque part.
     for (const role of ["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER"] as const) {
-      expect(typesRelusPar(role)).not.toContain("article");
+      expect(typesRelusPar(role)).toContain("article");
     }
+    // Un modérateur, lui, ne le voit pas : publier un article demande
+    // `publier_du_contenu`, qu'il n'a pas.
+    expect(typesRelusPar("MODERATOR")).not.toContain("article");
   });
 
   it("n'ouvre la file qu'à ce que la personne peut trancher", () => {
