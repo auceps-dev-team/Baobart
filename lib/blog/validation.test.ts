@@ -19,6 +19,7 @@ function saisie(over: Partial<Saisie> = {}): Saisie {
     seoDescription: "",
     urlCanonique: "",
     aLaUne: "",
+    parutionPrevue: "",
     ...over,
   };
 }

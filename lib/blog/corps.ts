@@ -52,6 +52,7 @@
  *   - item                 → liste à puces
  *   > citation             → citation
  *   ```                    → bloc de code, rendu tel quel
+ *   ![texte](adresse)      → une image, seule sur sa ligne
  *   texte                  → paragraphe
  *
  * Dans un paragraphe, deux marques seulement : `**gras**` et `[texte](url)`.
@@ -84,6 +85,22 @@ export type Inline =
 
 export type Bloc =
   | { type: "titre"; niveau: 2 | 3; contenu: Inline[] }
+  /**
+   * Une image, toujours seule dans son bloc.
+   *
+   * ──────────────────────────────────────────────────────────────────────
+   * PAS D'IMAGE AU MILIEU D'UN PARAGRAPHE
+   *
+   * Markdown permet `![](…)` en ligne. On ne le reprend pas : une image
+   * glissée entre deux mots casse le rythme du texte et n'a aucune taille
+   * prévisible. Une ligne qui commence par `![` est une image ; partout
+   * ailleurs, les deux caractères restent du texte.
+   *
+   * `alt` peut être vide, et c'est un choix laissé à l'auteur : une image
+   * purement décorative doit porter un `alt` vide plutôt qu'une description
+   * inventée, sinon un lecteur d'écran lit du bruit.
+   */
+  | { type: "image"; src: string; alt: string }
   | { type: "paragraphe"; contenu: Inline[] }
   | { type: "liste"; items: Inline[][] }
   | { type: "citation"; contenu: Inline[] }
@@ -127,6 +144,25 @@ export function analyser(corps: string): Bloc[] {
       continue;
     }
 
+    // ── Image seule ────────────────────────────────────────────────────────
+    //
+    // Avant les titres : `![` ne peut rien être d'autre, et le tester tôt
+    // évite qu'une image finisse dans un paragraphe.
+    const image = /^!\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))*)\)\s*$/.exec(
+      ligne.trim(),
+    );
+    if (image) {
+      const src = adresseSure(image[2] ?? "");
+      if (src !== null) {
+        blocs.push({ type: "image", src, alt: image[1] ?? "" });
+        i += 1;
+        continue;
+      }
+      // Adresse refusée : on ne pose pas d'image, et la ligne redevient du
+      // texte ordinaire. Le paragraphe ci-dessous s'en chargera — l'auteur
+      // verra que quelque chose ne va pas plutôt qu'un trou silencieux.
+    }
+
     // ── Titres ─────────────────────────────────────────────────────────────
     //
     // `#` rend un `<h2>`, pas un `<h1>` : le `<h1>` d'une page est son titre,
@@ -165,21 +201,39 @@ export function analyser(corps: string): Bloc[] {
     }
 
     // ── Paragraphe : jusqu'à la ligne vide ou le prochain bloc ────────────
+    //
+    // ══════════════════════════════════════════════════════════════════════
+    // LA PREMIÈRE LIGNE EST TOUJOURS CONSOMMÉE, ET C'EST VITAL
+    //
+    // Sans `i > depart`, cette boucle a tourné indéfiniment. Le chemin :
+    // une image dont l'adresse est refusée — `![x](javascript:…)` — ne pose
+    // pas de bloc image et retombe ici ; la condition d'arrêt voyait `![`,
+    // sortait aussitôt, et l'on poussait un paragraphe vide SANS avancer `i`.
+    //
+    // Quatre gigaoctets de tas épuisés en six minutes. Le test qui l'a trouvé
+    // ne l'a pas signalé par un échec : il a pendu. C'est la pire façon
+    // d'apprendre un défaut, et la garde structurelle vaut mieux qu'un test —
+    // celle-ci rend le cas impossible plutôt que détectable.
     const morceaux: string[] = [];
+    const depart = i;
+
     while (i < lignes.length) {
       const l = lignes[i] ?? "";
-      if (
+
+      const ouvreUnAutreBloc =
         l.trim().length === 0 ||
         /^(#{1,2})\s+/.test(l) ||
         /^[-*]\s+/.test(l) ||
         /^>\s?/.test(l) ||
-        l.trimStart().startsWith("```")
-      ) {
-        break;
-      }
+        l.trimStart().startsWith("![") ||
+        l.trimStart().startsWith("```");
+
+      if (i > depart && ouvreUnAutreBloc) break;
+
       morceaux.push(l.trim());
       i += 1;
     }
+
     blocs.push({ type: "paragraphe", contenu: enligne(morceaux.join(" ")) });
   }
 

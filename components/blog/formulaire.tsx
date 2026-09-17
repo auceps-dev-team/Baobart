@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 
 import {
   creerArticle,
   modifierArticle,
   type EtatFormulaire,
 } from "@/lib/blog/actions";
+import { televerserImageArticle } from "@/lib/blog/images";
 import type { Saisie } from "@/lib/blog/validation";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 /**
  * Écrire un article.
@@ -61,6 +62,12 @@ export function FormulaireArticle({
   const [seoOuvert, setSeoOuvert] = useState(aDuSeo);
 
   const champFautif = etat && !etat.ok ? etat.champ : undefined;
+
+  // Le corps est incontrôlé — c'est ce qui permet de taper sans re-rendre à
+  // chaque touche. Pour y insérer une image après téléversement, il faut donc
+  // atteindre l'élément lui-même.
+  const corpsRef = useRef<HTMLTextAreaElement>(null);
+  const couvertureRef = useRef<HTMLInputElement>(null);
 
   return (
     <form action={envoyer} style={{ display: "grid", gap: 16 }}>
@@ -117,14 +124,33 @@ export function FormulaireArticle({
         }}
       >
         <Champ label="L'article" faute={champFautif === "corps"}>
-          <textarea
-            name="corps"
-            defaultValue={v?.corps ?? ""}
-            required
-            rows={22}
-            placeholder="Le wax n'est pas né en Afrique de l'Ouest…"
-            style={{ ...saisieStyle, resize: "vertical", lineHeight: 1.6 }}
-          />
+          <div style={{ display: "grid", gap: 8 }}>
+            <textarea
+              ref={corpsRef}
+              name="corps"
+              defaultValue={v?.corps ?? ""}
+              required
+              rows={22}
+              placeholder="Le wax n'est pas né en Afrique de l'Ouest…"
+              style={{ ...saisieStyle, resize: "vertical", lineHeight: 1.6 }}
+            />
+            <EnvoiImage
+              libelle="Insérer une image dans l'article"
+              onDepose={(url) => {
+                // Insérée à l'endroit du curseur, seule sur sa ligne : le
+                // parseur ne reconnaît une image qu'en début de ligne.
+                const zone = corpsRef.current;
+                if (!zone) return;
+
+                const ou = zone.selectionStart ?? zone.value.length;
+                const avant = zone.value.slice(0, ou).replace(/\n*$/, "");
+                const apres = zone.value.slice(ou).replace(/^\n*/, "");
+
+                zone.value = `${avant}\n\n![](${url})\n\n${apres}`;
+                zone.focus();
+              }}
+            />
+          </div>
         </Champ>
 
         <aside
@@ -216,12 +242,21 @@ export function FormulaireArticle({
           aide="Une adresse d'image. https:// ou /."
           faute={champFautif === "couvertureUrl"}
         >
-          <input
-            name="couvertureUrl"
-            defaultValue={v?.couvertureUrl ?? ""}
-            placeholder="/img/wax.jpg"
-            style={saisieStyle}
-          />
+          <div style={{ display: "grid", gap: 8 }}>
+            <input
+              ref={couvertureRef}
+              name="couvertureUrl"
+              defaultValue={v?.couvertureUrl ?? ""}
+              placeholder="/img/wax.jpg"
+              style={saisieStyle}
+            />
+            <EnvoiImage
+              libelle="Envoyer une couverture"
+              onDepose={(url) => {
+                if (couvertureRef.current) couvertureRef.current.value = url;
+              }}
+            />
+          </div>
         </Champ>
       </div>
 
@@ -242,6 +277,19 @@ export function FormulaireArticle({
         />
         Mettre à la une
       </label>
+
+      <Champ
+        label="Parution prévue"
+        aide="Laisse vide pour publier toi-même. Heure d'Abidjan (GMT). Un passage horaire met en ligne les brouillons dont l'heure est venue."
+        faute={champFautif === "parutionPrevue"}
+      >
+        <input
+          type="datetime-local"
+          name="parutionPrevue"
+          defaultValue={v?.parutionPrevue ?? ""}
+          style={saisieStyle}
+        />
+      </Champ>
 
       {/* ── SEO, replié ─────────────────────────────────────────────────── */}
       <div style={{ border: CADRE, borderRadius: 16, background: BLANC, padding: 14 }}>
@@ -363,6 +411,88 @@ function Champ({
         <span style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.65 }}>{aide}</span>
       ) : null}
     </label>
+  );
+}
+
+/**
+ * Envoyer une image, et rendre son adresse.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN ENVOI SÉPARÉ, PAS UN CHAMP DU FORMULAIRE
+ *
+ * L'image part tout de suite, et ce qu'on range dans l'article est son
+ * adresse. L'alternative — la joindre à l'envoi de l'article — obligerait à
+ * retransférer le fichier à chaque correction de typo, et ferait échouer
+ * l'enregistrement entier si le stockage bronchait.
+ *
+ * Ce que ça implique, et qui n'est pas réglé : une image envoyée puis
+ * abandonnée reste au stockage. Les ressources ont un balayage des envois
+ * orphelins (`balayerLesAbandons`) ; le blog n'en a pas, et ses images pèsent
+ * deux mégaoctets au plus.
+ */
+function EnvoiImage({
+  libelle,
+  onDepose,
+}: {
+  libelle: string;
+  onDepose: (url: string) => void;
+}) {
+  const [enCours, demarrer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <label
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 13px",
+          border: CADRE,
+          borderRadius: 12,
+          background: enCours ? GRIS : BLANC,
+          fontSize: 12.5,
+          fontWeight: 800,
+          cursor: enCours ? "progress" : "pointer",
+          justifySelf: "start",
+        }}
+      >
+        {enCours ? "Envoi…" : libelle}
+        <input
+          type="file"
+          // Un filtre de confort, pas une garde : le type annoncé vient du
+          // navigateur et se falsifie. Ce sont les premiers octets qui
+          // décident, côté serveur — voir `lib/blog/formats-image.ts`.
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          disabled={enCours}
+          onChange={(e) => {
+            const fichier = e.target.files?.[0];
+            if (!fichier) return;
+
+            // Le champ est vidé tout de suite : sans ça, renvoyer le même
+            // fichier après une erreur ne déclencherait aucun événement.
+            e.target.value = "";
+            setErreur(null);
+
+            const donnees = new FormData();
+            donnees.set("image", fichier);
+
+            demarrer(async () => {
+              const suite = await televerserImageArticle(donnees);
+              if (suite.ok) onDepose(suite.url);
+              else setErreur(suite.message);
+            });
+          }}
+          style={{ display: "none" }}
+        />
+      </label>
+
+      {erreur ? (
+        <span style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>
+          {erreur}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

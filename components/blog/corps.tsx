@@ -106,6 +106,52 @@ function BlocRendu({ bloc }: { bloc: Bloc }) {
         </blockquote>
       );
 
+    case "image":
+      return (
+        <figure style={{ margin: 0 }}>
+          {/*
+            `<img>` et non `<Image>` de Next : l'optimiseur n'accepte que les
+            hôtes déclarés dans `next.config.ts`, et une image d'article peut
+            venir d'ailleurs. Lui passer une adresse non déclarée ferait
+            échouer le rendu de tout l'article pour une illustration.
+
+            `loading="lazy"` parce qu'un article long en porte plusieurs, et
+            qu'on ne descend pas toujours jusqu'en bas.
+          */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bloc.src}
+            alt={bloc.alt}
+            loading="lazy"
+            style={{
+              display: "block",
+              width: "100%",
+              height: "auto",
+              border: CADRE,
+              borderRadius: 16,
+            }}
+          />
+          {/*
+            La légende reprend l'`alt`, et seulement s'il y en a un. Un `alt`
+            vide est un choix — une image décorative — et inventer une légende
+            à sa place trahirait l'auteur.
+          */}
+          {bloc.alt.length > 0 ? (
+            <figcaption
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                marginTop: 8,
+                opacity: 0.65,
+                textAlign: "center",
+              }}
+            >
+              {bloc.alt}
+            </figcaption>
+          ) : null}
+        </figure>
+      );
+
     case "code":
       return (
         <pre

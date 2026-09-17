@@ -1919,3 +1919,102 @@ qui voudra en ajouter une.
 distingue deux visites d'une même personne : ce projet ne pose pas
 d'identifiant sur ses visiteurs. L'écran d'administration le dit en toutes
 lettres plutôt que de laisser croire à une audience.
+
+---
+
+## §29 Le blog complété — images, planification, et une correction
+
+*17 septembre 2026. Comble §28.6.*
+
+### 29.1 Un article archivé ne répond plus, et le commentaire disait le contraire
+
+La question a été posée, et le code y répondait déjà : `CLAUSE_PUBLIQUE` ne
+sert que les `PUBLIE`, donc un article archivé rend `404`.
+
+Mais `lib/blog/redaction.ts` affirmait l'inverse — « un article publié puis
+archivé a laissé des liens derrière lui, et son adresse doit continuer de
+répondre ». Le comportement était juste, le commentaire faux, et **aucun test
+ne demandait ce que rend un archivé**.
+
+La vraie raison de figer l'adresse est l'inverse de celle qui était écrite :
+**archiver est réversible**. Si le slug dérivait pendant l'archivage,
+republier ferait revenir l'article ailleurs, et tous les liens partagés
+pendant qu'il était en ligne tomberaient définitivement. Deux tests couvrent
+maintenant les deux moitiés — il disparaît, il revient à la même adresse.
+
+### 29.2 Les images entrent par un bloc, jamais en ligne
+
+`![texte](adresse)`, **seule sur sa ligne**. Markdown permet l'image au milieu
+d'un paragraphe ; on ne le reprend pas — elle casse le rythme du texte et n'a
+aucune taille prévisible.
+
+L'adresse passe par le même filtre que les liens : un schéma hors `http`,
+`https` et `mailto` fait retomber la ligne en texte ordinaire plutôt que de
+laisser un trou silencieux.
+
+Un `alt` vide est accepté, et c'est un choix laissé à l'auteur : une image
+décorative doit en porter un vide plutôt qu'une description inventée, sinon un
+lecteur d'écran lit du bruit. La légende ne s'affiche que s'il y a un `alt`.
+
+### 29.3 Pas de SVG, et c'est la décision du téléversement
+
+`lib/upload/formats.ts` accepte `image/svg+xml` — légitime pour une ressource
+qu'on **vend** : elle se télécharge, elle ne s'affiche pas sur notre domaine.
+
+Une image d'article s'affiche. Un SVG est un document XML qui peut porter un
+`<script>`, et servi depuis notre domaine il s'exécute avec nos droits, cookies
+de session compris : script inter-sites **stocké**, qui frappe tous les
+lecteurs et pas seulement celui qu'on a piégé.
+
+Quatre formats matriciels, reconnus **aux premiers octets** — `File.type` vient
+du navigateur et se falsifie en une ligne. La règle vit dans un module pur
+(`lib/blog/formats-image.ts`), éprouvé sur un SVG déguisé, un SVG précédé d'un
+BOM, et un AVI qui commence comme un WebP.
+
+Le nom du fichier déposé est tiré au sort : un nom d'origine peut porter un
+chemin, des caractères que le stockage interprète, ou simplement le nom du
+client dont parle l'article.
+
+**Ce qui n'est pas réglé** : une image envoyée puis abandonnée reste au
+stockage. Les ressources ont un balayage des envois orphelins ; le blog n'en a
+pas, et ses images pèsent deux mégaoctets au plus.
+
+### 29.4 La planification, et pourquoi elle tourne toutes les heures
+
+`scheduledAt` n'existait pas en v1.53.0, délibérément : une colonne que rien ne
+lit est une promesse qu'on croit tenue. Elle arrive avec le passage qui la lit.
+
+Trois conditions, chacune évitant un dégât précis :
+
+- `state: BROUILLON` — une date oubliée sur un article archivé entre-temps ne
+  doit pas le remettre en ligne dans le dos de qui l'a retiré ;
+- `scheduledAt` **passée**, jamais « égale à maintenant » : chercher l'égalité
+  ferait perdre définitivement tout article dont l'heure est tombée pendant une
+  panne ;
+- la même condition répétée dans le `WHERE` de l'écriture : deux passages qui
+  se croisent ne publient qu'une fois.
+
+La date s'efface à la publication, et à toute décision manuelle. Sinon elle
+resterait affichée sur un article en ligne et le republierait au passage
+suivant.
+
+**Horaire, contrairement aux autres passages.** Ceux des abonnements et des
+commandes tournent une fois par jour : leurs paliers se comptent en jours.
+Celui-ci porte une heure de parution, et publier « le 10 à 14 h » le 11 au
+matin raterait le but.
+
+### 29.5 Deux défauts introduits en écrivant ceci
+
+**Une virgule au lieu d'un `||`** dans la condition de fin de paragraphe.
+L'expression restait légale — l'opérateur virgule évalue et jette —, le
+compilateur se taisait, et la garde ne faisait rien.
+
+**Une boucle infinie.** Une image dont l'adresse est refusée retombait dans le
+traitement de paragraphe, dont la condition d'arrêt voyait `![` et sortait
+aussitôt, en poussant un paragraphe vide **sans avancer**. Quatre gigaoctets de
+tas épuisés en six minutes.
+
+Le test qui l'a trouvée ne l'a pas signalée par un échec : il a pendu. La
+correction n'est pas un test de plus mais une garde structurelle — la première
+ligne d'un paragraphe est toujours consommée, ce qui rend le cas impossible
+plutôt que détectable.

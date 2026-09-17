@@ -29,8 +29,19 @@ import { valider, type Refus, type Saisie } from "@/lib/blog/validation";
  * doit pas mourir parce que quelqu'un a corrigé une faute dans un titre.
  *
  * Avant la publication, il suit le titre — personne n'a encore l'adresse.
- * C'est `publishedAt` qui tranche, pas l'état : un article publié puis archivé
- * a laissé des liens derrière lui, et son adresse doit continuer de répondre.
+ * C'est `publishedAt` qui tranche, pas l'état.
+ *
+ * ⚠️ La première version justifiait ça par « un article archivé a laissé des
+ * liens derrière lui, et son adresse doit continuer de répondre ». **C'était
+ * faux**, et le code disait déjà le contraire : `CLAUSE_PUBLIQUE` ne sert que
+ * les `PUBLIE`, donc un article archivé rend 404. Le commentaire affirmait un
+ * comportement que personne n'avait écrit — et aucun test ne l'a relevé, parce
+ * qu'aucun ne demandait ce que rend un archivé.
+ *
+ * La vraie raison de figer le slug est l'inverse : archiver est **réversible**.
+ * Si l'adresse dérivait pendant l'archivage, republier ferait revenir l'article
+ * ailleurs, et tous les liens partagés pendant qu'il était en ligne
+ * tomberaient définitivement. Le figer garantit qu'il revient là où il était.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * L'AUTEUR N'EST PAS UN PARAMÈTRE LIBRE
@@ -83,6 +94,7 @@ export async function creer(input: {
       seoDescription: a.seoDescription,
       canonicalUrl: a.urlCanonique,
       isFeatured: a.aLaUne,
+      scheduledAt: a.parutionPrevue,
       state: "BROUILLON",
     },
     select: { id: true },
@@ -137,6 +149,7 @@ export async function modifier(input: {
       seoDescription: a.seoDescription,
       canonicalUrl: a.urlCanonique,
       isFeatured: a.aLaUne,
+      scheduledAt: a.parutionPrevue,
     },
   });
 
@@ -177,6 +190,10 @@ export async function trancher(input: {
     data: {
       state: transition.vers,
       refusedReason: input.geste === "refuser" ? motif : null,
+      // Une parution prévue n'a plus de sens dès qu'on tranche à la main :
+      // publier la réalise, retirer l'annule. La laisser ferait republier
+      // l'article tout seul le lendemain, dans le dos de qui l'a retiré.
+      scheduledAt: null,
       // ────────────────────────────────────────────────────────────────────
       // `publishedAt` SE POSE UNE FOIS, ET NE BOUGE PLUS
       //
@@ -252,6 +269,97 @@ export async function compterUneLecture(articleId: string): Promise<void> {
       cause: cause instanceof Error ? cause.message : String(cause),
     });
   }
+}
+
+/**
+ * Publier ce dont l'heure est venue.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * SEULEMENT DES BROUILLONS, ET SEULEMENT CEUX DONT L'HEURE EST PASSÉE
+ *
+ * §4.3 demandait la publication planifiée. La colonne n'existait pas en
+ * v1.53.0, et c'était délibéré : une colonne que rien ne lit est une promesse
+ * qu'on croit tenue. Elle arrive avec le passage qui la lit.
+ *
+ * Trois conditions, et chacune évite un dégât précis :
+ *
+ *   — `state: BROUILLON` : une date oubliée sur un article qu'on a archivé
+ *     entre-temps ne doit pas le remettre en ligne dans le dos de qui l'a
+ *     retiré ;
+ *   — `scheduledAt` non nul et passé : c'est la planification elle-même ;
+ *   — la même condition dans le `WHERE` de l'écriture, article par article :
+ *     deux passages qui se croisent ne doivent publier qu'une fois.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA DATE S'EFFACE À LA PUBLICATION
+ *
+ * Sinon elle resterait affichée sur un article déjà en ligne, et laisserait
+ * croire qu'une seconde parution est prévue. Ce qui est fait ne s'annonce plus.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * IL PEUT RATER SON TOUR
+ *
+ * Un passage sauté publie le lendemain, avec un jour de retard et rien de
+ * cassé. C'est pour ça que la condition est « l'heure est passée » et non
+ * « l'heure est celle-ci » : chercher l'égalité ferait perdre définitivement
+ * tout article dont l'heure est tombée pendant une panne.
+ */
+export interface PassageBlog {
+  vus: number;
+  publies: number;
+}
+
+export async function publierLesArticlesDus(
+  maintenant: Date = new Date(),
+): Promise<PassageBlog> {
+  const dus = await db.blogPost.findMany({
+    where: {
+      state: "BROUILLON",
+      scheduledAt: { not: null, lte: maintenant },
+    },
+    orderBy: { scheduledAt: "asc" },
+    // Borné : un passage qui publierait dix mille articles d'un coup tiendrait
+    // la connexion trop longtemps. Le reste part au passage suivant.
+    take: 50,
+    select: { id: true, title: true, authorId: true, publishedAt: true },
+  });
+
+  let publies = 0;
+
+  for (const article of dus) {
+    // La condition est répétée dans le `WHERE` : entre la lecture et
+    // l'écriture, quelqu'un a pu publier ou archiver l'article à la main.
+    const ecrit = await db.blogPost.updateMany({
+      where: {
+        id: article.id,
+        state: "BROUILLON",
+        scheduledAt: { not: null, lte: maintenant },
+      },
+      data: {
+        state: "PUBLIE",
+        scheduledAt: null,
+        ...(article.publishedAt === null ? { publishedAt: maintenant } : {}),
+      },
+    });
+
+    if (ecrit.count !== 1) continue;
+
+    publies += 1;
+
+    // Consigné après l'acte, et seulement s'il a eu lieu. L'acteur est
+    // l'auteur : c'est lui qui a décidé de la date, le passage ne fait
+    // qu'exécuter ce qu'il avait demandé.
+    await consigner({
+      acteurId: article.authorId,
+      action: "contenu.publier",
+      ressource: ressource("article", article.id),
+      details: { titre: article.title, parPlanification: true },
+    });
+  }
+
+  journal.info("passage du blog", { vus: dus.length, publies });
+
+  return { vus: dus.length, publies };
 }
 
 /** Slug unique : on suffixe tant que le précédent est pris. */

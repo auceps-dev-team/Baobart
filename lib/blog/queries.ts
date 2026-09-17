@@ -27,6 +27,8 @@ export interface LigneAdmin {
   aLaUne: boolean;
   vues: number;
   publieLe: Date | null;
+  /** Renseignée sur un brouillon qui paraîtra tout seul. */
+  parutionPrevue: Date | null;
   modifieLe: Date;
   auteur: string;
 }
@@ -46,6 +48,7 @@ export interface ArticleAEditer {
   etat: EtatContenu;
   raisonRefus: string | null;
   publieLe: Date | null;
+  parutionPrevue: Date | null;
   vues: number;
 }
 
@@ -67,6 +70,7 @@ export async function listerPourAdministration(
       isFeatured: true,
       viewsCount: true,
       publishedAt: true,
+      scheduledAt: true,
       updatedAt: true,
       category: { select: { name: true } },
       author: {
@@ -84,6 +88,7 @@ export async function listerPourAdministration(
     aLaUne: a.isFeatured,
     vues: a.viewsCount,
     publieLe: a.publishedAt,
+    parutionPrevue: a.scheduledAt,
     modifieLe: a.updatedAt,
     auteur: a.author.profile?.displayName ?? a.author.email,
   }));
@@ -110,6 +115,7 @@ export async function articleAEditer(
       state: true,
       refusedReason: true,
       publishedAt: true,
+      scheduledAt: true,
       viewsCount: true,
     },
   });
@@ -131,6 +137,7 @@ export async function articleAEditer(
     etat: a.state,
     raisonRefus: a.refusedReason,
     publieLe: a.publishedAt,
+    parutionPrevue: a.scheduledAt,
     vues: a.viewsCount,
   };
 }

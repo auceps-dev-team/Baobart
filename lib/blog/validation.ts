@@ -33,6 +33,8 @@ export interface Saisie {
   seoDescription: string;
   urlCanonique: string;
   aLaUne: string;
+  /** Format `<input type="datetime-local">` : « 2026-10-10T14:00 ». */
+  parutionPrevue: string;
 }
 
 export type Champ =
@@ -42,7 +44,8 @@ export type Champ =
   | "couvertureUrl"
   | "seoTitre"
   | "seoDescription"
-  | "urlCanonique";
+  | "urlCanonique"
+  | "parutionPrevue";
 
 export interface Refus {
   champ: Champ;
@@ -62,6 +65,8 @@ export interface ArticleValide {
   seoDescription: string | null;
   urlCanonique: string | null;
   aLaUne: boolean;
+  /** `null` quand l'auteur publiera à la main. */
+  parutionPrevue: Date | null;
 }
 
 export type Verdict =
@@ -169,6 +174,24 @@ export function valider(saisie: Saisie): Verdict {
     );
   }
 
+  // ── La date de parution ─────────────────────────────────────────────────
+  //
+  // Lue en GMT, comme les événements : `new Date("2026-10-10T14:00")` sans
+  // fuseau est interprété en heure LOCALE par Node, donc différemment sur le
+  // poste d'un rédacteur et sur le serveur. On ajoute le `Z` pour que les deux
+  // lisent la même heure — celle d'Abidjan, qui est GMT.
+  const brutParution = saisie.parutionPrevue.trim();
+  let parutionPrevue: Date | null = null;
+
+  if (brutParution.length > 0) {
+    const quand = new Date(`${brutParution}:00Z`.replace(/:00:00Z$/, ":00Z"));
+
+    if (Number.isNaN(quand.getTime())) {
+      return refus("parutionPrevue", "Cette date ne se lit pas.");
+    }
+    parutionPrevue = quand;
+  }
+
   return {
     ok: true,
     article: {
@@ -185,6 +208,7 @@ export function valider(saisie: Saisie): Verdict {
       urlCanonique: canonique,
       // Une case cochée arrive « on » ; décochée, elle n'arrive pas du tout.
       aLaUne: saisie.aLaUne.trim().length > 0,
+      parutionPrevue,
     },
   };
 }

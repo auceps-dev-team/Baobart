@@ -19,6 +19,7 @@ import {
   compterUneLecture,
   creer,
   modifier,
+  publierLesArticlesDus,
   trancher,
 } from "@/lib/blog/redaction";
 import { articlePublic, listerPublics } from "@/lib/blog/queries";
@@ -52,6 +53,7 @@ function saisie(over: Partial<Saisie> = {}): Saisie {
     seoDescription: "",
     urlCanonique: "",
     aLaUne: "",
+    parutionPrevue: "",
     ...over,
   };
 }
@@ -151,8 +153,9 @@ describe("l'adresse", () => {
   });
 
   it("reste figée même après archivage", async () => {
-    // C'est `publishedAt` qui tranche, pas l'état : un article archivé a
-    // laissé des liens derrière lui.
+    // C'est `publishedAt` qui tranche, pas l'état — et la raison est que
+    // l'archivage est réversible : si l'adresse dérivait pendant, republier
+    // ferait revenir l'article ailleurs.
     const a = await article();
     await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
     await trancher({ articleId: a.id, geste: "retirer", acteurId: a.auteurId });
@@ -312,6 +315,42 @@ describe("la lecture publique", () => {
     expect(brouillon.id).not.toBe(publie.id);
   });
 
+  it("cesse de servir un article archivé", async () => {
+    // Le comportement était juste et NON TESTÉ, pendant qu'un commentaire de
+    // `redaction.ts` affirmait le contraire — « son adresse doit continuer de
+    // répondre ». Ce test existe pour que les deux ne puissent plus diverger.
+    const a = await article();
+    await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
+
+    expect(await articlePublic("d-ou-vient-vraiment-le-wax")).not.toBeNull();
+
+    await trancher({ articleId: a.id, geste: "retirer", acteurId: a.auteurId });
+
+    expect(await articlePublic("d-ou-vient-vraiment-le-wax")).toBeNull();
+    expect(await listerPublics()).toHaveLength(0);
+  });
+
+  it("le remet à la même adresse s'il est republié", async () => {
+    // La vraie raison de figer le slug : archiver est réversible. Si l'adresse
+    // dérivait pendant l'archivage, republier ferait revenir l'article
+    // ailleurs, et les liens partagés pendant qu'il était en ligne tomberaient.
+    const a = await article();
+    await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
+    await trancher({ articleId: a.id, geste: "retirer", acteurId: a.auteurId });
+
+    // Quelqu'un corrige le titre pendant que l'article est hors ligne.
+    await modifier({
+      articleId: a.id,
+      saisie: saisie({ titre: "Un titre repensé de fond en comble" }),
+    });
+
+    await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
+
+    const revenu = await articlePublic("d-ou-vient-vraiment-le-wax");
+    expect(revenu?.id).toBe(a.id);
+    expect(revenu?.titre).toBe("Un titre repensé de fond en comble");
+  });
+
   it("rend l'article par son adresse", async () => {
     const a = await article();
     await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
@@ -346,5 +385,105 @@ describe("le compteur de vues", () => {
     await expect(
       compterUneLecture("cl00000000000000000000"),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("la publication planifiée", () => {
+  /** Un brouillon dont l'heure est passée. */
+  async function planifie(quand: Date, titre = "Un article planifié") {
+    const a = await article({
+      titre,
+      parutionPrevue: quand.toISOString().slice(0, 16),
+    });
+    return a;
+  }
+
+  it("publie ce dont l'heure est venue", async () => {
+    const a = await planifie(new Date("2026-09-01T08:00:00Z"));
+
+    const bilan = await publierLesArticlesDus(new Date("2026-09-01T09:00:00Z"));
+
+    expect(bilan).toEqual({ vus: 1, publies: 1 });
+
+    const lu = await db.blogPost.findUniqueOrThrow({
+      where: { id: a.id },
+      select: { state: true, publishedAt: true, scheduledAt: true },
+    });
+    expect(lu.state).toBe("PUBLIE");
+    expect(lu.publishedAt).not.toBeNull();
+    // La date s'efface : sinon elle resterait affichée sur un article en ligne
+    // et laisserait croire qu'une seconde parution est prévue.
+    expect(lu.scheduledAt).toBeNull();
+  });
+
+  it("laisse tranquille ce dont l'heure n'est pas venue", async () => {
+    await planifie(new Date("2026-09-10T08:00:00Z"));
+
+    const bilan = await publierLesArticlesDus(new Date("2026-09-01T09:00:00Z"));
+
+    expect(bilan).toEqual({ vus: 0, publies: 0 });
+    expect(await listerPublics()).toHaveLength(0);
+  });
+
+  it("rattrape une heure tombée pendant une panne", async () => {
+    // La condition est « l'heure est passée », jamais « l'heure est celle-ci ».
+    // Chercher l'égalité ferait perdre définitivement tout article dont
+    // l'heure serait tombée pendant un passage sauté.
+    await planifie(new Date("2026-08-01T08:00:00Z"));
+
+    const bilan = await publierLesArticlesDus(new Date("2026-09-15T09:00:00Z"));
+
+    expect(bilan.publies).toBe(1);
+  });
+
+  it("ne republie jamais un article archivé", async () => {
+    // Le cas qui justifie `state: BROUILLON` dans la condition : une date
+    // oubliée sur un article qu'on a retiré entre-temps ne doit pas le
+    // remettre en ligne dans le dos de qui l'a retiré.
+    const a = await planifie(new Date("2026-09-01T08:00:00Z"));
+
+    await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
+    await trancher({ articleId: a.id, geste: "retirer", acteurId: a.auteurId });
+
+    // On repose une date à la main, comme le ferait une donnée oubliée.
+    await db.blogPost.update({
+      where: { id: a.id },
+      data: { scheduledAt: new Date("2026-09-01T08:00:00Z") },
+    });
+
+    const bilan = await publierLesArticlesDus(new Date("2026-09-02T09:00:00Z"));
+
+    expect(bilan.publies).toBe(0);
+    const lu = await db.blogPost.findUniqueOrThrow({
+      where: { id: a.id },
+      select: { state: true },
+    });
+    expect(lu.state).toBe("RETIRE");
+  });
+
+  it("annule la planification dès qu'on tranche à la main", async () => {
+    // Publier la réalise, retirer l'annule. La laisser ferait republier
+    // l'article tout seul au passage suivant.
+    const a = await planifie(new Date("2026-09-10T08:00:00Z"));
+
+    await trancher({ articleId: a.id, geste: "publier", acteurId: a.auteurId });
+
+    const lu = await db.blogPost.findUniqueOrThrow({
+      where: { id: a.id },
+      select: { scheduledAt: true },
+    });
+    expect(lu.scheduledAt).toBeNull();
+  });
+
+  it("ne publie pas deux fois quand deux passages se croisent", async () => {
+    const a = await planifie(new Date("2026-09-01T08:00:00Z"));
+
+    const [un, deux] = await Promise.all([
+      publierLesArticlesDus(new Date("2026-09-01T09:00:00Z")),
+      publierLesArticlesDus(new Date("2026-09-01T09:00:00Z")),
+    ]);
+
+    expect(un.publies + deux.publies).toBe(1);
+    expect(a.id).toBeTruthy();
   });
 });

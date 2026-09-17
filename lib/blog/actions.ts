@@ -158,5 +158,6 @@ function lireSaisie(donnees: FormData): Saisie {
     seoDescription: lire("seoDescription"),
     urlCanonique: lire("urlCanonique"),
     aLaUne: lire("aLaUne"),
+    parutionPrevue: lire("parutionPrevue"),
   };
 }

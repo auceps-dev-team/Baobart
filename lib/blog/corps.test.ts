@@ -6,6 +6,7 @@ import { adresseSure, analyser, extraitAutomatique, type Bloc } from "./corps";
 function texteDe(bloc: Bloc | undefined): string {
   if (!bloc) return "";
   if (bloc.type === "code") return bloc.texte;
+  if (bloc.type === "image") return bloc.alt;
   if (bloc.type === "liste") {
     return bloc.items.map((i) => i.map((x) => x.valeur).join("")).join(" | ");
   }
@@ -218,5 +219,56 @@ describe("la propriété que la validation n'a pas à garder", () => {
     ]) {
       expect(analyser(corps).length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("les images", () => {
+  it("font un bloc à elles seules", () => {
+    const blocs = analyser("![Un pagne wax](/img/wax.jpg)");
+
+    expect(blocs).toHaveLength(1);
+    expect(blocs[0]).toEqual({
+      type: "image",
+      src: "/img/wax.jpg",
+      alt: "Un pagne wax",
+    });
+  });
+
+  it("ne se laissent pas avaler par le paragraphe qui précède", () => {
+    // Le test qui a trouvé une virgule écrite à la place d'un `||` dans la
+    // condition de fin de paragraphe. L'expression restait légale, le
+    // compilateur se taisait, et l'image disparaissait dans le texte.
+    const blocs = analyser("Voici la pièce.\n![Un pagne wax](/img/wax.jpg)\nEt la suite.");
+
+    expect(blocs.map((b) => b.type)).toEqual([
+      "paragraphe",
+      "image",
+      "paragraphe",
+    ]);
+  });
+
+  it("acceptent un alt vide, et c'est un choix", () => {
+    // Une image décorative doit porter un `alt` vide plutôt qu'une description
+    // inventée : un lecteur d'écran lirait du bruit.
+    const blocs = analyser("![](/img/trait.png)");
+
+    expect(blocs[0]).toEqual({ type: "image", src: "/img/trait.png", alt: "" });
+  });
+
+  it("refusent une adresse dangereuse et redeviennent du texte", () => {
+    // Pas de trou silencieux : l'auteur voit que quelque chose ne va pas.
+    const blocs = analyser("![piège](javascript:alert(1))");
+
+    expect(blocs[0]?.type).toBe("paragraphe");
+    expect(blocs.some((b) => b.type === "image")).toBe(false);
+  });
+
+  it("ne reconnaissent pas une image au milieu d'une phrase", () => {
+    // Markdown le permet ; on ne le reprend pas. Une image glissée entre deux
+    // mots casse le rythme et n'a aucune taille prévisible.
+    const blocs = analyser("du texte ![img](/a.png) encore du texte");
+
+    expect(blocs).toHaveLength(1);
+    expect(blocs[0]?.type).toBe("paragraphe");
   });
 });

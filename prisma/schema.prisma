@@ -2311,6 +2311,20 @@ model BlogPost {
   canonicalUrl   String?
 
   publishedAt DateTime?
+  /// Quand l'article doit paraître tout seul.
+  ///
+  /// ════════════════════════════════════════════════════════════════════════
+  /// UNE DATE QUI NE VAUT QUE SUR UN BROUILLON
+  ///
+  /// Le passage quotidien ne publie que ce qui est en `BROUILLON` et dont
+  /// l'heure est passée. Sur un article déjà en ligne, la colonne ne veut
+  /// plus rien dire — elle est effacée à la publication, pour qu'elle ne
+  /// laisse pas croire qu'une seconde parution est prévue.
+  ///
+  /// §4.3 la demandait. Elle n'avait pas été créée en v1.53.0, et c'était
+  /// délibéré : une colonne que rien ne lit est une promesse qu'on croit
+  /// tenue. Elle arrive avec le passage qui la lit.
+  scheduledAt DateTime?
   /// Compteur dénormalisé, comme ailleurs (§3.9-H du plan).
   viewsCount  Int       @default(0)
 
@@ -2324,6 +2338,9 @@ model BlogPost {
   /// « tous, du plus récent ». Un seul index sert les deux.
   @@index([state, publishedAt])
   @@index([authorId, createdAt])
+  /// Le passage quotidien demande « les brouillons dont l'heure est passée ».
+  /// Sans cet index, il parcourt tous les articles chaque matin.
+  @@index([state, scheduledAt])
 }
 
 /// Les rubriques du blog.

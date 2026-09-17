@@ -88,6 +88,9 @@ export default async function EditerArticlePage({
               seoDescription: a.seoDescription ?? "",
               urlCanonique: a.urlCanonique ?? "",
               aLaUne: a.aLaUne ? "on" : "",
+              parutionPrevue: a.parutionPrevue
+                ? a.parutionPrevue.toISOString().slice(0, 16)
+                : "",
             }}
           />
         </div>
