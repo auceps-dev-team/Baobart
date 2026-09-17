@@ -1614,9 +1614,13 @@ l'organisateur » — mais dépasse largement les événements.*
 Gumroad (`antiwork/gumroad`, MIT) a été relu avant de décider. Constats
 vérifiés dans le code, pas supposés :
 
-- **Aucun centre de notifications in-app.** Pas de modèle `Notification` parmi
-  ses 270+ modèles — seulement `community_notification_setting.rb`, qui règle
-  le chat communautaire.
+- **Aucun centre de notifications in-app** — *dans ce qui a été regardé* :
+  le listing de `app/models` (aucun modèle `Notification`, seulement
+  `community_notification_setting.rb`, qui règle le chat communautaire) et
+  celui de `app/services`. **Non consultés** : `app/controllers`, `app/views`,
+  les routes, et le code front. La conclusion est cohérente avec le reste —
+  21 mailers, un service de push mobile, aucune trace de cloche — mais elle
+  repose sur deux répertoires, pas sur l'ensemble du dépôt.
 - **Le courriel est le canal.** 21 mailers dans `app/mailers`, segmentés par
   audience (`customer_mailer`, `creator_mailer`, `follower_mailer`,
   `affiliate_mailer`, `comment_mailer`…) **et par priorité** :
@@ -1822,9 +1826,18 @@ Gumroad a fait et que Baobart n'a pas : une adresse morte reçoit indéfiniment.
 §4.2 demandait TipTap et un corps en HTML sanitisé. Refusé, et la raison n'est
 pas le coût de l'éditeur.
 
-**Ce projet ne rend d'HTML nulle part.** Vérifié avant de décider : pas un seul
-`dangerouslySetInnerHTML`, pas de sanitiseur, aucune dépendance qui en produit.
-Tout ce qui s'affiche passe par React, qui échappe. C'est une propriété rare et
+**L'application ne rend d'HTML nulle part.** Tout ce qui s'affiche passe par
+React, qui échappe.
+
+*Mesuré le 17 septembre 2026* : une occurrence de `dangerouslySetInnerHTML` sur
+tout le dépôt — le JSON-LD ci-dessous ; cinq de `innerHTML`/`outerHTML`, toutes
+dans `Baobart Design/support.js`, qui est l'outillage des maquettes et n'est pas
+servi (`public/` ne contient que `icones`, `img`, `sw.js`) ; zéro dépendance
+produisant ou nettoyant du HTML sur les 34 déclarées.
+
+*Non vérifié* : le contenu de `public/sw.js`, et ce qu'une dépendance pourrait
+charger à l'exécution. La propriété vaut pour ce que ce dépôt écrit, pas pour
+tout ce qu'un navigateur exécute. C'est une propriété rare et
 elle se perd en une ligne — le jour où l'on accepte de l'HTML stocké, la
 question n'est plus « le site est-il sûr » mais « le sanitiseur est-il à jour »,
 ce qui est une bien moins bonne question.

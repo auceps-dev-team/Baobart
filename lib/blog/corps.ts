@@ -7,9 +7,8 @@
  * §4.2 demande TipTap et un corps en HTML sanitisé. On ne le fait pas, et la
  * raison n'est pas le coût de l'éditeur.
  *
- * **Ce projet ne rend d'HTML nulle part.** Pas un seul
- * `dangerouslySetInnerHTML`, pas un sanitiseur, pas une dépendance qui en
- * produit. Tout ce qui s'affiche passe par React, qui échappe. C'est une
+ * **L'application ne rend d'HTML nulle part.** Tout ce qui s'affiche passe par
+ * React, qui échappe. C'est une
  * propriété rare et elle se perd en une ligne : le jour où l'on accepte de
  * l'HTML stocké, la question n'est plus « est-ce que le site est sûr » mais
  * « est-ce que le sanitiseur est à jour », ce qui est une bien moins bonne
@@ -20,6 +19,27 @@
  * l'équipe, payer ce risque pour obtenir des tableaux et des vidéos
  * embarquées serait un mauvais marché.
  *
+ * ════════════════════════════════════════════════════════════════════════════
+ * CE QUI A ÉTÉ VÉRIFIÉ, ET COMMENT
+ *
+ * L'affirmation ci-dessus est NÉGATIVE — « il n'y a nulle part » — et une
+ * affirmation négative se prouve moins facilement qu'une positive. Voici donc
+ * ce qui a été mesuré, le 17 septembre 2026, plutôt que de laisser croire à
+ * une évidence :
+ *
+ *   — `dangerouslySetInnerHTML` sur tout le dépôt : une seule occurrence,
+ *     celle du JSON-LD dans `app/blog/[slug]/page.tsx` ;
+ *   — `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` :
+ *     cinq occurrences, toutes dans `Baobart Design/support.js` — l'outillage
+ *     des maquettes, exclu de `tsconfig.json` et absent de `public/`, donc
+ *     jamais servi ;
+ *   — les 34 dépendances déclarées : aucune ne produit ni ne nettoie d'HTML.
+ *
+ * Ce qui n'a PAS été vérifié : le contenu de `public/sw.js`, et le code
+ * qu'une dépendance pourrait charger à l'exécution. La propriété vaut donc
+ * pour ce que ce dépôt écrit, pas pour tout ce qu'un navigateur exécute.
+ *
+
  * ════════════════════════════════════════════════════════════════════════════
  * CE QU'ON REND À LA PLACE
  *

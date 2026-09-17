@@ -43,6 +43,106 @@ Les options, avec ce que chacune implique.
 Cette consigne concerne le compte rendu **final**. Pendant le travail, les messages
 intermédiaires restent brefs et factuels.
 
+## Ce qu'on a le droit d'affirmer
+
+Trois fois en une semaine, sur un autre chantier, une affirmation confiante
+s'est révélée fausse. Les trois fois, **l'observation était juste et la
+conclusion ne l'était pas**. Cette section existe pour que ça ne recommence pas
+ici — et elle a déjà servi une fois, le 17 septembre 2026, sur ce dépôt.
+
+### Une affirmation négative coûte plus cher qu'une positive
+
+« Cette fonction rend `null` quand X » se prouve par un appel. « Ce projet ne
+fait jamais Y » ne se prouve par **aucun** nombre d'appels : elle exige d'avoir
+épuisé les sources, et on ne les épuise jamais.
+
+**Avant d'écrire qu'une chose n'existe pas, écrire d'abord ce qu'il faudrait
+avoir lu pour en être sûr.** Souvent, la phrase s'arrête là.
+
+Le cas de ce dépôt : « ce projet ne rend d'HTML nulle part » a été écrit dans
+l'en-tête de `lib/blog/corps.ts` et dans §28 de la spec, et toute la conception
+du blog repose dessus. La preuve tenait en **un grep, quatre termes, un glob
+qui excluait `.mjs` et `.js`**.
+
+Revérifiée correctement, la conclusion tenait — mais pas telle qu'écrite :
+`innerHTML` apparaît cinq fois dans `Baobart Design/support.js`. Ce fichier
+n'est pas servi, donc la propriété vaut ; mais le prochain qui grep aurait
+trouvé ces cinq occurrences et cru que l'en-tête mentait.
+
+### Le silence d'une source n'est pas une preuve
+
+« La documentation n'en parle pas » veut presque toujours dire « la
+documentation **que j'ai lue** n'en parle pas ». Ce sont deux phrases
+différentes, et seule la seconde est vérifiable.
+
+Le cas de ce dépôt : « Gumroad n'a pas de centre de notifications in-app » a
+été publié comme un constat, et a décidé de l'architecture des notifications.
+Il reposait sur le listing de **deux répertoires** — `app/models` et
+`app/services` — résumés par un outil. Ni `app/controllers`, ni les routes, ni
+le front n'ont été ouverts.
+
+La conclusion reste cohérente avec le reste des indices, et la spec le dit
+maintenant en nommant ce qui n'a pas été consulté.
+
+### Avant de contredire, chercher d'où ça vient
+
+Une fiche, un commentaire, un test, le code de quelqu'un d'autre : **personne
+ne l'a écrit sans raison.** Contredire sans avoir cherché la raison, c'est
+parier que l'auteur était négligent — un pari qu'on perd la plupart du temps.
+
+La question à poser n'est pas « est-ce faux ? » mais « qu'est-ce qui pourrait
+le rendre vrai que je ne vois pas ? ».
+
+### Une incohérence remarquée est une piste, pas une note de bas de page
+
+Quand on écrit « cette source se trompe ici », on vient de la disqualifier
+ailleurs aussi — il faut le tirer tout de suite, pas six mois après.
+
+Une source périmée dans un paragraphe ne redevient pas fraîche au suivant.
+
+### Distinguer ce qui est mesuré de ce qui est lu, dans le texte
+
+Pas dans sa tête : **dans le commentaire, le message de commit, la note.** Les
+deux mots coûtent trois secondes et changent ce qu'un lecteur — soi-même dans
+six mois — a le droit d'en faire.
+
+```
+Mesuré le 14/09 : 37 tests, ~55 s chacun avant recréation, ~3 s après.
+Lu dans la spec, non vérifié : §4.3 veut une publication planifiée.
+```
+
+Un fait mesuré porte sa date. Un fait lu porte sa source.
+
+C'est déjà ce qui a permis de corriger le commentaire de `vitest.config.ts` :
+la mesure des 55 secondes était juste, l'explication — « Docker Desktop sous
+Windows » — était fausse, et seule la mesure avait été écrite avec sa date.
+
+### Chercher le succès silencieux
+
+Un défaut qui plante se corrige. Un défaut qui **réussit en ne faisant rien**
+ne se corrige jamais, parce que personne ne le voit.
+
+Deux cas rencontrés ici :
+
+- un commentaire affirmait que `JSON.stringify` rendait `</script>` inoffensif
+  dans le JSON-LD. Faux — il échappe les guillemets, pas les chevrons. Aucune
+  erreur nulle part : la page se rendait, simplement ouverte ;
+- une garde « le corps ne contient aucun texte affichable » ne pouvait jamais
+  se déclencher. Elle ne cassait rien ; elle laissait croire qu'un cas était
+  couvert.
+
+Sur un chemin de succès, **demander explicitement ce qui manque** : un montant
+à zéro, un tableau vide, un identifiant `null`, une garde inatteignable. Le
+chemin d'erreur crie ; le chemin de succès chuchote.
+
+### Ce que cela ne veut pas dire
+
+Ni prudence paralysante, ni précautions oratoires. On continue d'affirmer —
+c'est le travail. Mais une affirmation porte son niveau de preuve avec elle, et
+une affirmation négative en porte un plus lourd.
+
+Se corriger vite et nettement vaut mieux que ne jamais se tromper.
+
 ## Isolation des tests — ce qui est propre à Baobart
 
 Les règles générales — une suite à la fois, borner les processus, rejouer seul

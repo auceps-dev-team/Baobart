@@ -89,9 +89,13 @@ export async function generateMetadata({
  * valide — un analyseur JSON relit la sequence comme un chevron — et le
  * navigateur ne voit plus jamais de chevron ouvrant dans le script.
  *
- * C'est le seul endroit du projet où cette fonction React est appelée, et il
- * ne doit pas y en avoir un second : partout ailleurs, on passe par du texte
- * que React échappe — voir `lib/blog/corps.ts`.
+ * C'est le seul endroit du projet où cette fonction React est appelée —
+ * **mesuré le 17 septembre 2026**, par une recherche de
+ * `dangerouslySetInnerHTML` sur tout le dépôt, une seule occurrence trouvée.
+ *
+ * Il ne doit pas y en avoir un second : partout ailleurs, on passe par du
+ * texte que React échappe — voir `lib/blog/corps.ts`, dont l'en-tête dit ce
+ * qui a été vérifié et ce qui ne l'a pas été.
  */
 export default async function ArticlePage({
   params,
