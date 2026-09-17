@@ -10,7 +10,7 @@
 > mettre à jour cette matrice dans le même commit. Une ligne sans route ni fichier connu se note `—`,
 > pas de suppression de ligne tant que la spec existe.
 >
-> Dernière mise à jour : **15 septembre 2026** (v1.52.2).
+> Dernière mise à jour : **17 septembre 2026** (v1.52.2).
 
 **Légende** — Statut : ✅ fait et testé · ⚠️ partiel (infra sans usage, ou usage sans garde) ·
 ❌ absent · 🔜 planifié priorité proche.
@@ -104,13 +104,21 @@
 | **Tests au navigateur (E2E)** | — | `e2e/*`, `playwright.config.ts` | ✅ | v1.35.0, 17 tests | Inscription → achat → espace acheteur, gardes des écrans d'exploitation, limitation par l'adresse. Tournent sur un **build**, pas sur `next dev` |
 | Redis | §M0 | `lib/securite/pilotes.ts` | ⚠️ | v1.34.0 | Branché **pour la limitation seulement**. Ni cache, ni file, ni sessions |
 
-## 6. Micro-services (schéma prêt, zéro route)
+## 6. Micro-services
+
+> Cette section s'appelait « schéma prêt, zéro route ». Ce n'est plus vrai pour
+> trois de ses quatre lignes, et elles ont menti pendant plusieurs versions :
+> la règle d'entretien en tête de document demande de mettre la matrice à jour
+> **dans le commit** qui change un statut, et ce sont les seules lignes où on
+> ne l'a pas fait — parce que le sujet avait entre-temps gagné une seconde
+> ligne dans une autre section. Un document vivant qui décrit deux fois la même
+> chose finit par se contredire.
 
 | Fonctionnalité | Spec | Module | Statut | Preuve/tests | Dette |
 |---|---|---|---|---|---|
-| Job board | §2.9 | `prisma/schema.prisma` (`JobPosting`) | ❌ | table seule (FK scalaires) | Aucune route `app/` |
-| Services listés | §3.2 | `prisma/schema.prisma` (`Commission`) | ❌ | table seule | Aucune route `app/` |
-| Événements / concours | §1 | `prisma/schema.prisma` (`Event`) | ❌ | table seule | Aucune route `app/` |
+| Job board | §2.9 | voir « CMS — Jobs » plus bas | ✅ | v1.47.0 | **Ligne périmée corrigée le 17 septembre 2026** : elle annonçait « aucune route `app/` » alors que `app/jobs/*` existe depuis v1.47.0. Le doublon venait de deux sections décrivant le même sujet |
+| Services listés | §3.2 | voir « CMS — Services » plus bas | ✅ | v1.48.0 | **Ligne périmée corrigée le 17 septembre 2026**, même cause |
+| Événements / concours | §1 | voir « CMS — Événements » plus bas | ✅ | v1.52.2 | **Ligne périmée corrigée le 17 septembre 2026**, même cause |
 | Forum / communautés | §3.2 | `prisma/schema.prisma` (`Community`, `ForumCategory`) | ❌ | table seule | Aucune route `app/` |
 | Admin — rôles fonctionnels (7) et matrice de pouvoirs | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/auth/administration.ts` | ✅ | v1.44.0, 18 tests | Une seule identité : pas de table `AdminUser` séparée — voir §17.1 de la spec. Aucun écran ne permet de s'élever, la promotion passe par la base |
 | Admin — journal d'audit | `SPEC_ADMIN_CMS_BAOBART.md` §2 | `lib/admin/audit.ts` | ✅ | v1.44.0, 10 tests | La table `AuditLog` existait depuis le début **et n'était jamais écrite** : un écran d'audit aurait affiché une liste vide, ce qui se lit « rien ne s'est passé ». Consigner ne peut jamais faire échouer l'acte |
