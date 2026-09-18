@@ -1,5 +1,9 @@
+import Link from "next/link";
+import type { Route } from "next";
+
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { CarteAModerer } from "@/components/moderation/carte";
+import { peut } from "@/lib/auth/administration";
 import { exigerUnDesPouvoirs } from "@/lib/auth/acces-administration";
 import { typesRelusPar } from "@/lib/cms/droits";
 import { fileDeModeration } from "@/lib/cms/moderation";
@@ -41,12 +45,30 @@ export default async function ModerationPage() {
   const file = await fileDeModeration(utilisateur.role);
   const types = typesRelusPar(utilisateur.role);
 
+  // Le forum ne passe pas par le cycle CMS : ses messages paraissent tout de
+  // suite et se signalent après. Ils ont donc leur propre file, ouverte au
+  // seul `moderer_le_contenu` — `publier_du_contenu` relit les événements,
+  // pas les conversations.
+  const voitLesSignalements = peut(utilisateur.role, "moderer_le_contenu");
+
   return (
     <DashboardFrame
       utilisateur={utilisateur}
       titre="File de modération"
       description={`${LIBELLES_TYPE.filter((l) => types.includes(l.type)).map((l) => l.pluriel).join(", ")} — rien ne paraît sans être passé par ici. Le plus ancien d'abord.`}
     >
+      {voitLesSignalements ? (
+        <p style={{ marginBottom: 20, fontSize: 13.5, fontWeight: 600, opacity: 0.75 }}>
+          <Link
+            href={"/dashboard/moderation/signalements" as Route}
+            style={{ textDecoration: "underline" }}
+          >
+            Les signalements du forum →
+          </Link>{" "}
+          — des messages déjà publiés, à laisser ou à retirer.
+        </p>
+      ) : null}
+
       {file.length === 0 ? (
         <div
           style={{

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
-import { CorpsArticle } from "@/components/blog/corps";
+import { CorpsArticle } from "@/components/cms/corps";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { articlePublic } from "@/lib/blog/queries";
@@ -70,7 +70,7 @@ export async function generateMetadata({
  *
  * `CorpsArticle` reçoit du texte et l'analyse en blocs que React affiche. Il
  * n'y a pas de `dangerouslySetInnerHTML` sur ce chemin — voir l'en-tête de
- * `lib/blog/corps.ts`.
+ * `lib/cms/corps.ts`.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * LE SEUL `dangerouslySetInnerHTML` DU PROJET, ET CE QU'IL COÛTE
@@ -94,7 +94,7 @@ export async function generateMetadata({
  * `dangerouslySetInnerHTML` sur tout le dépôt, une seule occurrence trouvée.
  *
  * Il ne doit pas y en avoir un second : partout ailleurs, on passe par du
- * texte que React échappe — voir `lib/blog/corps.ts`, dont l'en-tête dit ce
+ * texte que React échappe — voir `lib/cms/corps.ts`, dont l'en-tête dit ce
  * qui a été vérifié et ce qui ne l'a pas été.
  */
 export default async function ArticlePage({

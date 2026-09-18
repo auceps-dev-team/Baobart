@@ -1,5 +1,5 @@
-import type { Bloc, Inline } from "@/lib/blog/corps";
-import { analyser } from "@/lib/blog/corps";
+import type { Bloc, Inline } from "@/lib/cms/corps";
+import { analyser } from "@/lib/cms/corps";
 import { CADRE, ENCRE } from "@/lib/systeme/charte";
 
 /** Le fond des citations. Même valeur que les champs de formulaire ailleurs. */
@@ -23,7 +23,7 @@ const LAVANDE_CLAIR = "#F4EEFC";
  * ════════════════════════════════════════════════════════════════════════════
  * LES LIENS SONT DÉJÀ FILTRÉS
  *
- * `lib/blog/corps.ts` a écarté les schémas dangereux avant d'arriver ici : un
+ * `lib/cms/corps.ts` a écarté les schémas dangereux avant d'arriver ici : un
  * `javascript:` n'a plus d'adresse et n'est resté que du texte. Ce composant
  * n'a donc rien à revérifier — et surtout, il ne doit pas donner l'impression
  * que la garde est ici.

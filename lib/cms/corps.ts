@@ -1,5 +1,18 @@
 /**
- * Le corps d'un article, d'un texte à une structure.
+ * Du texte d'utilisateur à une structure affichable, sans jamais passer par
+ * de l'HTML.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * IL A DÉMÉNAGÉ, ET C'EST LE FORUM QUI L'A DÉCIDÉ
+ *
+ * Il vivait dans `lib/blog/`, où il était né. Le forum en a le même besoin —
+ * et un besoin plus pressant : les articles sont écrits par trois personnes de
+ * l'équipe, les messages du forum par n'importe quel membre.
+ *
+ * Il rejoint donc `lib/cms/`, à côté du cycle de vie et des droits : c'est la
+ * couche que les quatre CMS partagent. Le laisser chez le blog aurait fait
+ * importer `lib/blog/` depuis `lib/forum/`, ce qui aurait dit une dépendance
+ * qui n'existe pas.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * POURQUOI PAS TIPTAP, ET POURQUOI PAS D'HTML DU TOUT

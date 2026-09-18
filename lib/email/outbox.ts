@@ -31,9 +31,14 @@ export interface Depot {
   /**
    * Dérivée du fait, jamais du hasard.
    *
-   * « recu-<orderItemId> » et non un identifiant tiré au sort : un webhook
-   * rejoué par l'opérateur doit retomber sur la même clé et se faire refuser,
-   * plutôt qu'envoyer un second reçu.
+   * « courriel:recu-<orderItemId> » et non un identifiant tiré au sort : un
+   * webhook rejoué par l'opérateur doit retomber sur la même clé et se faire
+   * refuser, plutôt qu'envoyer un second reçu.
+   *
+   * Le préfixe de canal vient de l'aiguilleur, qui pose « courriel: » devant
+   * la clé du fait — la cloche pose « in-app: » devant la même. Les trois
+   * appelants directs qui restent (jeton de connexion, réinitialisation,
+   * Ndank) n'en portent pas : ils ne passent par aucun canal alternatif.
    */
   cle: string;
   destinataire: string;

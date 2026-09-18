@@ -54,7 +54,7 @@ export const MENUS: GroupeMenu[] = [
     label: "Créateurs",
     href: null,
     items: [
-      { label: "Créateurs", hint: "Annuaire des membres", glyph: "☺", href: null },
+      { label: "Créateurs", hint: "Annuaire des membres", glyph: "☺", href: "/createurs" },
       { label: "Services", hint: "Prestations des membres", glyph: "✦", href: "/services" },
       { label: "Jobs", hint: "Missions à saisir", glyph: "▤", href: "/jobs" },
     ],
@@ -88,11 +88,17 @@ export const MENUS: GroupeMenu[] = [
   {
     key: "communaute",
     label: "Communauté & Blogs",
-    href: null,
+    href: "/communautes",
     items: [
+      {
+        label: "Communautés",
+        hint: "Des espaces où les créateurs se parlent",
+        glyph: "◍",
+        href: "/communautes",
+      },
       { label: "À propos", hint: "Notre histoire", glyph: "◈", href: null },
       { label: "Contact", hint: "Nous écrire", glyph: "✉", href: null },
-      { label: "Blogs", hint: "Articles et coulisses", glyph: "▤", href: null },
+      { label: "Blogs", hint: "Articles et coulisses", glyph: "▤", href: "/blog" },
       { label: "Support", hint: "Aide et litiges", glyph: "?", href: null },
       {
         label: "Documentation Baobart",

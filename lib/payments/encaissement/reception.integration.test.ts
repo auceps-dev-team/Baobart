@@ -170,12 +170,35 @@ describe("un rappel qui annonce un succès", () => {
     const soldes = await db.balance.count({ where: { userId: vendeur.id } });
     expect(soldes).toBeGreaterThan(0);
 
+    // ════════════════════════════════════════════════════════════════════
+    // LA CLE PORTE SON CANAL DEPUIS v1.52.1
+    //
+    // Mesure du 17 septembre 2026 : ces deux assertions cherchaient
+    // « recu-<orderItemId> » et ne trouvaient rien. Le reçu partait bien — il
+    // s'appelle « courriel:recu-<orderItemId> » depuis que l'aiguilleur
+    // prefixe chaque clé par son canal.
+    //
+    // Le test datait de v1.36.0, le prefixe de v1.52.1 : il a passé deux
+    // versions à échouer sans que personne ne le relise. C'est exactement le
+    // succès silencieux à l'envers — un vrai comportement, une fausse alarme,
+    // et une alarme qu'on finit par ignorer.
     const recu = await db.emailOutbox.findUniqueOrThrow({
-      where: { idempotencyKey: `recu-${orderItemId}` },
+      where: { idempotencyKey: `courriel:recu-${orderItemId}` },
       select: { recipient: true, template: true },
     });
     expect(recu.recipient).toBe(acheteur.email);
     expect(recu.template).toBe("RECU_ACHAT");
+
+    // Et dans la cloche, pas seulement dans la boîte aux lettres. C'est
+    // précisément ce que v1.52.1 a ajouté, et rien ne le vérifiait : un
+    // acheteur qui relève rarement ses courriels n'avait aucune trace de ce
+    // qu'il venait de payer.
+    const cloche = await db.notification.findUniqueOrThrow({
+      where: { cle: `in-app:recu-${orderItemId}` },
+      select: { userId: true, type: true },
+    });
+    expect(cloche.userId).toBe(acheteur.id);
+    expect(cloche.type).toBe("ACHAT_CONFIRME");
   });
 
   it("garde la référence de l'opérateur sur la commande", async () => {
@@ -214,9 +237,14 @@ describe("le rejeu", () => {
     expect(apres.state).toBe("SUCCESSFUL");
     expect(mouvements).toBeGreaterThan(0);
 
-    // Rien n'a bougé une seconde fois : un seul reçu.
+    // Rien n'a bougé une seconde fois : un seul reçu, sur les deux canaux.
     expect(
-      await db.emailOutbox.count({ where: { idempotencyKey: `recu-${orderItemId}` } }),
+      await db.emailOutbox.count({
+        where: { idempotencyKey: `courriel:recu-${orderItemId}` },
+      }),
+    ).toBe(1);
+    expect(
+      await db.notification.count({ where: { cle: `in-app:recu-${orderItemId}` } }),
     ).toBe(1);
   });
 

@@ -467,13 +467,24 @@ model User {
   subscriptions Subscription[]
   badges        UserBadge[]
 
-  // communauté
-  communityMemberships CommunityMembership[]
 
   // médias & notifications
   mediaAssets     MediaAsset[]
   notifications   Notification[]
   blogPosts       BlogPost[]
+
+  /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
+  /// `CommunityChatMessage` sont NOMMÉES : sans nom, Prisma ne saurait pas
+  /// distinguer « les communautés que j'ai créées » de celles où je suis
+  /// simplement membre.
+  ///
+  /// `communityMemberships` existait déjà, plus haut dans ce modèle ; elle a
+  /// été déplacée ici pour que le bloc se lise d'un tenant.
+  communautesCreees    Community[]            @relation("CommunautesCreees")
+  communityMemberships CommunityMembership[]
+  sujetsOuverts     ForumTopic[]           @relation("SujetsOuverts")
+  messagesDeForum   ForumPost[]            @relation("MessagesDeForum")
+  messagesDeChat    CommunityChatMessage[] @relation("MessagesDeChat")
   notificationPreferences NotificationPreference[]
   abonnementsPush PushSubscription[]
 
@@ -1951,6 +1962,21 @@ model Call {
 // 8. COMMUNAUTÉ & FORUM  (M5)
 // ============================================================================
 
+/// Un espace communautaire, ouvert par un créateur.
+///
+/// ════════════════════════════════════════════════════════════════════════════
+/// LES AUTEURS SONT DES RELATIONS, PLUS DES IDENTIFIANTS NUS
+///
+/// Les cinq tables de ce bloc portaient des `authorId String` sans `@relation`
+/// — l'audit du 28 août les appelait « clés étrangères scalaires ». Rien ne
+/// garantissait qu'un identifiant désigne un compte, et l'on ne pouvait pas
+/// afficher le nom de qui écrit sans une seconde requête par ligne.
+///
+/// `onDelete: Cascade` sur l'auteur : quelqu'un qui ferme son compte emporte
+/// ses messages. C'est le choix qu'impose le RGPD, et il vaut mieux que la
+/// solution habituelle — remplacer l'auteur par « compte supprimé » —, qui
+/// laisse le texte en ligne alors que c'est souvent lui qu'on voulait faire
+/// disparaître.
 model Community {
   id           String              @id @default(cuid())
   creatorId    String
@@ -1963,9 +1989,13 @@ model Community {
   status       String              @default("active")
   createdAt    DateTime            @default(now())
 
+  creator      User                  @relation("CommunautesCreees", fields: [creatorId], references: [id], onDelete: Cascade)
   members      CommunityMembership[]
   categories   ForumCategory[]
   chatMessages CommunityChatMessage[]
+
+  /// L'annuaire demande « les actives, visibles, les plus peuplées d'abord ».
+  @@index([status, visibility, memberCount])
 }
 
 model CommunityMembership {
@@ -1989,6 +2019,7 @@ model CommunityChatMessage {
   createdAt   DateTime @default(now())
 
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User      @relation("MessagesDeChat", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([communityId, createdAt])
 }
@@ -2018,8 +2049,12 @@ model ForumTopic {
   createdAt    DateTime @default(now())
 
   category ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author   User          @relation("SujetsOuverts", fields: [authorId], references: [id], onDelete: Cascade)
   posts    ForumPost[]
 
+  /// Les sujets se lisent « épinglés d'abord, puis les plus récents ».
+  /// L'ordre de l'index suit l'ordre du tri, sinon il ne sert pas.
+  @@index([categoryId, isPinned, createdAt])
   @@index([categoryId, createdAt])
 }
 
@@ -2032,9 +2067,12 @@ model ForumPost {
   isFlagged  Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  topic ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic  ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author User       @relation("MessagesDeForum", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([topicId, createdAt])
+  /// La file de modération demande « les signalés, les plus anciens d'abord ».
+  @@index([isFlagged, createdAt])
 }
 
 /// Le centre de notifications, dans l'application.

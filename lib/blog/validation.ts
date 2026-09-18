@@ -1,6 +1,6 @@
 import { slugifier } from "@/lib/products/validation";
 
-import { adresseSure, extraitAutomatique } from "@/lib/blog/corps";
+import { adresseSure, extraitAutomatique } from "@/lib/cms/corps";
 
 /**
  * Ce qu'un article doit être avant d'entrer en base.

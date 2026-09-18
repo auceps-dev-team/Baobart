@@ -17,7 +17,7 @@ import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/ch
  * ════════════════════════════════════════════════════════════════════════════
  * UN CHAMP DE TEXTE, ET UNE AIDE-MÉMOIRE À CÔTÉ
  *
- * Pas d'éditeur riche — voir l'en-tête de `lib/blog/corps.ts` : ce projet ne
+ * Pas d'éditeur riche — voir l'en-tête de `lib/cms/corps.ts` : ce projet ne
  * rend d'HTML nulle part, et un blog n'est pas une raison de commencer.
  *
  * Ce que ça coûte, c'est qu'il faut apprendre cinq marques. La colonne de
