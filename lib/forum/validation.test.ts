@@ -2,11 +2,15 @@
  * Ce qu'on accepte d'écrire dans un forum.
  *
  * ─────────────────────────────────────────────────────────────────
- * LE TEST QUI COMPTE EST CELUI DE LA VISIBILITÉ INCONNUE
+ * IL N'Y A PLUS DE RÉGLAGE DE VISIBILITÉ
  *
- * Les seuils de longueur se relisent dans le code. Le repli sur `INVITE_ONLY`,
- * lui, est une décision qu'on peut inverser sans que rien ne casse — et
- * l'inverser ouvrirait des communautés que personne n'a voulu ouvrir.
+ * Ce fichier en éprouvait trois cas. Ils ont disparu avec le réglage : toutes
+ * les communautés sont ouvertes. Voir le test qui les a remplacés, et
+ * l'en-tête de `validerCommunaute` pour la raison.
+ *
+ * Ce qui reste tient en une phrase : les seuils sont bas — deux caractères
+ * pour un message — et le corps n'est pas échappé ici, parce que rien de ce
+ * projet ne rend d'HTML.
  */
 
 import { describe, expect, it } from "vitest";
@@ -22,7 +26,6 @@ describe("une communauté", () => {
     const v = validerCommunaute({
       nom: "  Sérigraphie   Dakar  ",
       description: " On y parle encres. ",
-      visibilite: "PUBLIC",
     });
 
     expect(v.ok).toBe(true);
@@ -37,7 +40,7 @@ describe("une communauté", () => {
   it("rend `null` pour une description vide, pas la chaîne vide", () => {
     // La base distingue les deux, et l'écran aussi : `null` ne s'affiche pas,
     // une chaîne vide occupe une ligne.
-    const v = validerCommunaute({ nom: "Atelier", description: "   ", visibilite: "PUBLIC" });
+    const v = validerCommunaute({ nom: "Atelier", description: "   " });
 
     expect(v.ok).toBe(true);
     if (!v.ok) return;
@@ -45,7 +48,7 @@ describe("une communauté", () => {
   });
 
   it("refuse un nom trop court", () => {
-    const v = validerCommunaute({ nom: "ab", description: "", visibilite: "PUBLIC" });
+    const v = validerCommunaute({ nom: "ab", description: "" });
 
     expect(v.ok).toBe(false);
     if (v.ok) return;
@@ -55,7 +58,7 @@ describe("une communauté", () => {
   it("refuse un nom dont on ne peut tirer aucune adresse", () => {
     // « ??? » fait trois caractères et passe la longueur, mais son slug est
     // vide : la communauté n'aurait pas d'URL.
-    const v = validerCommunaute({ nom: "???", description: "", visibilite: "PUBLIC" });
+    const v = validerCommunaute({ nom: "???", description: "" });
 
     expect(v.ok).toBe(false);
     if (v.ok) return;
@@ -67,7 +70,6 @@ describe("une communauté", () => {
     const v = validerCommunaute({
       nom: "Atelier",
       description: "x".repeat(601),
-      visibilite: "PUBLIC",
     });
 
     expect(v.ok).toBe(false);
@@ -75,40 +77,25 @@ describe("une communauté", () => {
     expect(v.refus.champ).toBe("description");
   });
 
-  it.each(["PUBLIC", "PRIVATE", "INVITE_ONLY"])(
-    "accepte la visibilité %s",
-    (demandee) => {
-      const v = validerCommunaute({ nom: "Atelier", description: "", visibilite: demandee });
-
-      expect(v.ok).toBe(true);
-      if (!v.ok) return;
-      expect(v.valeur.visibilite).toBe(demandee);
-    },
-  );
-
-  it("accepte une visibilité mal cassée", () => {
-    // Le formulaire peut envoyer « public » ; ce n'est pas une attaque, c'est
-    // une minuscule.
-    const v = validerCommunaute({ nom: "Atelier", description: "", visibilite: " public " });
+  it("ouvre toujours, sans réglage de visibilité", () => {
+    // ════════════════════════════════════════════════════════════════════════
+    // CE TEST A REMPLACÉ TROIS AUTRES, ET C'EST UN RECUL ASSUMÉ
+    //
+    // Avant, ce fichier éprouvait qu'une visibilité inconnue retombait sur
+    // `INVITE_ONLY` — la plus fermée. La règle était bonne ; ce qu'elle
+    // protégeait ne l'était pas. Adhérer à une communauté privée était REFUSÉ,
+    // faute de table de demandes : le réglage menait à une porte close, et
+    // aucune maquette ne le dessine.
+    //
+    // La saisie n'a donc plus de champ `visibilite` du tout. Ce n'est pas un
+    // défaut qui ferme : c'est un champ qui n'existe pas, ce qui est la seule
+    // façon sûre de ne pas se tromper dessus.
+    const v = validerCommunaute({ nom: "Atelier", description: "" });
 
     expect(v.ok).toBe(true);
     if (!v.ok) return;
     expect(v.valeur.visibilite).toBe("PUBLIC");
   });
-
-  it.each(["", "TOUT_LE_MONDE", "OPEN", "null", "undefined"])(
-    "ferme sur « %s », plutôt que d'ouvrir",
-    (demandee) => {
-      // LA règle à ne pas inverser. Un formulaire trafiqué, un champ renommé,
-      // une valeur ajoutée à l'enum sans mettre la validation à jour : dans les
-      // trois cas, l'erreur doit fermer.
-      const v = validerCommunaute({ nom: "Atelier", description: "", visibilite: demandee });
-
-      expect(v.ok).toBe(true);
-      if (!v.ok) return;
-      expect(v.valeur.visibilite).toBe("INVITE_ONLY");
-    },
-  );
 });
 
 describe("un sujet", () => {

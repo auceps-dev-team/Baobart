@@ -3,15 +3,14 @@
 import { useActionState } from "react";
 
 import {
-  ouvrirUnSujet,
-  repondreAUnSujet,
+  ecrireDansLeFilDe,
   ouvrirUneCommunaute,
   type EtatFormulaire,
 } from "@/lib/forum/actions";
 import { BLANC, CADRE, ENCRE, GRIS, ORANGE } from "@/lib/systeme/charte";
 
 /**
- * Les trois formulaires du forum.
+ * Les deux formulaires des communautés.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * AUCUNE VALIDATION N'EST REJOUÉE ICI
@@ -25,11 +24,13 @@ import { BLANC, CADRE, ENCRE, GRIS, ORANGE } from "@/lib/systeme/charte";
  * et le serveur refuse de toute façon.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * LA SYNTAXE DES MESSAGES EST LA MÊME QUE CELLE DU BLOG
+ * IL N'Y A PLUS DE CHOIX DE VISIBILITÉ
  *
- * `lib/cms/corps.ts` lit les deux. Ce qui veut dire qu'un message de forum
- * accepte `**gras**`, les listes et les liens, et que rien de ce qui est écrit
- * ne devient jamais du HTML — pas même un `<b>` tapé exprès.
+ * Le formulaire en portait un — publique, privée, sur invitation. Il a
+ * disparu : toutes les communautés sont ouvertes. La raison tient en une
+ * phrase — adhérer à une privée était refusé faute de table de demandes, donc
+ * deux des trois valeurs menaient à une porte close. Aucune maquette n'en
+ * dessine.
  */
 
 const CHAMP: React.CSSProperties = {
@@ -81,21 +82,19 @@ export function FormulaireCommunaute() {
         <textarea name="description" rows={3} maxLength={600} style={CHAMP} />
       </Champ>
 
-      <Champ
-        libelle="Qui peut entrer"
-        aide="Une privée se voit exister sans se lire. Une communauté sur invitation ne figure même pas dans l'annuaire."
-      >
-        <select name="visibilite" defaultValue="PUBLIC" style={CHAMP}>
-          <option value="PUBLIC">Publique — tout le monde lit, les membres écrivent</option>
-          <option value="PRIVATE">Privée — seuls les membres lisent</option>
-          <option value="INVITE_ONLY">Sur invitation — invisible aux autres</option>
-        </select>
-      </Champ>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, opacity: 0.7 }}>
+        Tout le monde pourra lire ce qui s&apos;y écrit. Seuls les membres
+        pourront écrire.
+      </p>
 
       <Erreur etat={etat} />
 
       <div>
-        <button type="submit" disabled={enCours} style={{ ...BOUTON, background: enCours ? GRIS : ENCRE }}>
+        <button
+          type="submit"
+          disabled={enCours}
+          style={{ ...BOUTON, background: enCours ? GRIS : ENCRE }}
+        >
           {enCours ? "…" : "Ouvrir la communauté"}
         </button>
       </div>
@@ -103,82 +102,46 @@ export function FormulaireCommunaute() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════ le sujet ══
+// ═════════════════════════════════════════════════════════════════════ le fil ══
 
-export function FormulaireSujet({
-  slug,
-  categorieId,
-}: {
-  slug: string;
-  categorieId: string;
-}) {
+/**
+ * Écrire dans le fil.
+ *
+ * La maquette (`#collab`) montre une zone de saisie large et un bouton
+ * « Envoyer » à droite, sous les messages. On la reprend telle quelle, y
+ * compris le placeholder — « Écrire un commentaire… ».
+ */
+export function FormulaireFil({ slug }: { slug: string }) {
   const [etat, envoyer, enCours] = useActionState<
     EtatFormulaire | null,
     FormData
-  >(ouvrirUnSujet.bind(null, slug, categorieId), null);
-
-  return (
-    <form action={envoyer} style={{ display: "grid", gap: 14 }}>
-      <Champ libelle="Titre" erreur={erreurDe(etat, "titre")}>
-        <input
-          name="titre"
-          required
-          maxLength={140}
-          placeholder="Quelle encre pour du wax ?"
-          style={CHAMP}
-        />
-      </Champ>
-
-      <Champ libelle="Message" erreur={erreurDe(etat, "corps")}>
-        <textarea name="corps" required rows={6} style={CHAMP} />
-      </Champ>
-
-      <Erreur etat={etat} />
-
-      <div>
-        <button type="submit" disabled={enCours} style={{ ...BOUTON, background: enCours ? GRIS : ENCRE }}>
-          {enCours ? "…" : "Ouvrir le sujet"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════ la réponse ══
-
-export function FormulaireReponse({
-  slug,
-  sujetId,
-}: {
-  slug: string;
-  sujetId: string;
-}) {
-  const [etat, envoyer, enCours] = useActionState<
-    EtatFormulaire | null,
-    FormData
-  >(repondreAUnSujet.bind(null, slug, sujetId), null);
+  >(ecrireDansLeFilDe.bind(null, slug), null);
 
   return (
     <form
       action={envoyer}
       // La clé change à chaque succès : React garde sinon le texte envoyé dans
-      // la zone de saisie, et l'on croit que la réponse n'est pas partie.
+      // la zone de saisie, et l'on croit que le message n'est pas parti.
       key={etat?.ok ? "vide" : "saisie"}
       style={{ display: "grid", gap: 12 }}
     >
       <textarea
         name="corps"
         required
-        rows={4}
-        placeholder="Répondre…"
+        rows={3}
+        placeholder="Écrire un commentaire…"
         style={CHAMP}
       />
 
       <Erreur etat={etat} />
 
-      <div>
-        <button type="submit" disabled={enCours} style={{ ...BOUTON, background: enCours ? GRIS : ENCRE }}>
-          {enCours ? "…" : "Répondre"}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="submit"
+          disabled={enCours}
+          style={{ ...BOUTON, background: enCours ? GRIS : ENCRE }}
+        >
+          {enCours ? "…" : "Envoyer"}
         </button>
       </div>
     </form>

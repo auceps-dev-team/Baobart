@@ -2011,17 +2011,35 @@ model CommunityMembership {
   @@unique([communityId, userId])
 }
 
+/// Le fil d'une communauté : un flux plat, sans sujet ni rubrique.
+///
+/// C'est la forme que dessine la maquette (`Baobart Accueil.dc.html`, section
+/// `#collab` — « Vos espaces d'équipe ») : `{{ c.who }}`, `{{ c.when }}`,
+/// `{{ c.text }}`, et une zone « Écrire un commentaire… ». Pas de titre, pas
+/// de fil de discussion, pas de réponse à une réponse.
+///
+/// `ForumTopic` et `ForumPost` existent à côté et portent la version à trois
+/// niveaux. Ils ne sont reliés à aucun écran pour l'instant : la maquette ne
+/// les dessine pas, et elle fait foi.
 model CommunityChatMessage {
   id          String   @id @default(cuid())
   communityId String
   authorId    String
   body        String   @db.Text
-  createdAt   DateTime @default(now())
+
+  /// Signalé par un membre. Le message reste visible et marqué — voir
+  /// `ForumPost.isFlagged`, même règle : le masquer ferait disparaître le
+  /// contexte d'une conversation dont les réponses citent ce qu'on a signalé.
+  isFlagged Boolean @default(false)
+
+  createdAt DateTime @default(now())
 
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   author    User      @relation("MessagesDeChat", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([communityId, createdAt])
+  /// La file de signalements, qui lit tous les espaces à la fois.
+  @@index([isFlagged, createdAt])
 }
 
 model ForumCategory {

@@ -12,28 +12,25 @@ import { BLANC, CADRE, ENCRE, GRIS, ORANGE } from "@/lib/systeme/charte";
  * Entrer dans une communauté, ou en sortir.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * TROIS ÉTATS, ET LE TROISIÈME NE MÈNE NULLE PART
+ * DEUX ÉTATS, DEPUIS QUE TOUTES LES COMMUNAUTÉS SONT OUVERTES
  *
- * Membre → « Quitter ». Publique → « Rejoindre ». Privée → une phrase qui dit
- * qu'on n'entre que sur invitation, et pas de bouton.
+ * Membre → « Quitter ». Sinon → « Rejoindre ». Il y en avait un troisième —
+ * « on entre ici sur invitation », sans bouton — qui a disparu avec le réglage
+ * de visibilité : il ne menait nulle part, faute de table de demandes
+ * d'adhésion.
  *
- * Ce dernier cas est un manque assumé : la validation par les administrateurs
- * n'existe pas encore (voir `rejoindre` dans `redaction.ts`). Un bouton qui
- * ferait entrer automatiquement transformerait « privée » en « publique avec
- * une étape de plus » ; un bouton qui échouerait ferait croire à une panne.
- * Une phrase vraie vaut mieux que les deux.
+ * Un état de moins, et c'est un écran de plus qui dit la vérité. Un bouton qui
+ * ne mène nulle part est un aveu d'inachèvement affiché à l'utilisateur.
  */
 export function Adhesion({
   slug,
   estMembre,
   estCreateur,
-  visibilite,
   connecte,
 }: {
   slug: string;
   estMembre: boolean;
   estCreateur: boolean;
-  visibilite: string;
   connecte: boolean;
 }) {
   const [enCours, demarrer] = useTransition();
@@ -46,10 +43,6 @@ export function Adhesion({
 
   if (!connecte) {
     return <Mention>Connecte-toi pour rejoindre cette communauté.</Mention>;
-  }
-
-  if (!estMembre && visibilite !== "PUBLIC") {
-    return <Mention>On entre ici sur invitation.</Mention>;
   }
 
   const agir = () => {

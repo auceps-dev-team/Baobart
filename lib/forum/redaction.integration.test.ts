@@ -62,10 +62,20 @@ async function espace(visibilite: "PUBLIC" | "PRIVATE" = "PUBLIC") {
     saisie: {
       nom: `Atelier sérigraphie ${n}`,
       description: "On y parle encres et écrans.",
-      visibilite,
     },
   });
   if (!suite.ok) throw new Error("ouverture ratée");
+
+  // `ouvrirCommunaute` n'ouvre plus que des PUBLIC : le formulaire ne propose
+  // plus le choix. Une ligne privée ne peut donc venir que d'avant ce
+  // changement — et ce montage la reproduit en l'écrivant à la main, parce que
+  // la règle qui protège ces lignes est restée et doit continuer de valoir.
+  if (visibilite !== "PUBLIC") {
+    await db.community.update({
+      where: { slug: suite.slug },
+      data: { visibility: visibilite },
+    });
+  }
 
   const communaute = await db.community.findUniqueOrThrow({
     where: { slug: suite.slug },
@@ -114,15 +124,17 @@ describe("ouvrir une communauté", () => {
     expect(rubriques).toEqual([{ slug: "general" }]);
   });
 
-  it("ferme par défaut une visibilité qu'elle ne reconnaît pas", async () => {
-    // La règle à ne pas inverser : un formulaire trafiqué, un champ renommé,
-    // une valeur ajoutée à l'enum sans mettre la validation à jour — dans les
-    // trois cas, l'erreur doit FERMER.
+  it("ouvre tout ce qu'elle crée", async () => {
+    // Ce test en remplace un autre, qui vérifiait qu'une visibilité inconnue
+    // retombait sur `INVITE_ONLY`. La règle était juste ; ce qu'elle protégeait
+    // ne l'était pas — adhérer à une privée était refusé faute de table de
+    // demandes. Le champ a disparu, et c'est la seule façon sûre de ne pas se
+    // tromper dessus.
     const createur = await personne();
 
     const suite = await ouvrirCommunaute({
       createurId: createur.id,
-      saisie: { nom: "Espace tordu", description: "", visibilite: "TOUT_LE_MONDE" },
+      saisie: { nom: "Espace ordinaire", description: "" },
     });
     if (!suite.ok) throw new Error("ouverture ratée");
 
@@ -130,7 +142,7 @@ describe("ouvrir une communauté", () => {
       where: { slug: suite.slug },
       select: { visibility: true },
     });
-    expect(c.visibility).toBe("INVITE_ONLY");
+    expect(c.visibility).toBe("PUBLIC");
   });
 
   it("cède l'adresse « nouvelle » à la route de création", async () => {
@@ -142,7 +154,7 @@ describe("ouvrir une communauté", () => {
 
     const suite = await ouvrirCommunaute({
       createurId: createur.id,
-      saisie: { nom: "Nouvelle", description: "", visibilite: "PUBLIC" },
+      saisie: { nom: "Nouvelle", description: "" },
     });
 
     if (!suite.ok) throw new Error("ouverture ratée");
@@ -152,7 +164,7 @@ describe("ouvrir une communauté", () => {
   it("donne deux adresses distinctes à deux noms identiques", async () => {
     const a = await personne();
     const b = await personne();
-    const saisie = { nom: "Sérigraphie", description: "", visibilite: "PUBLIC" };
+    const saisie = { nom: "Sérigraphie", description: "" };
 
     const un = await ouvrirCommunaute({ createurId: a.id, saisie });
     const deux = await ouvrirCommunaute({ createurId: b.id, saisie });
@@ -183,10 +195,11 @@ describe("rejoindre et quitter", () => {
     expect(c.memberCount).toBe(2);
   });
 
-  it("refuse une privée, plutôt que d'y faire entrer sans validation", async () => {
-    // Accorder automatiquement transformerait « privée » en « publique avec
-    // une étape de plus », et viderait le réglage de son sens sans que
-    // personne ne s'en aperçoive. Un manque visible vaut mieux.
+  it("refuse encore une ligne privée héritée", async () => {
+    // On n'en crée plus. Mais la base peut en porter — jeu d'essai, retour
+    // arrière, développement — et la garde doit tenir : y faire entrer
+    // automatiquement transformerait « privée » en « publique avec une étape
+    // de plus », sans que personne ne s'en aperçoive.
     const e = await espace("PRIVATE");
     const arrivant = await personne();
 

@@ -41,7 +41,6 @@ const DESCRIPTION_MAX = 600;
 export interface SaisieCommunaute {
   nom: string;
   description: string;
-  visibilite: string;
 }
 
 export interface CommunauteValide {
@@ -50,8 +49,6 @@ export interface CommunauteValide {
   description: string | null;
   visibilite: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
 }
-
-const VISIBILITES = ["PUBLIC", "PRIVATE", "INVITE_ONLY"] as const;
 
 export function validerCommunaute(
   saisie: SaisieCommunaute,
@@ -81,23 +78,28 @@ export function validerCommunaute(
     );
   }
 
-  // Une visibilité inconnue vaut la plus fermée, jamais la plus ouverte.
-  //
-  // C'est la règle à ne pas inverser : un formulaire trafiqué, un champ
-  // renommé, une valeur ajoutée à l'enum sans mettre ce fichier à jour — dans
-  // les trois cas, l'erreur doit fermer.
-  const demandee = saisie.visibilite.trim().toUpperCase();
-  const visibilite = (VISIBILITES as readonly string[]).includes(demandee)
-    ? (demandee as CommunauteValide["visibilite"])
-    : "INVITE_ONLY";
-
   return {
     ok: true,
     valeur: {
       nom,
       slug,
       description: description.length > 0 ? description : null,
-      visibilite,
+      // ══════════════════════════════════════════════════════════════════════
+      // TOUTES LES COMMUNAUTÉS SONT OUVERTES, ET CE N'EST PAS UN OUBLI
+      //
+      // Le formulaire ne propose plus le choix, et cette fonction ne le lit
+      // plus : une communauté créée aujourd'hui est PUBLIC, sans exception.
+      //
+      // La raison est le manque qu'on avait livré avec : adhérer à une privée
+      // était REFUSÉ, faute de table de demandes d'adhésion. Un réglage dont
+      // la moitié des valeurs mène à une porte close n'est pas un réglage,
+      // c'est un piège — et la maquette n'en dessine aucun.
+      //
+      // `acces.ts` continue de traiter PRIVATE et INVITE_ONLY correctement.
+      // C'est délibéré : si une ligne porte encore l'une des deux — jeu
+      // d'essai, base de développement, retour arrière — elle doit rester
+      // fermée. On a retiré la façon d'en créer, pas la règle qui les protège.
+      visibilite: "PUBLIC" as const,
     },
   };
 }

@@ -45,10 +45,11 @@ export default async function ModerationPage() {
   const file = await fileDeModeration(utilisateur.role);
   const types = typesRelusPar(utilisateur.role);
 
-  // Le forum ne passe pas par le cycle CMS : ses messages paraissent tout de
-  // suite et se signalent après. Ils ont donc leur propre file, ouverte au
-  // seul `moderer_le_contenu` — `publier_du_contenu` relit les événements,
-  // pas les conversations.
+  // Les communautés ne passent pas par le cycle CMS : leurs messages
+  // paraissent tout de suite et se signalent après. Ils ont donc leur propre
+  // écran — `a_signalements` dans la maquette — ouvert au seul
+  // `moderer_le_contenu` : `publier_du_contenu` relit les événements, pas les
+  // conversations.
   const voitLesSignalements = peut(utilisateur.role, "moderer_le_contenu");
 
   return (
@@ -60,12 +61,13 @@ export default async function ModerationPage() {
       {voitLesSignalements ? (
         <p style={{ marginBottom: 20, fontSize: 13.5, fontWeight: 600, opacity: 0.75 }}>
           <Link
-            href={"/dashboard/moderation/signalements" as Route}
+            href={"/dashboard/signalements" as Route}
             style={{ textDecoration: "underline" }}
           >
-            Les signalements du forum →
+            Signalements & DMCA →
           </Link>{" "}
-          — des messages déjà publiés, à laisser ou à retirer.
+          — des messages de communauté déjà publiés, à laisser ou à retirer,
+          et les communautés elles-mêmes.
         </p>
       ) : null}
 

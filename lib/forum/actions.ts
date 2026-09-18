@@ -5,55 +5,58 @@ import { redirect } from "next/navigation";
 
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { sessionCourante } from "@/lib/auth/session";
-import { contexteDe } from "@/lib/forum/queries";
 import {
+  MESSAGES_ECHEC_FIL,
+  ecrireDansLeFil,
+  prevenirDUneAdhesion,
+  retirerDuFil,
+  signalerDansLeFil,
+  type SuiteFil,
+} from "@/lib/forum/fil";
+import { contexteDe } from "@/lib/forum/queries";
+import { MESSAGES_ECHEC, quitter, rejoindre, ouvrirCommunaute } from "@/lib/forum/redaction";
+import {
+  basculerLaCommunaute,
   leverLeSignalement,
   retirerParLaPlateforme,
+  type Origine,
 } from "@/lib/forum/signalements";
-import {
-  MESSAGES_ECHEC,
-  basculerEpingle,
-  basculerVerrou,
-  ouvrirCommunaute,
-  ouvrirSujet,
-  quitter,
-  rejoindre,
-  repondre,
-  retirerMessage,
-  signalerMessage,
-  type Suite,
-} from "@/lib/forum/redaction";
 
 /**
- * Les gestes du forum, depuis le navigateur.
+ * Les gestes des communautés, depuis le navigateur.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * CE FICHIER NE DÉCIDE RIEN
  *
  * Il fait trois choses, toujours dans le même ordre : retrouver qui parle,
- * recalculer le contexte **depuis le slug**, puis passer la main à
- * `redaction.ts` avec les droits ainsi obtenus.
+ * recalculer le contexte **depuis le slug**, puis passer la main avec les
+ * droits ainsi obtenus.
  *
  * Le point important est le deuxième. Les identifiants viennent du formulaire,
  * donc du navigateur, donc de n'importe qui : l'identifiant de communauté
- * qu'on recevrait dans un champ caché ne prouverait rien. Le slug de l'URL
- * n'en prouve pas davantage — mais il repasse par `contexteDe`, qui refait le
- * calcul d'accès à partir de la base. Ce qui traverse ensuite est vrai.
+ * qu'on recevrait dans un champ caché ne prouverait rien. Le slug de l'URL n'en
+ * prouve pas davantage — mais il repasse par `contexteDe`, qui refait le calcul
+ * d'accès à partir de la base. Ce qui traverse ensuite est vrai.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * « INTROUVABLE » RECOUVRE DEUX CHOSES, ET CELA RESTE VOLONTAIRE
+ * LES GESTES DE SUJET NE SONT PLUS EXPOSÉS
  *
- * Un espace sur invitation qu'on ne connaît pas rend le même message qu'un
- * espace qui n'existe pas. Les distinguer apprendrait son existence à qui tape
- * une adresse au hasard — c'est la règle posée dans `queries.ts`, et les
- * actions ne la contournent pas au prétexte d'un meilleur message d'erreur.
+ * `ouvrirUnSujet`, `repondreAUnSujet`, `epinglerUnSujet`, `verrouillerUnSujet`
+ * ont disparu de ce fichier. Leur code vit toujours dans `redaction.ts`, mais
+ * il n'a plus d'écran : la maquette dessine un fil plat, pas un forum à
+ * rubriques (voir l'en-tête de `lib/forum/fil.ts`).
+ *
+ * Les retirer d'ici n'est pas cosmétique. **Chaque export d'un module
+ * « use server » est une URL que le navigateur peut appeler**, avec les
+ * arguments qu'il veut. Laisser ces quatre-là exposés maintiendrait ouverte une
+ * façon d'écrire dans un produit qu'on n'affiche plus et que personne ne
+ * surveille.
  */
 
 export type EtatFormulaire =
   | { ok: true }
   | { ok: false; message: string; champ?: string };
 
-/** L'échec commun à tous les gestes : personne n'est connecté. */
 const DECONNECTE: EtatFormulaire = {
   ok: false,
   message: "Connecte-toi pour participer.",
@@ -61,7 +64,7 @@ const DECONNECTE: EtatFormulaire = {
 
 const INTROUVABLE: EtatFormulaire = {
   ok: false,
-  message: "Cette communauté n'existe pas, ou elle ne t'est pas ouverte.",
+  message: "Cette communauté n'existe pas, ou elle n'est plus ouverte.",
 };
 
 // ══════════════════════════════════════════════════════════════ la communauté ══
@@ -78,11 +81,15 @@ export async function ouvrirUneCommunaute(
     saisie: {
       nom: texte(donnees, "nom"),
       description: texte(donnees, "description"),
-      visibilite: texte(donnees, "visibilite"),
     },
   });
 
-  if (!suite.ok) return echec(suite);
+  if (!suite.ok) {
+    if (suite.motif === "REFUS") {
+      return { ok: false, champ: suite.refus.champ, message: suite.refus.message };
+    }
+    return { ok: false, message: MESSAGES_ECHEC[suite.motif] };
+  }
 
   revalidatePath("/communautes");
   redirect(`/communautes/${suite.slug}`);
@@ -104,7 +111,23 @@ export async function rejoindreUneCommunaute(
     visibilite: ctx.communaute.visibilite,
   });
 
-  if (!suite.ok) return echec(suite);
+  if (!suite.ok) {
+    if (suite.motif === "REFUS") {
+      return { ok: false, champ: suite.refus.champ, message: suite.refus.message };
+    }
+    return { ok: false, message: MESSAGES_ECHEC[suite.motif] };
+  }
+
+  // Après l'adhésion, et sans bloquer dessus : on est entré, même si la cloche
+  // des administrateurs ne sonne pas.
+  await prevenirDUneAdhesion({
+    communauteId: ctx.communaute.id,
+    communauteNom: ctx.communaute.nom,
+    communauteSlug: slug,
+    createurId: ctx.communaute.createurId,
+    arrivantId: qui.id,
+    arrivantNom: qui.nom,
+  });
 
   revalidatePath(`/communautes/${slug}`);
   revalidatePath("/communautes");
@@ -126,18 +149,22 @@ export async function quitterUneCommunaute(
     createurId: ctx.communaute.createurId,
   });
 
-  if (!suite.ok) return echec(suite);
+  if (!suite.ok) {
+    if (suite.motif === "REFUS") {
+      return { ok: false, champ: suite.refus.champ, message: suite.refus.message };
+    }
+    return { ok: false, message: MESSAGES_ECHEC[suite.motif] };
+  }
 
   revalidatePath(`/communautes/${slug}`);
   revalidatePath("/communautes");
   return { ok: true };
 }
 
-// ═══════════════════════════════════════════════════════════ sujets et messages ══
+// ═════════════════════════════════════════════════════════════════════ le fil ══
 
-export async function ouvrirUnSujet(
+export async function ecrireDansLeFilDe(
   slug: string,
-  categorieId: string,
   _precedent: EtatFormulaire | null,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
@@ -147,50 +174,25 @@ export async function ouvrirUnSujet(
   const ctx = await contexteDe(slug, qui);
   if (!ctx) return INTROUVABLE;
 
-  const suite = await ouvrirSujet({
+  const suite = await ecrireDansLeFil({
     communauteId: ctx.communaute.id,
-    categorieId,
+    communauteNom: ctx.communaute.nom,
+    communauteSlug: slug,
     auteurId: qui.id,
-    droits: ctx.droits,
-    saisie: { titre: texte(donnees, "titre"), corps: texte(donnees, "corps") },
-  });
-
-  if (!suite.ok) return echec(suite);
-
-  revalidatePath(`/communautes/${slug}`);
-  redirect(`/communautes/${slug}/sujets/${suite.sujetId}`);
-}
-
-export async function repondreAUnSujet(
-  slug: string,
-  sujetId: string,
-  _precedent: EtatFormulaire | null,
-  donnees: FormData,
-): Promise<EtatFormulaire> {
-  const qui = await sessionCourante();
-  if (!qui) return DECONNECTE;
-
-  const ctx = await contexteDe(slug, qui);
-  if (!ctx) return INTROUVABLE;
-
-  const suite = await repondre({
-    communauteId: ctx.communaute.id,
-    sujetId,
-    auteurId: qui.id,
+    auteurNom: qui.nom,
     droits: ctx.droits,
     saisie: { corps: texte(donnees, "corps") },
   });
 
-  if (!suite.ok) return echec(suite);
+  if (!suite.ok) return echecDuFil(suite);
 
-  revalidatePath(`/communautes/${slug}/sujets/${sujetId}`);
+  revalidatePath(`/communautes/${slug}`);
   return { ok: true };
 }
 
-export async function retirerUnMessage(
+export async function retirerDuFilDe(
   slug: string,
   messageId: string,
-  sujetId: string,
 ): Promise<EtatFormulaire> {
   const qui = await sessionCourante();
   if (!qui) return DECONNECTE;
@@ -198,23 +200,22 @@ export async function retirerUnMessage(
   const ctx = await contexteDe(slug, qui);
   if (!ctx) return INTROUVABLE;
 
-  const suite = await retirerMessage({
+  const suite = await retirerDuFil({
     communauteId: ctx.communaute.id,
     messageId,
     parId: qui.id,
     droits: ctx.droits,
   });
 
-  if (!suite.ok) return echec(suite);
+  if (!suite.ok) return echecDuFil(suite);
 
-  revalidatePath(`/communautes/${slug}/sujets/${sujetId}`);
+  revalidatePath(`/communautes/${slug}`);
   return { ok: true };
 }
 
-export async function signalerUnMessage(
+export async function signalerDansLeFilDe(
   slug: string,
   messageId: string,
-  sujetId: string,
 ): Promise<EtatFormulaire> {
   const qui = await sessionCourante();
   if (!qui) return DECONNECTE;
@@ -222,7 +223,7 @@ export async function signalerUnMessage(
   const ctx = await contexteDe(slug, qui);
   if (!ctx) return INTROUVABLE;
 
-  const suite = await signalerMessage({
+  const suite = await signalerDansLeFil({
     communauteId: ctx.communaute.id,
     messageId,
     parId: qui.id,
@@ -233,65 +234,16 @@ export async function signalerUnMessage(
   // la personne a fait ce qu'elle voulait faire, et lui répondre « ça n'existe
   // pas » sur un message qu'elle a sous les yeux ne lui apprendrait rien de
   // vrai.
-  if (!suite.ok && suite.motif === "INTROUVABLE") {
-    revalidatePath(`/communautes/${slug}/sujets/${sujetId}`);
-    return { ok: true };
-  }
-
-  if (!suite.ok) return echec(suite);
-
-  revalidatePath(`/communautes/${slug}/sujets/${sujetId}`);
-  return { ok: true };
-}
-
-// ══════════════════════════════════════════════════════════════ la modération ══
-
-export async function epinglerUnSujet(
-  slug: string,
-  sujetId: string,
-): Promise<EtatFormulaire> {
-  return bascule(slug, sujetId, basculerEpingle);
-}
-
-export async function verrouillerUnSujet(
-  slug: string,
-  sujetId: string,
-): Promise<EtatFormulaire> {
-  return bascule(slug, sujetId, basculerVerrou);
-}
-
-async function bascule(
-  slug: string,
-  sujetId: string,
-  geste: (input: {
-    communauteId: string;
-    sujetId: string;
-    droits: Parameters<typeof basculerEpingle>[0]["droits"];
-  }) => Promise<Suite<{ epingle: boolean }>>,
-): Promise<EtatFormulaire> {
-  const qui = await sessionCourante();
-  if (!qui) return DECONNECTE;
-
-  const ctx = await contexteDe(slug, qui);
-  if (!ctx) return INTROUVABLE;
-
-  const suite = await geste({
-    communauteId: ctx.communaute.id,
-    sujetId,
-    droits: ctx.droits,
-  });
-
-  if (!suite.ok) return echec(suite);
+  if (!suite.ok && suite.motif !== "INTROUVABLE") return echecDuFil(suite);
 
   revalidatePath(`/communautes/${slug}`);
-  revalidatePath(`/communautes/${slug}/sujets/${sujetId}`);
   return { ok: true };
 }
 
 // ═══════════════════════════════════════════════ la modération de plateforme ══
 
 /**
- * Les deux décisions prises depuis `/dashboard/moderation/signalements`.
+ * Les décisions prises depuis `/dashboard/signalements`.
  *
  * Elles ne passent pas par `contexteDe` : un modérateur de la plateforme n'est
  * membre de rien, et son droit ne vient pas de la communauté mais du pouvoir
@@ -300,36 +252,64 @@ async function bascule(
  */
 export async function leverUnSignalement(
   messageId: string,
+  origine: Origine,
 ): Promise<EtatFormulaire> {
   const qui = await exigerLePouvoir("moderer_le_contenu");
 
-  const suite = await leverLeSignalement({ messageId, parId: qui.id });
+  const suite = await leverLeSignalement({ messageId, origine, parId: qui.id });
   if (!suite.ok) return { ok: false, message: "Ce signalement n'existe plus." };
 
-  revalidatePath("/dashboard/moderation/signalements");
+  revalidatePath("/dashboard/signalements");
   return { ok: true };
 }
 
 export async function retirerUnMessageSignale(
   messageId: string,
+  origine: Origine,
 ): Promise<EtatFormulaire> {
   const qui = await exigerLePouvoir("moderer_le_contenu");
 
-  const suite = await retirerParLaPlateforme({ messageId, parId: qui.id });
+  const suite = await retirerParLaPlateforme({ messageId, origine, parId: qui.id });
   if (!suite.ok) return { ok: false, message: "Ce message n'existe plus." };
 
-  revalidatePath("/dashboard/moderation/signalements");
+  revalidatePath("/dashboard/signalements");
+  return { ok: true };
+}
+
+/**
+ * Fermer ou rouvrir une communauté entière.
+ *
+ * Le motif est exigé par `basculerLaCommunaute`, pas ici : une garde posée
+ * dans l'action serait contournable par un appel direct au module
+ * « use server », et c'est précisément ce geste-là qu'on ne veut pas voir
+ * s'exécuter sans trace.
+ */
+export async function basculerUneCommunaute(
+  communauteId: string,
+  motif: string,
+): Promise<EtatFormulaire> {
+  const qui = await exigerLePouvoir("moderer_le_contenu");
+
+  const suite = await basculerLaCommunaute({
+    communauteId,
+    parId: qui.id,
+    motif,
+  });
+
+  if (!suite.ok) return { ok: false, message: suite.message };
+
+  revalidatePath("/dashboard/signalements");
+  revalidatePath("/communautes");
   return { ok: true };
 }
 
 // ════════════════════════════════════════════════════════════════════ outils ══
 
-/** Traduit un échec de `redaction.ts` en quelque chose d'affichable. */
-function echec(suite: Extract<Suite<object>, { ok: false }>): EtatFormulaire {
+function echecDuFil(suite: Extract<SuiteFil<object>, { ok: false }>): EtatFormulaire {
   if (suite.motif === "REFUS") {
     return { ok: false, champ: suite.refus.champ, message: suite.refus.message };
   }
-  return { ok: false, message: MESSAGES_ECHEC[suite.motif] };
+  return { ok: false, message: MESSAGES_ECHEC_FIL[suite.motif] };
 }
 
 function texte(donnees: FormData, champ: string): string {

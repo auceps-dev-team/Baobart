@@ -18,20 +18,31 @@ export const dynamic = "force-dynamic";
  * L'annuaire des communautés.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * IL N'Y A PAS DE MAQUETTE POUR CET ÉCRAN
+ * CE QUE LA MAQUETTE DIT DE CET ÉCRAN — ET CE QU'ELLE N'EN DIT PAS
  *
- * `Baobart Design/` en dessine huit ; aucune ne montre le forum. On reprend
- * donc le vocabulaire visuel des autres pages — cadre noir, ombre portée de
- * 7 px, titres en display capitales — sans inventer de forme nouvelle. Le jour
- * où la maquette arrive, elle fait foi et remplace ceci.
+ * Une version de cet en-tête affirmait : « `Baobart Design/` en dessine huit ;
+ * aucune ne montre le forum. » C'était faux, et surtout ça n'avait pas été
+ * vérifié : les huit noms de fichiers avaient été lus, pas les fichiers.
+ *
+ * Vérifié le 18 septembre 2026, sur les huit maquettes : il n'y a pas d'écran
+ * d'annuaire, mais il y a bien un espace communautaire —
+ * `Baobart Accueil.dc.html`, section `#collab`, « Vos espaces d'équipe ». Elle
+ * y appelle depuis trois endroits : le bouton « Créer un espace », le lien
+ * « Voir les espaces », et « Espaces » dans la colonne « Communauté » du pied
+ * de page.
+ *
+ * Ce qu'elle dessine est un **fil plat** attaché à une collection partagée,
+ * pas un annuaire. Cet écran-ci est donc une invention assumée : il faut bien
+ * une porte d'entrée. Son vocabulaire visuel est repris des autres pages —
+ * cadre noir, ombre de 7 px, titres en display capitales.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * CE QUE LA LISTE MONTRE, ET CE QU'ELLE TAIT
+ * TOUTES LES COMMUNAUTÉS SONT OUVERTES
  *
- * Les publiques et les privées y figurent pour tout le monde : une privée se
- * voit exister, elle ne se lit pas. Les espaces sur invitation n'y figurent
- * que pour leurs membres — leur existence même est une information, et c'est
- * `clauseAnnuaire` qui le garantit, dans le `WHERE`, pas ici.
+ * Il n'y a plus de réglage de visibilité : chacune se voit et se lit, et seule
+ * l'écriture demande d'être membre. `clauseAnnuaire` écarte encore les fermées
+ * par l'administration, et les éventuelles lignes privées d'avant ce
+ * changement — la règle est restée, dans le `WHERE`, pas ici.
  */
 export default async function CommunautesPage() {
   const visiteur = await sessionCourante();

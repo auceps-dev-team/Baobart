@@ -48,10 +48,24 @@ describe("les défauts", () => {
     expect(canauxPour("NOUVEL_ABONNE")).not.toContain("COURRIEL");
   });
 
+  it("ferment le courriel sur les conversations de communauté", () => {
+    // Même raison que ci-dessus, poussée d'un cran : un fil actif produit
+    // plusieurs messages par heure. Le courriel arrive chez vous, et il
+    // arriverait une fois par message.
+    //
+    // Ces deux-là n'ont d'ailleurs aucun modèle de courriel — voir
+    // `aiguilleur.integration.test.ts`, qui tient la liste et vérifie qu'aucun
+    // événement sans modèle ne coche pourtant la case.
+    expect(canauxPour("COMMUNAUTE_NOUVEAU_MESSAGE")).toEqual(["IN_APP"]);
+    expect(canauxPour("COMMUNAUTE_NOUVEAU_MEMBRE")).toEqual(["IN_APP"]);
+  });
+
   it("ouvrent le courriel partout ailleurs", () => {
     const silencieux: EvenementNotifiable[] = [
       "INSCRIPTION_EVENEMENT",
       "NOUVEL_ABONNE",
+      "COMMUNAUTE_NOUVEAU_MESSAGE",
+      "COMMUNAUTE_NOUVEAU_MEMBRE",
     ];
     for (const e of EVENEMENTS) {
       if (silencieux.includes(e)) continue;

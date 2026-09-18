@@ -320,16 +320,41 @@ describe("ce qui devait partir et n'est pas parti", () => {
     expect(await db.notification.count({ where: { userId: moi.id } })).toBe(1);
   });
 
-  it("ne laisse plus aucun événement sans modèle de courriel", async () => {
-    // L'état transitoire est levé : les huit `modele: null` du catalogue ont
-    // reçu leur texte en v1.52.2. Ce test garde l'acquis — un neuvième
-    // événement ajouté sans modèle le ferait tomber, et c'est le moment où
-    // l'on veut y penser, pas trois mois plus tard devant une file vide.
+  it("ne promet jamais un courriel qu'il ne sait pas écrire", async () => {
+    // ════════════════════════════════════════════════════════════════════════
+    // CE TEST A CHANGÉ DE FORME EN v1.55.0, ET IL FAUT DIRE POURQUOI
+    //
+    // Il exigeait `modele !== null` pour TOUS les événements. Sa raison était
+    // juste : les huit `modele: null` du catalogue avaient reçu leur texte en
+    // v1.52.2, et un neuvième ajouté sans modèle devait faire réfléchir tout
+    // de suite, pas trois mois plus tard devant une file vide.
+    //
+    // Les deux événements de communauté l'ont fait tomber. Et il a eu raison
+    // de tomber : c'est exactement la question qu'il devait poser. La réponse
+    // est que leur `modele: null` est **une décision**, pas un oubli — une
+    // conversation entre membres est ce qu'un courriel supporte le plus mal.
+    //
+    // Ce que le test garde est donc l'invariant réel, et il est plus fort que
+    // l'ancien : **aucun événement ne peut ouvrir le canal COURRIEL par défaut
+    // sans avoir de modèle**. Cette combinaison-là serait un vrai défaut
+    // silencieux — l'aiguilleur rendrait « sans_modele », personne ne
+    // recevrait rien, et le tableau des préférences afficherait pourtant une
+    // case « courriel » cochée.
     const { CATALOGUE, EVENEMENTS } = await import(
       "@/lib/notifications/catalogue"
     );
 
+    const menteurs = EVENEMENTS.filter(
+      (e) => CATALOGUE[e].modele === null && CATALOGUE[e].defauts.COURRIEL === true,
+    );
+    expect(menteurs).toEqual([]);
+
+    // Et la liste des événements livrés en in-app seulement reste courte, et
+    // nommée. Un `modele: null` de plus doit passer par ici.
     const sansModele = EVENEMENTS.filter((e) => CATALOGUE[e].modele === null);
-    expect(sansModele).toEqual([]);
+    expect(sansModele.sort()).toEqual([
+      "COMMUNAUTE_NOUVEAU_MEMBRE",
+      "COMMUNAUTE_NOUVEAU_MESSAGE",
+    ]);
   });
 });

@@ -116,7 +116,10 @@ export type EvenementNotifiable =
   | "CONTENU_REFUSE"
   | "CANDIDATURE_RECUE"
   | "INSCRIPTION_EVENEMENT"
-  | "NOUVEL_ABONNE";
+  | "NOUVEL_ABONNE"
+  // ── Communautés ─────────────────────────────────────────────────────────
+  | "COMMUNAUTE_NOUVEAU_MESSAGE"
+  | "COMMUNAUTE_NOUVEAU_MEMBRE";
 
 /**
  * Tout, en un seul endroit.
@@ -247,6 +250,32 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     explication: "Quelqu'un suit désormais ta boutique.",
     modele: "NOUVEL_ABONNE",
     // Même raison : c'est l'événement le plus fréquent et le moins actionnable.
+    defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
+  },
+
+  // ══════════════════════════════════════════════════════ communautés ══
+  //
+  // Les deux seuls avis du forum, et les deux sont IN_APP seulement.
+  //
+  // `modele: null` n'est pas un modèle oublié : c'est la décision de ne pas
+  // écrire par courriel. Une conversation entre membres est ce qu'un courriel
+  // supporte le plus mal — il arrive chez vous, et il arrive une fois par
+  // message. C'est ainsi qu'on se fait marquer indésirable, et qu'on perd
+  // ensuite les reçus, qui eux comptent.
+  COMMUNAUTE_NOUVEAU_MESSAGE: {
+    audience: "tous",
+    libelle: "Nouveau dans mes communautés",
+    explication: "Quelqu'un a écrit dans le fil d'une communauté dont tu es membre.",
+    modele: null,
+    // Limité à un avis par communauté et par jour — voir `prevenirLesMembres`
+    // dans `lib/forum/fil.ts`, où la clé d'idempotence fait le limiteur.
+    defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
+  },
+  COMMUNAUTE_NOUVEAU_MEMBRE: {
+    audience: "tous",
+    libelle: "Nouveau membre dans mon espace",
+    explication: "Quelqu'un a rejoint une communauté que tu administres.",
+    modele: null,
     defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
   },
 };
