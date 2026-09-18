@@ -27,6 +27,7 @@ import {
 import {
   basculerLaCommunaute,
   communautesPourLAdministration,
+  historiqueDesDecisions,
   indicateurs,
   leverLeSignalement,
   messagesSignales,
@@ -524,5 +525,321 @@ describe("fermer une communauté", () => {
 
     expect(liste).toHaveLength(1);
     expect(liste[0]?.fermee).toBe(true);
+  });
+});
+
+// ══════════════════════════════════════════════════ les filtres et l'historique ══
+
+/**
+ * Ce que l'écran d'administration a gagné en v1.56.0.
+ *
+ * Les filtres ne protègent rien — c'est du confort. Mais une file qu'on ne
+ * peut pas trier est une file qu'on cesse d'ouvrir passé une centaine de
+ * lignes, et une file qu'on n'ouvre plus ne modère rien.
+ */
+describe("filtrer la file", () => {
+  /** Un message de fil signalé, et un message de forum signalé. */
+  async function deuxOrigines() {
+    const createur = await personne();
+    n += 1;
+
+    const ouverture = await ouvrirCommunaute({
+      createurId: createur.id,
+      saisie: { nom: `Sérigraphie ${n}`, description: "" },
+    });
+    if (!ouverture.ok) throw new Error("ouverture ratée");
+
+    const communaute = await db.community.findUniqueOrThrow({
+      where: { slug: ouverture.slug },
+      select: { id: true, slug: true, name: true, categories: { select: { id: true } } },
+    });
+
+    const droits = droitsSur(
+      { id: communaute.id, visibilite: "PUBLIC", createurId: createur.id, active: true },
+      { id: createur.id, role: "MEMBER", appartenance: "ADMIN" },
+    );
+
+    // Côté fil
+    const duFil = await ecrireDansLeFil({
+      communauteId: communaute.id,
+      communauteNom: communaute.name,
+      communauteSlug: communaute.slug,
+      auteurId: createur.id,
+      auteurNom: "Quelqu'un",
+      droits,
+      saisie: { corps: "Une plastisol de mauvaise qualité." },
+    });
+    if (!duFil.ok) throw new Error("écriture ratée");
+    await signalerDansLeFil({
+      communauteId: communaute.id,
+      messageId: duFil.messageId,
+      parId: createur.id,
+      droits,
+    });
+
+    // Côté ancien forum
+    const sujet = await ouvrirSujet({
+      communauteId: communaute.id,
+      categorieId: communaute.categories[0]!.id,
+      auteurId: createur.id,
+      droits,
+      saisie: { titre: "Un vieux sujet", corps: "Le premier message." },
+    });
+    if (!sujet.ok) throw new Error("sujet raté");
+
+    const reponse = await repondre({
+      communauteId: communaute.id,
+      sujetId: sujet.sujetId,
+      auteurId: createur.id,
+      droits,
+      saisie: { corps: "Une encre à l'eau, plutôt." },
+    });
+    if (!reponse.ok) throw new Error("réponse ratée");
+    await signalerMessage({
+      communauteId: communaute.id,
+      messageId: reponse.messageId,
+      parId: createur.id,
+      droits,
+    });
+
+    return { createur, communaute, duFil: duFil.messageId, duForum: reponse.messageId };
+  }
+
+  it("rend les deux origines sans filtre", async () => {
+    const d = await deuxOrigines();
+
+    const file = await messagesSignales();
+
+    expect(file).toHaveLength(2);
+    expect(file.map((m) => m.origine).sort()).toEqual(["fil", "forum"]);
+    expect(d.duFil).not.toBe(d.duForum);
+  });
+
+  it("ne rend que le fil quand on le demande", async () => {
+    const d = await deuxOrigines();
+
+    const file = await messagesSignales({ origine: "fil" });
+
+    expect(file).toHaveLength(1);
+    expect(file[0]?.id).toBe(d.duFil);
+  });
+
+  it("ne rend que l'ancien forum quand on le demande", async () => {
+    const d = await deuxOrigines();
+
+    const file = await messagesSignales({ origine: "forum" });
+
+    expect(file).toHaveLength(1);
+    expect(file[0]?.id).toBe(d.duForum);
+  });
+
+  it("cherche dans le corps, sans tenir compte de la casse", async () => {
+    const d = await deuxOrigines();
+
+    const file = await messagesSignales({ recherche: "PLASTISOL" });
+
+    expect(file).toHaveLength(1);
+    expect(file[0]?.id).toBe(d.duFil);
+  });
+
+  it("cherche aussi dans le nom de la communauté", async () => {
+    // Un modérateur qui reçoit trois signalements du même espace veut les voir
+    // ensemble : c'est le contexte qui lui manque pour juger, pas le texte.
+    const d = await deuxOrigines();
+
+    const file = await messagesSignales({ recherche: "Sérigraphie" });
+
+    expect(file).toHaveLength(2);
+    expect(file.every((m) => m.communauteNom === d.communaute.name)).toBe(true);
+  });
+
+  it("combine l'origine et la recherche", async () => {
+    await deuxOrigines();
+
+    const file = await messagesSignales({ origine: "forum", recherche: "Sérigraphie" });
+
+    expect(file).toHaveLength(1);
+    expect(file[0]?.origine).toBe("forum");
+  });
+
+  it("ne rend rien quand rien ne correspond", async () => {
+    await deuxOrigines();
+
+    expect(await messagesSignales({ recherche: "bogolan" })).toEqual([]);
+  });
+});
+
+describe("l'historique des décisions", () => {
+  it("est vide avant toute décision", async () => {
+    expect(await historiqueDesDecisions()).toEqual([]);
+  });
+
+  it("remonte le motif d'une fermeture, en clair", async () => {
+    // C'est le motif qu'on relit six mois plus tard, pas le code de l'action.
+    const createur = await personne();
+    n += 1;
+    const ouverture = await ouvrirCommunaute({
+      createurId: createur.id,
+      saisie: { nom: `Espace ${n}`, description: "" },
+    });
+    if (!ouverture.ok) throw new Error("ouverture ratée");
+    const c = await db.community.findUniqueOrThrow({
+      where: { slug: ouverture.slug },
+      select: { id: true },
+    });
+
+    const modo = await personne();
+    await basculerLaCommunaute({
+      communauteId: c.id,
+      parId: modo.id,
+      motif: "Republication massive de ressources.",
+    });
+
+    const historique = await historiqueDesDecisions();
+
+    expect(historique).toHaveLength(1);
+    expect(historique[0]?.geste).toBe("Retiré");
+    expect(historique[0]?.surQuoi).toBe("communaute");
+    expect(historique[0]?.motif).toBe("Republication massive de ressources.");
+  });
+
+  it("rend `null` comme motif quand il n'y en a pas", async () => {
+    // Un retrait de message n'en porte pas : seul le geste sur une communauté
+    // entière l'exige. L'écran écrit « sans motif écrit » plutôt que du vide.
+    const createur = await personne();
+    n += 1;
+    const ouverture = await ouvrirCommunaute({
+      createurId: createur.id,
+      saisie: { nom: `Espace ${n}`, description: "" },
+    });
+    if (!ouverture.ok) throw new Error("ouverture ratée");
+    const c = await db.community.findUniqueOrThrow({
+      where: { slug: ouverture.slug },
+      select: { id: true, slug: true, name: true },
+    });
+
+    const droits = droitsSur(
+      { id: c.id, visibilite: "PUBLIC", createurId: createur.id, active: true },
+      { id: createur.id, role: "MEMBER", appartenance: "ADMIN" },
+    );
+    const ecrit = await ecrireDansLeFil({
+      communauteId: c.id,
+      communauteNom: c.name,
+      communauteSlug: c.slug,
+      auteurId: createur.id,
+      auteurNom: "Quelqu'un",
+      droits,
+      saisie: { corps: "Un message à retirer." },
+    });
+    if (!ecrit.ok) throw new Error("écriture ratée");
+
+    const modo = await personne();
+    await retirerParLaPlateforme({
+      messageId: ecrit.messageId,
+      origine: "fil",
+      parId: modo.id,
+    });
+
+    const historique = await historiqueDesDecisions();
+
+    expect(historique).toHaveLength(1);
+    expect(historique[0]?.surQuoi).toBe("fil-message");
+    expect(historique[0]?.motif).toBeNull();
+  });
+
+  it("met la plus récente en tête", async () => {
+    // L'inverse de la file : là on cherche ce qui attend le plus, ici ce qui
+    // vient de se passer.
+    const createur = await personne();
+    const modo = await personne();
+    const ids: string[] = [];
+
+    for (const nom of ["Premier", "Second"]) {
+      n += 1;
+      const ouverture = await ouvrirCommunaute({
+        createurId: createur.id,
+        saisie: { nom: `${nom} espace ${n}`, description: "" },
+      });
+      if (!ouverture.ok) throw new Error("ouverture ratée");
+      const c = await db.community.findUniqueOrThrow({
+        where: { slug: ouverture.slug },
+        select: { id: true },
+      });
+      ids.push(c.id);
+      await basculerLaCommunaute({
+        communauteId: c.id,
+        parId: modo.id,
+        motif: `Fermeture de ${nom.toLowerCase()}.`,
+      });
+    }
+
+    const historique = await historiqueDesDecisions();
+
+    expect(historique).toHaveLength(2);
+    expect(historique[0]?.motif).toBe("Fermeture de second.");
+    expect(historique[1]?.motif).toBe("Fermeture de premier.");
+  });
+
+  it("dit qui a tranché, et « null » quand le compte a disparu", async () => {
+    const createur = await personne();
+    n += 1;
+    const ouverture = await ouvrirCommunaute({
+      createurId: createur.id,
+      saisie: { nom: `Espace ${n}`, description: "" },
+    });
+    if (!ouverture.ok) throw new Error("ouverture ratée");
+    const c = await db.community.findUniqueOrThrow({
+      where: { slug: ouverture.slug },
+      select: { id: true },
+    });
+
+    const modo = await personne();
+    await basculerLaCommunaute({
+      communauteId: c.id,
+      parId: modo.id,
+      motif: "Un motif suffisamment long.",
+    });
+
+    expect((await historiqueDesDecisions())[0]?.par).not.toBeNull();
+
+    // Le compte part ; la trace reste, et elle dit franchement qu'elle ne sait
+    // plus qui. C'est préférable à un nom recopié qui aurait figé l'orthographe
+    // d'un jour.
+    await db.user.delete({ where: { id: modo.id } });
+
+    const apres = await historiqueDesDecisions();
+    expect(apres).toHaveLength(1);
+    expect(apres[0]?.par).toBeNull();
+    expect(apres[0]?.motif).toBe("Un motif suffisamment long.");
+  });
+
+  it("se restreint à une communauté quand on le demande", async () => {
+    const createur = await personne();
+    const modo = await personne();
+    const ids: string[] = [];
+
+    for (const nom of ["Alpha", "Beta"]) {
+      n += 1;
+      const ouverture = await ouvrirCommunaute({
+        createurId: createur.id,
+        saisie: { nom: `${nom} ${n}`, description: "" },
+      });
+      if (!ouverture.ok) throw new Error("ouverture ratée");
+      const c = await db.community.findUniqueOrThrow({
+        where: { slug: ouverture.slug },
+        select: { id: true },
+      });
+      ids.push(c.id);
+      await basculerLaCommunaute({
+        communauteId: c.id,
+        parId: modo.id,
+        motif: `Fermeture de ${nom}.`,
+      });
+    }
+
+    const historique = await historiqueDesDecisions({ communauteId: ids[0]! });
+
+    expect(historique).toHaveLength(1);
+    expect(historique[0]?.motif).toBe("Fermeture de Alpha.");
   });
 });

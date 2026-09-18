@@ -4,10 +4,18 @@ import type { Route } from "next";
 
 import { CorpsArticle } from "@/components/cms/corps";
 import { Adhesion } from "@/components/forum/adhesion";
+import {
+  PartagerUneCollection,
+  RetirerLaCollection,
+} from "@/components/forum/collections";
 import { FormulaireFil } from "@/components/forum/formulaires";
 import { GestesDeMessage } from "@/components/forum/gestes";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
+import {
+  collectionsDe,
+  mesCollectionsDetachees,
+} from "@/lib/forum/collections";
 import { filDe } from "@/lib/forum/fil";
 import { contexteDe } from "@/lib/forum/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, VERT } from "@/lib/systeme/charte";
@@ -21,13 +29,19 @@ export const dynamic = "force-dynamic";
  * LA FORME VIENT DE LA MAQUETTE, PAS D'UN CHOIX D'ARCHITECTURE
  *
  * `Baobart Design/Baobart Accueil.dc.html`, section `#collab` — « Vos espaces
- * d'équipe » : un en-tête avec le nom, l'effectif et un bouton, puis un flux de
- * messages, puis une zone de saisie. Rien entre les deux — pas de rubriques,
- * pas de liste de sujets à ouvrir avant de pouvoir lire.
+ * d'équipe ». Elle empile trois choses, et cet écran les empile dans le même
+ * ordre :
  *
- * Ce que la maquette promet est un remplacement du groupe WhatsApp
- * (« Fini les captures d'écran par WhatsApp »), et un groupe WhatsApp n'a pas
- * de table des matières.
+ *   1. l'en-tête — nom, effectif, bouton d'adhésion ;
+ *   2. les **collections partagées**, chacune avec sa grille de ressources
+ *      (« Campagne Dakar 2026 — 4 membres · 38 ressources ») ;
+ *   3. le **fil**, plat, et sa zone de saisie.
+ *
+ * Pas de rubriques, pas de liste de sujets à ouvrir avant de pouvoir lire. Ce
+ * que la maquette promet est un remplacement du groupe WhatsApp — « Likes,
+ * collections partagées, commentaires au bon endroit. Fini les captures
+ * d'écran par WhatsApp. » Les captures d'écran, ce sont les ressources : sans
+ * le point 2, il manquait ce dont la conversation parle.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * `notFound()` RECOUVRE DEUX CAS
@@ -48,7 +62,15 @@ export default async function CommunautePage({
   const ctx = await contexteDe(slug, visiteur);
   if (!ctx) notFound();
 
-  const fil = await filDe(ctx);
+  const [fil, collections, aPartager] = await Promise.all([
+    filDe(ctx),
+    collectionsDe(ctx),
+    // Seulement pour qui peut écrire : proposer de partager à un passant
+    // afficherait un bouton qui sera refusé.
+    ctx.droits.ecrire && visiteur
+      ? mesCollectionsDetachees(visiteur.id)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <>
@@ -128,6 +150,119 @@ export default async function CommunautePage({
               connecte={visiteur !== null}
             />
           </header>
+
+          {/* ── Les collections partagées ──────────────────────────────── */}
+          {collections.length > 0 || ctx.droits.ecrire ? (
+            <section style={{ marginTop: 26, display: "grid", gap: 16 }}>
+              {collections.map((c) => (
+                <article
+                  key={c.id}
+                  style={{
+                    border: CADRE,
+                    borderRadius: 20,
+                    background: BLANC,
+                    boxShadow: `4px 4px 0 ${ENCRE}`,
+                    padding: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 10.5,
+                          textTransform: "uppercase",
+                          letterSpacing: ".1em",
+                          opacity: 0.6,
+                        }}
+                      >
+                        Collection
+                      </div>
+                      <div style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>
+                        {c.titre}
+                      </div>
+                      <div style={{ fontSize: 12.5, opacity: 0.65, marginTop: 4 }}>
+                        {ctx.communaute.membres} membre
+                        {ctx.communaute.membres > 1 ? "s" : ""} · {c.ressources}{" "}
+                        ressource{c.ressources > 1 ? "s" : ""} · partagée par{" "}
+                        {c.proprietaire}
+                      </div>
+                    </div>
+
+                    {c.proprietaireId === visiteur?.id || ctx.droits.moderer ? (
+                      <RetirerLaCollection slug={slug} boardId={c.id} />
+                    ) : null}
+                  </div>
+
+                  {/* La grille de vignettes de la maquette. */}
+                  {c.apercu.length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill,minmax(110px,1fr))",
+                        gap: 10,
+                        marginTop: 16,
+                      }}
+                    >
+                      {c.apercu.map((r) => (
+                        <div
+                          key={r.id}
+                          title={r.titre}
+                          style={{
+                            border: CADRE,
+                            borderRadius: 13,
+                            height: 88,
+                            // L'URL est entre guillemets, ce que le reste du
+                            // projet ne fait pas encore. Elle vient de
+                            // `urlPublique(s3Key)` — fabriquée par le serveur,
+                            // jamais saisie — donc le chemin normal est sûr ;
+                            // les guillemets couvrent le jour où elle viendrait
+                            // d'ailleurs, et coûtent un appel de fonction.
+                            background: r.couverture
+                              ? `center/cover no-repeat url(${JSON.stringify(r.couverture)})`
+                              : LAVANDE,
+                            display: "flex",
+                            alignItems: "flex-end",
+                            padding: 7,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {r.couverture ? null : (
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                lineHeight: 1.25,
+                                opacity: 0.75,
+                              }}
+                            >
+                              {r.titre}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, opacity: 0.6, margin: "14px 0 0" }}>
+                      Cette collection est encore vide.
+                    </p>
+                  )}
+                </article>
+              ))}
+
+              {ctx.droits.ecrire ? (
+                <PartagerUneCollection slug={slug} collections={aPartager} />
+              ) : null}
+            </section>
+          ) : null}
 
           {/* ── Le fil ─────────────────────────────────────────────────── */}
           <section style={{ marginTop: 26, display: "grid", gap: 14 }}>

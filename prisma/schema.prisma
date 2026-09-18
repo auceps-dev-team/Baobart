@@ -899,12 +899,34 @@ model Board {
   isPublic     Boolean  @default(true)
   coverImageId String?
   savesCount   Int      @default(0)
-  createdAt    DateTime @default(now())
 
-  owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  saves Save[]
+  /// La communauté avec laquelle cette collection est partagée, s'il y en a
+  /// une.
+  ///
+  /// C'est le lien que dessine la maquette (`Baobart Accueil.dc.html`, section
+  /// `#collab`) : « Collection · Campagne Dakar 2026 — 4 membres · 38
+  /// ressources », suivie du fil de la communauté. Les « 4 membres » sont ceux
+  /// de la communauté, les « 38 ressources » sont les `saves` de ce tableau.
+  ///
+  /// Nullable, et c'est le point : une collection reste personnelle par
+  /// défaut. La partager est un geste, pas un état initial — et c'est **son
+  /// propriétaire** qui le pose, jamais la communauté à sa place.
+  ///
+  /// `onDelete: SetNull` plutôt que `Cascade` : fermer ou supprimer une
+  /// communauté ne doit pas emporter le travail de rangement de quelqu'un.
+  /// La collection redevient personnelle, ce qu'elle était avant.
+  communityId String?
+
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  saves     Save[]
 
   @@index([ownerId])
+  /// « Les collections partagées avec cette communauté, la plus récente
+  /// d'abord » — la requête de la page communauté.
+  @@index([communityId, createdAt])
 }
 
 model Save {
@@ -1993,6 +2015,8 @@ model Community {
   members      CommunityMembership[]
   categories   ForumCategory[]
   chatMessages CommunityChatMessage[]
+  /// Les collections que des membres ont partagées ici. Voir `Board.communityId`.
+  collections  Board[]
 
   /// L'annuaire demande « les actives, visibles, les plus peuplées d'abord ».
   @@index([status, visibility, memberCount])

@@ -62,19 +62,48 @@ export interface MessageSignale {
 
 export type Origine = MessageSignale["origine"];
 
+export interface Filtres {
+  /** « tous » par défaut. */
+  origine?: Origine | "tous";
+  /** Cherché dans le corps du message ET le nom de la communauté. */
+  recherche?: string;
+  limite?: number;
+}
+
 /**
  * Les messages signalés, du plus ancien au plus récent.
  *
  * Une file se vide du plus ancien : trier à l'envers ferait vieillir
  * indéfiniment ceux du bas pendant que les nouveaux passent devant.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LA RECHERCHE PORTE SUR LE CORPS ET SUR LA COMMUNAUTÉ, PAS SUR L'AUTEUR
+ *
+ * Chercher par auteur transformerait cette file en outil de surveillance d'une
+ * personne : on taperait un nom pour voir tout ce qu'elle a écrit de signalé,
+ * ce qui n'est pas ce qu'on modère. On modère des messages, et le contexte
+ * dont on a besoin pour juger est l'espace où ils ont été écrits.
+ *
+ * Le nom de l'auteur reste affiché sur chaque carte — il faut bien savoir à
+ * qui l'on retire quelque chose.
  */
-export async function messagesSignales(limite = 100): Promise<MessageSignale[]> {
+export async function messagesSignales(
+  filtres: Filtres = {},
+): Promise<MessageSignale[]> {
+  const limite = Math.min(filtres.limite ?? 100, 300);
+  const origine = filtres.origine ?? "tous";
+  const recherche = (filtres.recherche ?? "").trim();
+
   // Deux tables, une seule file. Elles se lisent en parallèle puis se
   // fusionnent sur la date : un modérateur traite « ce qui a été signalé »,
   // pas « ce qui a été signalé dans telle table ».
   const [duFil, duForum] = await Promise.all([
-    messagesDeFilSignales(limite),
-    messagesDeForumSignales(limite),
+    origine === "forum"
+      ? Promise.resolve([])
+      : messagesDeFilSignales(limite, recherche),
+    origine === "fil"
+      ? Promise.resolve([])
+      : messagesDeForumSignales(limite, recherche),
   ]);
 
   return [...duFil, ...duForum]
@@ -82,9 +111,30 @@ export async function messagesSignales(limite = 100): Promise<MessageSignale[]> 
     .slice(0, limite);
 }
 
-async function messagesDeFilSignales(limite: number): Promise<MessageSignale[]> {
+/** Le fragment de recherche, ou rien quand la case est vide. */
+function ou(recherche: string, champCommunaute: object) {
+  if (recherche.length === 0) return {};
+  return {
+    OR: [
+      { body: { contains: recherche, mode: "insensitive" as const } },
+      champCommunaute,
+    ],
+  };
+}
+
+async function messagesDeFilSignales(
+  limite: number,
+  recherche: string,
+): Promise<MessageSignale[]> {
   const lignes = await db.communityChatMessage.findMany({
-    where: { isFlagged: true },
+    where: {
+      isFlagged: true,
+      ...ou(recherche, {
+        community: {
+          name: { contains: recherche, mode: "insensitive" as const },
+        },
+      }),
+    },
     orderBy: { createdAt: "asc" },
     take: limite,
     select: {
@@ -114,9 +164,23 @@ async function messagesDeFilSignales(limite: number): Promise<MessageSignale[]> 
   }));
 }
 
-async function messagesDeForumSignales(limite: number): Promise<MessageSignale[]> {
+async function messagesDeForumSignales(
+  limite: number,
+  recherche: string,
+): Promise<MessageSignale[]> {
   const lignes = await db.forumPost.findMany({
-    where: { isFlagged: true },
+    where: {
+      isFlagged: true,
+      ...ou(recherche, {
+        topic: {
+          category: {
+            community: {
+              name: { contains: recherche, mode: "insensitive" as const },
+            },
+          },
+        },
+      }),
+    },
     orderBy: { createdAt: "asc" },
     take: limite,
     select: {
@@ -437,4 +501,92 @@ export async function indicateurs(): Promise<Indicateurs> {
     communautesFermees: fermees,
     tranchesSur90Jours: tranches,
   };
+}
+
+// ═══════════════════════════════════════════════════════════════ l'historique ══
+
+export interface Decision {
+  id: string;
+  /** Ce qui a été décidé, en clair. */
+  geste: string;
+  /** « fil-message », « forum-message » ou « communaute ». */
+  surQuoi: string;
+  par: string | null;
+  motif: string | null;
+  quand: Date;
+}
+
+/** Les actions d'audit qui concernent les communautés. */
+const PREFIXES = ["fil-message:", "forum-message:", "communaute:"];
+
+const LIBELLES: Record<string, string> = {
+  "contenu.approuver": "Signalement écarté",
+  "contenu.retirer": "Retiré",
+  "contenu.refuser": "Signalé",
+  "contenu.publier": "Rouvert",
+};
+
+/**
+ * Ce qui a déjà été tranché.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI UNE FILE A BESOIN DE SON HISTORIQUE JUSTE EN DESSOUS
+ *
+ * Une file de modération ne montre que ce qui attend. Quand elle est vide,
+ * l'écran dit « rien à faire » — et ne dit rien de ce qui a été fait, ni par
+ * qui, ni pourquoi.
+ *
+ * C'est le moment où l'on se pose les questions qui comptent : « a-t-on déjà
+ * traité cette personne ? », « pourquoi cet espace a-t-il été fermé ? ». Sans
+ * historique, la réponse est dans la table d'audit, que personne n'ouvre.
+ *
+ * Le motif est remonté des `details`, parce que c'est lui qu'on relit — pas le
+ * code de l'action.
+ */
+export async function historiqueDesDecisions(input: {
+  limite?: number;
+  /** Restreint à une communauté, par son identifiant. */
+  communauteId?: string;
+} = {}): Promise<Decision[]> {
+  const lignes = await db.auditLog.findMany({
+    where: {
+      action: { in: Object.keys(LIBELLES) },
+      OR: input.communauteId
+        ? [{ resource: `communaute:${input.communauteId}` }]
+        : PREFIXES.map((p) => ({ resource: { startsWith: p } })),
+    },
+    // L'identifiant départage : deux traces écrites dans la même milliseconde
+    // sortiraient sinon dans un ordre indifférent.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: Math.min(input.limite ?? 40, 200),
+  });
+
+  // Les noms sont résolus à la lecture, jamais rangés — même règle que
+  // `dernieresTraces` : un nom recopié fige l'orthographe d'un jour, et diverge
+  // dès que la personne en change.
+  const acteurs = await db.user.findMany({
+    where: { id: { in: [...new Set(lignes.map((l) => l.actorId))] } },
+    select: { id: true, email: true, profile: { select: { displayName: true } } },
+  });
+  const parId = new Map(
+    acteurs.map((a) => [a.id, a.profile?.displayName ?? a.email]),
+  );
+
+  return lignes.map((l) => ({
+    id: l.id,
+    geste: LIBELLES[l.action] ?? l.action,
+    surQuoi: l.resource.split(":")[0] ?? l.resource,
+    // `null` quand le compte a disparu. La trace reste, et elle dit
+    // franchement qu'elle ne sait plus qui.
+    par: parId.get(l.actorId) ?? null,
+    motif: motifDe(l.details),
+    quand: l.createdAt,
+  }));
+}
+
+/** Le motif écrit par la personne, s'il y en a un. */
+function motifDe(details: unknown): string | null {
+  if (typeof details !== "object" || details === null) return null;
+  const motif = (details as { motif?: unknown }).motif;
+  return typeof motif === "string" && motif.length > 0 ? motif : null;
 }

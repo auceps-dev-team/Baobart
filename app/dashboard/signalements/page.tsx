@@ -10,8 +10,10 @@ import {
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import {
   communautesPourLAdministration,
+  historiqueDesDecisions,
   indicateurs,
   messagesSignales,
+  type Origine,
 } from "@/lib/forum/signalements";
 import { BLANC, CADRE, ENCRE, JAUNE, MAUVE, ORANGE, VERT } from "@/lib/systeme/charte";
 
@@ -49,13 +51,25 @@ export const dynamic = "force-dynamic";
  * écrit ce que l'écran fait réellement. L'écart est dit **sous les tuiles**,
  * là où celui qui décide le lira, plutôt que caché dans ce commentaire.
  */
-export default async function SignalementsPage() {
+export default async function SignalementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ origine?: string; q?: string }>;
+}) {
   const utilisateur = await exigerLePouvoir("moderer_le_contenu");
+  const { origine: demandee, q } = await searchParams;
 
-  const [file, chiffres, communautes] = await Promise.all([
-    messagesSignales(),
+  // Une origine inconnue vaut « tous ». Le paramètre vient de l'URL : le
+  // refuser afficherait une erreur là où il suffit de ne pas filtrer.
+  const origine: Origine | "tous" =
+    demandee === "fil" || demandee === "forum" ? demandee : "tous";
+  const recherche = (q ?? "").trim();
+
+  const [file, chiffres, communautes, historique] = await Promise.all([
+    messagesSignales({ origine, recherche }),
     indicateurs(),
     communautesPourLAdministration(),
+    historiqueDesDecisions(),
   ]);
 
   return (
@@ -126,6 +140,88 @@ export default async function SignalementsPage() {
         Messages signalés
       </h2>
 
+      {/*
+        Les filtres passent par l'URL, pas par un état de composant : un
+        modérateur qui trouve quelque chose doit pouvoir envoyer le lien à un
+        collègue, et le retrouver après avoir tranché un message.
+      */}
+      <form
+        method="get"
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
+          marginBottom: 20,
+        }}
+      >
+        {(
+          [
+            ["tous", "Tous"],
+            ["fil", "Fil"],
+            ["forum", "Ancien forum"],
+          ] as const
+        ).map(([valeur, libelle]) => (
+          <Link
+            key={valeur}
+            href={
+              `/dashboard/signalements?origine=${valeur}${
+                recherche ? `&q=${encodeURIComponent(recherche)}` : ""
+              }` as Route
+            }
+            style={{
+              padding: "8px 16px",
+              border: CADRE,
+              borderRadius: 999,
+              background: origine === valeur ? ENCRE : BLANC,
+              color: origine === valeur ? BLANC : ENCRE,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            {libelle}
+          </Link>
+        ))}
+
+        <input type="hidden" name="origine" value={origine} />
+        <input
+          name="q"
+          defaultValue={recherche}
+          placeholder="Chercher dans les messages ou les communautés…"
+          style={{
+            flex: "1 1 260px",
+            padding: "10px 14px",
+            border: CADRE,
+            borderRadius: 13,
+            background: BLANC,
+            fontSize: 14,
+            fontFamily: "inherit",
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "10px 20px",
+            border: CADRE,
+            borderRadius: 13,
+            background: JAUNE,
+            fontSize: 13.5,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          Chercher
+        </button>
+        {recherche ? (
+          <Link
+            href={`/dashboard/signalements?origine=${origine}` as Route}
+            style={{ fontSize: 13, fontWeight: 700, textDecoration: "underline" }}
+          >
+            Effacer
+          </Link>
+        ) : null}
+      </form>
+
       {file.length === 0 ? (
         <div
           style={{
@@ -137,11 +233,24 @@ export default async function SignalementsPage() {
           }}
         >
           <div style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>
-            Aucun signalement
+            {recherche || origine !== "tous"
+              ? "Rien ne correspond"
+              : "Aucun signalement"}
           </div>
           <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, marginTop: 8 }}>
-            Rien n&apos;attend de décision. Un message signalé reste visible
-            dans son fil, marqué, jusqu&apos;à ce qu&apos;il soit tranché ici.
+            {recherche || origine !== "tous" ? (
+              <>
+                Aucun signalement en attente ne correspond à ce filtre. Il y en
+                a peut-être ailleurs — l&apos;historique plus bas dit ce qui a
+                déjà été tranché.
+              </>
+            ) : (
+              <>
+                Rien n&apos;attend de décision. Un message signalé reste visible
+                dans son fil, marqué, jusqu&apos;à ce qu&apos;il soit tranché
+                ici.
+              </>
+            )}
           </p>
         </div>
       ) : (
@@ -301,9 +410,86 @@ export default async function SignalementsPage() {
           ))}
         </div>
       )}
+
+      {/* ── L'historique ──────────────────────────────────────────────── */}
+      <h2
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 20,
+          textTransform: "uppercase",
+          margin: "40px 0 8px",
+        }}
+      >
+        Ce qui a été tranché
+      </h2>
+      <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 16px", lineHeight: 1.5 }}>
+        Une file ne montre que ce qui attend. Quand elle est vide, c&apos;est
+        ici qu&apos;on lit ce qui a été fait, par qui, et pourquoi. Ces lignes
+        viennent du journal d&apos;audit : personne ne peut les effacer.
+      </p>
+
+      {historique.length === 0 ? (
+        <p
+          style={{
+            padding: 22,
+            border: CADRE,
+            borderRadius: 18,
+            background: BLANC,
+            fontSize: 14.5,
+            fontWeight: 600,
+            margin: 0,
+          }}
+        >
+          Aucune décision n&apos;a encore été prise.
+        </p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {historique.map((d) => (
+            <div
+              key={d.id}
+              style={{
+                display: "flex",
+                gap: 14,
+                alignItems: "baseline",
+                flexWrap: "wrap",
+                border: CADRE,
+                borderRadius: 14,
+                background: BLANC,
+                padding: "12px 16px",
+              }}
+            >
+              <Marque fond={d.geste === "Retiré" ? ORANGE : BLANC}>{d.geste}</Marque>
+              <span style={{ fontSize: 12.5, opacity: 0.65 }}>{LIBELLE_CIBLE[d.surQuoi] ?? d.surQuoi}</span>
+              {d.motif ? (
+                <span style={{ fontSize: 13.5, fontWeight: 600, flex: "1 1 240px" }}>
+                  « {d.motif} »
+                </span>
+              ) : (
+                <span style={{ fontSize: 13, opacity: 0.5, flex: "1 1 240px" }}>
+                  sans motif écrit
+                </span>
+              )}
+              <span style={{ fontSize: 12.5, opacity: 0.65, marginLeft: "auto" }}>
+                {/*
+                  « compte supprimé » plutôt qu'un vide : la trace reste, et
+                  elle dit franchement qu'elle ne sait plus qui.
+                */}
+                {d.par ?? "compte supprimé"} · {dateCourte(d.quand)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </DashboardFrame>
   );
 }
+
+/** Ce sur quoi la décision a porté, dit en clair. */
+const LIBELLE_CIBLE: Record<string, string> = {
+  "fil-message": "message de fil",
+  "forum-message": "message d'ancien forum",
+  communaute: "communauté",
+};
 
 function Tuile({
   libelle,

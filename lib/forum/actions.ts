@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { sessionCourante } from "@/lib/auth/session";
 import {
+  MESSAGES_ECHEC_COLLECTION,
+  attacher,
+  detacher,
+} from "@/lib/forum/collections";
+import {
   MESSAGES_ECHEC_FIL,
   ecrireDansLeFil,
   prevenirDUneAdhesion,
@@ -237,6 +242,68 @@ export async function signalerDansLeFilDe(
   if (!suite.ok && suite.motif !== "INTROUVABLE") return echecDuFil(suite);
 
   revalidatePath(`/communautes/${slug}`);
+  return { ok: true };
+}
+
+// ════════════════════════════════════════════════════════════ les collections ══
+
+/**
+ * Partager une collection avec la communauté, ou l'en retirer.
+ *
+ * Le propriétaire est vérifié dans `collections.ts`, pas ici : une collection
+ * privée attachée devient lisible par tous les membres, et c'est le genre de
+ * garde qu'on ne met pas dans une couche qu'on peut contourner en appelant le
+ * module « use server » directement.
+ */
+export async function partagerUneCollection(
+  slug: string,
+  boardId: string,
+): Promise<EtatFormulaire> {
+  const qui = await sessionCourante();
+  if (!qui) return DECONNECTE;
+
+  const ctx = await contexteDe(slug, qui);
+  if (!ctx) return INTROUVABLE;
+
+  const suite = await attacher({
+    boardId,
+    communauteId: ctx.communaute.id,
+    parId: qui.id,
+    droits: ctx.droits,
+  });
+
+  if (!suite.ok) {
+    return { ok: false, message: MESSAGES_ECHEC_COLLECTION[suite.motif] };
+  }
+
+  revalidatePath(`/communautes/${slug}`);
+  revalidatePath("/dashboard/collections");
+  return { ok: true };
+}
+
+export async function retirerUneCollection(
+  slug: string,
+  boardId: string,
+): Promise<EtatFormulaire> {
+  const qui = await sessionCourante();
+  if (!qui) return DECONNECTE;
+
+  const ctx = await contexteDe(slug, qui);
+  if (!ctx) return INTROUVABLE;
+
+  const suite = await detacher({
+    boardId,
+    communauteId: ctx.communaute.id,
+    parId: qui.id,
+    droits: ctx.droits,
+  });
+
+  if (!suite.ok) {
+    return { ok: false, message: MESSAGES_ECHEC_COLLECTION[suite.motif] };
+  }
+
+  revalidatePath(`/communautes/${slug}`);
+  revalidatePath("/dashboard/collections");
   return { ok: true };
 }
 
