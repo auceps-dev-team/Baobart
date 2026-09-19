@@ -129,6 +129,44 @@ export const REGLES = {
   "evenement.inscription": { quota: 30, fenetreMs: 60 * 60_000 },
 
   /**
+   * Dépôt d'une notification juridique. Trois par heure et par adresse.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * LA SEULE RÈGLE DE CETTE LISTE QUI PROTÈGE UNE ÉCRITURE ANONYME
+   *
+   * Toutes les autres bornent un geste qui exige déjà un compte : `job.depot`
+   * et `service.depot` protègent la file de modération, pas la base, parce
+   * qu'on sait qui dépose.
+   *
+   * Le dépôt d'une notification, non. Il est **ouvert sans session**, et c'est
+   * voulu : l'article 47 de la loi ivoirienne n° 2013-451 parle de « la victime
+   * ou d'une personne intéressée », sans autre qualité, et exiger une
+   * inscription pour pouvoir se plaindre poserait une condition que la loi ne
+   * pose pas. Voir `app/signalement/deposer/page.tsx`.
+   *
+   * Cette borne est donc la seule chose entre le formulaire et la base.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * POURQUOI TROIS, ET PAS CINQ COMME LES DÉPÔTS
+   *
+   * Parce que le geste n'a pas le même effet. Une offre d'emploi en trop fait
+   * une ligne de plus dans une file ; une notification en trop fait retirer le
+   * travail de quelqu'un. Et parce qu'elle n'a pas la même fréquence : on
+   * notifie une contrefaçon, pas dix par après-midi.
+   *
+   * Quelqu'un qui découvre que son portfolio entier a été recopié peut avoir
+   * besoin de plusieurs dossiers — mais l'article 47 demande une
+   * « localisation précise », pas un dossier par fichier : plusieurs adresses
+   * tiennent dans une seule notification, une par ligne. Trois par heure
+   * couvre le cas honnête et arrête le dépôt automatisé.
+   *
+   * Ce que ça ne règle pas : quelqu'un de patient. Une limite par adresse ne
+   * borne pas un acharnement lent, et rien ici ne le fera — c'est l'article 49,
+   * qui punit la mauvaise foi d'un à cinq ans, qui répond à ce cas-là.
+   */
+  "juridique.depot": { quota: 3, fenetreMs: 60 * 60_000 },
+
+  /**
    * Rappel d'opérateur de paiement. Trois cents par minute.
    *
    * Volontairement large : un opérateur qui rattrape un incident peut envoyer

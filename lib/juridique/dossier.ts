@@ -479,3 +479,82 @@ function enFrancais(d: Date): string {
     year: "numeric",
   }).format(d);
 }
+
+// ════════════════════════════════════════════════════════════════ l'échéance ══
+
+export interface BilanEcheances {
+  /** Dossiers dont le délai de réponse est passé sans réponse. */
+  clos: number;
+}
+
+/**
+ * Clore les dossiers dont l'échéance est passée sans réponse.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * SANS CE PASSAGE, L'ÉCHÉANCE NE SERAIT QU'UNE PHRASE
+ *
+ * On écrit à l'auteur « tu as dix jours », et on l'écrit sur la page publique.
+ * Si personne ne repasse, le dossier reste en RETRAIT_PROVISOIRE
+ * indéfiniment : le contenu ne revient pas — donc l'auteur est puni — et le
+ * notifiant n'a jamais de réponse.
+ *
+ * C'est le pire des défauts silencieux : rien ne plante, l'écran est cohérent,
+ * et les deux parties attendent une décision que personne ne prendra.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA CONDITION EST « L'HEURE EST PASSÉE », JAMAIS « C'EST MAINTENANT »
+ *
+ * Même règle que la publication planifiée du blog : chercher l'égalité ferait
+ * perdre définitivement tout dossier dont l'échéance tombe pendant une panne.
+ * Un passage sauté rattrape au suivant, avec du retard et rien de cassé.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * L'ACTEUR EST LA PLATEFORME, ET LE MOTIF LE DIT
+ *
+ * Aucun humain n'a tranché. Consigner cette décision au nom du dernier
+ * modérateur qui a touché le dossier serait lui attribuer un geste qu'il n'a
+ * pas posé — et c'est la trace qu'on relira si quelqu'un conteste.
+ *
+ * `decidedById` reste donc **nul**, et le motif écrit franchement ce qui s'est
+ * passé : le délai est passé, personne n'a répondu.
+ */
+export async function cloreLesEcheances(
+  maintenant = new Date(),
+): Promise<BilanEcheances> {
+  const dus = await db.legalNotice.findMany({
+    where: {
+      state: "RETRAIT_PROVISOIRE",
+      replyDueAt: { lt: maintenant },
+    },
+    select: { id: true, reference: true },
+    take: 200,
+  });
+
+  let clos = 0;
+
+  for (const dossier of dus) {
+    // L'état d'avant est dans le `WHERE` : une réponse arrivée entre la
+    // lecture et l'écriture doit gagner. Elle est plus récente, et elle vient
+    // d'une personne.
+    const ecrit = await db.legalNotice.updateMany({
+      where: { id: dossier.id, state: "RETRAIT_PROVISOIRE" },
+      data: {
+        state: "RETIREE",
+        decidedAt: maintenant,
+        decisionReason:
+          "Délai de réponse écoulé sans contestation. Décision automatique, " +
+          "sans examen humain — le dossier peut être rouvert par une nouvelle " +
+          "notification ou par décision judiciaire.",
+      },
+    });
+
+    if (ecrit.count !== 1) continue;
+    clos += 1;
+
+    journal.info("dossier juridique clos par échéance", {
+      reference: dossier.reference,
+    });
+  }
+
+  return { clos };
+}

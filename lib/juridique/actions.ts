@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { sessionCourante } from "@/lib/auth/session";
 import type { Manque, Qualite, Saisie } from "@/lib/juridique/article47";
+import { verifierLimiteAction } from "@/lib/securite/garde";
 import {
   MESSAGES_ECHEC,
   deposer,
@@ -28,10 +29,18 @@ import {
  * ne pose pas — l'article 47 parle de « la victime ou d'une personne
  * intéressée », sans autre qualité.
  *
- * Ce que ça coûte : le formulaire est déposable en masse. La contrepartie
- * n'est pas technique, elle est pénale — l'article 49 punit la mauvaise foi
- * d'un à cinq ans, et l'écran l'affiche. Une limitation de débit reste à
- * poser, et c'est écrit dans la matrice plutôt que supposé.
+ * Ce que ça coûte est borné par `juridique.depot` : trois dépôts par heure et
+ * par adresse. C'est la seule règle de `lib/securite/limites.ts` qui protège
+ * une écriture **anonyme** — toutes les autres bornent un geste qui exige déjà
+ * un compte.
+ *
+ * Trois, et non cinq comme les autres dépôts, parce que le geste n'a pas le
+ * même effet : une offre d'emploi en trop fait une ligne dans une file ; une
+ * notification en trop fait retirer le travail de quelqu'un.
+ *
+ * Ce que la borne ne règle pas : quelqu'un de patient. Une limite par adresse
+ * n'arrête pas un acharnement lent — c'est l'article 49, qui punit la mauvaise
+ * foi d'un à cinq ans, qui répond à ce cas-là, et l'écran l'affiche.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * LES GESTES DE TRAITEMENT EXIGENT `moderer_le_contenu`
@@ -54,6 +63,22 @@ export async function deposerUneNotification(
   _precedent: EtatDepot | null,
   donnees: FormData,
 ): Promise<EtatDepot> {
+  // La borne AVANT toute écriture. Un dépôt refusé ne doit rien coûter de plus
+  // qu'une lecture de compteur — et surtout il ne doit pas laisser de dossier
+  // derrière lui : une référence consommée par un robot est une référence qui
+  // manquera dans la numérotation d'une vraie notification.
+  const borne = await verifierLimiteAction("juridique.depot");
+  if (!borne.autorise) {
+    return {
+      ok: false,
+      message:
+        `Trop de dépôts depuis cette connexion. Réessaie dans ` +
+        `${Math.ceil(borne.dansSecondes / 60)} minutes. ` +
+        `Si tu dois signaler plusieurs contenus, une seule notification peut ` +
+        `en lister plusieurs — une adresse par ligne.`,
+    };
+  }
+
   const saisie = lireSaisie(donnees);
   const suite = await deposer({ saisie });
 

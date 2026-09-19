@@ -21,6 +21,7 @@ import { db } from "@/lib/db";
 import type { Saisie } from "@/lib/juridique/article47";
 import {
   ENGAGEMENTS,
+  cloreLesEcheances,
   completer,
   deposer,
   rapprocher,
@@ -490,5 +491,138 @@ describe("les indicateurs", () => {
 
     expect(chiffres.enCours).toBe(0);
     expect(chiffres.tranchesSur90Jours).toBe(1);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════ l'échéance ══
+
+/**
+ * La seule décision du projet qu'aucun humain ne prend.
+ *
+ * Elle mérite donc plus d'attention que les autres : personne ne la relira
+ * avant qu'elle produise son effet.
+ */
+describe("clore les échéances", () => {
+  /** Un dossier en retrait provisoire, dont l'échéance est déjà passée. */
+  async function echu(joursDepasses = 1) {
+    const vise = await personne();
+    const modo = await personne();
+    const depot = await deposer({ saisie: saisie() });
+    await rapprocher({ reference: depot.reference, userId: vise.id, parId: modo.id });
+    await retirerProvisoirement({ reference: depot.reference, parId: modo.id });
+
+    // On recule l'échéance plutôt que d'avancer l'horloge : `cloreLesEcheances`
+    // prend « maintenant » en paramètre, mais poser une date passée en base
+    // éprouve aussi l'index et la comparaison SQL.
+    await db.legalNotice.update({
+      where: { reference: depot.reference },
+      data: { replyDueAt: new Date(Date.now() - joursDepasses * 86_400_000) },
+    });
+
+    return { vise, modo, reference: depot.reference };
+  }
+
+  it("clôt ce dont le délai est passé sans réponse", async () => {
+    const d = await echu();
+
+    const bilan = await cloreLesEcheances();
+
+    expect(bilan.clos).toBe(1);
+    const dossier = await db.legalNotice.findUniqueOrThrow({
+      where: { reference: d.reference },
+      select: { state: true, decidedAt: true, decisionReason: true },
+    });
+    expect(dossier.state).toBe("RETIREE");
+    expect(dossier.decidedAt).not.toBeNull();
+    expect(dossier.decisionReason).toContain("Délai de réponse écoulé");
+  });
+
+  it("n'attribue la décision à personne", async () => {
+    // Aucun humain n'a tranché. La consigner au nom du dernier modérateur qui
+    // a touché le dossier lui attribuerait un geste qu'il n'a pas posé — et
+    // c'est la trace qu'on relira si quelqu'un conteste.
+    const d = await echu();
+
+    await cloreLesEcheances();
+
+    const dossier = await db.legalNotice.findUniqueOrThrow({
+      where: { reference: d.reference },
+      select: { decidedById: true, decisionReason: true },
+    });
+    expect(dossier.decidedById).toBeNull();
+    // Et le motif le dit franchement, plutôt que de laisser croire à un examen.
+    expect(dossier.decisionReason).toContain("sans examen humain");
+  });
+
+  it("épargne un dossier dont le délai court encore", async () => {
+    const vise = await personne();
+    const modo = await personne();
+    const depot = await deposer({ saisie: saisie() });
+    await rapprocher({ reference: depot.reference, userId: vise.id, parId: modo.id });
+    await retirerProvisoirement({ reference: depot.reference, parId: modo.id });
+
+    const bilan = await cloreLesEcheances();
+
+    expect(bilan.clos).toBe(0);
+    const dossier = await db.legalNotice.findUniqueOrThrow({
+      where: { reference: depot.reference },
+      select: { state: true },
+    });
+    expect(dossier.state).toBe("RETRAIT_PROVISOIRE");
+  });
+
+  it("laisse gagner une réponse arrivée avant le passage", async () => {
+    // Elle est plus récente, et elle vient d'une personne. L'état d'avant est
+    // dans le `WHERE` : `CONTESTEE` n'est pas `RETRAIT_PROVISOIRE`, donc rien
+    // ne l'écrase.
+    const d = await echu();
+    await repondre({
+      reference: d.reference,
+      auteurId: d.vise.id,
+      corps: "Cette illustration est la mienne, publiée en 2023.",
+    });
+
+    const bilan = await cloreLesEcheances();
+
+    expect(bilan.clos).toBe(0);
+    const dossier = await db.legalNotice.findUniqueOrThrow({
+      where: { reference: d.reference },
+      select: { state: true },
+    });
+    expect(dossier.state).toBe("CONTESTEE");
+  });
+
+  it("rattrape plusieurs jours de retard d'un coup", async () => {
+    // La condition est « l'échéance est passée », jamais « c'est aujourd'hui ».
+    // Chercher l'égalité perdrait tout dossier dont le terme tombe pendant une
+    // panne — définitivement, et sans que rien ne le signale.
+    await echu(1);
+    await echu(9);
+    await echu(40);
+
+    const bilan = await cloreLesEcheances();
+
+    expect(bilan.clos).toBe(3);
+  });
+
+  it("ne clôt pas deux fois", async () => {
+    const d = await echu();
+
+    await cloreLesEcheances();
+    const second = await cloreLesEcheances();
+
+    expect(second.clos).toBe(0);
+    expect(d.reference).toMatch(/^NOT-/);
+  });
+
+  it("ne touche pas un dossier qui n'a jamais été retiré", async () => {
+    // `replyDueAt` est nul tant qu'aucun retrait n'a eu lieu : un dossier reçu
+    // et oublié ne doit pas se clore tout seul en faveur du notifiant.
+    await deposer({ saisie: saisie() });
+
+    const bilan = await cloreLesEcheances();
+
+    expect(bilan.clos).toBe(0);
+    expect(await db.legalNotice.count({ where: { state: "RECUE" } })).toBe(1);
   });
 });

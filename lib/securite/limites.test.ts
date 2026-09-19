@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { REGLES, cleDe, juger, seauDe } from "@/lib/securite/limites";
+import {
+  REGLES,
+  cleDe,
+  juger,
+  seauDe,
+  type NomRegle,
+} from "@/lib/securite/limites";
 
 const REGLE = { quota: 10, fenetreMs: 60_000 };
 
@@ -130,8 +136,33 @@ describe("les règles posées", () => {
   it("laissent toutes de la place à un usage honnête", () => {
     // Une règle à zéro, ou à une seconde, fermerait le service. Un test bête,
     // mais il attrape la faute de frappe qui ferme la connexion à tout le monde.
+    //
+    // ════════════════════════════════════════════════════════════════════════
+    // LE PLANCHER EST À CINQ, SAUF POUR CE QUI EST NOMMÉ ICI
+    //
+    // Ajouté en v1.57.1, quand `juridique.depot` est arrivée à trois et a fait
+    // tomber ce test. C'était son travail : un quota sous cinq est presque
+    // toujours une faute de frappe.
+    //
+    // Presque. Celui-là est voulu, et la raison tient à l'effet du geste — pas
+    // à sa fréquence. Déposer une offre d'emploi de trop ajoute une ligne dans
+    // une file ; déposer une notification juridique de trop fait **retirer le
+    // travail de quelqu'un**. Et l'article 47 demandant une « localisation
+    // précise », plusieurs adresses tiennent dans une seule notification : on
+    // n'a pas besoin d'un dossier par fichier.
+    //
+    // Toute autre règle sous cinq doit passer par cette liste, et donc par
+    // cette phrase-là.
+    const PLUS_SERREES: Partial<Record<NomRegle, number>> = {
+      "juridique.depot": 3,
+    };
+
     for (const [nom, regle] of Object.entries(REGLES)) {
-      expect(regle.quota, nom).toBeGreaterThanOrEqual(5);
+      const plancher = PLUS_SERREES[nom as NomRegle] ?? 5;
+      expect(regle.quota, nom).toBeGreaterThanOrEqual(plancher);
+      // Personne ne descend sous un : une règle à zéro ferme le service, et
+      // c'est le cas que ce test existe pour attraper.
+      expect(regle.quota, nom).toBeGreaterThanOrEqual(1);
       expect(regle.fenetreMs, nom).toBeGreaterThanOrEqual(60_000);
     }
   });
