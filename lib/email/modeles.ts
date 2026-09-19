@@ -39,6 +39,14 @@ export const MODELES = [
   "CANDIDATURE_RECUE",
   "INSCRIPTION_EVENEMENT",
   "NOUVEL_ABONNE",
+
+  // ── Ajouté en v1.57.0 avec les notifications juridiques ─────────────────
+  //
+  // Le seul avis de cette liste qui ouvre un DÉLAI : la personne a dix jours
+  // pour contester, et passé ce terme le contenu ne revient pas. L'in-app ne
+  // suffisait pas — une cloche qu'on n'ouvre pas ferait courir ce délai dans
+  // le vide, et le retrait deviendrait définitif par silence.
+  "RETRAIT_JURIDIQUE",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -178,6 +186,16 @@ const SCHEMAS = {
   CANDIDATURE_RECUE: z.object({ nom, offre: z.string().min(1).max(160) }),
   INSCRIPTION_EVENEMENT: z.object({ nom, titre: z.string().min(1).max(160) }),
   NOUVEL_ABONNE: z.object({ nom }),
+  RETRAIT_JURIDIQUE: z.object({
+    nom,
+    reference: z.string().min(1).max(40),
+    // Le motif invoqué par le notifiant, tel qu'il l'a écrit. Repris et non
+    // résumé : la personne doit pouvoir répondre à ce qui lui est reproché,
+    // pas à notre reformulation.
+    motif: z.string().min(1).max(2000),
+    echeance: z.string().min(1).max(40),
+    lien: z.string().url().optional(),
+  }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
 export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
@@ -372,6 +390,38 @@ ${c.raison}
       SIGNATURE,
   }),
 
+  RETRAIT_JURIDIQUE: (c) => ({
+    sujet: `Contenu retiré à titre provisoire — dossier ${c.reference}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Une notification nous est parvenue au sujet d'un de tes contenus, et ` +
+      `nous l'avons retiré le temps de l'examiner. Le retrait est ` +
+      `PROVISOIRE : rien n'est supprimé, et le contenu revient si la ` +
+      `notification ne tient pas.
+
+` +
+      `Dossier : ${c.reference}
+
+` +
+      `Ce qui nous est signalé, dans les termes du notifiant :
+` +
+      `${c.motif}
+
+` +
+      `Tu peux répondre jusqu'au ${c.echeance}. Si tu réponds, nous ` +
+      `réexaminons le dossier ; si tu ne réponds pas d'ici là, le retrait ` +
+      `devient définitif.
+
+` +
+      `Nous ne jugeons pas qui a raison : nous appliquons l'article 3 de la ` +
+      `loi n° 2008-08 sur les transactions électroniques, qui nous oblige à ` +
+      `agir promptement une fois informés. Le litige lui-même relève du juge.` +
+      (c.lien ? `
+
+Répondre : ${c.lien}` : ""),
+  }),
   CONTENU_REFUSE: (c) => ({
     sujet: `Non retenu : ${c.titre}`,
     texte:

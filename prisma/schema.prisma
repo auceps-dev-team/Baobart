@@ -467,11 +467,10 @@ model User {
   subscriptions Subscription[]
   badges        UserBadge[]
 
-
   // médias & notifications
-  mediaAssets     MediaAsset[]
-  notifications   Notification[]
-  blogPosts       BlogPost[]
+  mediaAssets   MediaAsset[]
+  notifications Notification[]
+  blogPosts     BlogPost[]
 
   /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
   /// `CommunityChatMessage` sont NOMMÉES : sans nom, Prisma ne saurait pas
@@ -480,13 +479,13 @@ model User {
   ///
   /// `communityMemberships` existait déjà, plus haut dans ce modèle ; elle a
   /// été déplacée ici pour que le bloc se lise d'un tenant.
-  communautesCreees    Community[]            @relation("CommunautesCreees")
-  communityMemberships CommunityMembership[]
-  sujetsOuverts     ForumTopic[]           @relation("SujetsOuverts")
-  messagesDeForum   ForumPost[]            @relation("MessagesDeForum")
-  messagesDeChat    CommunityChatMessage[] @relation("MessagesDeChat")
+  communautesCreees       Community[]              @relation("CommunautesCreees")
+  communityMemberships    CommunityMembership[]
+  sujetsOuverts           ForumTopic[]             @relation("SujetsOuverts")
+  messagesDeForum         ForumPost[]              @relation("MessagesDeForum")
+  messagesDeChat          CommunityChatMessage[]   @relation("MessagesDeChat")
   notificationPreferences NotificationPreference[]
-  abonnementsPush PushSubscription[]
+  abonnementsPush         PushSubscription[]
 
   // jobs
   offresDeposees       JobPosting[]     @relation("OffresDeposees")
@@ -496,7 +495,7 @@ model User {
   servicesProposes ServiceOffer[] @relation("ServicesProposes")
 
   // événements — ceux qu'on organise, et ceux auxquels on s'inscrit
-  evenementsOrganises   Event[]             @relation("EvenementsOrganises")
+  evenementsOrganises    Event[]             @relation("EvenementsOrganises")
   inscriptionsEvenements EventRegistration[] @relation("InscriptionsEvenements")
 
   // confiance
@@ -892,13 +891,13 @@ model Comment {
 }
 
 model Board {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   ownerId      String
   title        String
   description  String?
-  isPublic     Boolean  @default(true)
+  isPublic     Boolean @default(true)
   coverImageId String?
-  savesCount   Int      @default(0)
+  savesCount   Int     @default(0)
 
   /// La communauté avec laquelle cette collection est partagée, s'il y en a
   /// une.
@@ -1902,7 +1901,7 @@ model Event {
   jury        Json?
 
   /// Compteur dénormalisé, comme partout ailleurs (§3.9-H du plan).
-  participantsCount Int @default(0)
+  participantsCount Int     @default(0)
   /// Place payante (§2.9) : accueil et feed.
   isFeatured        Boolean @default(false)
 
@@ -2011,7 +2010,7 @@ model Community {
   status       String              @default("active")
   createdAt    DateTime            @default(now())
 
-  creator      User                  @relation("CommunautesCreees", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator      User                   @relation("CommunautesCreees", fields: [creatorId], references: [id], onDelete: Cascade)
   members      CommunityMembership[]
   categories   ForumCategory[]
   chatMessages CommunityChatMessage[]
@@ -2046,10 +2045,10 @@ model CommunityMembership {
 /// niveaux. Ils ne sont reliés à aucun écran pour l'instant : la maquette ne
 /// les dessine pas, et elle fait foi.
 model CommunityChatMessage {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   communityId String
   authorId    String
-  body        String   @db.Text
+  body        String @db.Text
 
   /// Signalé par un membre. Le message reste visible et marqué — voir
   /// `ForumPost.isFlagged`, même règle : le masquer ferait disparaître le
@@ -2141,13 +2140,13 @@ model Notification {
   /// d'un hasard : un webhook rejoué par l'opérateur doit retomber sur la même
   /// clé et se faire refuser, plutôt que de poser une seconde ligne dans la
   /// cloche de quelqu'un.
-  cle    String @unique
+  cle String @unique
 
   /// Ce qu'on affiche. Deux champs plutôt qu'un rendu à la lecture : le texte
   /// d'une notification doit rester ce qu'il était au moment des faits, même
   /// si la ressource qu'il décrit a changé de nom depuis.
   titre String
-  corps String @db.Text
+  corps String  @db.Text
   /// Où elle mène. `null` quand il n'y a rien à ouvrir.
   lien  String?
 
@@ -2372,10 +2371,10 @@ model BlogPost {
   body     String  @db.Text
   coverUrl String?
 
-  categoryId String?
-  state      ContentState @default(BROUILLON)
+  categoryId    String?
+  state         ContentState @default(BROUILLON)
   /// Pourquoi la relecture a refusé. Même nom que sur les trois autres CMS.
-  refusedReason String?   @db.Text
+  refusedReason String?      @db.Text
   moderatedAt   DateTime?
   moderatorId   String?
 
@@ -2549,6 +2548,13 @@ enum EmailTemplate {
   CANDIDATURE_RECUE
   INSCRIPTION_EVENEMENT
   NOUVEL_ABONNE
+
+  /// Ajouté en v1.57.0 avec les notifications juridiques.
+  ///
+  /// Celui-ci ne pouvait pas rester en in-app seulement : il ouvre une fenêtre
+  /// de réponse au bout de laquelle le contenu ne revient pas. Une cloche
+  /// qu'on n'ouvre pas ferait courir ce délai dans le vide.
+  RETRAIT_JURIDIQUE
 }
 
 /// File d'attente des messages transactionnels.
@@ -2635,4 +2641,212 @@ model UploadReservation {
   createdAt    DateTime @default(now())
 
   @@index([ownerId, status])
+}
+
+// ============================================================================
+// 12. NOTIFICATIONS JURIDIQUES — articles 46 à 54 de la loi ivoirienne
+//     n° 2013-451 du 19 juin 2013 relative à la lutte contre la cybercriminalité
+// ============================================================================
+
+/// Où en est un dossier.
+///
+/// L'enchaînement suit le chapitre 6 de la loi ivoirienne n° 2013-451, et non
+/// le DMCA américain. La différence n'est pas cosmétique : l'article 47 exige
+/// que le notifiant ait **d'abord écrit à l'auteur**, ce que le DMCA ne
+/// demande pas.
+///
+/// Le régime n'est pas dans la loi n° 2013-546 sur les transactions
+/// électroniques — celle qui transpose l'acte CEDEAO A/SA.2/01/10 — mais dans
+/// la loi pénale. Cherché au mauvais endroit d'abord ; noté ici pour le
+/// suivant.
+enum LegalNoticeState {
+  /// Déposée, pas encore examinée.
+  RECUE
+  /// Il manque un ou plusieurs des éléments de l'article 47. Tant qu'elle est
+  /// incomplète, la connaissance n'est PAS présumée acquise — l'obligation
+  /// d'agir promptement (article 46) ne court donc pas.
+  INCOMPLETE
+  /// Complète : la connaissance est présumée, et le contenu est retiré le temps
+  /// de l'examen. « Provisoire » veut dire réversible.
+  RETRAIT_PROVISOIRE
+  /// L'auteur a répondu. La décision revient à la plateforme, ou au juge.
+  CONTESTEE
+  /// Tranchée : le contenu ne revient pas.
+  RETIREE
+  /// Tranchée : le contenu est remis en ligne.
+  RESTAUREE
+  /// Classée sans suite — abandonnée, non fondée, ou hors sujet.
+  CLASSEE
+}
+
+/// Qui notifie. L'article 47 demande des éléments différents selon le cas.
+enum LegalNoticeNotifierKind {
+  /// Nom, prénoms, profession, domicile, nationalité, date et lieu de
+  /// naissance.
+  PERSONNE_PHYSIQUE
+
+  /// Dénomination et siège social, **et rien d'autre**. La loi sénégalaise
+  /// exige en plus la forme juridique et l'organe représentant ; la loi
+  /// ivoirienne non, et les réclamer ferait refuser des notifications qu'elle
+  /// tient pour complètes.
+  PERSONNE_MORALE
+}
+
+/// Une notification de contenu litigieux.
+///
+/// ══════════════════════════════════════════════════════════════════════════
+/// LES CHAMPS SONT CEUX DE L'ARTICLE 47, UN POUR UN
+///
+/// « Pour être prise en compte la notification doit comporter les éléments
+/// suivants : […] » — six éléments, énumérés par tirets. Le verbatim complet
+/// est en tête de `lib/juridique/article47.ts`.
+///
+/// C'est une liste fermée, et c'est son intérêt : une notification qui la
+/// respecte déclenche l'obligation d'agir promptement (article 46) ;
+/// une notification incomplète ne la déclenche pas. Ranger chaque élément dans
+/// sa propre colonne permet de dire **lequel** manque, plutôt que de refuser en
+/// bloc.
+///
+/// ══════════════════════════════════════════════════════════════════════════
+/// AUCUN DÉLAI CHIFFRÉ NE VIENT DE CE TEXTE
+///
+/// L'article 46 dit « promptement », sans chiffre. Les délais que porte ce
+/// modèle — retrait provisoire, fenêtre de réponse — sont des **engagements de
+/// Baobart**, pas des obligations légales. Ils sont rangés ici pour être tenus
+/// et vérifiables, et l'écran public le dit en toutes lettres.
+///
+/// Un seul chiffre vient de la loi, et il est ailleurs : l'article 53 impose
+/// de conserver **trois ans** les données permettant d'identifier qui a
+/// contribué à un contenu.
+///
+/// ══════════════════════════════════════════════════════════════════════════
+/// NOTIFIER DE MAUVAISE FOI EST UN DÉLIT
+///
+/// Article 49 : un à cinq ans d'emprisonnement et 1 à 5 millions de francs CFA
+/// pour qui présente de mauvaise foi un contenu comme illicite afin d'en
+/// obtenir le retrait. C'est la meilleure protection du créateur dans tout ce
+/// dispositif, et l'écran de dépôt l'affiche.
+model LegalNotice {
+  id String @id @default(cuid())
+
+  /// « NOT-2026-041 ». Lisible, citable dans une correspondance, et distincte
+  /// de l'identifiant technique — on ne fait pas recopier un cuid à quelqu'un
+  /// qui écrit un courrier recommandé.
+  reference String @unique
+
+  state LegalNoticeState @default(RECUE)
+
+  /// La date de la notification.
+  ///
+  /// Absente de la liste ivoirienne — la loi sénégalaise la demande, pas
+  /// celle-ci. On la range quand même, et c'est le SERVEUR qui la pose : c'est
+  /// elle qui fait courir l'obligation d'agir promptement, et une date déclarée
+  /// par le notifiant serait la seule pièce du dossier qu'il pourrait
+  /// antidater.
+  notifiedAt DateTime @default(now())
+
+  // ── L'auteur de la notification ───────────────────────────────────────────
+  notifierKind           LegalNoticeNotifierKind
+  notifierEmail          String
+  /// Nom (personne physique) ou dénomination (personne morale).
+  notifierName           String
+  notifierFirstNames     String?
+  notifierProfession     String?
+  /// Domicile, ou siège social.
+  notifierAddress        String
+  notifierNationality    String?
+  notifierBirthDate      DateTime?
+  notifierBirthPlace     String?
+  /// Non exigés par l'article 47 ivoirien — conservés parce que la loi
+  /// sénégalaise les demande, et que Baobart peut servir les deux pays.
+  /// Facultatifs ici, et le formulaire ne les réclame pas.
+  notifierLegalForm      String?
+  notifierRepresentative String?
+
+  // ── Le destinataire du service en cause ───────────────────────────────────
+  /// Le destinataire : celui dont le contenu est visé. Déclaré par le
+  /// notifiant, et jamais présumé — la plateforme le rapproche ensuite de ses
+  /// propres comptes, sans le remplacer.
+  targetName       String
+  /// L'article 47 demande « les nom, PRÉNOMS et domicile du destinataire ».
+  targetFirstNames String?
+  targetAddress    String?
+  /// Le compte visé, quand la plateforme a su le rapprocher. Nul tant que
+  /// personne ne l'a fait : deviner serait retirer le contenu de quelqu'un sur
+  /// une homonymie.
+  targetUserId     String?
+
+  // ── Les faits, et leur localisation précise sur le réseau ─────────────────
+  /// « la description des faits litigieux et leur localisation précise sur le
+  /// réseau ».
+  factsDescription String @db.Text
+  /// Les adresses exactes. Une par ligne — « tout mon site » n'est pas une
+  /// localisation précise, et la validation le refuse.
+  targetUrls       String @db.Text
+
+  // ── Les droits et les motifs ──────────────────────────────────────────────
+  /// « les droits et les motifs pour lesquels le retrait du contenu litigieux
+  /// est demandé ».
+  /// Un seul champ : la loi ivoirienne n'en fait pas deux. La loi sénégalaise
+  /// sépare « dispositions légales » et « justifications de faits » ; scinder
+  /// ici obligerait à répartir une phrase entre deux cases, et ferait refuser
+  /// une notification qui dit tout dans la première.
+  legalGrounds String @db.Text
+
+  // ── La correspondance préalable ───────────────────────────────────────────
+  /// La copie de la correspondance adressée à l'auteur, OU la justification de
+  /// ce qu'il n'a pu être contacté. L'un des deux, jamais aucun : c'est
+  /// l'exigence que le DMCA n'a pas, et elle oblige à parler à la personne
+  /// avant de s'adresser à la plateforme.
+  priorContact            String  @db.Text
+  /// Vrai quand `priorContact` explique pourquoi l'auteur n'a pu être joint,
+  /// plutôt que de reproduire la lettre qu'on lui a envoyée.
+  priorContactUnreachable Boolean @default(false)
+
+  // ── Le traitement ─────────────────────────────────────────────────────────
+  /// Ce qui manque, quand l'état vaut INCOMPLETE. Les exigences de l'article
+  /// 47, séparées par des virgules : « localisation, correspondance ».
+  missingElements String?
+  /// Quand le contenu a été retiré à titre provisoire.
+  suspendedAt     DateTime?
+  /// Jusqu'à quand l'auteur peut répondre. Engagement de Baobart, pas délai
+  /// légal.
+  replyDueAt      DateTime?
+  /// Qui a tranché, et pourquoi.
+  decidedById     String?
+  decidedAt       DateTime?
+  decisionReason  String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  replies LegalNoticeReply[]
+
+  /// La file : « les dossiers qui attendent, le plus ancien d'abord ».
+  @@index([state, notifiedAt])
+  @@index([targetUserId])
+}
+
+/// La réponse de l'auteur dont le contenu est visé.
+///
+/// Distincte du droit de réponse de l'article 6, qui vise autre chose — être
+/// nommé dans un service — et court sur trois mois. Celle-ci conteste le
+/// retrait lui-même.
+model LegalNoticeReply {
+  id       String @id @default(cuid())
+  noticeId String
+
+  /// L'auteur, quand il répond depuis son compte. Nul quand la réponse arrive
+  /// par un autre canal et qu'un administrateur la consigne.
+  authorId String?
+  /// Ce qu'il répond.
+  body     String  @db.Text
+  /// Il maintient que le contenu est licite et demande sa remise en ligne.
+  contests Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  notice LegalNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@index([noticeId, createdAt])
 }

@@ -59,6 +59,13 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
   CANDIDATURE_RECUE: { nom: "Awa", offre: "Illustrateur — mission 3 mois" },
   INSCRIPTION_EVENEMENT: { nom: "Awa", titre: "Atelier sérigraphie sur wax" },
   NOUVEL_ABONNE: { nom: "Awa" },
+  RETRAIT_JURIDIQUE: {
+    nom: "Awa",
+    reference: "NOT-2026-041",
+    motif: "Reproduction sans autorisation d'une illustration.",
+    echeance: "29 septembre 2026",
+    lien: "https://baobart.test/dossiers/NOT-2026-041",
+  },
 };
 
 describe("modèles de courriel", () => {

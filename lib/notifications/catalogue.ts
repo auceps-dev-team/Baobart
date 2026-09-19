@@ -119,7 +119,9 @@ export type EvenementNotifiable =
   | "NOUVEL_ABONNE"
   // ── Communautés ─────────────────────────────────────────────────────────
   | "COMMUNAUTE_NOUVEAU_MESSAGE"
-  | "COMMUNAUTE_NOUVEAU_MEMBRE";
+  | "COMMUNAUTE_NOUVEAU_MEMBRE"
+  // ── Juridique ───────────────────────────────────────────────────────────
+  | "RETRAIT_JURIDIQUE";
 
 /**
  * Tout, en un seul endroit.
@@ -277,6 +279,25 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     explication: "Quelqu'un a rejoint une communauté que tu administres.",
     modele: null,
     defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
+  },
+
+  // ═════════════════════════════════════════════════════════ juridique ══
+  //
+  // Le seul avis de ce catalogue qui ouvre un DÉLAI au terme duquel quelque
+  // chose est perdu : dix jours pour contester, et passé ce terme le contenu
+  // ne revient pas.
+  //
+  // Impératif, donc, et pour une raison plus forte que l'argent : couper cet
+  // avis reviendrait à laisser quelqu'un perdre son travail par silence, sans
+  // avoir jamais su qu'on le lui contestait.
+  RETRAIT_JURIDIQUE: {
+    audience: "tous",
+    libelle: "Retrait juridique",
+    explication:
+      "Un tiers a notifié qu'un de tes contenus serait illicite, et il a été retiré le temps de l'examen.",
+    imperatif: true,
+    modele: "RETRAIT_JURIDIQUE",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
 };
 

@@ -76,7 +76,21 @@ export const MENUS: GroupeMenu[] = [
         glyph: "✎",
         href: null,
       },
-      { label: "Signalement DMCA", hint: "Signaler un contenu", glyph: "!", href: null },
+      {
+        // La maquette écrit « Signalement DMCA ». Le DMCA est une loi
+        // américaine, et Baobart est établie à Abidjan : la procédure qui
+        // s'applique ici est celle des articles 46 à 54 de la loi ivoirienne
+        // n° 2013-451, qui diffère — notamment parce qu'elle exige d'avoir
+        // écrit à l'auteur avant de saisir la plateforme.
+        //
+        // Nommer une page juridique d'après un texte qui ne la régit pas
+        // n'est pas un choix de design : c'est une erreur de fait. Le libellé
+        // est corrigé, la place et l'intention de la maquette sont gardées.
+        label: "Signalement & retrait",
+        hint: "Signaler un contenu",
+        glyph: "!",
+        href: "/signalement",
+      },
       {
         label: "Politique de cookies (UE)",
         hint: "Traceurs & consentement",

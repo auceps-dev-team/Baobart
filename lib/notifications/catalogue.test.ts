@@ -116,6 +116,7 @@ describe("les impératifs", () => {
       COMMANDE_REMBOURSEE: { COURRIEL: false, IN_APP: false },
       EVENEMENT_ANNULE: { COURRIEL: false, IN_APP: false },
       CONTENU_REFUSE: { COURRIEL: false, IN_APP: false },
+      RETRAIT_JURIDIQUE: { COURRIEL: false, IN_APP: false },
     };
 
     for (const e of EVENEMENTS) {
@@ -126,8 +127,17 @@ describe("les impératifs", () => {
 
   it("ne couvrent que ce qui engage quelqu'un", () => {
     // Une liste d'impératifs qui s'allonge est une liste dont plus personne ne
-    // tient compte. Celle-ci se limite à l'argent, à un déplacement prévu, et
-    // au refus — qui n'a aucun autre canal vers son auteur.
+    // tient compte. Celle-ci se limite à l'argent, à un déplacement prévu, au
+    // refus — qui n'a aucun autre canal vers son auteur — et au retrait
+    // juridique.
+    //
+    // Le septième a été ajouté en v1.57.0, et ce test est tombé en le voyant
+    // arriver : c'est exactement son travail. Il a sa place, et pour une
+    // raison plus forte que l'argent — c'est le seul avis au terme duquel le
+    // SILENCE coûte quelque chose. Dix jours pour contester, et passé ce
+    // terme le contenu ne revient pas. Le couper reviendrait à laisser
+    // quelqu'un perdre son travail sans avoir jamais su qu'on le lui
+    // contestait.
     const imperatifs = EVENEMENTS.filter((e) => CATALOGUE[e].imperatif);
 
     expect(imperatifs.sort()).toEqual(
@@ -141,6 +151,8 @@ describe("les impératifs", () => {
         "CONTENU_REFUSE",
         // Un déplacement prévu, parfois payé.
         "EVENEMENT_ANNULE",
+        // Un délai au bout duquel le silence fait perdre son travail.
+        "RETRAIT_JURIDIQUE",
       ].sort(),
     );
   });

@@ -7,7 +7,12 @@ import {
   DecisionSignalement,
   FermerLaCommunaute,
 } from "@/components/forum/decision-signalement";
+import { RetirerProvisoirement, Trancher } from "@/components/juridique/gestes";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
+import {
+  dossiersEnCours,
+  indicateursJuridiques,
+} from "@/lib/juridique/queries";
 import {
   communautesPourLAdministration,
   historiqueDesDecisions,
@@ -65,12 +70,15 @@ export default async function SignalementsPage({
     demandee === "fil" || demandee === "forum" ? demandee : "tous";
   const recherche = (q ?? "").trim();
 
-  const [file, chiffres, communautes, historique] = await Promise.all([
-    messagesSignales({ origine, recherche }),
-    indicateurs(),
-    communautesPourLAdministration(),
-    historiqueDesDecisions(),
-  ]);
+  const [file, chiffres, communautes, historique, dossiers, chiffresJuridiques] =
+    await Promise.all([
+      messagesSignales({ origine, recherche }),
+      indicateurs(),
+      communautesPourLAdministration(),
+      historiqueDesDecisions(),
+      dossiersEnCours(),
+      indicateursJuridiques(),
+    ]);
 
   return (
     <DashboardFrame
@@ -94,15 +102,15 @@ export default async function SignalementsPage({
           fond={chiffres.signalesEnAttente > 0 ? ORANGE : BLANC}
         />
         <Tuile
-          libelle="Communautés ouvertes"
-          valeur={chiffres.communautesOuvertes}
-          note="visibles dans l'annuaire"
-          fond={BLANC}
+          libelle="Dossiers ouverts"
+          valeur={chiffresJuridiques.enCours}
+          note={`dont ${chiffresJuridiques.incomplets} incomplets`}
+          fond={chiffresJuridiques.enCours > 0 ? JAUNE : BLANC}
         />
         <Tuile
-          libelle="Communautés fermées"
-          valeur={chiffres.communautesFermees}
-          note="plus lisibles par personne"
+          libelle="Retraits provisoires"
+          valeur={chiffresJuridiques.retraitsProvisoires}
+          note="en attente de réponse"
           fond={MAUVE}
         />
         <Tuile
@@ -117,16 +125,159 @@ export default async function SignalementsPage({
         L'écart avec la maquette, écrit là où on le lit. Voir l'en-tête.
       */}
       <p style={{ fontSize: 12.5, lineHeight: 1.5, opacity: 0.7, marginBottom: 26 }}>
-        La maquette prévoit ici deux indicateurs de plus — « retraits
-        provisoires » et « dossiers DMCA » — ainsi qu&apos;une procédure de
-        retrait sous 48 h avec droit de réponse. Rien de tout cela n&apos;existe
-        encore en base : ces quatre tuiles comptent ce que la plateforme sait
-        réellement compter.{" "}
+        « Dossiers ouverts » et « retraits provisoires » comptent désormais de
+        vrais dossiers, instruits selon les articles 46 à 54 de la loi
+        ivoirienne n° 2013-451. La maquette parlait de « DMCA » : c&apos;est
+        une loi américaine, et sa procédure diffère — celle qui s&apos;applique
+        ici exige notamment d&apos;avoir écrit à l&apos;auteur avant de saisir
+        la plateforme. Les {" "}
+        <Link href={"/signalement" as Route} style={{ textDecoration: "underline" }}>
+          engagements publics
+        </Link>{" "}
+        disent ce qui vient de la loi et ce qui vient de nous.{" "}
         <Link href={"/dashboard/moderation" as Route} style={{ textDecoration: "underline" }}>
           La file de relecture
         </Link>{" "}
         traite les contenus qui attendent d&apos;être publiés.
       </p>
+
+      {/* ── Les dossiers juridiques ───────────────────────────────────── */}
+      <h2
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 20,
+          textTransform: "uppercase",
+          margin: "0 0 8px",
+        }}
+      >
+        Dossiers juridiques
+      </h2>
+      <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 16px", lineHeight: 1.5 }}>
+        Notifications reçues au titre de l&apos;article 47. Un dossier
+        incomplet ne fait courir aucun délai : l&apos;obligation d&apos;agir ne
+        commence qu&apos;une fois les six éléments réunis.
+      </p>
+
+      {dossiers.length === 0 ? (
+        <p
+          style={{
+            padding: 22,
+            border: CADRE,
+            borderRadius: 18,
+            background: BLANC,
+            fontSize: 14.5,
+            fontWeight: 600,
+            margin: "0 0 40px",
+          }}
+        >
+          Aucun dossier en cours.
+        </p>
+      ) : (
+        <div style={{ display: "grid", gap: 18, marginBottom: 40 }}>
+          {dossiers.map((d) => (
+            <article
+              key={d.reference}
+              style={{
+                border: CADRE,
+                borderRadius: 22,
+                background: BLANC,
+                boxShadow: `5px 5px 0 ${ENCRE}`,
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  paddingBottom: 14,
+                  marginBottom: 16,
+                  borderBottom: CADRE,
+                }}
+              >
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>
+                  {d.reference}
+                </span>
+                <Marque fond={FOND_ETAT[d.etat] ?? BLANC}>
+                  {LIBELLE_ETAT[d.etat] ?? d.etat}
+                </Marque>
+                {d.manques ? (
+                  <Marque fond={JAUNE}>manque : {d.manques}</Marque>
+                ) : null}
+                {/*
+                  Sans compte rapproché, l'auteur n'a pas été prévenu. Le dire
+                  ici évite de croire qu'il se tait alors qu'il n'a rien reçu.
+                */}
+                {!d.cibleCompteId ? (
+                  <Marque fond={ORANGE}>compte non rapproché</Marque>
+                ) : null}
+                <span style={{ fontSize: 12.5, opacity: 0.6, marginLeft: "auto" }}>
+                  {d.notifiantNom} · {dateCourte(d.notifieLe)}
+                </span>
+              </div>
+
+              <Ligne titre="Visé">{d.cibleNom}</Ligne>
+              <Ligne titre="Faits">{d.faits}</Ligne>
+              <Ligne titre="Droit invoqué">{d.motifs}</Ligne>
+              <Ligne titre={d.contactImpossible ? "Auteur injoignable" : "Écrit à l'auteur"}>
+                {d.contactPrealable}
+              </Ligne>
+
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, opacity: 0.6 }}>
+                  Adresses visées
+                </div>
+                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  {d.adresses.map((a) => (
+                    <li
+                      key={a}
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 12.5,
+                        wordBreak: "break-all",
+                      }}
+                    >
+                      {/*
+                        Pas de lien cliquable. `article47.ts` n'accepte que
+                        http et https, mais un modérateur qui clique depuis un
+                        écran d'administration est exactement la cible qu'on
+                        viserait. Il copie s'il veut ouvrir.
+                      */}
+                      {a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {d.reponseAvantLe ? (
+                <p style={{ fontSize: 13, fontWeight: 700, marginTop: 14 }}>
+                  Réponse attendue avant le {dateCourte(d.reponseAvantLe)} ·{" "}
+                  {d.reponses} réponse{d.reponses > 1 ? "s" : ""} reçue
+                  {d.reponses > 1 ? "s" : ""}
+                </p>
+              ) : null}
+
+              <div
+                style={{
+                  marginTop: 18,
+                  paddingTop: 16,
+                  borderTop: CADRE,
+                  display: "flex",
+                  gap: 16,
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                }}
+              >
+                {d.etat === "RECUE" ? (
+                  <RetirerProvisoirement reference={d.reference} />
+                ) : null}
+                <Trancher reference={d.reference} />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       {/* ── Les messages signalés ─────────────────────────────────────── */}
       <h2
@@ -481,6 +632,33 @@ export default async function SignalementsPage({
         </div>
       )}
     </DashboardFrame>
+  );
+}
+
+/** Les états d'un dossier, dits en clair. */
+const LIBELLE_ETAT: Record<string, string> = {
+  RECUE: "Reçue, complète",
+  INCOMPLETE: "Incomplète",
+  RETRAIT_PROVISOIRE: "Retrait provisoire",
+  CONTESTEE: "Contestée",
+};
+
+const FOND_ETAT: Record<string, string> = {
+  RECUE: VERT,
+  INCOMPLETE: JAUNE,
+  RETRAIT_PROVISOIRE: MAUVE,
+  CONTESTEE: ORANGE,
+};
+
+/** Un champ du dossier, avec son intitulé. */
+function Ligne({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 800, opacity: 0.6 }}>{titre}</div>
+      <p style={{ fontSize: 14, lineHeight: 1.5, margin: "4px 0 0", whiteSpace: "pre-wrap" }}>
+        {children}
+      </p>
+    </div>
   );
 }
 
