@@ -72,19 +72,25 @@ test.describe("les pages publiques restent publiques", () => {
   });
 });
 
-test.describe("les routes d'ordonnanceur", () => {
-  const CRONS = [
-    "/api/cron/versements",
-    "/api/cron/courriels",
-    "/api/cron/commandes",
-  ];
-
-  for (const chemin of CRONS) {
-    test(`${chemin} rend 404 sans le secret`, async ({ request }) => {
-      // 404 et non 401 : une route d'ordonnanceur n'a pas à confirmer son
-      // existence à qui n'a pas le secret.
-      const reponse = await request.get(chemin);
-      expect(reponse.status()).toBe(404);
-    });
-  }
-});
+/**
+ * Les routes d'ordonnanceur sont éprouvées dans `ordonnanceur.spec.ts`.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * CE BLOC EXISTAIT ICI, ET IL DONNAIT UNE FAUSSE ASSURANCE
+ *
+ * Il portait une liste en dur de **trois** chemins — versements, courriels,
+ * commandes — écrite en août, quand il n'y en avait que trois. `abonnements`
+ * est arrivé ensuite, puis `blog`, puis `juridique` : aucun n'y a jamais été
+ * ajouté.
+ *
+ * Trois sur six, sous un titre qui dit « les routes d'ordonnanceur ». Un
+ * lecteur pressé — ou un auteur qui ajoute une route — y voit une couverture
+ * complète.
+ *
+ * `ordonnanceur.spec.ts` lit `vercel.json` au lieu de recopier les chemins :
+ * il couvre les six, et couvrira la septième sans que personne y pense. C'est
+ * la seule forme de cette vérification qui ne se périme pas.
+ *
+ * Retiré le 19 septembre 2026, le jour où l'on a découvert que `/api/cron/blog`
+ * n'était planifié nulle part depuis six versions.
+ */

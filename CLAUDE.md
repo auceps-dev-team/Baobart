@@ -199,6 +199,40 @@ node scripts/setup-test-db.mjs        # ou : pnpm db:test:setup
 Il détruit `baobart_test`, la recrée et rejoue toutes les migrations. C'est
 rapide — il n'y a rien dedans entre deux passages, le `TRUNCATE` s'en charge.
 
+### Un `next dev` oublié ralentit la suite d'un facteur neuf
+
+Mesuré le 20 septembre 2026, au milieu d'un même passage d'intégration, sur une
+base pourtant recréée juste avant :
+
+```
+117 s, 88 s, 48 s      TRUNCATE, avec un « next dev » orphelin
+ 13 s, 13 s, 11 s      les suivants, après l'avoir tué
+```
+
+La cause n'est pas la base : c'est la **surveillance de fichiers** de Next, qui
+parcourt le projet en continu pendant que la suite vide quarante tables entre
+chaque test. Deux processus sur le même disque, et le plus lent gagne.
+
+Le symptôme se lit exactement comme une base fragmentée — des `TRUNCATE` à deux
+chiffres, puis à trois. Avant de recréer `baobart_test` une seconde fois,
+vérifier qu'aucun serveur ne tourne :
+
+```sh
+# Windows
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+  Where-Object { $_.CommandLine -match 'next dev|start-server' }
+```
+
+**Arrêter `npm run dev` ne suffit pas.** La commande n'est qu'une enveloppe :
+tuer le processus `npm` laisse `next dev` et son `start-server` vivants, et ils
+ne se signalent nulle part. C'est ainsi que celui-ci a survécu à un arrêt
+explicite, puis à trois campagnes Playwright, avant qu'on ne cherche pourquoi
+la suite rampait.
+
+Même chose pour le serveur que Playwright lance lui-même : il s'arrête
+normalement avec la campagne, mais une campagne interrompue peut le laisser
+derrière.
+
 ### Une base de test fraîche va dix-huit fois plus vite
 
 Mesuré le 14 septembre 2026, les mêmes 37 tests d'intégration :
