@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.57.2",
+  "version": "1.58.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -20,6 +20,9 @@
     "stack:down": "docker compose down",
     "test:unite": "vitest run --project unite",
     "db:test:setup": "node scripts/setup-test-db.mjs",
+    "db:demo:medias": "node --env-file=.env scripts/medias-demo.mjs",
+    "db:demo:catalogue": "tsx prisma/seed-demo-catalogue.ts",
+    "db:demo:verif": "node scripts/verif-catalogue.mjs",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "admin:promouvoir": "node scripts/promouvoir-admin.mjs",
     "push:cles": "node scripts/cles-push.mjs",
