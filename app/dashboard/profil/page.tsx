@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { PanneauDeuxFacteurs } from "@/components/dashboard/deux-facteurs";
+import { PanneauEffacement } from "@/components/dashboard/effacement";
 import { FormulaireProfil } from "@/components/dashboard/profil-form";
 import {
   confirmerDeuxFacteurs,
@@ -13,6 +14,11 @@ import {
 } from "@/lib/auth/actions-2fa";
 import { etatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
 import { sessionCourante } from "@/lib/auth/session";
+import {
+  annulerMonEffacement,
+  demanderMonEffacement,
+} from "@/lib/rgpd/actions";
+import { etatEffacement } from "@/lib/rgpd/effacement";
 import { lireProfilDashboard } from "@/lib/dashboard/lectures";
 
 export const metadata = { title: "Profil — Baobart." };
@@ -61,9 +67,10 @@ export default async function ProfilPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/profil");
 
-  const [profil, deuxFacteurs] = await Promise.all([
+  const [profil, deuxFacteurs, effacement] = await Promise.all([
     lireProfilDashboard(utilisateur.id),
     etatDeuxFacteurs(utilisateur.id),
+    etatEffacement(utilisateur.id),
   ]);
   const p = profil?.profile;
 
@@ -115,6 +122,17 @@ export default async function ProfilPage() {
             confirmer={confirmerDeuxFacteurs}
             couper={couperDeuxFacteurs}
             renouveler={renouvelerCodesSecours}
+          />
+        </DashboardPanel>
+      </div>
+
+      <div style={{ marginTop: 20, maxWidth: 900 }}>
+        <DashboardPanel titre="Effacer mon compte">
+          <PanneauEffacement
+            etat={effacement}
+            courriel={utilisateur.email}
+            demander={demanderMonEffacement}
+            annuler={annulerMonEffacement}
           />
         </DashboardPanel>
       </div>

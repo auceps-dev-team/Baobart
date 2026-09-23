@@ -441,6 +441,24 @@ model User {
   /// Quand la double authentification est devenue exigible. `null` = inactive.
   totpActiveLe DateTime?
 
+  /// Quand l'identite a ete caviardee a la demande de la personne.
+  ///
+  /// ==========================================================================
+  /// LA LIGNE RESTE, ET C'EST LA SEULE FACON DE FAIRE
+  ///
+  /// Cinq tables refusent la suppression d'un compte — Order, Balance,
+  /// BalanceTransaction, Payout, RiskStateChange — parce qu'un grand livre
+  /// dont les ecritures perdent leur contrepartie n'est plus un grand livre,
+  /// et parce que la comptabilite se conserve des annees.
+  ///
+  /// L'effacement consiste donc a **caviarder** : l'adresse devient
+  /// `efface-<id>@baobart.invalid`, le profil et les messages partent, le mot
+  /// de passe et les sessions aussi. Ce qui subsiste est une coquille sans
+  /// personne dedans, que les ecritures peuvent continuer de designer.
+  ///
+  /// Non nul veut dire : ce compte ne represente plus quelqu'un.
+  anonymizedAt DateTime?
+
   suspendedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -454,6 +472,7 @@ model User {
   passkeys       Passkey[]
   totpRecoveryCodes TotpRecoveryCode[]
   totpChallenges    TotpChallenge[]
+  deletionRequest   DeletionRequest?
   passwordResets PasswordReset[]
 
   // équipes multi-rôles (§3.10-B)
@@ -842,6 +861,45 @@ model TotpChallenge {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+/// Une demande d'effacement, et le delai avant execution.
+///
+/// ============================================================================
+/// POURQUOI UN DELAI PLUTOT QU'UN EFFACEMENT IMMEDIAT
+///
+/// L'effacement est irreversible : les messages partent, l'identite est
+/// caviardee, et rien ne se rejoue. Un clic suffirait donc a quelqu'un qui a
+/// vole une session pour detruire un compte — et la victime n'aurait aucun
+/// recours, puisqu'il n'y a plus rien a restaurer.
+///
+/// Trente jours, annulables a tout moment depuis le compte. C'est aussi le
+/// delai que laisse le RGPD pour repondre a une demande (article 12.3), donc
+/// on ne fait pas attendre plus que la loi ne le permet.
+///
+/// ============================================================================
+/// LE COMPTE RESTE UTILISABLE PENDANT LE DELAI
+///
+/// Le fermer tout de suite reviendrait a executer la demande sans attendre :
+/// quelqu'un qui change d'avis le decouvrirait enferme dehors, avec un bouton
+/// d'annulation derriere une connexion qui ne marche plus.
+model DeletionRequest {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  /// Ce que la personne a ecrit, s'il y a lieu. Jamais exige.
+  reason      String?   @db.Text
+  /// Quand l'effacement devient executable.
+  executeAfter DateTime
+  /// Pose a l'execution. La ligne reste : elle prouve que la demande a ete
+  /// honoree, et c'est la seule trace qui subsiste du passage.
+  executedAt  DateTime?
+  /// Pose a l'annulation, par la personne elle-meme.
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([executeAfter, executedAt])
 }
 
 model Passkey {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { purgerDefisExpires } from "@/lib/auth/deux-facteurs";
 import { journal } from "@/lib/observabilite/journal";
+import { executerLesEffacementsDus } from "@/lib/rgpd/effacement";
 import { purgerExpirees } from "@/lib/securite/blocklist";
 import { ordonnanceurAutorise, reponseIntrouvable } from "@/lib/securite/cron";
 
@@ -55,11 +56,33 @@ export async function GET(requete: Request) {
       purgerDefisExpires(),
     ]);
 
-    if (blocages > 0 || defis > 0) {
-      journal.info("ménage de sécurité", { blocages, defis });
+    // ══════════════════════════════════════════════════════════════════════
+    // LES EFFACEMENTS APRÈS LE MÉNAGE, ET SÉPARÉMENT
+    //
+    // Ce n'est pas du ménage : c'est une écriture irréversible sur des
+    // comptes réels. Le mettre dans le même `Promise.all` ferait qu'un
+    // échec de purge de blocages annulerait des effacements déjà faits — ou
+    // l'inverse.
+    //
+    // `executerLesEffacementsDus` isole déjà chaque compte : un effacement
+    // qui échoue ne doit pas emporter les autres.
+    const effacements = await executerLesEffacementsDus();
+
+    if (blocages > 0 || defis > 0 || effacements.traites > 0) {
+      journal.info("ménage de sécurité", {
+        blocages,
+        defis,
+        effacements: effacements.traites,
+      });
     }
 
-    return NextResponse.json({ blocages, defis });
+    if (effacements.echecs > 0) {
+      // En erreur, pas en info : une demande d'effacement qui n'aboutit pas
+      // est une obligation légale non tenue, et le délai de réponse court.
+      journal.erreur("effacements en échec", { combien: effacements.echecs });
+    }
+
+    return NextResponse.json({ blocages, defis, effacements });
   } catch (cause) {
     journal.erreur("passage de sécurité en échec", {
       cause: cause instanceof Error ? cause.message : String(cause),
