@@ -8,8 +8,9 @@
  * IL SUPPOSE QUE LES VISUELS SONT DÉJÀ DANS MINIO
  *
  * `scripts/medias-demo.mjs` les y met. Ce seed ne fait qu'écrire des lignes
- * qui pointent dessus : lancé seul, il produira quatre-vingt-onze fiches aux
- * vignettes vides, ce qui se voit tout de suite et ne casse rien.
+ * qui pointent dessus : lancé seul, il produira autant de fiches aux vignettes
+ * vides qu'il y a d'entrées au catalogue, ce qui se voit tout de suite et ne
+ * casse rien.
  *
  * L'ordre est donc : `docker compose up -d`, puis le script de médias, puis
  * celui-ci.
@@ -46,6 +47,7 @@ import {
   ECARTES,
   apercuOuOriginal,
   cleDemo,
+  estUneVideo,
   type EntreeDemo,
 } from "./demo-catalogue";
 
@@ -202,13 +204,31 @@ async function semerUn(
   // charge une trentaine par page. Les originaux montent à 28 Mo.
   const cle = apercuOuOriginal(entree.fichier);
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // UNE VIDÉO N'A PAS DE COUVERTURE, ELLE A UN EXTRAIT
+  //
+  // Première version : `coverUrl` portait le `.mp4`. La carte l'injecte dans
+  // un `background: url(…)`, et un navigateur ne sait pas peindre une vidéo
+  // ainsi — la vignette restait vide, sans la moindre erreur.
+  //
+  // Extraire une image de première frame demanderait ffmpeg, absent de cette
+  // machine. Mais la carte sait DÉJÀ jouer un extrait : `resource-card.tsx`
+  // affiche `<ApercuVideo>` quand `coverUrl` est nul et que `previewKind` vaut
+  // « video ». On lui donne donc ce qu'elle attend, au lieu d'ajouter un
+  // chemin de plus.
+  const video = estUneVideo(entree.fichier);
+  const couverture = video ? null : urlPublique(cle);
+  const extrait = video
+    ? { previewUrl: urlPublique(cleDemo(entree.fichier)), previewKind: "video" }
+    : {};
+
   const produit = await db.product.upsert({
     where: { slug },
     // La couverture est remise à jour, elle seule : c'est la valeur qu'on a
     // corrigée après avoir vu qu'un original de 12 Mo ne peut pas servir de
     // vignette. Le reste garde ce qu'il avait, pour ne pas écraser une
     // retouche faite à la main dans la base de démonstration.
-    update: { coverUrl: urlPublique(cle) },
+    update: { coverUrl: couverture, ...extrait },
     create: {
       sellerId: createurId,
       slug,
@@ -218,7 +238,8 @@ async function semerUn(
       price: entree.prix,
       currency: "XOF",
       status: "PUBLISHED",
-      coverUrl: urlPublique(cle),
+      coverUrl: couverture,
+      ...extrait,
       isStaffPicked: entree.staffPicked ?? false,
       staffPickedAt: entree.staffPicked ? creeLe : null,
       createdAt: creeLe,

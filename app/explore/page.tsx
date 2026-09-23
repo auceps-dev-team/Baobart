@@ -53,7 +53,29 @@ export default async function ExplorerPage({
         }}
       >
         <Rail filtreActif={filtre} />
+        {/*
+          ════════════════════════════════════════════════════════════════════
+          LA CLÉ N'EST PAS DÉCORATIVE : SANS ELLE, LES FILTRES NE FILTRENT PAS
+
+          `Feed` initialise son état avec `useState(itemsInitiaux)` et
+          `useState(filtreInitial)`. Un `useState` n'utilise sa valeur initiale
+          qu'au MONTAGE.
+
+          Cliquer « Photos » dans le rail navigue vers `/explore?filtre=Photo`.
+          Next re-rend la page côté serveur, envoie les bons props — et React
+          réutilise la même instance de `Feed`, parce qu'elle occupe la même
+          place dans l'arbre. Les initialisateurs sont ignorés, l'état garde
+          l'ancienne liste.
+
+          Résultat observé : l'URL change, le rail surligne la bonne entrée, et
+          la grille ne bouge pas. Rien ne plante, rien ne prévient.
+
+          La clé change avec le filtre, donc React démonte et remonte : les
+          `useState` repartent des nouveaux props. C'est la façon documentée de
+          réinitialiser un état quand l'identité de ce qu'on affiche change.
+        */}
         <Feed
+          key={filtre}
           itemsInitiaux={page.items}
           curseurInitial={page.nextCursor}
           alaUne={alaUne}

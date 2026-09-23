@@ -40,6 +40,7 @@ import { readdir, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 
 import {
+  GetBucketPolicyCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -70,19 +71,53 @@ const APERCU_LARGEUR = 1400;
 const PREFIXE_APERCU = "demo/apercu/";
 
 /** Le préfixe `demo/` seulement — voir l'en-tête. */
-const POLITIQUE = {
-  Version: "2012-10-17",
-  Statement: [
-    {
-      Sid: "LectureAnonymeDesVisuelsDeDemonstration",
-      Effect: "Allow",
-      Principal: { AWS: ["*"] },
-      Action: ["s3:GetObject"],
-      // `demo/*` couvre aussi `demo/apercu/*`.
-      Resource: [`arn:aws:s3:::${BUCKET}/${PREFIXE}*`],
-    },
-  ],
+const DECLARATION = {
+  Sid: "LectureAnonymeDesVisuelsDeDemonstration",
+  Effect: "Allow",
+  Principal: { AWS: ["*"] },
+  Action: ["s3:GetObject"],
+  // `demo/*` couvre aussi `demo/apercu/*`.
+  Resource: [`arn:aws:s3:::${BUCKET}/${PREFIXE}*`],
 };
+
+/**
+ * Ajoute notre déclaration sans effacer celles des autres.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI ON RELIT AVANT D'ÉCRIRE
+ *
+ * `PutBucketPolicy` remplace le document entier. Ce script et
+ * `lib/upload/storage.ts` en posaient chacun un, avec un préfixe différent —
+ * `demo/` ici, `public/` là-bas — et le dernier passé effaçait l'autre.
+ *
+ * Mesuré le 23 septembre 2026 : après ce script, la politique locale ne
+ * portait plus que `demo/*`, et un extrait vidéo sous `public/extraits/`
+ * répondait `HTTP 403`. Dans l'autre sens, un simple téléversement depuis
+ * l'application aurait rendu 403 toutes les couvertures de démonstration.
+ *
+ * Aucun des deux écrivains ne s'en plaignait : les vignettes devenaient
+ * vides, et c'est tout.
+ */
+async function fusionnerLaPolitique(client) {
+  const enPlace = await client
+    .send(new GetBucketPolicyCommand({ Bucket: BUCKET }))
+    .then((r) => JSON.parse(r.Policy ?? "{}"))
+    .catch(() => ({ Statement: [] }));
+
+  const dAutrui = (enPlace.Statement ?? []).filter((d) => d.Sid !== DECLARATION.Sid);
+
+  await client.send(
+    new PutBucketPolicyCommand({
+      Bucket: BUCKET,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [...dAutrui, DECLARATION],
+      }),
+    }),
+  );
+
+  return dAutrui.length;
+}
 
 const TYPES = {
   ".jpg": "image/jpeg",
@@ -155,12 +190,8 @@ async function main() {
   });
 
   console.log(`Ouverture du préfixe « ${PREFIXE} » en lecture anonyme…`);
-  await client.send(
-    new PutBucketPolicyCommand({
-      Bucket: BUCKET,
-      Policy: JSON.stringify(POLITIQUE),
-    }),
-  );
+  const gardees = await fusionnerLaPolitique(client);
+  console.log(`  ${gardees} déclaration(s) d'autrui conservée(s).`);
 
   const fichiers = (await readdir(dossier)).filter((f) =>
     Object.keys(TYPES).includes(extname(f).toLowerCase()),

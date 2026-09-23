@@ -107,26 +107,61 @@ function ApercuVideo({
       void v.play().catch(() => {});
     } else {
       v.pause();
-      // Retour au début : sans cela, la carte reprendrait au milieu au survol
-      // suivant, et l'on ne verrait jamais le début de l'extrait.
-      v.currentTime = 0;
+      // Retour à l'image de la vignette, pas à zéro : c'est celle que la carte
+      // montrait avant le survol (voir le `#t=0.5` ci-dessous), et y revenir
+      // évite qu'elle change d'aspect après qu'on l'a survolée une fois.
+      v.currentTime = 0.5;
     }
   }, [actif]);
 
   return (
     <video
       ref={ref}
-      src={url}
+      /*
+        ══════════════════════════════════════════════════════════════════════
+        LE FRAGMENT `#t=` EST CE QUI DONNE UNE VIGNETTE
+
+        Sans lui, une carte vidéo au repos était un rectangle noir. Le
+        diagnostic tenait en deux valeurs relevées dans la page :
+        `readyState = 0`, `videoWidth = 0` — l'élément existait, aucune image
+        n'avait jamais été décodée.
+
+        La cause était `preload="none"`, qui ne télécharge rien avant la
+        lecture. Rien ne plantait : la balise était bien là, à la bonne taille,
+        et elle jouait parfaitement au survol. Seule l'image fixe manquait, et
+        une image manquante ne lève aucune erreur.
+
+        `preload="metadata"` seul ne suffit pas : il lit l'en-tête et s'arrête
+        avant la première image. C'est le fragment `#t=0.5` qui demande au
+        navigateur de se placer à cette seconde-là, donc de décoder l'image
+        qui s'y trouve et de la peindre.
+
+        Une demi-seconde plutôt que zéro : beaucoup de vidéos ouvrent sur un
+        fondu au noir, et `#t=0` rendrait la vignette noire pour une tout
+        autre raison.
+
+        Ce que cela coûte : l'en-tête et quelques kilo-octets par vidéo, au
+        lieu de rien. Ce que cela évite : une miniature de fichier `poster`
+        à fabriquer, qu'il aurait fallu générer avec ffmpeg — absent de cette
+        machine — et surtout produire pour chaque vidéo téléversée par un
+        créateur. Ici la règle vaut pour toutes, y compris celles qui n'ont
+        pas encore été mises en ligne.
+      */
+      src={`${url}#t=0.5`}
       muted
       loop
       playsInline
-      preload="none"
+      preload="metadata"
       style={{
         width: "100%",
         height: hauteur,
         objectFit: "cover",
         display: "block",
-        background: "#121212",
+        // Transparent, et non noir : derrière, le conteneur porte déjà la
+        // trame diagonale de la carte. Tant que l'image n'est pas décodée,
+        // on voit la trame — qui ressemble à une carte — plutôt qu'un carré
+        // noir, qui ressemble à une panne.
+        background: "transparent",
       }}
     />
   );

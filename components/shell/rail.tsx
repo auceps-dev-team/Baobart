@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -95,11 +96,28 @@ export function Rail({
             background: JAUNE,
             display: "grid",
             placeItems: "center",
-            fontFamily: "var(--font-display)",
-            fontSize: 16,
+            overflow: "hidden",
           }}
         >
-          B
+          {/*
+            LA MAQUETTE ÉCRIT « B », ET C'EST DÉLIBÉRÉMENT QU'ON NE LA SUIT PAS
+
+            « Baobart Accueil.dc.html » ligne 47 met la lettre B dans ce carré
+            jaune, là où son en-tête (ligne 78) met déjà `baobab-white.svg`.
+            Deux marques différentes pour la même application : la lettre est
+            un provisoire de maquette, pas une décision de charte.
+
+            L'encre plutôt que le blanc : le carré est jaune (#FFD84A), et un
+            baobab blanc dessus ne se voit pas. C'est la même raison qui fait
+            que l'en-tête prend le blanc — son cercle, lui, est orange.
+          */}
+          <Image
+            src="/img/baobab-ink.svg"
+            alt="Baobart"
+            width={22}
+            height={22}
+            style={{ width: 22, height: "auto", display: "block" }}
+          />
         </span>
         {ouvert ? (
           <span

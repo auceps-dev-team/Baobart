@@ -111,10 +111,22 @@ export function cleApercuDemo(nomFichier: string): string {
 
 const SANS_APERCU = [".mp4", ".mov"];
 
+/**
+ * Une vidéo se reconnaît à son extension.
+ *
+ * Elle n'a pas de couverture : `sharp` ne sait pas en tirer une image, et
+ * ffmpeg n'est pas installé. Le seed lui donne un `previewUrl` à la place, ce
+ * que la carte du feed sait déjà jouer.
+ */
+export function estUneVideo(nomFichier: string): boolean {
+  return SANS_APERCU.includes(
+    nomFichier.slice(nomFichier.lastIndexOf(".")).toLowerCase(),
+  );
+}
+
 /** L'aperçu web quand il existe, l'original sinon. */
 export function apercuOuOriginal(nomFichier: string): string {
-  const ext = nomFichier.slice(nomFichier.lastIndexOf(".")).toLowerCase();
-  return SANS_APERCU.includes(ext) ? cleDemo(nomFichier) : cleApercuDemo(nomFichier);
+  return estUneVideo(nomFichier) ? cleDemo(nomFichier) : cleApercuDemo(nomFichier);
 }
 
 export const CATALOGUE_DEMO: EntreeDemo[] = [
@@ -730,12 +742,6 @@ export const CATALOGUE_DEMO: EntreeDemo[] = [
     prix: 0,
   },
   {
-    fichier: "Graceful excited cute african american teenage girls_4k.mov",
-    nom: "Adolescentes — 4K",
-    famille: "VIDEO",
-    prix: 0,
-  },
-  {
     fichier: "Close up happy african mom and daughter cuddling seated on sofa..mov",
     nom: "Mère et fille — canapé",
     famille: "VIDEO",
@@ -935,5 +941,25 @@ export const ECARTES: Array<{ fichier: string; raison: string }> = [
   {
     fichier: "the deconstructed.jpeg",
     raison: "fresque murale reprenant des boîtes Campbell's",
+  },
+  {
+    fichier: "Graceful excited cute african american teenage girls_4k.mov",
+    // Les huit exclusions ci-dessus tiennent au sujet ; celle-ci au fichier.
+    //
+    // Mesuré le 23 septembre 2026, dans Chromium : `MEDIA_ELEMENT_ERROR:
+    // Format error`, `readyState` 0, `duration` nulle, `videoWidth` 0. Le
+    // navigateur n'ouvre pas ce fichier du tout — ce n'est ni le réseau ni
+    // la taille, c'est le décodage.
+    //
+    // Les quatre autres vidéos portent `avc1` (H.264) et se lisent sans
+    // rien. Un balayage des quatre premiers et des quatre derniers
+    // mégaoctets de celle-ci n'a trouvé aucun marqueur de codec connu : le
+    // codec exact n'a donc PAS été identifié, seulement son refus.
+    //
+    // La seconde raison suffirait seule : 251 Mo. Une vignette de mosaïque
+    // qui demande un quart de gigaoctet n'a pas sa place ici — c'est le même
+    // raisonnement qui a fait fabriquer des aperçus de 1400 px pour les
+    // images.
+    raison: "Chromium refuse de la décoder (Format error) · 251 Mo",
   },
 ];

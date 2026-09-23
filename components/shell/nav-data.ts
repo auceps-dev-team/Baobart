@@ -162,3 +162,5 @@ export const BLANC = "#FFFFFF";
 export const LAVANDE = "#EADFF9";
 export const LAVANDE_CLAIR = "#F4EEFC";
 export const LAVANDE_PROFOND = "#C9A8F5";
+/** Le fond de l'entrée « Déconnexion » — maquette, ligne 1934. */
+export const ORANGE_PALE = "#FFF3EE";

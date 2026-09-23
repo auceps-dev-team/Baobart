@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { deconnecter } from "@/lib/auth/actions";
 
@@ -15,6 +15,7 @@ import {
   LAVANDE_PROFOND,
   MENUS,
   ORANGE,
+  ORANGE_PALE,
 } from "@/components/shell/nav-data";
 
 /**
@@ -32,7 +33,69 @@ interface Suggestion {
 
 export interface UtilisateurEnTete {
   nom: string;
+  /**
+   * Affiché dans la carte d'identité du menu de compte, comme la maquette
+   * (« Baobart Accueil.dc.html » ligne 129). Aucun appelant n'a eu à changer :
+   * les vingt-deux passent déjà un `UtilisateurConnecte`, qui le porte.
+   */
+  email: string;
   username: string | null;
+}
+
+/** Une entrée du menu de compte. `href` nul = page pas encore écrite. */
+interface LienCompte {
+  label: string;
+  href: string | null;
+}
+
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE MENU DE COMPTE, ET CE QU'IL DOIT À LA MAQUETTE
+ *
+ * « Baobart Accueil.dc.html » ligne 1925 porte un `accountMenu` de huit
+ * entrées. Il en manquait sept : l'écran n'offrait que « Tableau de bord » et
+ * « Se déconnecter », ce qui laissait les collections, les achats et le profil
+ * public joignables uniquement en passant par le tableau de bord.
+ *
+ * Trois écarts avec la maquette, chacun pour une raison :
+ *
+ * 1. LES LIBELLÉS SE CROISENT. La maquette appelle « Historique des commandes »
+ *    l'écran des factures et « Mes achats » celui des téléchargements — voir
+ *    ses lignes 1563 et 1573 : le premier porte un bouton « Facture », le
+ *    second « Télécharger ». Ici les deux pages existent déjà sous d'autres
+ *    noms, que `lib/dashboard/nav.ts` fixe : « Historique des achats » et
+ *    « Historique des téléchargements ». Reprendre les libellés de la maquette
+ *    ferait atterrir « Mes achats » sur une page intitulée autrement. Ce sont
+ *    les noms des pages qui gagnent : un menu ment quand il annonce un titre
+ *    qu'on ne retrouve pas en arrivant.
+ *
+ * 2. « NOTIFICATIONS » S'AJOUTE. Elle n'est dans aucun `accountMenu`, mais les
+ *    maquettes ne connaissent pas le centre de notifications : le mot n'y
+ *    apparaît que dans trois phrases de texte courant, jamais comme écran.
+ *    Son absence n'est donc pas une décision de la maquette.
+ *
+ * 3. « RÈGLES DE PUBLICATION » ET « SUPPORT » RESTENT SANS LIEN. La maquette
+ *    les mène vers un écran de documentation qui n'existe pas encore ici :
+ *    aucune page ne les sert, et le pied de page ne pointe que vers `/`.
+ *    Plutôt que de les taire, elles s'affichent grisées — comme les entrées de
+ *    la barre de navigation, même traitement pour la même raison.
+ */
+function liensCompte(username: string | null): LienCompte[] {
+  return [
+    { label: "Tableau de bord", href: "/dashboard" },
+    { label: "Historique des achats", href: "/dashboard/achats" },
+    { label: "Mes téléchargements", href: "/dashboard/telechargements" },
+    { label: "Mes collections", href: "/dashboard/collections" },
+    { label: "Notifications", href: "/dashboard/notifications" },
+    {
+      // Sans pseudo, il n'y a pas de page publique à montrer : le réglage du
+      // profil est la seule chose utile à offrir à sa place.
+      label: username ? "Mon profil public" : "Compléter mon profil",
+      href: username ? `/createurs/${username}` : "/dashboard/profil",
+    },
+    { label: "Règles de publication", href: null },
+    { label: "Support", href: null },
+  ];
 }
 
 export function Header({
@@ -47,6 +110,44 @@ export function Header({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [menuOuvert, setMenuOuvert] = useState<string | null>(null);
   const [compteOuvert, setCompteOuvert] = useState(false);
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════════
+   * FERMER AVEC UN DÉLAI, PARCE QUE LA SOURIS N'EST PAS UN CURSEUR PARFAIT
+   *
+   * `onMouseLeave` fermait immédiatement. Entre le libellé et le panneau il y
+   * a quelques pixels, et il faut traverser un coin pour atteindre un
+   * sous-menu : on quittait la zone avant d'arriver, et le menu disparaissait
+   * sous le doigt.
+   *
+   * Deux corrections vont ensemble, et l'une sans l'autre ne suffit pas :
+   * le panneau est désormais collé au libellé (`top: 100%` avec une bande de
+   * garde transparente), et la fermeture attend 220 ms — annulés dès que la
+   * souris revient.
+   *
+   * 220 ms : assez pour traverser un coin, trop court pour qu'un menu
+   * s'attarde quand on est parti ailleurs.
+   */
+  const minuteurFermeture = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const annulerFermeture = useCallback(() => {
+    if (minuteurFermeture.current !== null) {
+      clearTimeout(minuteurFermeture.current);
+      minuteurFermeture.current = null;
+    }
+  }, []);
+
+  const fermerBientot = useCallback(
+    (fermer: () => void) => {
+      annulerFermeture();
+      minuteurFermeture.current = setTimeout(fermer, 220);
+    },
+    [annulerFermeture],
+  );
+
+  // Un minuteur qui survit au démontage rappellerait un `setState` sur un
+  // composant disparu.
+  useEffect(() => annulerFermeture, [annulerFermeture]);
   const dernier = useRef(0);
 
   // Les suggestions viennent de la base, pas d'une liste figée : c'est le seul
@@ -238,8 +339,11 @@ export function Header({
           {MENUS.map((groupe) => (
             <div
               key={groupe.key}
-              onMouseEnter={() => setMenuOuvert(groupe.key)}
-              onMouseLeave={() => setMenuOuvert(null)}
+              onMouseEnter={() => {
+                annulerFermeture();
+                setMenuOuvert(groupe.key);
+              }}
+              onMouseLeave={() => fermerBientot(() => setMenuOuvert(null))}
               style={{ position: "relative" }}
             >
               <a
@@ -262,7 +366,10 @@ export function Header({
                 <div
                   style={{
                     position: "absolute",
-                    top: 26,
+                    // Collé au libellé, et non à 26 px : la bande de garde
+                    // ci-dessous fait le reste. Un écart nu créait une zone
+                    // morte que la souris devait franchir.
+                    top: "100%",
                     left: -14,
                     width: 262,
                     background: BLANC,
@@ -270,24 +377,58 @@ export function Header({
                     borderRadius: 18,
                     boxShadow: `5px 5px 0 ${ENCRE}`,
                     padding: 8,
+                    // APRÈS le raccourci `padding`, jamais avant : React
+                    // sérialise les clés dans l'ordre d'insertion, et
+                    // `padding: 8px` écrit ensuite réécrirait les quatre
+                    // côtés. La première version faisait exactement cela —
+                    // la bande décrite ici n'existait pas, et rien ne le
+                    // disait puisque le menu s'affichait quand même.
+                    //
+                    // Ces deux pixels de plus haut sont la marge d'erreur du
+                    // trajet : le panneau touche déjà le libellé, mais la
+                    // souris arrive rarement tout droit.
+                    paddingTop: 10,
                     textTransform: "none",
                     letterSpacing: 0,
                     zIndex: 50,
                     animation: "popin .14s ease-out",
                   }}
                 >
-                  {groupe.items.map((m) => (
-                    <a
+                  {groupe.items.map((m) => {
+                    /*
+                      ══════════════════════════════════════════════════════
+                      UNE ENTRÉE SANS DESTINATION N'EST PAS UN LIEN
+
+                      `href={m.href ?? "#"}` faisait de chaque rubrique à venir
+                      un lien cliquable qui ne menait nulle part : on cliquait,
+                      la page sautait en haut, et rien d'autre. L'opacité à
+                      0,55 suggérait quelque chose, mais un lien grisé reste un
+                      lien.
+
+                      La maquette prévoit ces entrées — « Licences », « À
+                      propos », « Changelog » — avant que les pages n'existent.
+                      Les afficher est donc juste ; les rendre cliquables ne
+                      l'est pas.
+
+                      Un `<span>` avec `cursor: default` et « bientôt » : on
+                      voit ce qui vient, et on ne clique pas dans le vide.
+                    */
+                    const Balise = m.href ? "a" : "span";
+                    return (
+                    <Balise
                       key={m.label}
-                      href={m.href ?? "#"}
+                      {...(m.href ? { href: m.href } : {})}
+                      aria-disabled={m.href ? undefined : true}
+                      title={m.href ? undefined : "Bientôt disponible"}
+                      className="ligne-menu"
                       style={{
                         display: "flex",
                         alignItems: "center",
                         gap: 11,
                         padding: 10,
                         borderRadius: 12,
-                        cursor: "pointer",
-                        opacity: m.href ? 1 : 0.55,
+                        cursor: m.href ? "pointer" : "default",
+                        opacity: m.href ? 1 : 0.45,
                       }}
                     >
                       <span
@@ -325,9 +466,24 @@ export function Header({
                         >
                           {m.hint}
                         </span>
+                        {m.href ? null : (
+                          <span
+                            style={{
+                              marginLeft: "auto",
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 9,
+                              textTransform: "uppercase",
+                              letterSpacing: ".08em",
+                              opacity: 0.7,
+                            }}
+                          >
+                            bientôt
+                          </span>
+                        )}
                       </span>
-                    </a>
-                  ))}
+                    </Balise>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>
@@ -376,8 +532,11 @@ export function Header({
           </button>
 
           <div
-            onMouseEnter={() => setCompteOuvert(true)}
-            onMouseLeave={() => setCompteOuvert(false)}
+            onMouseEnter={() => {
+              annulerFermeture();
+              setCompteOuvert(true);
+            }}
+            onMouseLeave={() => fermerBientot(() => setCompteOuvert(false))}
             style={{ position: "relative" }}
           >
             <div
@@ -422,19 +581,110 @@ export function Header({
                 }}
               >
                 {utilisateur ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <a
-                      href="/dashboard"
+                  <div>
+                    {/* La carte d'identité de la maquette, ligne 126. */}
+                    <div
                       style={{
-                        padding: "9px 10px",
-                        borderRadius: 11,
-                        fontSize: 13.5,
-                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 11,
+                        padding: 10,
+                        border: `2.5px solid ${ENCRE}`,
+                        borderRadius: 14,
+                        background: LAVANDE_CLAIR,
                       }}
                     >
-                      Tableau de bord
-                    </a>
-                    <form action={deconnecter}>
+                      <span
+                        style={{
+                          width: 38,
+                          height: 38,
+                          flex: "0 0 auto",
+                          border: `2.5px solid ${ENCRE}`,
+                          borderRadius: 99,
+                          background: `repeating-linear-gradient(135deg,${JAUNE} 0 5px,${BLANC} 5px 11px)`,
+                        }}
+                      />
+                      <span style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 14,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {utilisateur.nom}
+                        </span>
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            opacity: 0.6,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {utilisateur.email}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
+                        marginTop: 8,
+                      }}
+                    >
+                      {liensCompte(utilisateur.username).map((lien) => {
+                        // Même règle que les sous-menus de navigation : une
+                        // entrée sans page est un `span` et non un `a`. Un lien
+                        // qui mène nulle part se clique quand même, et c'est en
+                        // arrivant sur un 404 qu'on découvre qu'il ne menait
+                        // nulle part.
+                        const Balise = lien.href ? "a" : "span";
+                        return (
+                          <Balise
+                            key={lien.label}
+                            {...(lien.href ? { href: lien.href } : {})}
+                            aria-disabled={lien.href ? undefined : true}
+                            title={lien.href ? undefined : "Bientôt disponible"}
+                            className="ligne-menu"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "9px 10px",
+                              borderRadius: 11,
+                              fontSize: 13.5,
+                              fontWeight: 700,
+                              cursor: lien.href ? "pointer" : "default",
+                              opacity: lien.href ? 1 : 0.45,
+                            }}
+                          >
+                            {lien.label}
+                            {lien.href ? null : (
+                              <span
+                                style={{
+                                  marginLeft: "auto",
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: 9,
+                                  textTransform: "uppercase",
+                                  letterSpacing: ".08em",
+                                  opacity: 0.7,
+                                }}
+                              >
+                                bientôt
+                              </span>
+                            )}
+                          </Balise>
+                        );
+                      })}
+                    </div>
+
+                    <form action={deconnecter} style={{ marginTop: 6 }}>
                       <button
                         type="submit"
                         style={{
@@ -443,11 +693,11 @@ export function Header({
                           padding: "9px 10px",
                           borderRadius: 11,
                           border: "none",
-                          background: "none",
                           fontFamily: "inherit",
                           fontSize: 13.5,
                           fontWeight: 700,
                           color: ORANGE,
+                          background: ORANGE_PALE,
                           cursor: "pointer",
                         }}
                       >

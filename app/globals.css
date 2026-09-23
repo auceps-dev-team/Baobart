@@ -224,3 +224,24 @@
     border-top: 3px solid #121212;
   }
 }
+
+/*
+ * Le survol des lignes de menu déroulant.
+ *
+ * La maquette l'écrit en `style-hover` (« Baobart Accueil.dc.html », ligne
+ * 135), attribut que son moteur comprend et que React ignore : un style en
+ * ligne ne porte pas de pseudo-classe. Il faut donc une vraie règle, et c'est
+ * la seule raison pour laquelle cette classe existe.
+ */
+.ligne-menu {
+  transition: background-color 0.12s ease;
+}
+
+.ligne-menu:hover {
+  background: #f4eefc;
+}
+
+/* Une entrée sans page ne s'allume pas : elle n'a rien à offrir au clic. */
+.ligne-menu[aria-disabled="true"]:hover {
+  background: transparent;
+}

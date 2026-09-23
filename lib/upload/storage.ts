@@ -3,6 +3,7 @@ import "server-only";
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
+  GetBucketPolicyCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
@@ -94,6 +95,34 @@ async function preparerBucket(): Promise<void> {
   // bucket existait déjà : sinon un bucket créé avant cette règle n'aurait
   // jamais de politique, et les aperçus répondraient 403 sans qu'on comprenne
   // pourquoi.
+  // ══════════════════════════════════════════════════════════════════════════
+  // ON FUSIONNE, PARCE QUE `PutBucketPolicy` REMPLACE TOUT
+  //
+  // Mesuré le 23 septembre 2026 : la politique du bucket local ne portait
+  // qu'un `demo/*`, et toute URL sous `public/` répondait 403.
+  //
+  // `scripts/medias-demo.mjs` pose sa propre politique pour ouvrir le préfixe
+  // de démonstration. `PutBucketPolicy` n'ajoute rien : il écrase le document
+  // entier. Les deux écrivains se détruisaient donc l'un l'autre, et le
+  // dernier passé gagnait — dans un sens comme dans l'autre.
+  //
+  // Le défaut ne criait nulle part : le script disait « fait », cette
+  // fonction n'échouait pas, le téléversement marchait. Seules les vignettes
+  // restaient vides, et il a fallu relever un `HTTP 403` à la main sur une URL
+  // pour le voir.
+  //
+  // On relit donc la politique en place et on n'y remplace que notre propre
+  // `Sid`. Ce qui appartient à quelqu'un d'autre reste. Le coût est d'un
+  // aller-retour de plus, une fois par processus.
+  const enPlace = await s3()
+    .send(new GetBucketPolicyCommand({ Bucket: BUCKET }))
+    .then((r) => JSON.parse(r.Policy ?? "{}") as { Statement?: unknown[] })
+    .catch(() => ({ Statement: [] as unknown[] }));
+
+  const dAutrui = (enPlace.Statement ?? []).filter(
+    (d) => (d as { Sid?: string }).Sid !== "ApercusPublics",
+  );
+
   await s3()
     .send(
       new PutBucketPolicyCommand({
@@ -101,6 +130,7 @@ async function preparerBucket(): Promise<void> {
         Policy: JSON.stringify({
           Version: "2012-10-17",
           Statement: [
+            ...dAutrui,
             {
               Sid: "ApercusPublics",
               Effect: "Allow",
