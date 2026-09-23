@@ -73,7 +73,10 @@ const RESSOURCES: Array<{
   { name: "Illu Femme au Foulard", family: "ILLUSTRATION", price: 5_000, cover: "mode-rouge.jpg" },
   { name: "Collage Lunettes", family: "ILLUSTRATION", price: 10_000, cover: "collage-lunettes.jpg", staffPicked: true },
   { name: "Pack 20 motifs wax", family: "PACK", price: 25_000, cover: "neon-01.png" },
-  { name: "Mockup affiche Sandaga", family: "MOCKUP", price: 7_500, cover: "packshot-soin.png" },
+  // `packshot-soin.png` était une bouteille CeraVe — voir le commentaire de
+  // `components/home/hero.tsx`, qui l'affichait aussi. Remplacé par une
+  // affiche, qui a le mérite d'être ce que le nom du produit annonce.
+  { name: "Mockup affiche Sandaga", family: "MOCKUP", price: 7_500, cover: "affiche-rue.jpg" },
   { name: "Typo Sahel Display", family: "FONT", price: 18_000, cover: "neon-02.png" },
   { name: "Icônes transport Abidjan", family: "ICONE", price: 4_000 },
   { name: "Logo coopérative textile", family: "LOGO", price: 0 },

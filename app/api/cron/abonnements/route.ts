@@ -7,6 +7,10 @@ import {
   montantLisible,
 } from "@/lib/ndank/baobart";
 import { passer } from "@/lib/ndank/moteur";
+import {
+  ordonnanceurAutorise,
+  reponseIntrouvable,
+} from "@/lib/securite/cron";
 
 /**
  * Le passage quotidien de Ndank.
@@ -35,32 +39,9 @@ export const dynamic = "force-dynamic";
 
 export const maxDuration = 60;
 
-/**
- * Même garde que les autres routes d'ordonnanceur.
- *
- * 404 et non 401 : une route d'ordonnanceur n'a pas à confirmer son existence
- * à qui n'a pas le secret. La comparaison est à durée constante — `===` laisse
- * fuir la longueur du préfixe correct, et un secret se devine caractère par
- * caractère.
- */
-function autorise(requete: Request): boolean {
-  const attendu = process.env.CRON_SECRET;
-  if (!attendu || attendu.length === 0) return false;
-
-  const recu = requete.headers.get("authorization") ?? "";
-  const voulu = `Bearer ${attendu}`;
-  if (recu.length !== voulu.length) return false;
-
-  let ecart = 0;
-  for (let i = 0; i < voulu.length; i += 1) {
-    ecart |= recu.charCodeAt(i) ^ voulu.charCodeAt(i);
-  }
-  return ecart === 0;
-}
-
 export async function GET(requete: Request) {
-  if (!autorise(requete)) {
-    return new NextResponse("Not found", { status: 404 });
+  if (!ordonnanceurAutorise(requete)) {
+    return reponseIntrouvable();
   }
 
   const bilan = await passer(PORTS_BAOBART, {

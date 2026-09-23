@@ -262,7 +262,28 @@ export function HeroB({ chiffres }: { chiffres: ChiffresCommunaute }) {
                 height: 130,
                 border: CADRE,
                 borderRadius: 14,
-                background: "url('/img/demo/packshot-soin.png') center / cover no-repeat",
+                /*
+                  LA MAQUETTE MET ICI UN PACKSHOT CERAVE, ET ON NE LA SUIT PAS
+
+                  « Baobart Accueil.dc.html » ligne 244 pose
+                  `img/packshot-soin.png` : une bouteille CeraVe, marque
+                  réelle, photographiée de face avec son étiquette lisible.
+                  La maquette fait foi pour la mise en page ; elle ne peut pas
+                  faire foi pour le droit d'afficher le produit d'autrui sur
+                  une page d'accueil.
+
+                  Le catalogue de démonstration écarte déjà trois CeraVe pour
+                  cette raison exacte (`prisma/demo-catalogue.ts`, ECARTES).
+                  Celui-ci échappait à la règle parce qu'il était commité dans
+                  le dépôt au lieu d'être servi depuis MinIO — la liste des
+                  écartés ne regardait pas là.
+
+                  À la place, une affiche du jeu de démonstration, qui
+                  correspond en plus à ce que la carte annonce. Le fichier
+                  d'origine reste dans « Baobart Design/img/ » : ce dossier
+                  est la maquette elle-même, on ne le modifie pas.
+                */
+                background: "url('/img/demo/affiche-rue.jpg') center / cover no-repeat",
               }}
             />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>

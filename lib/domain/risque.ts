@@ -13,6 +13,11 @@ import {
   type RiskState,
 } from "@/lib/domain/trust";
 import { journal } from "@/lib/observabilite/journal";
+import {
+  DUREE_BLOCAGE_IP_MS,
+  bloquer,
+  debloquerPourCompte,
+} from "@/lib/securite/blocklist";
 
 /**
  * Écrire les décisions de confiance.
@@ -154,16 +159,37 @@ export async function appliquerEvenementRisque(input: {
 /**
  * Les effets que la machine réclame.
  *
- * Trois sont exécutables aujourd'hui ; les autres sont journalisés sans être
+ * Cinq sont exécutables aujourd'hui ; les autres sont journalisés sans être
  * faits, parce que la brique correspondante n'existe pas. Les exécuter à
  * moitié en silence serait pire : on croirait un compte bloqué alors que son
  * adresse IP passe toujours.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LES ADRESSES SE LISENT AVANT LA BOUCLE, ET CE N'EST PAS UN DÉTAIL
+ *
+ * `effetsPour` émet, dans cet ordre : `INVALIDER_SESSIONS`, puis
+ * `DESACTIVER_PRODUITS`, puis `BLOQUER_IP`. Le premier supprime les sessions —
+ * or les sessions sont **le seul endroit** où l'on sait d'où le compte se
+ * connectait.
+ *
+ * Lire les adresses dans le `case "BLOQUER_IP"` aurait donc trouvé une table
+ * vide et bloqué zéro adresse. Rien n'aurait échoué : l'effet aurait été
+ * parcouru, la transaction validée, le journal aurait dit « fait ». Le seul
+ * symptôme serait qu'un fraudeur suspendu se réinscrit sans être gêné — six
+ * mois plus tard, quand plus personne ne fait le lien.
+ *
+ * On lit donc **avant**, une fois, hors de la boucle. Ainsi l'ordre des effets
+ * peut changer sans rien casser ici.
  */
 async function executerEffets(
   tx: Prisma.TransactionClient,
   userId: string,
   effets: RiskEffect[],
 ): Promise<void> {
+  const adresses = effets.includes("BLOQUER_IP")
+    ? await lireAdressesDeSession(tx, userId)
+    : [];
+
   for (const effet of effets) {
     switch (effet) {
       case "INVALIDER_SESSIONS":
@@ -171,6 +197,46 @@ async function executerEffets(
         // suspension : le compte continue de vendre jusqu'à l'expiration.
         await tx.session.deleteMany({ where: { userId } });
         break;
+
+      case "BLOQUER_IP":
+        if (adresses.length === 0) {
+          // Bruyant, parce que c'est le cas normal en développement et le cas
+          // anormal en production. Un compte actif a des sessions ; n'en avoir
+          // aucune veut dire que personne ne s'est connecté depuis la mise en
+          // place de la colonne — ou que quelque chose les a effacées avant.
+          journal.info("blocage d'adresse sans effet : aucune adresse connue", {
+            userId,
+          });
+          break;
+        }
+
+        for (const adresse of adresses) {
+          await bloquer(
+            {
+              type: "IP",
+              valeur: adresse,
+              raison: "suspension du compte",
+              dureeMs: DUREE_BLOCAGE_IP_MS,
+              userId,
+            },
+            tx,
+          );
+        }
+
+        journal.info("adresses bloquées après suspension", {
+          userId,
+          combien: adresses.length,
+        });
+        break;
+
+      case "DEBLOQUER_IP": {
+        // Par `userId`, jamais par valeur : à ce moment-là les sessions ont
+        // disparu depuis la suspension, et l'on ne saurait plus quelles
+        // adresses avaient été bloquées.
+        const levees = await debloquerPourCompte(userId, tx);
+        journal.info("adresses débloquées après levée", { userId, levees });
+        break;
+      }
 
       case "DESACTIVER_PRODUITS":
         await tx.product.updateMany({
@@ -193,12 +259,36 @@ async function executerEffets(
         break;
 
       default:
-        // Blocage d'IP, retrait d'abonnés, suspension des autres comptes,
-        // filtre anti-abus : aucune de ces briques n'existe.
+        // Retrait d'abonnés, suppression du domaine personnalisé, suspension
+        // des autres comptes, filtre anti-abus : aucune de ces briques
+        // n'existe. Le blocage d'adresse en faisait partie jusqu'ici.
         journal.info("effet de risque non exécuté : brique absente", {
           userId,
           effet,
         });
     }
   }
+}
+
+/**
+ * Les adresses distinctes d'où ce compte s'est connecté.
+ *
+ * Celles qu'on connaît, pas toutes celles qui existent : une session ouverte
+ * avant que la colonne n'existe porte `null`, et personne n'est passé par un
+ * navigateur qui ne laisse rien. C'est une gêne posée sur ce qu'on a vu, pas
+ * un filet.
+ */
+async function lireAdressesDeSession(
+  tx: Prisma.TransactionClient,
+  userId: string,
+): Promise<string[]> {
+  const sessions = await tx.session.findMany({
+    where: { userId, ipAddress: { not: null } },
+    select: { ipAddress: true },
+    distinct: ["ipAddress"],
+  });
+
+  return sessions
+    .map((s) => s.ipAddress)
+    .filter((a): a is string => a !== null && a.trim().length > 0);
 }

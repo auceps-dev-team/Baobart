@@ -64,7 +64,12 @@ export type ActionAdmin =
   | "contenu.publier"
   | "contenu.retirer"
   | "contenu.approuver"
-  | "contenu.refuser";
+  | "contenu.refuser"
+  // Liste de blocage (§3.6). Deux actions et non une : lever un blocage est
+  // un geste distinct de le poser, et c'est celui qu'on cherche quand on
+  // relit « qui a rouvert la porte à cette adresse ».
+  | "blocage.poser"
+  | "blocage.lever";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

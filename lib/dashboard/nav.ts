@@ -250,6 +250,17 @@ const ADMINISTRATION: EntreeAdmin[] = [
     glyph: "☺",
     href: "/dashboard/systeme/membres",
   },
+  {
+    cle: "a_blocklist",
+    // Même pouvoir d'affichage que les autres écrans système : la page est
+    // gardée par `exigerAdministrateur`, qui demande exactement celui-là.
+    // Poser ou lever demande `gerer_la_conformite`, et c'est l'écran qui
+    // l'exige — le menu annonce ce que la page ouvre, pas ce qu'elle permet.
+    pouvoir: "consulter_le_systeme" as const,
+    label: "Liste de blocage",
+    glyph: "⊘",
+    href: "/dashboard/systeme/blocklist",
+  },
 ];
 
 /**

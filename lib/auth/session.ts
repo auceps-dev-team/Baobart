@@ -43,13 +43,40 @@ export interface UtilisateurConnecte {
   role: RolePlateforme;
 }
 
-/** Ouvre une session et pose le cookie. */
-export async function ouvrirSession(userId: string): Promise<void> {
+/**
+ * Ouvre une session et pose le cookie.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * L'ADRESSE EST NOTÉE, ET C'EST LA SEULE FAÇON D'EXÉCUTER `BLOQUER_IP`
+ *
+ * `lib/domain/trust.ts` réclame un blocage d'adresse quand un compte est
+ * suspendu pour fraude, et `lib/domain/risque.ts` le journalisait sans le
+ * faire — « brique absente ». La brique manquante n'était pas la liste de
+ * blocage : c'était de savoir **quelle** adresse bloquer. On ne notait nulle
+ * part d'où quelqu'un se connectait.
+ *
+ * L'adresse n'est pas fiable, et on ne prétend pas le contraire : elle vient
+ * des en-têtes, avec les précautions de `lib/securite/adresse.ts`. Elle sert à
+ * gêner un retour, jamais à établir une identité.
+ *
+ * `null` est la valeur normale en développement et dans les tests — d'où le
+ * paramètre optionnel plutôt qu'un appel à `headers()` ici : une fonction qui
+ * lit `headers()` d'elle-même n'est appelable par aucun test.
+ */
+export async function ouvrirSession(
+  userId: string,
+  adresse?: string | null,
+): Promise<void> {
   const jeton = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + DUREE_JOURS * 86_400_000);
 
   await db.session.create({
-    data: { userId, token: empreinte(jeton), expiresAt },
+    data: {
+      userId,
+      token: empreinte(jeton),
+      expiresAt,
+      ipAddress: adresse ?? null,
+    },
   });
 
   const magasin = await cookies();

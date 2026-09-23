@@ -5,6 +5,10 @@ import { journal } from "@/lib/observabilite/journal";
 import { preparerLeCycle } from "@/lib/payments/cycle";
 import { envoyerLesVersements } from "@/lib/payments/envoi";
 import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
+import {
+  ordonnanceurAutorise,
+  reponseIntrouvable,
+} from "@/lib/securite/cron";
 
 /**
  * Le passage des versements, déclenché par l'ordonnanceur de Vercel.
@@ -33,30 +37,6 @@ export const dynamic = "force-dynamic";
 // qu'une page. Vercel coupe à dix secondes par défaut.
 export const maxDuration = 60;
 
-/**
- * Seul l'ordonnanceur peut déclencher un passage.
- *
- * Vercel signe ses appels de cron avec `CRON_SECRET`. Sans ce contrôle,
- * l'URL serait publique et n'importe qui pourrait lancer une préparation de
- * versements — ou la relancer en boucle. La comparaison est à durée
- * constante : comparer deux chaînes avec `===` laisse fuir la longueur du
- * préfixe correct, et un secret se devine caractère par caractère.
- */
-function autorise(requete: Request): boolean {
-  const attendu = process.env.CRON_SECRET;
-  if (!attendu || attendu.length === 0) return false;
-
-  const recu = requete.headers.get("authorization") ?? "";
-  const voulu = `Bearer ${attendu}`;
-  if (recu.length !== voulu.length) return false;
-
-  let ecart = 0;
-  for (let i = 0; i < voulu.length; i += 1) {
-    ecart |= recu.charCodeAt(i) ^ voulu.charCodeAt(i);
-  }
-  return ecart === 0;
-}
-
 /** Rails dont le jour d'exécution tombe aujourd'hui. */
 function railsDuJour(aujourdhui: Date): string[] {
   const jourSemaine = aujourdhui.getUTCDay();
@@ -66,10 +46,10 @@ function railsDuJour(aujourdhui: Date): string[] {
 }
 
 export async function GET(requete: Request) {
-  if (!autorise(requete)) {
+  if (!ordonnanceurAutorise(requete)) {
     // 404 plutôt que 401 : une route de cron n'a pas à confirmer son
     // existence à qui n'a pas le secret.
-    return new NextResponse("Not found", { status: 404 });
+    return reponseIntrouvable();
   }
 
   // Un cycle fermé par l'exploitant répond 200 : l'ordonnanceur de Vercel

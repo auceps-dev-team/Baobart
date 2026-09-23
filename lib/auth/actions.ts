@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
+import { journal } from "@/lib/observabilite/journal";
 import {
   LONGUEUR_MOT_DE_PASSE_MIN,
   hacherMotDePasse,
@@ -13,6 +14,10 @@ import {
   demanderReinitialisation as demanderLienDeReinitialisation,
 } from "@/lib/auth/reinitialisation";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
+import {
+  adresseCourante,
+  premierBlocage,
+} from "@/lib/securite/blocklist";
 import { verifierLimiteAction } from "@/lib/securite/garde";
 import { deposer } from "@/lib/email/outbox";
 
@@ -23,6 +28,44 @@ import { deposer } from "@/lib/email/outbox";
  * l'adresse ou le mot de passe qui est faux. Le dire transformerait le
  * formulaire de connexion en outil pour savoir qui a un compte ici.
  */
+
+/**
+ * Le refus opposé à une identité bloquée.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * IL NE DIT PAS CE QUI A BLOQUÉ, ET C'EST VOULU
+ *
+ * « Votre adresse IP est bloquée » apprend à la personne qu'il suffit de
+ * changer de réseau ; « votre courriel est bloqué » qu'il suffit d'en prendre
+ * un autre. Le blocage a une valeur exactement tant qu'on ignore lequel des
+ * deux a joué.
+ *
+ * Le journal, lui, le dit — c'est à l'écran d'administration qu'on a besoin de
+ * le savoir, pas dans le formulaire.
+ *
+ * Message distinct de `MESSAGE_IDENTIFIANTS` : refuser un compte bloqué avec
+ * « adresse ou mot de passe incorrect » enverrait la personne réinitialiser un
+ * mot de passe qui fonctionne très bien, et le support chercherait un défaut
+ * de connexion là où il y a une décision.
+ */
+const MESSAGE_BLOQUE =
+  "Ce compte ne peut pas être utilisé. Écris-nous si tu penses que c'est une erreur.";
+
+/**
+ * Les identités de cette tentative qui pourraient être bloquées.
+ *
+ * L'adresse n'entre dans la liste que si on en a une : sans ce filtre, on
+ * appellerait `estBloque("IP", "")`, et une ligne vide posée par accident dans
+ * la table bloquerait alors **tout le monde**.
+ */
+async function identitesDe(email: string) {
+  const adresse = await adresseCourante();
+
+  return [
+    { type: "EMAIL" as const, valeur: email },
+    ...(adresse ? [{ type: "IP" as const, valeur: adresse }] : []),
+  ];
+}
 
 export interface EtatFormulaire {
   erreur?: string;
@@ -80,6 +123,14 @@ export async function connecter(
     return { erreur: "Renseigne ton adresse et ton mot de passe." };
   }
 
+  // La liste de blocage AVANT le hachage, pour la même raison que la borne :
+  // une identité déjà jugée ne doit pas nous coûter un scrypt à chaque essai.
+  const bloque = await premierBlocage(await identitesDe(email));
+  if (bloque) {
+    journal.info("connexion refusée : identité bloquée", { type: bloque });
+    return { erreur: MESSAGE_BLOQUE };
+  }
+
   const compte = await db.user.findUnique({
     where: { email },
     select: { id: true, passwordHash: true, suspendedAt: true },
@@ -98,7 +149,7 @@ export async function connecter(
     return { erreur: "Ce compte est suspendu. Écris-nous pour en savoir plus." };
   }
 
-  await ouvrirSession(compte.id);
+  await ouvrirSession(compte.id, await adresseCourante());
   redirect("/dashboard");
 }
 
@@ -151,6 +202,16 @@ export async function inscrire(
       erreur: "Il faut accepter les conditions pour créer un compte.",
       champ: "conditions",
     };
+  }
+
+  // Après les validations de forme, avant la moindre écriture : une identité
+  // bloquée ne doit pas pouvoir se réinscrire sous un autre pseudo.
+  const bloqueInscription = await premierBlocage(await identitesDe(email));
+  if (bloqueInscription) {
+    journal.info("inscription refusée : identité bloquée", {
+      type: bloqueInscription,
+    });
+    return { erreur: MESSAGE_BLOQUE, champ: "email" };
   }
 
   const [emailPris, usernamePris] = await Promise.all([
@@ -216,7 +277,7 @@ export async function inscrire(
     maxWait: 10_000,
   });
 
-  await ouvrirSession(compte.id);
+  await ouvrirSession(compte.id, await adresseCourante());
 
   // La seule conséquence du choix : la première page. Celle-ci est ouverte à
   // tout le monde — c'est déjà la seule porte créateur que voit un acheteur.

@@ -653,6 +653,22 @@ model Session {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
+  /// L'adresse d'ou la session a ete ouverte.
+  ///
+  /// Elle existe pour une raison precise : le moteur de confiance
+  /// (`lib/domain/trust.ts`) emet un effet `BLOQUER_IP` quand un compte est
+  /// suspendu pour fraude, et cet effet etait journalise sans etre execute
+  /// faute de savoir **quelle** adresse bloquer. C'est ici qu'on l'apprend.
+  ///
+  /// Nullable : `adresseDe` rend `null` quand rien n'est credible — en
+  /// developpement, derriere un tunnel, dans un test.
+  ///
+  /// Duree de conservation : celle de la session. Rien ne la recopie ailleurs,
+  /// et la ligne part avec le compte (`onDelete: Cascade`). C'est une donnee
+  /// personnelle au sens de la loi ivoirienne n° 2013-450, et le module
+  /// d'effacement la traite comme telle.
+  ipAddress String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -2446,8 +2462,23 @@ model BlockedObject {
   expiresAt   DateTime? // expiration automatique (6 mois pour les IP)
   createdAt   DateTime  @default(now())
 
+  /// Le compte a l'origine du blocage, quand il y en a un.
+  ///
+  /// Ce n'est pas de la tracabilite : c'est ce qui rend la levee possible.
+  /// Le moteur de confiance emet `BLOQUER_IP` a la suspension et
+  /// `DEBLOQUER_IP` a la levee, mais il emet aussi `INVALIDER_SESSIONS`
+  /// AVANT le premier — les sessions, donc les adresses, ont disparu quand
+  /// vient le moment de lever. Sans cette colonne, la levee ne saurait pas
+  /// quelles lignes retirer, et les retirerait toutes ou aucune.
+  ///
+  /// Pas de relation Prisma : un blocage doit survivre a la suppression du
+  /// compte qui l'a motive. C'est meme son interet principal — quelqu'un qui
+  /// efface son compte et se reinscrit depuis la meme adresse.
+  userId String?
+
   @@unique([objectType, objectValue])
   @@index([expiresAt])
+  @@index([userId])
 }
 
 /// Journal des décisions de risque.
