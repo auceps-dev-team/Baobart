@@ -4,10 +4,14 @@ import { urlDuSite } from "@/lib/config/site";
 import { Prisma } from "@prisma/client";
 
 import { nouvelleLicence } from "@/lib/checkout/licence";
+import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
-import { finaliserVente } from "@/lib/payments/encaissement/reglement";
+import {
+  abandonnerVente,
+  finaliserVente,
+} from "@/lib/payments/encaissement/reglement";
 
 /**
  * L'achat d'une ressource payante.
@@ -55,7 +59,17 @@ export type MotifRefus =
   | "EN_COURS"
   | "PAIEMENT_INDISPONIBLE"
   /** Deux achats simultanés : la base a tranché, l'appelant réessaie. */
-  | "CONFLIT";
+  | "CONFLIT"
+  /**
+   * Le code promo présenté n'a pas été accepté.
+   *
+   * Un seul motif côté achat, alors que `evaluerUnCode` en distingue sept :
+   * l'acheteur voit le détail **avant** de valider, sur l'aperçu de la remise.
+   * Au moment de l'achat, le seul cas restant est la course — quelqu'un a pris
+   * le dernier exemplaire entre l'aperçu et le clic — et le détail n'apprend
+   * alors plus rien d'utile.
+   */
+  | "CODE_REFUSE";
 
 export type Resultat =
   | {
@@ -73,6 +87,8 @@ export type Resultat =
       paye: boolean;
       /** Où envoyer l'acheteur. Absent quand tout est déjà réglé. */
       redirection?: string;
+      /** Ce que le code promo a fait gagner, quand il y en avait un. */
+      remise?: { code: string; montant: number };
     }
   | { ok: false; motif: MotifRefus };
 
@@ -87,6 +103,8 @@ export const MESSAGES: Record<MotifRefus, string> = {
   PAIEMENT_INDISPONIBLE:
     "Le paiement n'est pas encore disponible. Reviens bientôt.",
   CONFLIT: "Deux achats sont partis en même temps. Réessaie.",
+  CODE_REFUSE:
+    "Ce code promo n'a pas pu être appliqué. Reprends sans lui, ou réessaie.",
 };
 
 /** La simulation est-elle ouverte ? */
@@ -116,6 +134,8 @@ export async function acheter(input: {
    * l'acheteur sur son téléphone.
    */
   moyen?: string;
+  /** Le code promo tapé par l'acheteur, s'il y en a un. */
+  codePromo?: string | null;
 }): Promise<Resultat> {
   // La simulation prime quand elle est ouverte : c'est un réglage de
   // développement, et le laisser cohabiter avec un opérateur réel produirait
@@ -147,6 +167,7 @@ export async function acheter(input: {
     licence: string;
     total: number;
     devise: string;
+    remise?: { code: string; montant: number };
   };
 
   try {
@@ -214,10 +235,55 @@ export async function acheter(input: {
           }
         }
 
+        // ══════════════════════════════════════════════════════════════
+        // LE CODE PROMO S'ÉVALUE PUIS SE CONSOMME, DANS CET ORDRE
+        //
+        // Deux gestes et non un, parce qu'ils ne répondent pas à la même
+        // question. L'évaluation dit « ce code vaut-il, et combien » ;
+        // la consommation dit « restait-il un exemplaire à l'instant où j'ai
+        // écrit ».
+        //
+        // Entre l'aperçu que l'acheteur a vu et ce clic, quelqu'un a pu
+        // prendre le dernier. `consommerLeCode` porte le plafond dans son
+        // `WHERE` : si la base ne touche aucune ligne, on refuse la vente
+        // plutôt que de l'accorder au prix remisé.
+        //
+        // Accorder quand même serait le défaut le plus discret de tout ce
+        // module : le plafond afficherait la bonne valeur, la vente
+        // aboutirait, et le vendeur aurait vendu une fois de plus que ce
+        // qu'il avait décidé.
+        let prixFacture = produit.price;
+        let prixAffiche: number | null = null;
+        let codeApplique: { id: string; code: string; remise: number } | null =
+          null;
+
+        if (input.codePromo) {
+          const remise = await evaluerUnCode({
+            code: input.codePromo,
+            vendeurId: produit.sellerId,
+            produitId: produit.id,
+            prix: produit.price,
+          });
+
+          if (!remise.ok) return refus("CODE_REFUSE");
+
+          if (!(await consommerLeCode(remise.offerCodeId, tx))) {
+            return refus("CODE_REFUSE");
+          }
+
+          prixFacture = remise.prixFinal;
+          prixAffiche = remise.prixAffiche;
+          codeApplique = {
+            id: remise.offerCodeId,
+            code: remise.code,
+            remise: remise.remise,
+          };
+        }
+
         const commande = await tx.order.create({
           data: {
             buyerId: input.acheteurId,
-            total: produit.price,
+            total: prixFacture,
             currency: produit.currency,
             provider: fournisseur,
             items: {
@@ -227,7 +293,14 @@ export async function acheter(input: {
                 // Le prix est **figé** ici. Le relire sur le produit plus tard
                 // ferait varier une vente passée au gré des changements de
                 // tarif du créateur.
-                price: produit.price,
+                //
+                // C'est le prix REMISÉ : c'est lui que lit le barème de frais,
+                // et la remise est donc supportée par le vendeur. `listPrice`
+                // garde l'autre, sans quoi une vente remisée et une vente au
+                // tarif réduit deviendraient indistinguables.
+                price: prixFacture,
+                listPrice: prixAffiche,
+                offerCodeId: codeApplique?.id ?? null,
               },
             },
           },
@@ -253,9 +326,13 @@ export async function acheter(input: {
           licence,
           // Le montant sort d'ici plutôt que d'être relu plus tard : c'est
           // celui qu'on a figé, et c'est à lui que le rappel de l'opérateur
-          // sera confronté.
-          total: produit.price,
+          // sera confronté. Remisé, le cas échéant : c'est ce que l'acheteur
+          // va réellement payer chez l'opérateur.
+          total: prixFacture,
           devise: produit.currency as string,
+          remise: codeApplique
+            ? { code: codeApplique.code, montant: codeApplique.remise }
+            : undefined,
         };
       },
       // Deux clics simultanés doivent aboutir à une seule commande. Sans
@@ -293,6 +370,7 @@ export async function acheter(input: {
       orderItemId: creation.orderItemId,
       licence: creation.licence,
       paye: true,
+      remise: creation.remise,
     };
   }
 
@@ -321,9 +399,27 @@ export async function acheter(input: {
   });
 
   if (!ouverture.ok) {
-    // L'opérateur a refusé d'ouvrir. La commande reste IN_PROGRESS : rien
-    // n'est crédité, et la fenêtre anti-doublon laissera l'acheteur réessayer
-    // dans deux minutes.
+    // ══════════════════════════════════════════════════════════════════════
+    // ON REFERME TOUT DE SUITE, AU LIEU DE LAISSER TRAÎNER
+    //
+    // Cette branche laissait la commande `IN_PROGRESS`, en comptant sur la
+    // fenêtre anti-doublon pour que l'acheteur réessaie dans deux minutes.
+    //
+    // Deux raisons d'y renoncer. La première : l'opérateur a refusé
+    // d'**ouvrir**, donc aucun paiement n'existe et cette commande ne
+    // deviendra jamais rien — la laisser ouverte fait monter le compteur
+    // « commandes bloquées » de l'écran de supervision pour un cas qui n'a
+    // rien de bloqué.
+    //
+    // La seconde est décisive depuis les codes promo : un exemplaire vient
+    // d'être réservé, et seul `abandonnerVente` le rend. Sans cet appel, il
+    // faudrait attendre la péremption à vingt-quatre heures — et entre-temps,
+    // un code à dix usages serait épuisé par dix refus d'opérateur.
+    //
+    // La transition d'état de cette fonction ne réussit qu'une fois : le
+    // passage de péremption qui repasserait dessus ne libérerait pas deux fois.
+    await abandonnerVente(creation.orderItemId);
+
     journal.erreur("ouverture de paiement refusée par l'opérateur", {
       orderId: creation.orderId,
       operateur: pilote!.nom,

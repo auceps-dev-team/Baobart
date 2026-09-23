@@ -114,6 +114,12 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
     href: "/dashboard/produits/nouveau",
     desLAtelier: true,
   },
+  {
+    cle: "c_promos",
+    label: "Codes promo",
+    glyph: "%",
+    href: "/dashboard/promos",
+  },
   { cle: "c_revenus", label: "Gains", glyph: "◎", href: "/dashboard/gains" },
   {
     cle: "c_versements",

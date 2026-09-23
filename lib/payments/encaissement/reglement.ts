@@ -6,6 +6,7 @@ import { encaisserLigne } from "@/lib/domain/orders";
 import { notifier } from "@/lib/notifications/aiguilleur";
 import { formatMoney } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
+import { libererLeCode } from "@/lib/commerce/codes-promo";
 
 /**
  * Ce qui se passe au moment où l'argent est vraiment arrivé.
@@ -173,8 +174,28 @@ export async function abandonnerVente(orderItemId: string): Promise<boolean> {
 
     const ligne = await tx.orderItem.findUniqueOrThrow({
       where: { id: orderItemId },
-      select: { orderId: true },
+      select: { orderId: true, offerCodeId: true },
     });
+
+    // ══════════════════════════════════════════════════════════════════════
+    // LE CODE PROMO EST RENDU ICI, ET NULLE PART AILLEURS
+    //
+    // Il a été consommé à l'ouverture de la commande — le seul instant où
+    // l'on peut réserver un exemplaire contre la concurrence. Mais ouvrir
+    // n'est pas payer : en mobile money, l'invite part sur un téléphone qui
+    // reste souvent sans réponse.
+    //
+    // Sans cette libération, dix hésitations épuisent un code à dix usages.
+    // Le vendeur annonce dix remises, personne n'en reçoit, et le compteur
+    // affiche fidèlement « 10 / 10 ».
+    //
+    // Cette fonction est le passage obligé des deux chemins d'échec — le
+    // refus de l'opérateur et la péremption à vingt-quatre heures — et sa
+    // transition d'état ne réussit qu'une fois. La libération est donc
+    // exactement aussi idempotente que l'abandon lui-même.
+    if (ligne.offerCodeId) {
+      await libererLeCode(ligne.offerCodeId, tx);
+    }
 
     // La raison de l'échec n'est PAS recopiée ici : `providerRef` porte la
     // référence de la transaction chez l'opérateur, et c'est par elle qu'on

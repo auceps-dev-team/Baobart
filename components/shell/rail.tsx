@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   BLANC,
@@ -36,6 +36,57 @@ export function Rail({
   const [survole, setSurvole] = useState(false);
   const [verrouille, setVerrouille] = useState(false);
   const ouvert = survole || verrouille;
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════════
+   * LE RAIL CACHAIT SES DERNIÈRES ENTRÉES SANS LE DIRE
+   *
+   * Mesuré le 23 septembre 2026, sur `/explore` :
+   *
+   *   1080 px de haut   onze entrées, onze visibles
+   *    900 px           onze entrées, onze visibles
+   *    768 px           onze entrées, **dix** visibles
+   *
+   * La liste défile — `overflowY: auto` est bien là — mais la maquette masque
+   * la barre de défilement (`scrollbar-width: none`, ligne 53 de
+   * « Baobart Accueil.dc.html »), et rien d'autre ne signale qu'il y a une
+   * suite. Sur un portable, « Vidéos » n'existait tout simplement pas : elle
+   * est la dernière de la liste, donc la première à disparaître.
+   *
+   * On garde la barre masquée — c'est la maquette — et l'on ajoute le seul
+   * signal qui manquait : un dégradé en bas, visible uniquement quand il
+   * reste quelque chose à voir.
+   *
+   * Recalculé au redimensionnement ET au défilement : un dégradé qui resterait
+   * allumé en bas de liste dirait « il y a encore quelque chose » alors qu'on
+   * est arrivé au bout.
+   */
+  const listeRef = useRef<HTMLElement>(null);
+  const [resteDessous, setResteDessous] = useState(false);
+
+  useEffect(() => {
+    const liste = listeRef.current;
+    if (!liste) return;
+
+    const mesurer = () => {
+      // Deux pixels de tolérance : les hauteurs fractionnaires d'un zoom
+      // navigateur laisseraient sinon le dégradé allumé en permanence.
+      setResteDessous(
+        liste.scrollHeight - liste.scrollTop - liste.clientHeight > 2,
+      );
+    };
+
+    mesurer();
+    liste.addEventListener("scroll", mesurer, { passive: true });
+
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(liste);
+
+    return () => {
+      liste.removeEventListener("scroll", mesurer);
+      observateur.disconnect();
+    };
+  }, []);
 
   // Le décalage de la page suit l'ouverture du rail (voir HomeShell).
   useEffect(() => {
@@ -86,37 +137,43 @@ export function Rail({
           width: "100%",
         }}
       >
+        {/*
+          ══════════════════════════════════════════════════════════════════
+          LA MÊME MARQUE QUE L'EN-TÊTE, AU PIXEL PRÈS
+
+          La maquette met la lettre « B » dans un carré jaune ici
+          (« Baobart Accueil.dc.html », ligne 47) et le baobab blanc dans un
+          cercle orange dans son en-tête (ligne 78). Deux marques pour une
+          seule application.
+
+          La première correction avait gardé le carré jaune en y posant le
+          baobab d'encre — cohérent avec le fond, mais toujours deux marques.
+          On aligne donc sur l'en-tête : cercle orange, baobab blanc, même
+          proportion. Une application n'a qu'un logo, et c'est celui qu'on
+          voit en haut de chaque page.
+
+          36 px et non 40 : le rail replié fait 78 px de large, et le cercle
+          de l'en-tête y toucherait les bords.
+        */}
         <span
           style={{
             width: 36,
             height: 36,
             flex: "0 0 auto",
             border: `2.5px solid ${ENCRE}`,
-            borderRadius: 11,
-            background: JAUNE,
+            borderRadius: 99,
+            background: ORANGE,
             display: "grid",
             placeItems: "center",
             overflow: "hidden",
           }}
         >
-          {/*
-            LA MAQUETTE ÉCRIT « B », ET C'EST DÉLIBÉRÉMENT QU'ON NE LA SUIT PAS
-
-            « Baobart Accueil.dc.html » ligne 47 met la lettre B dans ce carré
-            jaune, là où son en-tête (ligne 78) met déjà `baobab-white.svg`.
-            Deux marques différentes pour la même application : la lettre est
-            un provisoire de maquette, pas une décision de charte.
-
-            L'encre plutôt que le blanc : le carré est jaune (#FFD84A), et un
-            baobab blanc dessus ne se voit pas. C'est la même raison qui fait
-            que l'en-tête prend le blanc — son cercle, lui, est orange.
-          */}
           <Image
-            src="/img/baobab-ink.svg"
+            src="/img/baobab-white.svg"
             alt="Baobart"
-            width={22}
-            height={22}
-            style={{ width: 22, height: "auto", display: "block" }}
+            width={24}
+            height={24}
+            style={{ width: 24, height: "auto", display: "block", marginTop: 2 }}
           />
         </span>
         {ouvert ? (
@@ -132,7 +189,16 @@ export function Rail({
         ) : null}
       </button>
 
+      <div
+        style={{
+          position: "relative",
+          flex: "1 1 auto",
+          minHeight: 0,
+          display: "flex",
+        }}
+      >
       <nav
+        ref={listeRef}
         data-rail-nav="1"
         style={{
           display: "flex",
@@ -189,6 +255,22 @@ export function Rail({
           );
         })}
       </nav>
+
+        {resteDessous ? (
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 34,
+              pointerEvents: "none",
+              background: `linear-gradient(to bottom, transparent, ${BLANC})`,
+            }}
+          />
+        ) : null}
+      </div>
 
       {ouvert ? (
         <div

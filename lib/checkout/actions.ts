@@ -43,6 +43,10 @@ export async function acheterRessource(
     moyen: MOYENS.has(String(donnees?.get("moyen") ?? ""))
       ? String(donnees?.get("moyen"))
       : undefined,
+    // Le code voyage par le formulaire, comme le rail. Il est revalidé de
+    // bout en bout dans `acheter` : l'aperçu qu'a vu l'acheteur ne fait pas
+    // foi, et le prix n'est jamais calculé à partir de ce qu'il envoie.
+    codePromo: String(donnees?.get("codePromo") ?? "").trim() || null,
   });
 
   // `redirect` lève : il doit rester hors du bloc qui traite le résultat, sinon

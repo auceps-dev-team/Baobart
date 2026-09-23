@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
+import type { ApercuCode } from "@/lib/commerce/actions-promo";
 import {
   PAYS,
   demandeLeTelephone,
@@ -50,13 +51,30 @@ export function ChoixPaiement({
   action,
   operateur,
   prixFormate,
+  produitId,
+  apercu,
 }: {
   /** Déjà liée à son sujet par l'appelant. Le refus vit dedans, pas ici. */
   action: (donnees: FormData) => Promise<void>;
   /** Le pilote actif : il décide si le numéro est demandé. */
   operateur: string;
   prixFormate: string;
+  /**
+   * La ressource achetée, quand il y en a une.
+   *
+   * Absente au renouvellement d'abonnement, qui emprunte le même formulaire
+   * sans avoir de ressource à remiser. Un code promo s'applique à une vente,
+   * pas à une échéance — et `OfferCode.durationDays`, qui existe pour les
+   * abonnements, relève d'un autre chemin.
+   */
+  produitId?: string;
+  /** Évalue un code sans rien consommer, pour l'afficher avant validation. */
+  apercu?: (produitId: string, code: string) => Promise<ApercuCode>;
 }) {
+  const [codePromo, setCodePromo] = useState("");
+  const [remise, setRemise] = useState<ApercuCode | null>(null);
+  const [verifieEnCours, transitionCode] = useTransition();
+
   const [pays, setPays] = useState("CI");
   const [rail, setRail] = useState("om");
   const [telephone, setTelephone] = useState("");
@@ -93,6 +111,95 @@ export function ChoixPaiement({
       */}
       <input type="hidden" name="moyen" value={choisi} />
       <input type="hidden" name="pays" value={pays} />
+
+      {/*
+        ══════════════════════════════════════════════════════════════════════
+        L'APERÇU DIT POURQUOI, ET IL NE CONSOMME RIEN
+
+        `evaluerUnCode` distingue sept refus. L'acheteur a besoin de les
+        connaître ICI : « ce code a expiré » lui apprend quoi faire, « ça n'a
+        pas marché » ne lui apprend rien.
+
+        Il ne réserve pas d'exemplaire pour autant : c'est l'achat qui
+        consomme, et qui peut donc refuser si quelqu'un a pris le dernier
+        entre-temps. L'aperçu est une aide à la saisie, pas une promesse.
+      */}
+      {produitId && apercu ? (
+      <div>
+        <label
+          htmlFor="codePromo"
+          style={{ display: "block", fontSize: 13, fontWeight: 800, marginBottom: 10 }}
+        >
+          Code promo <span style={{ opacity: 0.6, fontWeight: 600 }}>— si tu en as un</span>
+        </label>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <input
+            id="codePromo"
+            name="codePromo"
+            value={codePromo}
+            onChange={(e) => {
+              setCodePromo(e.target.value);
+              setRemise(null);
+            }}
+            autoComplete="off"
+            placeholder="NOEL25"
+            style={{
+              flex: "1 1 180px",
+              padding: "12px 14px",
+              border: `2.5px solid ${ENCRE}`,
+              borderRadius: 13,
+              background: "#FFFFFF",
+              fontFamily: "var(--font-mono)",
+              fontSize: 14,
+              letterSpacing: ".1em",
+              textTransform: "uppercase",
+            }}
+          />
+
+          <button
+            type="button"
+            disabled={verifieEnCours || codePromo.trim().length === 0}
+            onClick={() =>
+              transitionCode(async () =>
+                setRemise(await apercu!(produitId!, codePromo)),
+              )
+            }
+            style={{
+              padding: "12px 18px",
+              border: `2.5px solid ${ENCRE}`,
+              borderRadius: 13,
+              background: "#FFFFFF",
+              fontFamily: "inherit",
+              fontSize: 13.5,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            {verifieEnCours ? "…" : "Vérifier"}
+          </button>
+        </div>
+
+        {remise && remise.ok ? (
+          <p style={{ margin: "10px 0 0", fontSize: 13.5, fontWeight: 700 }}>
+            {`− ${remise.remise.toLocaleString("fr-FR")} F · tu paieras ${remise.prixFinal.toLocaleString("fr-FR")} F`}
+          </p>
+        ) : null}
+
+        {remise && !remise.ok && remise.message ? (
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: 13.5,
+              fontWeight: 700,
+              color: "#E2622C",
+            }}
+          >
+            {remise.message}
+          </p>
+        ) : null}
+      </div>
+      ) : null}
       {/* ── Le pays ─────────────────────────────────────────────────────── */}
       <div>
         <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>

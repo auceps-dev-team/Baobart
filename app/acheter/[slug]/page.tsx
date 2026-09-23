@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ChoixPaiement } from "@/components/checkout/choix-paiement";
 import { acheterRessource } from "@/lib/checkout/actions";
+import { apercuDuCode } from "@/lib/commerce/actions-promo";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
@@ -127,6 +128,8 @@ export default async function ChoisirLePaiementPage({
             action={acheterRessource.bind(null, produit.id)}
             operateur={operateur}
             prixFormate={prix}
+            produitId={produit.id}
+            apercu={apercuDuCode}
           />
         </div>
 

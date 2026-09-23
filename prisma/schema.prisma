@@ -1301,6 +1301,27 @@ model OrderItem {
   // Décomposition BRUT → NET, figée au moment de la vente. Le net est ce qui
   // alimente le solde du vendeur : net = price × quantity − les quatre parts.
   price        Int // prix unitaire encaissé
+
+  /// Le prix affiche avant remise, quand un code promo a joue.
+  ///
+  /// ==========================================================================
+  /// POURQUOI GARDER LES DEUX
+  ///
+  /// `price` reste « ce qui a ete encaisse » : c'est lui que lit le bareme de
+  /// frais, et la remise est supportee par le vendeur — comme chez Gumroad.
+  ///
+  /// Mais sans `listPrice`, une vente a 5 000 F avec un code -50 % et une
+  /// vente a 5 000 F sans code deviennent indistinguables. Le createur ne
+  /// saurait plus si sa campagne a marche, et la question se pose toujours
+  /// APRES coup, quand il est trop tard pour l'instrumenter.
+  ///
+  /// Nul quand aucun code n'a joue : on ne recopie pas `price` dans les deux
+  /// colonnes, sinon « il y a une remise » et « il n'y en a pas » se lisent
+  /// pareil.
+  listPrice    Int?
+  /// Le code employe. Scalaire, comme `OfferCode.sellerId` — voir l'audit du
+  /// 28 aout sur les cles etrangeres scalaires de ce bloc.
+  offerCodeId  String?
   platformFee  Int @default(0) // commission Baobart (§2.4 — 10 % ou 20 %, non tranché)
   processorFee Int @default(0) // mobile money / carte
   affiliateFee Int @default(0) // part de l'affilié (§10.1)
@@ -2445,6 +2466,29 @@ model AffiliateCredit {
   @@index([affiliateId])
 }
 
+/// Un code promo, emis par un vendeur sur ses propres ressources.
+///
+/// ============================================================================
+/// LE CODE EST STOCKE NORMALISE
+///
+/// Majuscules, sans espaces. Un code ecrit « Noel 25 » et tape « noel25 » ne
+/// se retrouverait pas : la base compare des octets. Le code s'afficherait
+/// dans l'ecran du vendeur, la personne le taperait comme il l'a lu, et rien
+/// ne se passerait — sans erreur, sans trace.
+///
+/// C'est `lib/commerce/codes-promo.ts` qui normalise, a l'ecriture comme a la
+/// lecture, et la contrainte d'unicite porte sur la valeur normalisee.
+///
+/// ============================================================================
+/// `usesCount` NE SE LIT PAS AVANT DE S'INCREMENTER
+///
+/// Deux acheteurs qui presentent le dernier exemplaire au meme instant
+/// liraient tous deux « 9 sur 10 » et ecriraient tous deux « 10 ». Le plafond
+/// serait depasse d'un, et personne ne le verrait — le compteur afficherait
+/// exactement la bonne valeur.
+///
+/// L'increment se fait donc dans un `updateMany` qui porte le plafond dans son
+/// `WHERE` : la base tranche, pas nous.
 model OfferCode {
   id                     String    @id @default(cuid())
   sellerId               String
@@ -2457,9 +2501,16 @@ model OfferCode {
   isCancellationDiscount Boolean   @default(false)
   productIds             Json      @default("[]") // [] = tous les produits
   expiresAt              DateTime?
+  /// Pose quand le vendeur retire le code sans vouloir l'effacer.
+  ///
+  /// Distinct de l'expiration : une date passee dit « la campagne est finie »,
+  /// ceci dit « arretez tout de suite ». Les deux doivent exister, parce qu'on
+  /// arrete rarement une campagne a l'heure prevue.
+  disabledAt             DateTime?
   createdAt              DateTime  @default(now())
 
   @@unique([sellerId, code])
+  @@index([sellerId, createdAt])
 }
 
 model Upsell {
