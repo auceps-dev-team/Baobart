@@ -6,6 +6,7 @@ import { BacASable } from "@/components/checkout/bac-a-sable";
 import { declencherRappel } from "@/lib/payments/encaissement/bac-a-sable";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { offreApresAchat } from "@/lib/commerce/upsell";
 import { formatMoney } from "@/lib/i18n/money";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import {
@@ -148,6 +149,7 @@ export default async function RetourPaiementPage({
           state: true,
           product: {
             select: {
+              id: true,
               name: true,
               slug: true,
               seller: { select: { profile: { select: { displayName: true } } } },
@@ -169,6 +171,22 @@ export default async function RetourPaiementPage({
   const enAttente = ligne.state === "IN_PROGRESS";
   const echoue = ligne.state === "FAILED";
   const abouti = ligne.state === "SUCCESSFUL" || ligne.state === "NOT_CHARGED";
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // L'OFFRE N'EST CHERCHÉE QUE SI L'ACHAT A ABOUTI
+  //
+  // Sur une commande en attente ou échouée, proposer autre chose serait
+  // doublement maladroit : on n'a pas encore livré ce qui est payé, et l'on
+  // demanderait déjà de repayer.
+  //
+  // C'est aussi une lecture de moins sur la page que l'acheteur recharge en
+  // boucle pendant qu'il attend le rappel de l'opérateur.
+  const offre = abouti
+    ? await offreApresAchat({
+        produitAchete: ligne.product.id,
+        acheteurId: utilisateur.id,
+      })
+    : null;
 
   const vendeur = ligne.product.seller.profile?.displayName ?? "un créateur";
   const bac = piloteCourant().nom === "bac-a-sable";
@@ -425,6 +443,59 @@ export default async function RetourPaiementPage({
               à citer en cas de question au support
             </div>
           </div>
+
+          {offre ? (
+            <div
+              style={{
+                marginTop: 4,
+                marginBottom: 20,
+                padding: 18,
+                border: CADRE,
+                borderRadius: 18,
+                background: LAVANDE,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: ".12em",
+                  opacity: 0.6,
+                }}
+              >
+                {vendeur} propose aussi
+              </div>
+
+              <div style={{ fontSize: 17, fontWeight: 800, marginTop: 8 }}>
+                {offre.nom}
+              </div>
+
+              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 6 }}>
+                {offre.remisePourcent === null ? (
+                  formatMoney(offre.prix, offre.devise as Parameters<typeof formatMoney>[1])
+                ) : (
+                  <>
+                    <span style={{ textDecoration: "line-through", opacity: 0.55 }}>
+                      {formatMoney(offre.prix, offre.devise as Parameters<typeof formatMoney>[1])}
+                    </span>{" "}
+                    <span style={{ color: ORANGE }}>
+                      {formatMoney(offre.prixFinal, offre.devise as Parameters<typeof formatMoney>[1])}
+                    </span>{" "}
+                    <span style={{ fontSize: 12.5, opacity: 0.75 }}>
+                      {`(−${offre.remisePourcent} %)`}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <Bouton href={`/products/${offre.slug}` as Route}>
+                  Voir la ressource
+                </Bouton>
+              </div>
+            </div>
+          ) : null}
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             {abouti ? (

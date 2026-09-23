@@ -116,7 +116,7 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
   },
   {
     cle: "c_promos",
-    label: "Codes promo",
+    label: "Promotions",
     glyph: "%",
     href: "/dashboard/promos",
   },

@@ -10,6 +10,7 @@ import {
   retirerUnCode,
   type TypeRemise,
 } from "@/lib/commerce/codes-promo";
+import { basculerUnUpsell, declarerUnUpsell } from "@/lib/commerce/upsell";
 import { db } from "@/lib/db";
 import { verifierLimiteAction } from "@/lib/securite/garde";
 
@@ -154,4 +155,66 @@ export async function retirerMonCode(
   return retire
     ? { ok: true, message: "Code retiré." }
     : { ok: false, message: "Ce code n'est pas le tien, ou est déjà retiré." };
+}
+
+// ──────────────────────────────────────────────────────────── upsell ──
+
+/**
+ * Déclare une offre post-achat.
+ *
+ * Même règle que les codes : le vendeur vient de la session. Accepter un
+ * identifiant laisserait déclencher sur la ressource d'un concurrent et
+ * proposer la sienne à ses acheteurs.
+ */
+export async function declarerMonUpsell(
+  _precedent: EtatPromo | null,
+  donnees: FormData,
+): Promise<EtatPromo> {
+  const moi = await sessionCourante();
+  if (!moi) return { ok: false, message: "Reconnecte-toi." };
+
+  const remiseBrute = String(donnees.get("remise") ?? "").trim();
+  const remise = remiseBrute ? Math.trunc(Number(remiseBrute)) : null;
+
+  const suite = await declarerUnUpsell({
+    vendeurId: moi.id,
+    declencheurId: String(donnees.get("declencheur") ?? ""),
+    offreId: String(donnees.get("offre") ?? ""),
+    remisePourcent: Number.isFinite(remise) ? remise : null,
+  });
+
+  revalidatePath(CHEMIN);
+
+  if (suite.ok) return { ok: true, message: "Offre déclarée." };
+
+  const messages = {
+    RESSOURCE_ETRANGERE: "Une de ces ressources n'est pas la tienne.",
+    MEME_RESSOURCE: "Une ressource ne peut pas se proposer elle-même.",
+    REMISE_INVALIDE: "La remise doit être un entier entre 1 et 100.",
+    DEJA_DECLAREE: "Cette offre existe déjà sur ce déclencheur.",
+  } as const;
+
+  return { ok: false, message: messages[suite.motif] };
+}
+
+/** Active ou coupe une offre. */
+export async function basculerMonUpsell(
+  _precedent: EtatPromo | null,
+  donnees: FormData,
+): Promise<EtatPromo> {
+  const moi = await sessionCourante();
+  if (!moi) return { ok: false, message: "Reconnecte-toi." };
+
+  const actif = donnees.get("actif") === "1";
+  const bascule = await basculerUnUpsell(
+    moi.id,
+    String(donnees.get("id") ?? ""),
+    actif,
+  );
+
+  revalidatePath(CHEMIN);
+
+  return bascule
+    ? { ok: true, message: actif ? "Offre réactivée." : "Offre coupée." }
+    : { ok: false, message: "Cette offre n'est pas la tienne." };
 }
