@@ -2525,11 +2525,45 @@ model Upsell {
   @@index([triggerProductId])
 }
 
-model SentAbandonedCartEmail {
+/// La relance d'un paiement laisse en plan.
+///
+/// ============================================================================
+/// LE PANIER N'EXISTE PAS SUR CETTE PLATEFORME
+///
+/// Ce modele s'appelait `SentAbandonedCartEmail` et portait un `cartId`. Il
+/// n'a jamais eu ni lecteur ni ecrivain, et pour cause : `Cart` n'est ecrit
+/// nulle part. On achete une ressource a la fois, depuis sa fiche — il n'y a
+/// pas d'etape « panier » a abandonner.
+///
+/// Ce qui s'abandonne vraiment ici, c'est un paiement mobile money OUVERT :
+/// l'invite part sur un telephone, et l'acheteur ne la confirme jamais. C'est
+/// frequent — le commentaire de `PEREMPTION_MS` le dit deja — et c'est la
+/// seule abandon qu'on puisse relancer.
+///
+/// Construire la relance sur `Cart` aurait produit un module qui ne se
+/// declenche jamais : correct, teste, et sans effet.
+///
+/// ============================================================================
+/// UNE SEULE RELANCE, ET C'EST LA BASE QUI LE GARANTIT
+///
+/// `orderId` est unique. Deux passages d'ordonnanceur qui se chevauchent ne
+/// peuvent donc pas ecrire deux fois — la seconde insertion echoue sur la
+/// contrainte, ce qui est exactement le comportement voulu.
+///
+/// Relancer deux fois quelqu'un qui a renonce est le genre de detail qui fait
+/// classer un expediteur en indesirable, et la delivrabilite ne revient pas.
+model RelancePaiement {
   id        String   @id @default(cuid())
-  cartId    String   @unique
+  orderId   String   @unique
   sentAt    DateTime @default(now())
+  /// Pose quand la commande relancee finit par aboutir.
+  ///
+  /// Mesure, pas suppose : c'est la seule facon de savoir si la relance sert a
+  /// quelque chose. Sans cette colonne, on continuerait d'envoyer sans jamais
+  /// pouvoir dire si ca marche.
   converted Boolean  @default(false)
+
+  @@index([sentAt])
 }
 
 model CustomField {
@@ -2816,6 +2850,13 @@ enum EmailTemplate {
   /// de réponse au bout de laquelle le contenu ne revient pas. Une cloche
   /// qu'on n'ouvre pas ferait courir ce délai dans le vide.
   RETRAIT_JURIDIQUE
+
+  /// Ajoute en v1.64.0 avec la relance de paiement.
+  ///
+  /// Le seul de cette liste qui DEMANDE quelque chose au lieu de rendre compte
+  /// d'un fait. Une seule relance par commande, garantie par la contrainte
+  /// d'unicite de `RelancePaiement.orderId`.
+  PAIEMENT_ABANDONNE
 }
 
 /// File d'attente des messages transactionnels.

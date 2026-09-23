@@ -66,6 +66,13 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     echeance: "29 septembre 2026",
     lien: "https://baobart.test/dossiers/NOT-2026-041",
   },
+  PAIEMENT_ABANDONNE: {
+    nom: "Awa",
+    ressource: "Pack textures",
+    montant: "4 500 F",
+    lien: "https://baobart.test/acheter/pack-textures",
+    heures: 22,
+  },
 };
 
 describe("modèles de courriel", () => {

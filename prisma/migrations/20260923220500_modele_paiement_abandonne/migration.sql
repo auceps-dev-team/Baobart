@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "EmailTemplate" ADD VALUE 'PAIEMENT_ABANDONNE';
+

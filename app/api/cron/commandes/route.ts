@@ -8,6 +8,7 @@ import {
   ordonnanceurAutorise,
   reponseIntrouvable,
 } from "@/lib/securite/cron";
+import { relancerLesPaiementsOublies } from "@/lib/commerce/relance-paiement";
 
 /**
  * Le passage qui referme les commandes qu'aucun rappel n'a conclues.
@@ -48,6 +49,19 @@ export async function GET(requete: Request) {
     return reponseIntrouvable();
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // LA RELANCE AVANT LA PÉREMPTION, ET L'ORDRE COMPTE
+  //
+  // `perimerCommandesOubliees` referme tout ce qui dépasse vingt-quatre
+  // heures. Relancer après elle ne trouverait donc jamais rien à relancer sur
+  // ce même passage — et comme le cron tourne une fois par jour, une commande
+  // pourrait naître et mourir entre deux passages sans qu'aucune relance ne
+  // parte.
+  //
+  // Rien ne planterait : le bilan dirait « 0 relance », ce qui est aussi ce
+  // qu'il dirait un jour sans abandon.
+  const relances = await relancerLesPaiementsOublies();
+
   const fermees = await perimerCommandesOubliees();
   const abonnements = await perimerPaiementsOublies();
   // Efface les CV des candidatures dont l'offre s'est terminée. Le CV vit avec
@@ -58,9 +72,24 @@ export async function GET(requete: Request) {
 
   // Un passage vide est le cas normal. Ne journaliser que ce qui s'est passé
   // évite de noyer les incidents sous la routine.
-  if (fermees > 0 || abonnements > 0 || candidatures > 0) {
-    journal.info("passage de ménage", { fermees, abonnements, candidatures });
+  if (
+    fermees > 0 ||
+    abonnements > 0 ||
+    candidatures > 0 ||
+    relances.envoyees > 0
+  ) {
+    journal.info("passage de ménage", {
+      fermees,
+      abonnements,
+      candidatures,
+      relances: relances.envoyees,
+    });
   }
 
-  return NextResponse.json({ fermees, abonnements, candidatures });
+  return NextResponse.json({
+    fermees,
+    abonnements,
+    candidatures,
+    relances,
+  });
 }

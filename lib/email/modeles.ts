@@ -47,6 +47,18 @@ export const MODELES = [
   // suffisait pas — une cloche qu'on n'ouvre pas ferait courir ce délai dans
   // le vide, et le retrait deviendrait définitif par silence.
   "RETRAIT_JURIDIQUE",
+
+  // ── Ajouté en v1.64.0 avec la relance de paiement ───────────────────────
+  //
+  // Le seul modèle de cette liste qui ne rende compte de rien : les autres
+  // annoncent un fait accompli — une vente, un remboursement, un retrait.
+  // Celui-ci demande quelque chose, et c'est ce qui le rend délicat.
+  //
+  // D'où une seule relance par commande, garantie par une contrainte
+  // d'unicité en base et non par une précaution de code : relancer deux fois
+  // quelqu'un qui a renoncé est le genre de détail qui fait classer un
+  // expéditeur en indésirable, et la délivrabilité ne revient pas.
+  "PAIEMENT_ABANDONNE",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -195,6 +207,21 @@ const SCHEMAS = {
     motif: z.string().min(1).max(2000),
     echeance: z.string().min(1).max(40),
     lien: z.string().url().optional(),
+  }),
+  PAIEMENT_ABANDONNE: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    montant: z.string().min(1).max(40),
+    /**
+     * Vers la fiche, pour reprendre l'achat.
+     *
+     * Obligatoire, contrairement au reçu : un reçu sans lien vaut encore
+     * preuve de paiement, une relance sans lien ne sert à rien. Sans
+     * `APP_URL`, mieux vaut ne pas relancer du tout.
+     */
+    lien,
+    /** Combien d'heures il reste avant que la commande ne se referme. */
+    heures: z.number().int().positive(),
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
@@ -387,6 +414,28 @@ ${c.raison}
 ` +
       `« ${c.titre} » a été relu et publié. C'est visible de tout le monde, ` +
       `et les inscriptions sont ouvertes.` +
+      SIGNATURE,
+  }),
+
+  PAIEMENT_ABANDONNE: (c) => ({
+    sujet: `Ton achat de « ${c.ressource} » attend encore`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Tu as lancé l'achat de « ${c.ressource} » pour ${c.montant}, et le ` +
+      `paiement n'est jamais arrivé chez nous. Cela arrive souvent : une ` +
+      `invite qui se perd, un téléphone hors réseau, un code qu'on remet à ` +
+      `plus tard.
+
+` +
+      `Rien n'a été débité. Tu peux reprendre là où tu t'es arrêté :
+` +
+      `${c.lien}
+
+` +
+      `Passé ${c.heures} heures, la commande se referme d'elle-même — ` +
+      `et tu pourras la relancer quand tu voudras.` +
       SIGNATURE,
   }),
 

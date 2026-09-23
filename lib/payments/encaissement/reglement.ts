@@ -7,6 +7,7 @@ import { notifier } from "@/lib/notifications/aiguilleur";
 import { formatMoney } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
 import { libererLeCode } from "@/lib/commerce/codes-promo";
+import { noterConversion } from "@/lib/commerce/relance-paiement";
 
 /**
  * Ce qui se passe au moment où l'argent est vraiment arrivé.
@@ -56,6 +57,19 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
       },
     },
   });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SI CETTE COMMANDE AVAIT ÉTÉ RELANCÉE, ON LE NOTE
+  //
+  // C'est la seule façon de savoir si la relance sert à quelque chose. Sans
+  // cette mesure, on continuerait d'écrire à des gens qui ont renoncé, sans
+  // jamais pouvoir dire si ça convertit — et une relance qui ne convertit pas
+  // coûte de la délivrabilité pour rien.
+  //
+  // Hors transaction, et sans `await` bloquant le reçu : une commande qui
+  // aboutit ne doit pas échouer parce qu'un compteur de campagne n'a pas pu
+  // s'écrire.
+  await noterConversion(ligne.orderId);
 
   const base = urlDuSite();
   const acheteur = ligne.order.buyer;
