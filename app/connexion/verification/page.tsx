@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { FormulaireVerification } from "@/components/auth/formulaire-verification";
 import { verifierDeuxFacteurs } from "@/lib/auth/actions";
-import { COOKIE_DEFI } from "@/lib/auth/deux-facteurs";
+import { COOKIE_DEFI, compteDuDefi } from "@/lib/auth/deux-facteurs";
+import { db } from "@/lib/db";
 
 export const metadata = { title: "Vérification — Baobart." };
 export const dynamic = "force-dynamic";
@@ -28,10 +29,25 @@ export const dynamic = "force-dynamic";
  */
 export default async function VerificationPage() {
   const magasin = await cookies();
+  const jeton = magasin.get(COOKIE_DEFI)?.value;
 
-  if (!magasin.get(COOKIE_DEFI)?.value) {
+  if (!jeton) {
     redirect("/connexion");
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ON NE PROPOSE LA CLÉ QUE SI LE COMPTE EN A UNE
+  //
+  // Afficher le bouton dans tous les cas donnerait, à qui n'a que TOTP, un
+  // bouton qui ouvre une fenêtre système vide puis échoue. Et l'afficher
+  // d'après l'adresse saisie renseignerait un inconnu sur la façon dont un
+  // compte est protégé.
+  //
+  // Le cookie de défi est la seule source légitime : il prouve qu'un mot de
+  // passe correct vient d'être donné.
+  const userId = await compteDuDefi(jeton);
+  const avecCle =
+    userId !== null && (await db.passkey.count({ where: { userId } })) > 0;
 
   return (
     <AuthShell
@@ -50,7 +66,7 @@ export default async function VerificationPage() {
       libelleBascule="Reprendre la connexion"
       indiceBascule="Changé d'avis ?"
     >
-      <FormulaireVerification action={verifierDeuxFacteurs} />
+      <FormulaireVerification action={verifierDeuxFacteurs} avecCle={avecCle} />
     </AuthShell>
   );
 }

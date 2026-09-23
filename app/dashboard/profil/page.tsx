@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { PanneauDeuxFacteurs } from "@/components/dashboard/deux-facteurs";
+import { PanneauClesAcces } from "@/components/dashboard/cles-acces";
 import { PanneauEffacement } from "@/components/dashboard/effacement";
 import { FormulaireProfil } from "@/components/dashboard/profil-form";
 import {
@@ -12,7 +13,12 @@ import {
   demarrerDeuxFacteurs,
   renouvelerCodesSecours,
 } from "@/lib/auth/actions-2fa";
+import {
+  demarrerEnrolementCle,
+  retirerLaCle,
+} from "@/lib/auth/actions-webauthn";
 import { etatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
+import { listerLesCles } from "@/lib/auth/webauthn";
 import { sessionCourante } from "@/lib/auth/session";
 import {
   annulerMonEffacement,
@@ -67,10 +73,11 @@ export default async function ProfilPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/profil");
 
-  const [profil, deuxFacteurs, effacement] = await Promise.all([
+  const [profil, deuxFacteurs, effacement, cles] = await Promise.all([
     lireProfilDashboard(utilisateur.id),
     etatDeuxFacteurs(utilisateur.id),
     etatEffacement(utilisateur.id),
+    listerLesCles(utilisateur.id),
   ]);
   const p = profil?.profile;
 
@@ -122,6 +129,16 @@ export default async function ProfilPage() {
             confirmer={confirmerDeuxFacteurs}
             couper={couperDeuxFacteurs}
             renouveler={renouvelerCodesSecours}
+          />
+        </DashboardPanel>
+      </div>
+
+      <div style={{ marginTop: 20, maxWidth: 900 }}>
+        <DashboardPanel titre="Clés d'accès">
+          <PanneauClesAcces
+            cles={cles}
+            demarrer={demarrerEnrolementCle}
+            retirer={retirerLaCle}
           />
         </DashboardPanel>
       </div>

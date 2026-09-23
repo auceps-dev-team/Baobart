@@ -327,6 +327,40 @@ export async function releverDefi(
   return { ok: true, userId: defi.userId };
 }
 
+/**
+ * À quel compte appartient ce défi ?
+ *
+ * Employé par la connexion par clé d'accès : elle a besoin de savoir qui se
+ * présente pour proposer les bonnes clés, et la seule preuve dont elle
+ * dispose est ce cookie — c'est-à-dire qu'un mot de passe correct vient
+ * d'être donné.
+ *
+ * Rend `null` sur un défi inconnu ou périmé, sans le consommer : proposer des
+ * options n'est pas relever le défi.
+ */
+export async function compteDuDefi(jeton: string): Promise<string | null> {
+  const defi = await db.totpChallenge.findUnique({
+    where: { token: empreinte(jeton) },
+    select: { userId: true, expiresAt: true },
+  });
+
+  if (!defi) return null;
+  if (defi.expiresAt.getTime() <= Date.now()) return null;
+
+  return defi.userId;
+}
+
+/**
+ * Abandonne un défi sans le relever.
+ *
+ * Appelé quand une clé d'accès a fait le travail à la place du code : le défi
+ * a servi, et le laisser vivre permettrait d'ouvrir une seconde session avec
+ * le même cookie.
+ */
+export async function abandonnerDefi(jeton: string): Promise<void> {
+  await db.totpChallenge.deleteMany({ where: { token: empreinte(jeton) } });
+}
+
 /** Les défis périmés, pour le ménage de nuit. */
 export async function purgerDefisExpires(): Promise<number> {
   const { count } = await db.totpChallenge.deleteMany({
@@ -373,10 +407,21 @@ export async function verifierCodeOuSecours(
     select: { totpSecret: true, totpActiveLe: true },
   });
 
-  if (!compte?.totpActiveLe || !compte.totpSecret) return false;
+  if (compte?.totpActiveLe && compte.totpSecret) {
+    if (codeValide(dechiffrerSecret(compte.totpSecret), code)) return true;
+  }
 
-  if (codeValide(dechiffrerSecret(compte.totpSecret), code)) return true;
-
+  // ══════════════════════════════════════════════════════════════════════════
+  // LE CODE DE SECOURS VAUT MÊME SANS TOTP ACTIF
+  //
+  // Première version : on rendait `false` d'emblée quand `totpActiveLe` était
+  // nul. C'était juste tant que les codes de secours n'existaient qu'avec
+  // TOTP.
+  //
+  // Depuis les clés d'accès, une personne peut n'avoir que des clés — et ses
+  // codes de secours sont alors son SEUL recours si elle perd l'appareil.
+  // Les refuser parce qu'elle n'a pas activé TOTP l'enfermerait dehors avec
+  // dans la main le papier qui devait l'en sortir.
   return consommerCodeSecours(userId, code);
 }
 

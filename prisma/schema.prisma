@@ -907,13 +907,50 @@ model Passkey {
   userId       String
   credentialId String   @unique
   publicKey    String   @db.Text
+  /// Compteur anti-rejeu de l'authentificateur.
+  ///
+  /// Il s'incremente a chaque usage. S'il RECULE, la cle a ete clonee — c'est
+  /// le seul signal de clonage que la specification offre, et le refuser fait
+  /// partie du contrat. Beaucoup d'authentificateurs modernes le laissent a
+  /// zero en permanence ; on ne refuse donc que la regression stricte.
   counter      Int      @default(0)
   label        String?
+  /// Les moyens par lesquels l'authentificateur se joint : usb, nfc, ble,
+  /// internal, hybrid. Gardes pour que le navigateur propose le bon geste au
+  /// lieu de lister tout ce qu'il connait.
+  transports   String?
+  lastUsedAt   DateTime?
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Le defi WebAuthn, entre la demande d'options et la reponse du navigateur.
+///
+/// ============================================================================
+/// IL DOIT VIVRE COTE SERVEUR, ET NULLE PART AILLEURS
+///
+/// Le defi est ce qui empeche le rejeu : le navigateur signe une valeur que
+/// nous avons tiree au hasard, et nous verifions que c'est bien celle-la. Le
+/// stocker dans un cookie non signe, ou le renvoyer au client pour qu'il nous
+/// le represente, reviendrait a laisser l'attaquant choisir la valeur qu'il
+/// signe — et la signature ne prouverait plus rien.
+///
+/// `userId` est nullable : a la connexion par cle decouvrable, on ne sait pas
+/// encore qui se presente. C'est la reponse signee qui le dira.
+model WebauthnChallenge {
+  id        String   @id @default(cuid())
+  userId    String?
+  challenge String   @unique
+  /// « enrolement » ou « connexion ». Un defi d'enrolement presente a la
+  /// connexion serait accepte sans ce champ, et inversement.
+  usage     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 // ============================================================================

@@ -201,6 +201,9 @@ export async function connecter(
       passwordHash: true,
       suspendedAt: true,
       totpActiveLe: true,
+      // Une clé d'accès est un second facteur au même titre qu'un code : en
+      // avoir une déclenche l'étape de vérification, même sans TOTP.
+      _count: { select: { passkeys: true } },
     },
   });
 
@@ -228,7 +231,18 @@ export async function connecter(
   // répondrait oui à tout le code qui demande « y a-t-il une session ? », et
   // le premier appel qui oublie le drapeau ouvre le compte sans second
   // facteur — sans que rien ne plante.
-  if (compte.totpActiveLe) {
+  // ══════════════════════════════════════════════════════════════════════════
+  // UNE CLÉ D'ACCÈS COMPTE AUTANT QU'UN CODE
+  //
+  // Sans le `_count`, quelqu'un qui n'aurait enregistré qu'une clé
+  // continuerait d'entrer avec son seul mot de passe : la clé serait
+  // affichée dans son profil, elle ne protégerait rien, et il n'y aurait
+  // aucun message pour le lui dire.
+  //
+  // C'est pourquoi le premier enrôlement de clé remet aussi des codes de
+  // secours — voir `lib/auth/actions-webauthn.ts`. Poser un verrou sans
+  // fabriquer de double fermerait le compte de qui perd l'appareil.
+  if (compte.totpActiveLe || compte._count.passkeys > 0) {
     const jeton = await ouvrirDefi(compte.id);
     const magasin = await cookies();
 

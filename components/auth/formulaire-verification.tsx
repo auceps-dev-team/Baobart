@@ -1,7 +1,13 @@
 "use client";
 
+import { startAuthentication } from "@simplewebauthn/browser";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
+
+import {
+  connexionParCle,
+  demarrerConnexionParCle,
+} from "@/lib/auth/actions-webauthn";
 
 import { BLANC, ENCRE, JAUNE, ORANGE } from "@/components/shell/nav-data";
 import type { EtatFormulaire } from "@/lib/auth/actions";
@@ -32,10 +38,15 @@ const CADRE = `2.5px solid ${ENCRE}`;
 
 export function FormulaireVerification({
   action,
+  avecCle,
 }: {
   action: (etat: EtatFormulaire, donnees: FormData) => Promise<EtatFormulaire>;
+  /** Vrai quand ce compte a au moins une clé d'accès enregistrée. */
+  avecCle: boolean;
 }) {
   const [etat, envoyer, enCours] = useActionState(action, {});
+  const [erreurCle, setErreurCle] = useState<string | null>(null);
+  const [cleEnCours, transitionCle] = useTransition();
 
   return (
     <div
@@ -147,6 +158,88 @@ export function FormulaireVerification({
           {enCours ? "Un instant…" : "Vérifier"}
         </button>
       </form>
+
+      {avecCle ? (
+        <div style={{ marginTop: 18 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: ".12em",
+              opacity: 0.5,
+            }}
+          >
+            <span style={{ flex: 1, height: 2, background: ENCRE, opacity: 0.2 }} />
+            ou
+            <span style={{ flex: 1, height: 2, background: ENCRE, opacity: 0.2 }} />
+          </div>
+
+          <button
+            type="button"
+            disabled={cleEnCours}
+            onClick={() =>
+              transitionCle(async () => {
+                setErreurCle(null);
+                try {
+                  const options = await demarrerConnexionParCle();
+                  if (!options) {
+                    setErreurCle("La vérification a expiré. Reprends la connexion.");
+                    return;
+                  }
+
+                  const reponse = await startAuthentication({
+                    optionsJSON: options as Parameters<
+                      typeof startAuthentication
+                    >[0]["optionsJSON"],
+                  });
+
+                  // En cas de succès, l'action redirige : rien ne revient ici.
+                  const suite = await connexionParCle(reponse);
+                  if (suite && !suite.ok) setErreurCle(suite.message);
+                } catch (cause) {
+                  // Fermer la fenêtre du système n'est pas une panne.
+                  const nom = cause instanceof Error ? cause.name : "";
+                  if (nom === "NotAllowedError" || nom === "AbortError") return;
+
+                  setErreurCle("Cette clé n'a pas pu être employée ici.");
+                }
+              })
+            }
+            style={{
+              marginTop: 12,
+              width: "100%",
+              padding: "13px 18px",
+              border: CADRE,
+              borderRadius: 15,
+              background: BLANC,
+              fontFamily: "inherit",
+              fontSize: 14.5,
+              fontWeight: 800,
+              cursor: cleEnCours ? "progress" : "pointer",
+            }}
+          >
+            {cleEnCours ? "Un instant…" : "Employer une clé d'accès"}
+          </button>
+
+          {erreurCle ? (
+            <p
+              style={{
+                marginTop: 10,
+                marginBottom: 0,
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: ORANGE,
+              }}
+            >
+              {erreurCle}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <p style={{ marginTop: 18, marginBottom: 0, fontSize: 13, opacity: 0.75 }}>
         {"Téléphone perdu ? Un code de secours ouvre le compte, puis "}
