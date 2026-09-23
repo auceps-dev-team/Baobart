@@ -4,6 +4,7 @@ import { urlDuSite } from "@/lib/config/site";
 import { Prisma } from "@prisma/client";
 
 import { nouvelleLicence } from "@/lib/checkout/licence";
+import { champsDe, validerLesReponses } from "@/lib/commerce/champs";
 import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -69,7 +70,15 @@ export type MotifRefus =
    * le dernier exemplaire entre l'aperçu et le clic — et le détail n'apprend
    * alors plus rien d'utile.
    */
-  | "CODE_REFUSE";
+  | "CODE_REFUSE"
+  /**
+   * Une réponse manque, ou n'est pas valable.
+   *
+   * Le détail — quel champ, et pourquoi — est rendu à l'écran d'achat par
+   * `validerLesReponses`, avant qu'on arrive ici. Ce motif-ci couvre le cas
+   * où quelqu'un poste directement, sans passer par le formulaire.
+   */
+  | "CHAMPS_INVALIDES";
 
 export type Resultat =
   | {
@@ -105,6 +114,8 @@ export const MESSAGES: Record<MotifRefus, string> = {
   CONFLIT: "Deux achats sont partis en même temps. Réessaie.",
   CODE_REFUSE:
     "Ce code promo n'a pas pu être appliqué. Reprends sans lui, ou réessaie.",
+  CHAMPS_INVALIDES:
+    "Il manque une information demandée par le créateur. Reprends depuis la fiche.",
 };
 
 /** La simulation est-elle ouverte ? */
@@ -136,6 +147,8 @@ export async function acheter(input: {
   moyen?: string;
   /** Le code promo tapé par l'acheteur, s'il y en a un. */
   codePromo?: string | null;
+  /** Les réponses aux champs personnalisés, par identifiant de champ. */
+  champs?: Record<string, string>;
 }): Promise<Resultat> {
   // La simulation prime quand elle est ouverte : c'est un réglage de
   // développement, et le laisser cohabiter avec un opérateur réel produirait
@@ -252,6 +265,21 @@ export async function acheter(input: {
         // module : le plafond afficherait la bonne valeur, la vente
         // aboutirait, et le vendeur aurait vendu une fois de plus que ce
         // qu'il avait décidé.
+        // ══════════════════════════════════════════════════════════════
+        // LES RÉPONSES SONT REVALIDÉES ICI, PAS SEULEMENT AU FORMULAIRE
+        //
+        // Le formulaire porte `required` et une liste de choix, et un
+        // navigateur les fait respecter. Un `POST` direct n'en passe par
+        // aucun : sans ce contrôle, un champ obligatoire serait vide dans une
+        // vente déjà payée, qu'on ne peut plus corriger.
+        //
+        // La lecture est faite même quand le produit n'a aucun champ — une
+        // requête de plus, mais l'alternative serait de se fier à ce que
+        // l'appelant a envoyé pour décider s'il faut vérifier.
+        const declares = await champsDe(produit.id);
+        const suiteChamps = validerLesReponses(declares, input.champs ?? {});
+        if (!suiteChamps.ok) return refus("CHAMPS_INVALIDES");
+
         let prixFacture = produit.price;
         let prixAffiche: number | null = null;
         let codeApplique: { id: string; code: string; remise: number } | null =
@@ -301,6 +329,13 @@ export async function acheter(input: {
                 price: prixFacture,
                 listPrice: prixAffiche,
                 offerCodeId: codeApplique?.id ?? null,
+                // Figées avec leur libellé d'alors : le vendeur peut renommer
+                // ou supprimer un champ après la vente, et relire la
+                // définition montrerait « Taille : M » sous « Couleur ».
+                customFields:
+                  suiteChamps.reponses.length > 0
+                    ? (suiteChamps.reponses as unknown as Prisma.InputJsonValue)
+                    : undefined,
               },
             },
           },

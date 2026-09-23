@@ -1322,6 +1322,21 @@ model OrderItem {
   /// Le code employe. Scalaire, comme `OfferCode.sellerId` — voir l'audit du
   /// 28 aout sur les cles etrangeres scalaires de ce bloc.
   offerCodeId  String?
+
+  /// Ce que l'acheteur a repondu aux champs personnalises du vendeur.
+  ///
+  /// ==========================================================================
+  /// FIGE SUR LA LIGNE, PAS RELU SUR LE PRODUIT
+  ///
+  /// Meme raison que `price` : le vendeur peut renommer un champ, en changer
+  /// les choix ou le supprimer apres la vente. Relire la definition pour
+  /// afficher une reponse passee montrerait « Taille : M » sous un champ
+  /// devenu « Couleur ».
+  ///
+  /// La forme est `[{ nom, valeur }]` — le libelle tel qu'il etait, et la
+  /// reponse. Pas d'identifiant de champ : un champ supprime laisserait une
+  /// reponse orpheline qu'on ne saurait plus nommer.
+  customFields Json?
   platformFee  Int @default(0) // commission Baobart (§2.4 — 10 % ou 20 %, non tranché)
   processorFee Int @default(0) // mobile money / carte
   affiliateFee Int @default(0) // part de l'affilié (§10.1)
@@ -2566,16 +2581,30 @@ model RelancePaiement {
   @@index([sentAt])
 }
 
+/// Une question que le vendeur pose au moment de l'achat.
+///
+/// ============================================================================
+/// `FILE` EST DECLARE ET N'EST PAS SERVI
+///
+/// Les quatre autres types se remplissent dans le formulaire et repartent avec
+/// lui. Un fichier, non : il faut une URL signee, un televersement direct vers
+/// le stockage, et une reservation a confirmer — c'est-a-dire tout le chemin de
+/// `lib/upload/`, AVANT le paiement, sur un reseau mobile.
+///
+/// Le declarer sans le servir serait un champ que l'acheteur voit et ne peut
+/// pas remplir. `lib/commerce/champs.ts` le refuse donc a la creation, avec un
+/// message qui le dit.
 model CustomField {
   id         String  @id @default(cuid())
   productId  String
   name       String
-  fieldType  String // TEXT | CHOICE | BOOLEAN | FILE | TERMS
+  fieldType  String // TEXT | CHOICE | BOOLEAN | TERMS | (FILE : declare, non servi)
   isRequired Boolean @default(false)
   position   Int     @default(0)
+  /// Les choix, pour `CHOICE`. Vide pour les autres types.
   options    Json    @default("[]")
 
-  @@index([productId])
+  @@index([productId, position])
 }
 
 model Post {

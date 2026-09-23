@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { ApercuCode } from "@/lib/commerce/actions-promo";
+import type { ChampDeclare } from "@/lib/commerce/champs";
 import {
   PAYS,
   demandeLeTelephone,
@@ -53,6 +54,7 @@ export function ChoixPaiement({
   prixFormate,
   produitId,
   apercu,
+  champs = [],
 }: {
   /** Déjà liée à son sujet par l'appelant. Le refus vit dedans, pas ici. */
   action: (donnees: FormData) => Promise<void>;
@@ -70,6 +72,8 @@ export function ChoixPaiement({
   produitId?: string;
   /** Évalue un code sans rien consommer, pour l'afficher avant validation. */
   apercu?: (produitId: string, code: string) => Promise<ApercuCode>;
+  /** Les questions que le créateur pose à l'achat. Vide s'il n'en pose pas. */
+  champs?: ChampDeclare[];
 }) {
   const [codePromo, setCodePromo] = useState("");
   const [remise, setRemise] = useState<ApercuCode | null>(null);
@@ -124,6 +128,108 @@ export function ChoixPaiement({
         consomme, et qui peut donc refuser si quelqu'un a pris le dernier
         entre-temps. L'aperçu est une aide à la saisie, pas une promesse.
       */}
+      {champs.length > 0 ? (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>
+            Ce que le créateur demande
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {champs.map((c) => {
+              // Le préfixe `champ:` isole ces réponses des autres champs du
+              // formulaire — voir `lib/checkout/actions.ts`.
+              const nomHtml = `champ:${c.id}`;
+
+              if (c.type === "BOOLEAN" || c.type === "TERMS") {
+                return (
+                  <label
+                    key={c.id}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "flex-start",
+                      fontSize: 13.5,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <input
+                      name={nomHtml}
+                      type="checkbox"
+                      required={c.obligatoire}
+                      style={{ width: 18, height: 18, marginTop: 2 }}
+                    />
+                    <span>
+                      {c.nom}
+                      {c.obligatoire ? " *" : ""}
+                    </span>
+                  </label>
+                );
+              }
+
+              return (
+                <div key={c.id}>
+                  <label
+                    htmlFor={nomHtml}
+                    style={{
+                      display: "block",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {c.nom}
+                    {c.obligatoire ? " *" : ""}
+                  </label>
+
+                  {c.type === "CHOICE" ? (
+                    <select
+                      id={nomHtml}
+                      name={nomHtml}
+                      required={c.obligatoire}
+                      defaultValue=""
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        border: `2.5px solid ${ENCRE}`,
+                        borderRadius: 13,
+                        background: "#FFFFFF",
+                        fontFamily: "inherit",
+                        fontSize: 13.5,
+                      }}
+                    >
+                      <option value="" disabled>
+                        Choisis…
+                      </option>
+                      {c.options.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id={nomHtml}
+                      name={nomHtml}
+                      required={c.obligatoire}
+                      maxLength={200}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        border: `2.5px solid ${ENCRE}`,
+                        borderRadius: 13,
+                        background: "#FFFFFF",
+                        fontFamily: "inherit",
+                        fontSize: 13.5,
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {produitId && apercu ? (
       <div>
         <label

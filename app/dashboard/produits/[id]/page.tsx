@@ -15,6 +15,12 @@ import {
   publierRessource,
   supprimerRessource,
 } from "@/lib/products/actions";
+import { PanneauChampsProduit } from "@/components/dashboard/champs-produit";
+import {
+  declarerMonChamp,
+  retirerMonChamp,
+} from "@/lib/commerce/actions-promo";
+import { champsDe } from "@/lib/commerce/champs";
 
 export const metadata = { title: "Ressource — Baobart." };
 export const dynamic = "force-dynamic";
@@ -114,6 +120,8 @@ export default async function ProduitDuTableauDeBord({
   // Une ressource qui n'est pas la sienne répond comme si elle n'existait pas :
   // dire « accès refusé » confirmerait qu'elle existe.
   if (!produit || produit.sellerId !== utilisateur.id) notFound();
+
+  const champsPersonnalises = await champsDe(produit.id);
 
   // Le récapitulatif ne décrit que ce que l'acheteur reçoit. Un extrait de
   // vingt secondes n'a pas à peser dans le « poids total » annoncé.
@@ -393,6 +401,38 @@ export default async function ProduitDuTableauDeBord({
             La suppression n'est proposée que si rien n'a été vendu. L'afficher
             pour la refuser ensuite serait une promesse en trompe-l'œil.
           */}
+          {/*
+            Les questions posées à l'achat. Placées après le contenu et avant
+            les gestes destructeurs : c'est un réglage, pas une action.
+          */}
+          <div
+            style={{
+              width: "100%",
+              marginBottom: 24,
+              padding: 22,
+              border: CADRE,
+              borderRadius: 20,
+              background: BLANC,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 17,
+                marginBottom: 14,
+              }}
+            >
+              Questions posées à l&apos;achat
+            </div>
+
+            <PanneauChampsProduit
+              produitId={produit.id}
+              champs={champsPersonnalises}
+              declarer={declarerMonChamp}
+              retirer={retirerMonChamp}
+            />
+          </div>
+
           {dejaVendue ? null : (
             <form action={supprimer}>
               <button

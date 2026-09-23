@@ -10,6 +10,7 @@ import {
   retirerUnCode,
   type TypeRemise,
 } from "@/lib/commerce/codes-promo";
+import { declarerUnChamp, retirerUnChamp } from "@/lib/commerce/champs";
 import { basculerUnUpsell, declarerUnUpsell } from "@/lib/commerce/upsell";
 import { db } from "@/lib/db";
 import { verifierLimiteAction } from "@/lib/securite/garde";
@@ -217,4 +218,67 @@ export async function basculerMonUpsell(
   return bascule
     ? { ok: true, message: actif ? "Offre réactivée." : "Offre coupée." }
     : { ok: false, message: "Cette offre n'est pas la tienne." };
+}
+
+// ────────────────────────────────────────────── champs personnalisés ──
+
+/**
+ * Déclare une question sur une ressource.
+ *
+ * Le chemin revalidé est celui de la ressource, pas `/dashboard/promos` : les
+ * champs vivent sur le produit, pas sur la boutique.
+ */
+export async function declarerMonChamp(
+  _precedent: EtatPromo | null,
+  donnees: FormData,
+): Promise<EtatPromo> {
+  const moi = await sessionCourante();
+  if (!moi) return { ok: false, message: "Reconnecte-toi." };
+
+  const produitId = String(donnees.get("produitId") ?? "");
+
+  const suite = await declarerUnChamp({
+    vendeurId: moi.id,
+    produitId,
+    nom: String(donnees.get("nom") ?? ""),
+    type: String(donnees.get("type") ?? "TEXT"),
+    obligatoire: donnees.get("obligatoire") === "on",
+    options: String(donnees.get("options") ?? "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  });
+
+  revalidatePath(`/dashboard/produits/${produitId}`);
+
+  if (suite.ok) return { ok: true, message: "Question ajoutée." };
+
+  const messages = {
+    RESSOURCE_ETRANGERE: "Cette ressource n'est pas la tienne.",
+    TYPE_NON_SERVI:
+      "Les champs « fichier » ne sont pas encore servis : il faut un téléversement avant le paiement.",
+    TYPE_INCONNU: "Cette sorte de réponse n'existe pas.",
+    NOM_VIDE: "Écris la question.",
+    CHOIX_MANQUANTS: "Une liste de choix en demande au moins deux.",
+  } as const;
+
+  return { ok: false, message: messages[suite.motif] };
+}
+
+/** Retire une question. Les réponses déjà données ne bougent pas. */
+export async function retirerMonChamp(
+  _precedent: EtatPromo | null,
+  donnees: FormData,
+): Promise<EtatPromo> {
+  const moi = await sessionCourante();
+  if (!moi) return { ok: false, message: "Reconnecte-toi." };
+
+  const produitId = String(donnees.get("produitId") ?? "");
+  const retire = await retirerUnChamp(moi.id, String(donnees.get("id") ?? ""));
+
+  revalidatePath(`/dashboard/produits/${produitId}`);
+
+  return retire
+    ? { ok: true, message: "Question retirée. Les réponses déjà données restent." }
+    : { ok: false, message: "Cette question n'est pas la tienne." };
 }

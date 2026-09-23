@@ -47,6 +47,21 @@ export async function acheterRessource(
     // bout en bout dans `acheter` : l'aperçu qu'a vu l'acheteur ne fait pas
     // foi, et le prix n'est jamais calculé à partir de ce qu'il envoie.
     codePromo: String(donnees?.get("codePromo") ?? "").trim() || null,
+    // ══════════════════════════════════════════════════════════════════════
+    // LES RÉPONSES VOYAGENT PRÉFIXÉES, ET ON NE LIT QUE CE PRÉFIXE
+    //
+    // Le formulaire porte déjà `moyen`, `pays`, `codePromo` et le jeton
+    // d'action de Next. Passer le `FormData` entier à `acheter` lui ferait
+    // traiter ces champs-là comme des réponses à des questions du vendeur.
+    //
+    // Le préfixe `champ:` isole ce qui vient des champs personnalisés, et la
+    // clé qui suit est l'identifiant du champ — que `validerLesReponses`
+    // confronte à ce que la ressource déclare vraiment.
+    champs: Object.fromEntries(
+      [...(donnees?.entries() ?? [])]
+        .filter(([cle]) => cle.startsWith("champ:"))
+        .map(([cle, valeur]) => [cle.slice("champ:".length), String(valeur)]),
+    ),
   });
 
   // `redirect` lève : il doit rester hors du bloc qui traite le résultat, sinon

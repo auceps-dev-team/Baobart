@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChoixPaiement } from "@/components/checkout/choix-paiement";
 import { acheterRessource } from "@/lib/checkout/actions";
 import { apercuDuCode } from "@/lib/commerce/actions-promo";
+import { champsDe } from "@/lib/commerce/champs";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
@@ -130,6 +131,7 @@ export default async function ChoisirLePaiementPage({
             prixFormate={prix}
             produitId={produit.id}
             apercu={apercuDuCode}
+            champs={await champsDe(produit.id)}
           />
         </div>
 
