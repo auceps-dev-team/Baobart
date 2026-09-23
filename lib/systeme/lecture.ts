@@ -15,6 +15,7 @@ import { journal } from "@/lib/observabilite/journal";
 import {
   constatAdressePublique,
   constatBase,
+  constatAntiBot,
   constatLimitation,
   constatPush,
   constatSms,
@@ -27,6 +28,7 @@ import {
   type Gravite,
 } from "@/lib/systeme/diagnostic";
 import { stockageConfigure } from "@/lib/upload/storage";
+import { etatAntiBot } from "@/lib/securite/antibot";
 
 /**
  * Collecte les faits que `diagnostic.ts` interprète.
@@ -139,6 +141,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
     }),
     constatAdressePublique({ origine: urlDuSite(), production }),
     constatLimitation({ pilote: piloteLimite().nom, production }),
+    constatAntiBot({ tiers: etatAntiBot().tiers, production }),
     constatSms({ pilote: piloteSms().nom, production }),
     constatPush({ pilote: pilotePush(), appareils: appareilsPush, production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),

@@ -93,9 +93,17 @@ export default async function BlocklistPage({
   const expirees = toutes.length - actives;
 
   const puces: Puce[] = [
-    { texte: `${actives} actifs`, fond: actives > 0 ? JAUNE : BLANC },
+    {
+      texte: `${actives} actif${actives > 1 ? "s" : ""}`,
+      fond: actives > 0 ? JAUNE : BLANC,
+    },
   ];
-  if (expirees > 0) puces.push({ texte: `${expirees} expirés`, fond: GRIS });
+  if (expirees > 0) {
+    puces.push({
+      texte: `${expirees} expiré${expirees > 1 ? "s" : ""}`,
+      fond: GRIS,
+    });
+  }
 
   const legende: LegendeOps[] = TYPES_BLOQUABLES.map((t) => ({
     code: t,
@@ -150,7 +158,14 @@ export default async function BlocklistPage({
       description="Fermer la porte à une identité, et savoir jusqu'à quand."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <BandeauGravite gravite={actives > 0 ? "attention" : "ok"} puces={puces} />
+        {/*
+          Toujours « ok » : cet écran est un registre, pas un tableau
+          d'incidents. Un blocage actif est le système qui fait ce qu'on lui a
+          demandé — l'afficher en « à voir » ferait clignoter un avertissement
+          permanent, et le jour où quelque chose ira vraiment mal, il aura
+          exactement la même tête.
+        */}
+        <BandeauGravite gravite="ok" puces={puces} />
 
         <Intro>
           {"Bloquer n'est pas ralentir. La limitation de débit gêne tout le " +

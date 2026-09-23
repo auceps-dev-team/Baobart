@@ -289,6 +289,54 @@ export function constatLimitation(faits: FaitsLimitation): Constat {
   };
 }
 
+export interface FaitsAntiBot {
+  /** Une clé reCAPTCHA est-elle configurée ? */
+  tiers: boolean;
+  production: boolean;
+}
+
+/**
+ * L'anti-bot protège-t-il vraiment, et jusqu'où ?
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * SANS TIERS, CE N'EST PAS « RIEN » — ET CE N'EST PAS « TOUT »
+ *
+ * C'est la distinction que cette ligne existe pour porter. Le leurre et le
+ * plancher de temps fonctionnent sans clé, sans réseau, sans compte chez
+ * personne : ils arrêtent les robots qui remplissent tous les champs et ceux
+ * qui postent en cent millisecondes, c'est-à-dire la grande majorité.
+ *
+ * Ce qu'ils n'arrêtent pas, c'est un robot écrit pour ce site-ci — qui lit le
+ * formulaire, saute le champ caché et attend trois secondes. Contre celui-là,
+ * il faut un score.
+ *
+ * Afficher « ok » sans tiers laisserait croire à une protection complète ;
+ * afficher « panne » laisserait croire qu'il n'y a rien. Les deux mentiraient,
+ * et c'est pourquoi l'état est « attention » en production et « ok » ailleurs.
+ */
+export function constatAntiBot(faits: FaitsAntiBot): Constat {
+  if (faits.tiers) {
+    return {
+      cle: "antibot",
+      libelle: "Anti-bot",
+      gravite: "ok",
+      detail: "Leurre, plancher de temps et score du tiers.",
+    };
+  }
+
+  return {
+    cle: "antibot",
+    libelle: "Anti-bot",
+    gravite: faits.production ? "attention" : "ok",
+    detail: faits.production
+      ? "Leurre et plancher de temps seulement — aucun score de risque."
+      : "Leurre et plancher de temps (développement).",
+    remede: faits.production
+      ? "Pose RECAPTCHA_SECRET. Sans score, un robot écrit pour ce site — qui saute le champ caché et attend trois secondes — passe sans être gêné."
+      : undefined,
+  };
+}
+
 export interface FaitsSms {
   /** Le pilote actif : « aucun », « console » ou le nom d'un opérateur. */
   pilote: string;

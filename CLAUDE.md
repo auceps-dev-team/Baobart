@@ -177,6 +177,56 @@ l'application se connecte quand même à celui du voisin**, sans rien signaler.
 Le préfixe Redis protège les clés ; les objets MinIO, non. Vérifier
 `docker compose up -d` avant d'incriminer un test de téléversement.
 
+### Une base d'ombre mal écrite détruit la base de développement
+
+`prisma migrate dev` est interactif et ne tourne pas ici. On passe donc par
+`prisma migrate diff --from-migrations … --shadow-database-url …`, puis on
+applique le SQL à la main.
+
+**La base d'ombre est détruite et reconstruite à chaque appel.** C'est son
+rôle : Prisma la vide, y rejoue toutes les migrations, compare, et rend le
+SQL. Elle pointe donc sur ce que dit l'URL — et sur rien d'autre.
+
+Mesuré le 23 septembre 2026. L'URL avait été fabriquée ainsi :
+
+```sh
+--shadow-database-url "$(grep '^DATABASE_URL' .env | cut -d= -f2-)_shadow"
+```
+
+`DATABASE_URL` vaut `postgresql://…/baobart?schema=public`. Le suffixe est
+donc tombé **sur la chaîne de requête**, pas sur le nom de la base :
+
+```
+postgresql://…/baobart?schema=public_shadow
+                ^^^^^^^ la base de développement
+```
+
+Deux appels, et `baobart` s'est retrouvée avec ses quatre-vingt-deux tables et
+zéro ligne. Rien n'a échoué : le SQL attendu est sorti correctement les deux
+fois, et la perte ne s'est vue que vingt minutes plus tard, quand une connexion
+de test a répondu « adresse ou mot de passe incorrect ».
+
+**La règle : nommer la base d'ombre en clair, jamais par concaténation.**
+
+```sh
+--shadow-database-url "postgresql://baobart:baobart@localhost:5433/baobart_shadow"
+```
+
+La base `baobart_shadow` existe déjà sur ce poste. Et avant d'appuyer,
+**relire l'URL** : ce qui suit le dernier `/` et précède le `?` est ce qui sera
+détruit.
+
+Le coût réel a été d'une dizaine de minutes — tout se resème :
+
+```sh
+npm run db:seed && npm run db:seed:demo
+npm run db:demo:catalogue        # 90 produits, suppose MinIO déjà rempli
+npm run comptes:test             # les quatre comptes, mot de passe Baobart2026!
+```
+
+C'est précisément ce qui rend l'incident peu coûteux et facile à répéter : rien
+n'était irremplaçable, donc rien n'a alerté.
+
 ### Après toute migration : remigrer la base de test
 
 `pnpm db:migrate` (`prisma migrate dev`) applique la migration à la base de

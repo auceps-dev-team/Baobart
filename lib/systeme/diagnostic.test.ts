@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   constatAdressePublique,
   constatBase,
+  constatAntiBot,
   constatLimitation,
   constatSms,
   constatConnexion,
@@ -195,6 +196,29 @@ describe("l'adresse publique", () => {
     });
     expect(c.gravite).toBe("ok");
     expect(c.detail).toContain("baobart.com");
+  });
+});
+
+describe("l'anti-bot", () => {
+  it("avertit en production quand aucun tiers n'est branché", () => {
+    // Ni « ok » ni « panne » : le leurre et le plancher de temps protègent
+    // réellement, mais pas contre un robot écrit pour ce site-ci. Les deux
+    // extrêmes mentiraient, chacun dans un sens.
+    const c = constatAntiBot({ tiers: false, production: true });
+    expect(c.gravite).toBe("attention");
+    expect(c.remede).toContain("RECAPTCHA_SECRET");
+  });
+
+  it("ne dit rien en développement", () => {
+    const c = constatAntiBot({ tiers: false, production: false });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
+  });
+
+  it("se tait quand le tiers est branché", () => {
+    const c = constatAntiBot({ tiers: true, production: true });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
   });
 });
 

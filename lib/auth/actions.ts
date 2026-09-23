@@ -15,6 +15,11 @@ import {
 } from "@/lib/auth/reinitialisation";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
 import {
+  CHAMP_LEURRE,
+  CHAMP_OUVERTURE,
+  evaluerUnGeste,
+} from "@/lib/securite/antibot";
+import {
   adresseCourante,
   premierBlocage,
 } from "@/lib/securite/blocklist";
@@ -58,6 +63,53 @@ const MESSAGE_BLOQUE =
  * appellerait `estBloque("IP", "")`, et une ligne vide posée par accident dans
  * la table bloquerait alors **tout le monde**.
  */
+/**
+ * Le verdict anti-bot pour ce formulaire.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LE MESSAGE EST CELUI D'UNE LIMITE, PAS D'UNE ACCUSATION
+ *
+ * Aucun des trois signaux n'est certain. Un remplisseur automatique un peu
+ * zélé, un navigateur exotique, un score mal calibré : il y aura des refus
+ * injustes, et la personne en face n'a alors rien fait de mal.
+ *
+ * « Réessaie dans un instant » est vrai pour elle et sans intérêt pour un
+ * robot. « Nous pensons que vous êtes un robot » serait faux une fois sur dix
+ * et vexant les dix fois.
+ *
+ * Le motif, lui, part au journal : c'est là qu'on a besoin de savoir lequel
+ * des trois a joué.
+ */
+async function verdictAntiBot(
+  donnees: FormData,
+  action: string,
+  /**
+   * Le délai minimum ne vaut que là où quelqu'un tape vraiment.
+   *
+   * À l'inscription, on remplit six champs : deux secondes sont impossibles.
+   * À la connexion, un gestionnaire de mots de passe remplit et valide en un
+   * clin d'œil — appliquer le même plancher refuserait des connexions
+   * parfaitement réelles, tous les jours, sans que personne ne fasse le lien.
+   */
+  avecDelai: boolean,
+): Promise<EtatFormulaire | null> {
+  const verdict = await evaluerUnGeste({
+    action,
+    leurre: String(donnees.get(CHAMP_LEURRE) ?? ""),
+    ouvertLe: avecDelai ? String(donnees.get(CHAMP_OUVERTURE) ?? "") : null,
+  });
+
+  if (verdict.laisserPasser) return null;
+
+  journal.info("geste refusé par l'anti-bot", {
+    action,
+    motif: verdict.motif,
+    score: verdict.score,
+  });
+
+  return { erreur: "Quelque chose a coincé. Réessaie dans un instant." };
+}
+
 async function identitesDe(email: string) {
   const adresse = await adresseCourante();
 
@@ -116,6 +168,11 @@ export async function connecter(
   const borne = await verifierLimiteAction("connexion");
   if (!borne.autorise) return tropDEssais(borne.dansSecondes);
 
+  // Sans plancher de temps : un gestionnaire de mots de passe valide en une
+  // seconde, et c'est une connexion parfaitement réelle.
+  const robot = await verdictAntiBot(donnees, "connexion", false);
+  if (robot) return robot;
+
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
   const motDePasse = String(donnees.get("motDePasse") ?? "");
 
@@ -159,6 +216,11 @@ export async function inscrire(
 ): Promise<EtatFormulaire> {
   const borne = await verifierLimiteAction("inscription");
   if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
+  // Avec plancher de temps : six champs ne se remplissent pas en deux
+  // secondes.
+  const robot = await verdictAntiBot(donnees, "inscription", true);
+  if (robot) return robot;
 
   const prenom = String(donnees.get("prenom") ?? "").trim();
   const nom = String(donnees.get("nom") ?? "").trim();

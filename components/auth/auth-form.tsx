@@ -11,6 +11,7 @@ import {
   ORANGE,
 } from "@/components/shell/nav-data";
 import type { EtatFormulaire } from "@/lib/auth/actions";
+import { ChampsAntiBot } from "@/components/auth/champs-antibot";
 import type { FournisseurPublic } from "@/lib/auth/providers";
 import {
   LONGUEUR_MOT_DE_PASSE_MIN,
@@ -168,7 +169,17 @@ export function AuthForm({
         {sousTitre}
       </p>
 
-      <form action={envoyer}>
+      <form action={envoyer} style={{ position: "relative" }}>
+        {/*
+          Sur les trois modes, pas seulement l'inscription : un robot qui
+          essaie des mots de passe volés ou qui sonde les adresses existantes
+          passe par les deux autres. Le champ ne coûte rien à personne.
+
+          Ce qui change d'un mode à l'autre, c'est l'usage que l'action en
+          fait — voir `lib/auth/actions.ts` : le délai minimum ne vaut que
+          pour l'inscription.
+        */}
+        <ChampsAntiBot />
         {mode === "inscription" ? (
           <>
             <input type="hidden" name="compte" value={compte} />

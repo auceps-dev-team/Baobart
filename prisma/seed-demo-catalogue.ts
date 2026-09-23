@@ -341,7 +341,7 @@ async function main() {
 
   console.log(
     `\n${crees} produits créés, ${dejaLa} déjà présents.\n` +
-      `${fichiers} fichiers rattachés · ${ECARTES.length} visuels écartés (marques réelles).`,
+      `${fichiers} fichiers rattachés · ${ECARTES.length} visuels écartés — voir ECARTES pour la raison de chacun.`,
   );
 }
 
