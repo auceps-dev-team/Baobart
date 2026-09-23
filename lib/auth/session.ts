@@ -29,6 +29,15 @@ function empreinte(jeton: string): string {
 
 export interface UtilisateurConnecte {
   id: string;
+  /**
+   * La session qui a servi à le reconnaître.
+   *
+   * Nécessaire aux gardes d'actions sensibles : elles demandent « cette
+   * session-ci a-t-elle franchi la 2FA récemment ? », et la question n'a pas
+   * de sens pour un compte — seulement pour une session. Deux appareils
+   * connectés au même compte n'ont pas les mêmes droits à l'instant t.
+   */
+  sessionId: string;
   email: string;
   nom: string;
   username: string | null;
@@ -66,17 +75,27 @@ export interface UtilisateurConnecte {
 export async function ouvrirSession(
   userId: string,
   adresse?: string | null,
-): Promise<void> {
+  /**
+   * L'instant où la double authentification a été franchie.
+   *
+   * Passé par la connexion qui vient de relever un défi. Une session ouverte
+   * sans lui n'a simplement pas de passage récent — ce qui est juste, et ce
+   * que `deuxFacteursRecent` lit.
+   */
+  totpValideLe?: Date | null,
+): Promise<string> {
   const jeton = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + DUREE_JOURS * 86_400_000);
 
-  await db.session.create({
+  const session = await db.session.create({
     data: {
       userId,
       token: empreinte(jeton),
       expiresAt,
       ipAddress: adresse ?? null,
+      totpValideLe: totpValideLe ?? null,
     },
+    select: { id: true },
   });
 
   const magasin = await cookies();
@@ -87,6 +106,8 @@ export async function ouvrirSession(
     path: "/",
     expires: expiresAt,
   });
+
+  return session.id;
 }
 
 /**
@@ -157,6 +178,7 @@ export async function resoudreSession(
 
   return {
     id: session.user.id,
+    sessionId: session.id,
     email: session.user.email,
     nom: session.user.profile?.displayName ?? session.user.email,
     username: session.user.profile?.username ?? null,

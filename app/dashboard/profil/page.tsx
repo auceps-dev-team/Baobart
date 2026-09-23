@@ -3,7 +3,15 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
+import { PanneauDeuxFacteurs } from "@/components/dashboard/deux-facteurs";
 import { FormulaireProfil } from "@/components/dashboard/profil-form";
+import {
+  confirmerDeuxFacteurs,
+  couperDeuxFacteurs,
+  demarrerDeuxFacteurs,
+  renouvelerCodesSecours,
+} from "@/lib/auth/actions-2fa";
+import { etatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
 import { sessionCourante } from "@/lib/auth/session";
 import { lireProfilDashboard } from "@/lib/dashboard/lectures";
 
@@ -53,7 +61,10 @@ export default async function ProfilPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/profil");
 
-  const profil = await lireProfilDashboard(utilisateur.id);
+  const [profil, deuxFacteurs] = await Promise.all([
+    lireProfilDashboard(utilisateur.id),
+    etatDeuxFacteurs(utilisateur.id),
+  ]);
   const p = profil?.profile;
 
   const depart = {
@@ -95,6 +106,18 @@ export default async function ProfilPage() {
       }
     >
       <FormulaireProfil depart={depart} />
+
+      <div style={{ marginTop: 20, maxWidth: 900 }}>
+        <DashboardPanel titre="Double authentification">
+          <PanneauDeuxFacteurs
+            etat={deuxFacteurs}
+            demarrer={demarrerDeuxFacteurs}
+            confirmer={confirmerDeuxFacteurs}
+            couper={couperDeuxFacteurs}
+            renouveler={renouvelerCodesSecours}
+          />
+        </DashboardPanel>
+      </div>
 
       <div style={{ marginTop: 20, maxWidth: 900 }}>
         <DashboardPanel titre="Compte & facturation">

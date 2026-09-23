@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { purgerDefisExpires } from "@/lib/auth/deux-facteurs";
 import { journal } from "@/lib/observabilite/journal";
 import { purgerExpirees } from "@/lib/securite/blocklist";
 import { ordonnanceurAutorise, reponseIntrouvable } from "@/lib/securite/cron";
@@ -29,6 +30,10 @@ import { ordonnanceurAutorise, reponseIntrouvable } from "@/lib/securite/cron";
  * table se remplit de lignes que plus rien ne lit — et l'écran d'administration
  * devient illisible bien avant que la base ne souffre.
  *
+ * Les défis de double authentification sont le cas extrême du même problème :
+ * ils vivent cinq minutes et une connexion en crée un. Après un mois, la table
+ * ne contient plus que des lignes mortes.
+ *
  * Une fois par jour suffit largement pour du ménage.
  */
 
@@ -42,13 +47,19 @@ export async function GET(requete: Request) {
   }
 
   try {
-    const retirees = await purgerExpirees();
+    // Les deux ménages ensemble : ils tiennent le même raisonnement — le
+    // filtrage se fait à la lecture, ceci ne récupère que des lignes — et
+    // une seconde route n'apporterait qu'une seconde chose à oublier.
+    const [blocages, defis] = await Promise.all([
+      purgerExpirees(),
+      purgerDefisExpires(),
+    ]);
 
-    if (retirees > 0) {
-      journal.info("blocages expirés récupérés", { retirees });
+    if (blocages > 0 || defis > 0) {
+      journal.info("ménage de sécurité", { blocages, defis });
     }
 
-    return NextResponse.json({ retirees });
+    return NextResponse.json({ blocages, defis });
   } catch (cause) {
     journal.erreur("passage de sécurité en échec", {
       cause: cause instanceof Error ? cause.message : String(cause),

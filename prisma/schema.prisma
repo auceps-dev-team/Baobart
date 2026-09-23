@@ -427,6 +427,20 @@ model User {
   followersCount Int @default(0)
   followingCount Int @default(0)
 
+  /// Secret TOTP, chiffre (AES-256-GCM, voir `lib/auth/totp.ts`).
+  ///
+  /// Chiffre et non en clair : un secret TOTP est un secret PARTAGE — qui
+  /// l'a fabrique les codes. Une fuite de la base seule, un export oublie,
+  /// une sauvegarde mal rangee suffiraient a contourner la double
+  /// authentification de tout le monde.
+  ///
+  /// Non nul ne veut PAS dire active : l'activation se fait en deux temps
+  /// (on pose le secret, puis on exige un code pour prouver que
+  /// l'application l'a bien enregistre). C'est `totpActiveLe` qui tranche.
+  totpSecret   String?
+  /// Quand la double authentification est devenue exigible. `null` = inactive.
+  totpActiveLe DateTime?
+
   suspendedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -438,6 +452,8 @@ model User {
   accounts       Account[]
   sessions       Session[]
   passkeys       Passkey[]
+  totpRecoveryCodes TotpRecoveryCode[]
+  totpChallenges    TotpChallenge[]
   passwordResets PasswordReset[]
 
   // équipes multi-rôles (§3.10-B)
@@ -669,6 +685,18 @@ model Session {
   /// d'effacement la traite comme telle.
   ipAddress String?
 
+  /// Quand cette session a franchi la double authentification.
+  ///
+  /// Les actions sensibles — versements, changement d'adresse — la relisent
+  /// et exigent un passage recent (voir `exigerDeuxFacteursRecent`). Sans
+  /// cette colonne, il faudrait soit redemander un code a chaque geste, soit
+  /// n'en demander qu'a l'ouverture — et un ordinateur laisse ouvert dans un
+  /// cybercafe viderait un compte des heures plus tard.
+  ///
+  /// `null` sur une session ouverte par quelqu'un qui n'a pas de 2FA : dans
+  /// ce cas la garde ne s'applique pas, elle n'a rien a exiger.
+  totpValideLe DateTime?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -757,6 +785,62 @@ model PasswordReset {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+/// Un code de secours a usage unique.
+///
+/// ============================================================================
+/// LA SEULE CHOSE ENTRE UN TELEPHONE PERDU ET UN COMPTE FERME
+///
+/// Sans eux, perdre son telephone ferme le compte definitivement — et il n'y a
+/// pas de recours, parce qu'un support technique capable de lever la 2FA de
+/// quelqu'un EST une porte derobee.
+///
+/// Stockes haches, donc irrecuperables : on les montre une fois, et on ne peut
+/// plus jamais les reafficher. C'est voulu.
+model TotpRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  /// HMAC-SHA256 du code normalise. Pas scrypt : quarante bits tires au
+  /// hasard n'ont rien a ralentir — meme raisonnement que `PasswordReset`.
+  codeHash  String    @unique
+  /// Pose au premier usage. La ligne reste, pour qu'on sache combien de
+  /// codes ont deja servi sans avoir a compter des absences.
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// L'entre-deux de la connexion : mot de passe donne, code pas encore.
+///
+/// ============================================================================
+/// POURQUOI PAS UNE SESSION MARQUEE « EN ATTENTE »
+///
+/// Parce que tout le code qui demande « y a-t-il une session ? » repondrait
+/// oui. Il faudrait alors que chaque lecture pense a verifier le drapeau, et
+/// la premiere qui l'oublie ouvre le compte sans second facteur — sans que
+/// rien ne plante.
+///
+/// Une table a part rend l'oubli impossible : tant que le defi n'est pas
+/// releve, il n'existe aucune session du tout.
+model TotpChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Empreinte du jeton pose en cookie, jamais le jeton lui-meme.
+  token     String   @unique
+  /// Cinq minutes. Au-dela, on recommence par le mot de passe.
+  expiresAt DateTime
+  /// Combien de codes faux ont ete presentes sur ce defi.
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([expiresAt])
 }
 

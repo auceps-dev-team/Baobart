@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
@@ -13,6 +14,11 @@ import {
   changerMotDePasse,
   demanderReinitialisation as demanderLienDeReinitialisation,
 } from "@/lib/auth/reinitialisation";
+import {
+  COOKIE_DEFI,
+  ouvrirDefi,
+  releverDefi,
+} from "@/lib/auth/deux-facteurs";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
 import {
   CHAMP_LEURRE,
@@ -190,7 +196,12 @@ export async function connecter(
 
   const compte = await db.user.findUnique({
     where: { email },
-    select: { id: true, passwordHash: true, suspendedAt: true },
+    select: {
+      id: true,
+      passwordHash: true,
+      suspendedAt: true,
+      totpActiveLe: true,
+    },
   });
 
   // On vérifie même quand le compte n'existe pas : sans ça, une réponse
@@ -206,7 +217,96 @@ export async function connecter(
     return { erreur: "Ce compte est suspendu. Écris-nous pour en savoir plus." };
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // AVEC UNE 2FA ACTIVE, AUCUNE SESSION N'EST OUVERTE ICI
+  //
+  // Ni session « en attente », ni cookie provisoire qui vaudrait session : le
+  // mot de passe seul n'ouvre rien. Ce qu'on pose est un jeton de défi, dans
+  // un cookie distinct, qui ne sert qu'à retrouver la ligne `TotpChallenge`.
+  //
+  // Le raisonnement est celui du schéma : une session marquée « à vérifier »
+  // répondrait oui à tout le code qui demande « y a-t-il une session ? », et
+  // le premier appel qui oublie le drapeau ouvre le compte sans second
+  // facteur — sans que rien ne plante.
+  if (compte.totpActiveLe) {
+    const jeton = await ouvrirDefi(compte.id);
+    const magasin = await cookies();
+
+    magasin.set(COOKIE_DEFI, jeton, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      // Cinq minutes, comme le défi. Un cookie qui survivrait au défi ne
+      // donnerait rien, mais laisserait croire à une session en cours.
+      maxAge: 300,
+    });
+
+    redirect("/connexion/verification");
+  }
+
   await ouvrirSession(compte.id, await adresseCourante());
+  redirect("/dashboard");
+}
+
+/**
+ * Le second facteur, après le mot de passe.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE MESSAGE NE DISTINGUE PAS LE CODE FAUX DU DÉFI EXPIRÉ
+ *
+ * Il le distingue en fait — mais seulement pour dire quoi faire ensuite :
+ * « recommence » quand le défi est perdu, « vérifie le code » quand il reste
+ * des essais. Ce qu'il ne dit jamais, c'est si le compte existe ou si la 2FA
+ * est active : ces deux-là sont déjà connus de qui est arrivé jusqu'ici, et
+ * les répéter n'apprend rien à personne.
+ */
+export async function verifierDeuxFacteurs(
+  _precedent: EtatFormulaire,
+  donnees: FormData,
+): Promise<EtatFormulaire> {
+  // La même borne que la connexion : un défi laisse cinq essais, mais rien
+  // n'empêche d'en ouvrir un nouveau à chaque fois. La borne par adresse est
+  // ce qui ferme cette porte-là.
+  const borne = await verifierLimiteAction("connexion");
+  if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
+  const magasin = await cookies();
+  const jeton = magasin.get(COOKIE_DEFI)?.value;
+
+  if (!jeton) {
+    return { erreur: "La vérification a expiré. Reprends la connexion." };
+  }
+
+  const code = String(donnees.get("code") ?? "").trim();
+  if (!code) return { erreur: "Saisis le code de ton application." };
+
+  const suite = await releverDefi(jeton, code);
+
+  if (!suite.ok) {
+    if (suite.motif === "CODE_FAUX") {
+      return { erreur: "Ce code ne correspond pas. Vérifie ton application." };
+    }
+
+    // Défi inconnu, expiré, ou trop d'essais : dans les trois cas le cookie ne
+    // vaut plus rien, et le laisser ferait réessayer dans le vide.
+    magasin.delete(COOKIE_DEFI);
+
+    return {
+      erreur:
+        suite.motif === "TROP_D_ESSAIS"
+          ? "Trop d'essais. Reprends la connexion."
+          : "La vérification a expiré. Reprends la connexion.",
+    };
+  }
+
+  magasin.delete(COOKIE_DEFI);
+
+  // `totpValideLe` posé à l'ouverture : la session naît avec son passage, et
+  // les gardes d'actions sensibles n'ont pas à redemander un code dans la
+  // foulée d'une connexion qui vient d'en exiger un.
+  await ouvrirSession(suite.userId, await adresseCourante(), new Date());
+
   redirect("/dashboard");
 }
 
