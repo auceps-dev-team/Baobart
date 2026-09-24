@@ -59,6 +59,9 @@ export async function acheterRessource(
     // confronte à ce que la ressource déclare vraiment.
     // Bruts : `retenirLeMontant` les relit, les borne et décide. Rien de ce
     // qui vient d'ici n'est employé tel quel — voir son en-tête.
+    // Le pays est deja dans le formulaire depuis le choix des rails : on le
+    // reprend plutot que d en ajouter un second, qui pourrait le contredire.
+    pays: String(donnees?.get("pays") ?? "") || null,
     montant: String(donnees?.get("montant") ?? "") || null,
     pourboire: String(donnees?.get("pourboire") ?? "") || null,
     champs: Object.fromEntries(

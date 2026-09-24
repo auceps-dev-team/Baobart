@@ -107,6 +107,8 @@ export default async function ProduitDuTableauDeBord({
       minPrice: true,
       suggestedPrices: true,
       tipsEnabled: true,
+      pppEnabled: true,
+      pppMaxDiscountBp: true,
       tags: { select: { tag: { select: { name: true } } } },
       licenseType: { select: { code: true } },
       files: {
@@ -442,6 +444,12 @@ export default async function ProduitDuTableauDeBord({
                   : []
               }
               pourboires={produit.tipsEnabled}
+              parite={produit.pppEnabled}
+              paritePlafond={
+                produit.pppMaxDiscountBp === null
+                  ? null
+                  : Math.round(produit.pppMaxDiscountBp / 100)
+              }
               plancher={minimumLibre(null)}
               regler={reglerLeMontant}
             />

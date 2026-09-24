@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { nouvelleLicence } from "@/lib/checkout/licence";
 import { champsDe, validerLesReponses } from "@/lib/commerce/champs";
 import { retenirLeMontant } from "@/lib/commerce/montant";
+import { ajusterAuPays } from "@/lib/commerce/ppp";
 import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -165,6 +166,14 @@ export async function acheter(input: {
   montant?: string | number | null;
   /** Le pourboire ajouté, quand la ressource en invite un. */
   pourboire?: string | number | null;
+  /**
+   * Le pays déclaré par l'acheteur au moment de payer.
+   *
+   * Déclaré, pas vérifié : il vient du formulaire, et il n'y a pas de
+   * géolocalisation ici. C'est pourquoi la réduction qu'il ouvre est bornée
+   * par le créateur — voir `lib/commerce/ppp.ts`.
+   */
+  pays?: string | null;
 }): Promise<Resultat> {
   // La simulation prime quand elle est ouverte : c'est un réglage de
   // développement, et le laisser cohabiter avec un opérateur réel produirait
@@ -216,6 +225,8 @@ export async function acheter(input: {
             pricingMode: true,
             minPrice: true,
             tipsEnabled: true,
+            pppEnabled: true,
+            pppMaxDiscountBp: true,
             _count: { select: { files: { where: { role: "SOURCE", deletedAt: null } } } },
           },
         });
@@ -337,7 +348,22 @@ export async function acheter(input: {
 
         if (!retenu.ok) return refus("MONTANT_REFUSE");
 
-        let prixFacture = retenu.prix;
+        // ══════════════════════════════════════════════════════════════
+        // LA PARITÉ S'APPLIQUE AVANT LE CODE PROMO, ET L'ORDRE COMPTE
+        //
+        // La parité ajuste le prix au pays ; le code promo est une remise que
+        // le créateur accorde par-dessus. Dans l'autre sens, un code « -20 % »
+        // porterait sur un prix que cet acheteur-là n'aurait jamais vu, et
+        // deux personnes présentant le même code paieraient des réductions
+        // différentes sans que rien ne l'explique.
+        const parite = await ajusterAuPays({
+          prix: retenu.prix,
+          actif: produit.pppEnabled,
+          plafondBp: produit.pppMaxDiscountBp,
+          pays: input.pays ?? null,
+        });
+
+        let prixFacture = parite.prix;
         let prixAffiche: number | null = null;
         let codeApplique: { id: string; code: string; remise: number } | null =
           null;
@@ -347,7 +373,7 @@ export async function acheter(input: {
             code: input.codePromo,
             vendeurId: produit.sellerId,
             produitId: produit.id,
-            prix: retenu.prix,
+            prix: parite.prix,
           });
 
           if (!remise.ok) return refus("CODE_REFUSE");
@@ -386,9 +412,19 @@ export async function acheter(input: {
                 // garde l'autre, sans quoi une vente remisée et une vente au
                 // tarif réduit deviendraient indistinguables.
                 price: prixFacture,
-                listPrice: prixAffiche,
+                // Le prix d'avant toute réduction — remise ET parité. Sans
+                // lui, une vente ajustée au pays serait indistinguable d'une
+                // vente au tarif, et la question « la parité change-t-elle
+                // quelque chose ? » resterait sans réponse.
+                listPrice: prixAffiche ?? (parite.remiseBp > 0 ? retenu.prix : null),
                 offerCodeId: codeApplique?.id ?? null,
                 tipAmount: retenu.pourboire,
+                // Gardés même sans réduction : c'est ce qui permet de savoir
+                // d'où viennent les ventes, et de répondre plus tard à « la
+                // parité change-t-elle quelque chose ? » sans instrumenter
+                // après coup.
+                buyerCountry: input.pays?.trim().toUpperCase() || null,
+                pppDiscountBp: parite.remiseBp,
                 // Figées avec leur libellé d'alors : le vendeur peut renommer
                 // ou supprimer un champ après la vente, et relire la
                 // définition montrerait « Taille : M » sous « Couleur ».

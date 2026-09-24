@@ -51,6 +51,8 @@ export function ReglageMontant({
   minPrice,
   suggeres,
   pourboires,
+  parite,
+  paritePlafond,
   plancher,
   regler,
 }: {
@@ -59,6 +61,10 @@ export function ReglageMontant({
   minPrice: number | null;
   suggeres: number[];
   pourboires: boolean;
+  /** Le créateur ajuste-t-il son prix au pays de l'acheteur ? */
+  parite: boolean;
+  /** Sa réduction maximale, en pourcentage. */
+  paritePlafond: number | null;
   /** Le minimum que la plateforme impose, quel que soit le créateur. */
   plancher: number;
   regler: (
@@ -67,6 +73,7 @@ export function ReglageMontant({
   ) => Promise<EtatPromo>;
 }) {
   const [modeChoisi, setModeChoisi] = useState(mode);
+  const [pariteActive, setPariteActive] = useState(parite);
   const [etat, agir, enCours] = useActionState(regler, null);
 
   return (
@@ -166,6 +173,62 @@ export function ReglageMontant({
           }
         </span>
       </label>
+
+      <div>
+        <label
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+            fontSize: 13.5,
+            lineHeight: 1.5,
+          }}
+        >
+          <input
+            name="ppp"
+            type="checkbox"
+            checked={pariteActive}
+            onChange={(e) => setPariteActive(e.target.checked)}
+            style={{ width: 18, height: 18, marginTop: 2 }}
+          />
+          <span>
+            <strong>Ajuster le prix au pays de l&apos;acheteur.</strong>{" "}
+            {
+              "Tu es lu plus largement contre un revenu plus faible sur une partie de tes ventes. Personne ne peut prendre cette décision à ta place."
+            }
+          </span>
+        </label>
+
+        {pariteActive ? (
+          <div style={{ marginTop: 12, paddingLeft: 28 }}>
+            <label htmlFor="pppPlafond" style={etiquette}>
+              Réduction maximale (%)
+            </label>
+            <input
+              id="pppPlafond"
+              name="pppPlafond"
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              defaultValue={paritePlafond ?? ""}
+              placeholder="sans limite"
+              style={{ ...champ, maxWidth: 200 }}
+            />
+            <p style={{ fontSize: 12, opacity: 0.7, margin: "6px 0 0", maxWidth: 520 }}>
+              {
+                "Le pays est déclaré par l'acheteur, pas vérifié : il n'y a pas de géolocalisation ici. Ce plafond borne ce que coûte quelqu'un qui cocherait le pays le moins cher."
+              }
+            </p>
+            <p style={{ fontSize: 12, opacity: 0.7, margin: "6px 0 0", maxWidth: 520 }}>
+              <strong>À savoir :</strong>{" "}
+              {
+                "aucun coefficient n'est chargé pour l'instant, donc rien ne change encore. Cette option deviendra utile quand les paiements dépasseront l'Afrique de l'Ouest."
+              }
+            </p>
+          </div>
+        ) : null}
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <button

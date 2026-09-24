@@ -1223,6 +1223,31 @@ model Product {
   /// donner, et un champ vide se remplit surtout du montant le plus bas.
   suggestedPrices Json @default("[]")
 
+  /// Le createur accepte-t-il d'ajuster son prix au pays de l'acheteur ?
+  ///
+  /// Faux par defaut : c'est une decision commerciale, pas un reglage
+  /// technique. Le createur choisit d'etre lu plus largement contre un revenu
+  /// plus faible sur une partie de ses ventes, et personne ne peut prendre
+  /// cette decision a sa place.
+  pppEnabled Boolean @default(false)
+
+  /// La reduction maximale qu'il accepte, en points de base.
+  ///
+  /// ==========================================================================
+  /// POURQUOI UN PLAFOND, ET POURQUOI IL EST INDISPENSABLE
+  ///
+  /// Le pays vient du formulaire : il est **declare, pas verifie**. Il n'y a
+  /// pas de geolocalisation par adresse IP ici, et il n'y en aura pas — celle
+  /// qu'on lit sert a gener un retour, jamais a etablir une identite
+  /// (`lib/securite/adresse.ts`).
+  ///
+  /// N'importe qui peut donc choisir le pays le moins cher. Le plafond borne
+  /// ce que cela rapporte : sans lui, une reduction de 80 % serait offerte a
+  /// qui coche la bonne case, et le createur le decouvrirait sur son releve.
+  ///
+  /// Nul = la reduction complete du coefficient s'applique.
+  pppMaxDiscountBp Int?
+
   /// Le createur invite-t-il un pourboire au moment de payer ?
   ///
   /// Faux par defaut, et c'est deliberement un choix et non une constante :
@@ -1371,6 +1396,15 @@ model OrderItem {
   /// Le code employe. Scalaire, comme `OfferCode.sellerId` — voir l'audit du
   /// 28 aout sur les cles etrangeres scalaires de ce bloc.
   offerCodeId  String?
+
+  /// Le pays declare par l'acheteur au moment de payer, et ce qu'il a change.
+  ///
+  /// Garde meme quand aucune reduction ne s'applique : c'est ce qui permet de
+  /// savoir d'ou viennent les ventes, et de repondre plus tard a « la parite
+  /// change-t-elle quelque chose ? » sans avoir a instrumenter apres coup.
+  buyerCountry String?
+  /// Les points de base reellement appliques. 0 = prix inchange.
+  pppDiscountBp Int @default(0)
 
   /// Le pourboire ajoute par l'acheteur, en plus du prix.
   ///
@@ -1601,6 +1635,51 @@ model MobileMoneyAccount {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+}
+
+/// Coefficient de parite de pouvoir d'achat, par pays.
+///
+/// ============================================================================
+/// CETTE TABLE EST LIVREE VIDE, ET C'EST UNE DECISION
+///
+/// Un coefficient PPP est une donnee mesuree — la Banque mondiale publie un
+/// « PPP conversion factor » par pays et par annee. Inventer ces nombres pour
+/// faire marcher la demonstration reviendrait a poser une reduction sur des
+/// valeurs qu'aucune source ne soutient, et personne ne saurait plus lesquelles
+/// ont ete verifiees.
+///
+/// Table vide = aucune reduction nulle part. C'est le comportement sur : un
+/// prix reste ce que le createur a ecrit tant qu'on n'a pas charge de chiffres
+/// avec leur source.
+///
+/// ============================================================================
+/// ELLE N'A PERSONNE A SERVIR AUJOURD'HUI
+///
+/// `lib/payments/rails.ts` ne connait que quatre pays — Senegal, Cote
+/// d'Ivoire, Ghana, Benin — tous en Afrique de l'Ouest, trois en XOF. La
+/// parite entre eux est proche, et le mecanisme ne changera pratiquement rien.
+///
+/// Il devient utile le jour ou la diaspora peut payer : un createur pourra
+/// alors afficher un prix qui tient a Paris et rester abordable a Abidjan.
+/// C'est pour ce jour-la qu'il est ecrit, et la matrice le dit.
+model PppFactor {
+  id      String @id @default(cuid())
+  /// Code ISO 3166-1 alpha-2, en majuscules.
+  country String @unique
+  /// Le coefficient en points de base, relatif au pays de reference.
+  ///
+  /// 10 000 = prix inchange. 6 000 = l'acheteur paie 60 %. Au-dessus de
+  /// 10 000, le prix monterait : `lib/commerce/ppp.ts` le refuse, parce
+  /// qu'une « parite » qui renchérit n'est pas ce que le mot annonce.
+  factorBp Int
+  /// D'ou vient ce nombre. Obligatoire : un coefficient sans source ne peut
+  /// pas etre reverifie, et personne n'osera le corriger.
+  source  String
+  /// Quand il a ete releve — pas quand la ligne a ete ecrite.
+  measuredAt DateTime
+  updatedAt  DateTime @updatedAt
+
+  @@index([country])
 }
 
 model ExchangeRate {

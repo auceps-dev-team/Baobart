@@ -333,6 +333,26 @@ export async function reglerLeMontant(
     .map((v) => Math.trunc(Number(v.trim())))
     .filter((v) => Number.isInteger(v) && v > 0);
 
+  // La parité : le créateur y souscrit, et borne ce qu'elle peut lui coûter.
+  // Le pays vient du formulaire, donc n'importe qui peut cocher le moins
+  // cher — sans plafond, il le découvrirait sur son relevé.
+  const parite = donnees.get("ppp") === "on";
+  const plafondBrut = String(donnees.get("pppPlafond") ?? "").trim();
+  const plafondPourcent = plafondBrut ? Math.trunc(Number(plafondBrut)) : null;
+
+  if (
+    parite &&
+    plafondPourcent !== null &&
+    (!Number.isFinite(plafondPourcent) ||
+      plafondPourcent < 1 ||
+      plafondPourcent > 100)
+  ) {
+    return {
+      ok: false,
+      message: "La réduction maximale va de 1 à 100 %.",
+    };
+  }
+
   await db.product.update({
     where: { id: produitId },
     data: {
@@ -340,6 +360,11 @@ export async function reglerLeMontant(
       minPrice: mode === "LIBRE" ? minPrice : null,
       suggestedPrices: mode === "LIBRE" ? suggeres : [],
       tipsEnabled: pourboires,
+      pppEnabled: parite,
+      // Stocké en points de base, saisi en pourcentage : l'unité interne ne
+      // remonte pas jusqu'au créateur, qui n'a pas à la connaître.
+      pppMaxDiscountBp:
+        parite && plafondPourcent !== null ? plafondPourcent * 100 : null,
     },
   });
 
