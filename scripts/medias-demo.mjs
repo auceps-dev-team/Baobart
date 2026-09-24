@@ -45,8 +45,11 @@ import {
   PutObjectCommand,
   S3Client,
   HeadObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import sharp from "sharp";
+
+import { lireLesDeuxListes } from "./lire-catalogue.mjs";
 
 const BUCKET = process.env.S3_BUCKET ?? "baobart-media";
 const PREFIXE = "demo/";
@@ -193,9 +196,66 @@ async function main() {
   const gardees = await fusionnerLaPolitique(client);
   console.log(`  ${gardees} déclaration(s) d'autrui conservée(s).`);
 
-  const fichiers = (await readdir(dossier)).filter((f) =>
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    LES ÉCARTÉS NE MONTENT PAS — « PAS AU CATALOGUE » NE VOULAIT PAS DIRE
+    « PAS EN LIGNE »
+
+    Ce script prenait le dossier entier, par extension. `ECARTES` ne servait
+    qu'au catalogue : les visuels refusés étaient téléversés quand même, et le
+    préfixe `demo/` est en lecture anonyme.
+
+    Mesuré le 24 septembre 2026, sur la MinIO locale : les trois packshots
+    CeraVe et la fresque Campbell's répondaient HTTP 200, original et aperçu,
+    à une URL dérivée de leur nom — donc devinable. Aucun produit ne les
+    citait, ils n'apparaissaient nulle part dans l'application, et ils étaient
+    servis.
+
+    C'est la forme la plus commune du défaut silencieux ici : la décision
+    avait été prise, écrite, et documentée, et elle ne s'appliquait qu'à
+    l'endroit où on l'avait regardée.
+  */
+  const { ecartes } = await lireLesDeuxListes();
+  const refuses = new Set(ecartes);
+
+  const servables = (await readdir(dossier)).filter((f) =>
     Object.keys(TYPES).includes(extname(f).toLowerCase()),
   );
+
+  const fichiers = servables.filter((f) => !refuses.has(f));
+  const ecartesTrouves = servables.length - fichiers.length;
+
+  if (ecartesTrouves > 0) {
+    console.log(`${ecartesTrouves} visuel(s) écarté(s), non téléversé(s) :`);
+    for (const f of servables.filter((x) => refuses.has(x))) {
+      console.log(`  ${f}`);
+    }
+  }
+
+  /*
+    ──────────────────────────────────────────────────────────────────────────
+    ET ON RETIRE CEUX QUI SONT DÉJÀ MONTÉS
+
+    Ne plus les téléverser ne suffit pas : une MinIO sur laquelle l'ancienne
+    version a tourné les garde. Ce script est le seul endroit qui connaisse à
+    la fois la liste et les clés, donc c'est ici que le ménage se fait — et à
+    chaque passage, pas une fois à la main.
+
+    La portée est étroite volontairement : seules les deux clés dérivées d'un
+    nom présent dans `ECARTES`, sous `demo/`. Rien d'autre n'est touché.
+  */
+  for (const nom of servables.filter((f) => refuses.has(f))) {
+    for (const cle of [cleDe(nom), cleApercu(nom)]) {
+      try {
+        await client.send(new HeadObjectCommand({ Bucket: BUCKET, Key: cle }));
+      } catch {
+        continue; // absent, c'est l'état voulu
+      }
+
+      await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: cle }));
+      console.log(`  retiré de MinIO : ${cle}`);
+    }
+  }
 
   console.log(`${fichiers.length} fichiers à téléverser vers ${BUCKET}/${PREFIXE}`);
 

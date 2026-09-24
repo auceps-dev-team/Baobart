@@ -309,6 +309,37 @@ async function main() {
     );
   }
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    LES DEUX LISTES NE PEUVENT PAS SE CONTREDIRE
+
+    `ECARTES` ne servait qu'à afficher un nombre à la fin de ce script : rien
+    ne l'empêchait de contenir un visuel que `CATALOGUE_DEMO` reprenait par
+    ailleurs. Les deux listes se seraient contredites sans que rien ne le dise,
+    et ce qu'on a refusé pour marque réelle serait remonté dans le fil.
+
+    Le contrôle est ici, et pas seulement dans `verif-catalogue.mjs` : une
+    vérification qu'on lance à part est une vérification qu'on saute. Celle-ci
+    est sur le chemin qu'on ne peut pas éviter.
+
+    Il refuse plutôt qu'il ne filtre. Si un visuel est des deux côtés, c'est
+    qu'une décision a été prise deux fois en sens contraire — la trancher
+    silencieusement dans un sens ou dans l'autre serait plus grave que de
+    s'arrêter.
+  */
+  const refuses = new Set(ECARTES.map((e) => e.fichier));
+  const contradictions = CATALOGUE_DEMO.flatMap((e) =>
+    [e.fichier, ...(e.apercus ?? [])].filter((f) => refuses.has(f)),
+  );
+
+  if (contradictions.length > 0) {
+    throw new Error(
+      `${contradictions.length} visuel(s) à la fois catalogué(s) et écarté(s) :\n` +
+        contradictions.map((f) => `  ${f}`).join("\n") +
+        `\n\nChaque écarté porte sa raison dans ECARTES. La lire avant de trancher.`,
+    );
+  }
+
   const createurs = await creerLesCreateurs();
   console.log(`${createurs.length} créateurs prêts.`);
 

@@ -22,6 +22,46 @@ Cinq défauts, **aucun n'a levé d'erreur** :
 Quatre sur cinq ont été trouvés en **regardant l'écran**, pas en lisant du
 code.
 
+### Ce que la relecture du 24 septembre a trouvé en plus
+
+Chacun des cinq avait un correctif dans le code. Deux étaient **plus étroits
+que ce qu'on croyait** — et dans les deux cas, ce qui manquait était la portée
+du correctif, pas le correctif.
+
+**Le n° 1 s'arrêtait au catalogue.** `ECARTES` empêchait un visuel d'avoir une
+fiche. Il n'empêchait rien d'autre : `medias-demo.mjs` prenait le dossier
+entier par extension, et le préfixe `demo/` est en lecture anonyme. Mesuré le
+24 septembre sur la MinIO locale, les dix écartés répondaient **HTTP 200**,
+original et aperçu — dix-neuf objets, à une URL dérivée de leur nom, donc
+devinable. Aucune fiche ne les citait ; ils étaient servis.
+
+« Écarté du catalogue » ne voulait pas dire « pas en ligne », et rien ne le
+disait.
+
+**Le n° 5 avait échangé un mauvais compte contre un autre.** La nouvelle
+expression prenait *toute* chaîne finissant par une extension d'image, bloc
+`ECARTES` compris. Elle annonçait « 239 cités, 239 dans le dossier » — j'ai
+publié ce nombre aussi. Le vrai compte est **229 catalogués et 10 écartés**.
+Sous-compte le 22, sur-compte le 23 : la même erreur retournée.
+
+Ce qui manquait n'était pas une meilleure expression régulière, c'était le
+**troisième ensemble**. Un fichier est catalogué, écarté, ou sans avis — et
+seul le troisième cas demande une décision. Deux ensembles n'ont jamais pu
+dire ça.
+
+**Ce qui les tient désormais** (mesuré le 24 septembre) :
+
+| Garde | Où | Ce qu'elle refuse |
+| --- | --- | --- |
+| Lecture unique des deux listes | `scripts/lire-catalogue.mjs` | Un `fichier:` dont l'extension échappe à la lecture ; le bloc `ECARTES` introuvable ou vide |
+| Écarté = non téléversé, **et retiré s'il est déjà là** | `scripts/medias-demo.mjs` | Un visuel refusé qui reste servi par MinIO |
+| Catalogué **et** écarté | `prisma/seed-demo-catalogue.ts` | Le seed s'arrête avant d'écrire quoi que ce soit |
+| Trois ensembles, pas deux | `scripts/verif-catalogue.mjs` | Sort en `1` sur contradiction, doublon ou fichier introuvable |
+
+La garde du seed est là plutôt que dans la seule vérification pour une raison
+simple : **une vérification qu'on lance à part est une vérification qu'on
+saute.** Le seed, non.
+
 ---
 
 ## 1. La question à poser avant tout
@@ -72,17 +112,29 @@ docker ps          # baobart-postgres, baobart-minio, baobart-redis
 # 1 · Regarder les fichiers. Vraiment les regarder — voir §4.
 node scripts/planche-contact.mjs "C:/chemin/source" planche.jpg $(ls "C:/chemin/source")
 
-# 2 · Téléverser : originaux + aperçus 1400 px
+# 2 · Écrire ECARTES, avec la raison de chacun   (§3)
+#     AVANT le téléversement : depuis le 24/09, l'étape 3 lit cette liste
+#     et refuse de mettre en ligne ce qui s'y trouve.
+
+# 3 · Téléverser : originaux + aperçus 1400 px
 node --env-file=.env scripts/medias-demo.mjs "C:/chemin/source"
 
-# 3 · Écrire les entrées dans prisma/demo-catalogue.ts   (§3)
+# 4 · Écrire les entrées dans prisma/demo-catalogue.ts   (§3)
 
-# 4 · Vérifier que chaque nom cité existe, dans les deux sens
+# 5 · Vérifier : catalogué, écarté, ou sans avis
 npm run db:demo:verif -- "C:/chemin/source"
 
-# 5 · Semer
+# 6 · Semer
 npm run db:demo:catalogue -- "C:/chemin/source"
 ```
+
+L'étape 2 est passée devant l'étape 3 le 24 septembre. Avant, on décidait des
+exclusions au moment d'écrire les entrées — donc **après** que tout était déjà
+en ligne. Décider tard ne coûtait rien tant que la décision ne servait qu'au
+catalogue ; elle sert maintenant aussi au téléversement.
+
+Un oubli reste rattrapable : `medias-demo.mjs` retire à chaque passage ce que
+`ECARTES` nomme, même si un passage précédent l'avait mis en ligne.
 
 ### Le piège du chemin avec espaces
 
@@ -121,6 +173,19 @@ Une exclusion sans raison écrite sera réintroduite par le prochain passage.
 
 À la date de ce document, dix exclusions : neuf pour marque réelle, une pour un
 fichier que Chromium ne sait pas décoder.
+
+Cette liste n'est plus un commentaire. Depuis le 24 septembre, elle fait trois
+choses :
+
+- `medias-demo.mjs` ne téléverse pas ce qu'elle nomme, et **retire** ce qui a
+  été mis en ligne par un passage antérieur ;
+- `seed-demo-catalogue.ts` **s'arrête** si un visuel est des deux côtés, avant
+  d'écrire la moindre ligne ;
+- `verif-catalogue.mjs` sort en `1` sur la même contradiction.
+
+Le refus plutôt que le filtrage, dans les trois cas. Un visuel des deux côtés,
+c'est une décision prise deux fois en sens contraire : la trancher en silence
+dans un sens ou dans l'autre serait pire que de s'arrêter.
 
 ---
 
@@ -278,6 +343,9 @@ défaut de l'application, c'est un artefact de mesure — j'y ai cru une fois.
 | `Can't reach database at localhost:5433` | Port-forward Docker, pas un défaut. `docker ps` et rejouer |
 | Produit invendable (`SANS_FICHIER`) | Aucun `ProductFile` de rôle `SOURCE` — le défaut du champ, mais un produit créé à la main peut n'en avoir aucun |
 | Produit invendable (`GRATUITE`) | Prix à zéro en mode `FIXED`. Normal pour la démo |
+| Le seed s'arrête, « à la fois catalogué et écarté » | Les deux listes se contredisent — lire la raison dans `ECARTES` avant de trancher |
+| `verif` annonce des fichiers « sans avis » | Ni catalogués ni écartés : personne ne s'est prononcé. C'est le seul cas qui demande une décision |
+| Une URL `demo/…` que rien n'affiche répond `200` | Visuel téléversé avant son exclusion. Rejouer `db:demo:medias`, qui le retire |
 
 ---
 
@@ -309,9 +377,16 @@ pourquoi elles ne s'achètent pas.
 - **Les fichiers vendus.** Le catalogue de démonstration ne pose que des
   visuels publics ; un vrai pack téléchargeable vit dans un préfixe privé et
   ne se sert que contre une URL signée.
-- **La suppression.** `db:demo:catalogue` est idempotent par le slug : il
-  corrige et ajoute, il n'efface pas. Retirer une ressource déjà semée demande
-  un `DELETE` explicite — et de vérifier qu'aucune commande ne la désigne.
+- **La suppression d'un produit.** `db:demo:catalogue` est idempotent par le
+  slug : il corrige et ajoute, il n'efface pas. Retirer une ressource déjà
+  semée demande un `DELETE` explicite — et de vérifier qu'aucune commande ne
+  la désigne.
+
+  Une seule exception, et elle ne concerne que MinIO : `db:demo:medias` retire
+  les objets d'un visuel nommé dans `ECARTES`. Ajouter un fichier à cette
+  liste après coup suffit donc à le sortir du stockage, mais **pas** à
+  supprimer la fiche qui le citait — c'est précisément le cas que le seed
+  refuse désormais.
 - **Le poids du dossier source.** 985 Mo tiennent hors du dépôt, mais rien ne
   le garantit : personne n'empêche de commiter une image par mégarde.
   `public/img/demo/` en contient seize pour 32 Mo, et c'est déjà beaucoup.
