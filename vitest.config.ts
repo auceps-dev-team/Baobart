@@ -37,7 +37,10 @@ export default defineConfig({
         test: {
           name: "unite",
           environment: "node",
-          include: ["lib/**/*.test.ts", "jobs/**/*.test.ts"],
+          // `scripts/` y est depuis le 24/09/2026 : les scripts de catalogue
+          // n'avaient aucun test, et deux erreurs de comptage y sont passées
+          // inaperçues faute de quoi que ce soit qui les rejoue.
+          include: ["lib/**/*.test.ts", "jobs/**/*.test.ts", "scripts/**/*.test.ts"],
           exclude: ["**/*.integration.test.ts"],
         },
       },

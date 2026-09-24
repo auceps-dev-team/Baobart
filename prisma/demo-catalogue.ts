@@ -963,3 +963,29 @@ export const ECARTES: Array<{ fichier: string; raison: string }> = [
     raison: "Chromium refuse de la décoder (Format error) · 251 Mo",
   },
 ];
+
+/**
+ * Les visuels qui sont des deux côtés à la fois.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI CETTE FONCTION EST ICI ET PAS DANS LE SEED
+ *
+ * Elle est dérivée des deux listes, à l'endroit où les deux listes vivent. Si
+ * `EntreeDemo` gagne un jour un troisième champ qui nomme un fichier, on
+ * l'ajoutera ici, une fois — et non dans chaque appelant, où l'oubli serait
+ * silencieux.
+ *
+ * Elle rend la liste plutôt qu'un booléen : « il y a une contradiction » ne
+ * permet pas d'écrire un message utilisable, et un message inutilisable se
+ * contourne au lieu de se corriger.
+ */
+export function visuelsContradictoires(
+  catalogue: EntreeDemo[] = CATALOGUE_DEMO,
+  ecartes: Array<{ fichier: string }> = ECARTES,
+): string[] {
+  const refuses = new Set(ecartes.map((e) => e.fichier));
+
+  return catalogue.flatMap((e) =>
+    [e.fichier, ...(e.apercus ?? [])].filter((f) => refuses.has(f)),
+  );
+}

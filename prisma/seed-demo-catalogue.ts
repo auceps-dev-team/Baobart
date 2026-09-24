@@ -48,6 +48,7 @@ import {
   apercuOuOriginal,
   cleDemo,
   estUneVideo,
+  visuelsContradictoires,
   type EntreeDemo,
 } from "./demo-catalogue";
 
@@ -327,10 +328,7 @@ async function main() {
     silencieusement dans un sens ou dans l'autre serait plus grave que de
     s'arrêter.
   */
-  const refuses = new Set(ECARTES.map((e) => e.fichier));
-  const contradictions = CATALOGUE_DEMO.flatMap((e) =>
-    [e.fichier, ...(e.apercus ?? [])].filter((f) => refuses.has(f)),
-  );
+  const contradictions = visuelsContradictoires();
 
   if (contradictions.length > 0) {
     throw new Error(

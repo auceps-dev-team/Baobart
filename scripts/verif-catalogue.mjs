@@ -45,7 +45,7 @@
 
 import { readdir } from "node:fs/promises";
 
-import { lireLesDeuxListes } from "./lire-catalogue.mjs";
+import { classer, lireLesDeuxListes } from "./lire-catalogue.mjs";
 
 const dossier = process.argv[2];
 if (!dossier) {
@@ -63,8 +63,13 @@ console.log(
 
 let faute = false;
 
-// ── Le même visuel des deux côtés ───────────────────────────────────────────
-const desDeux = catalogues.filter((f) => ecartes.includes(f));
+const { manquants, desDeux, sansAvis } = classer(
+  [...source],
+  catalogues,
+  ecartes,
+);
+
+// ── Le même visuel des deux côtés ──────────────────────────────────────────
 if (desDeux.length > 0) {
   faute = true;
   console.log(
@@ -75,7 +80,6 @@ if (desDeux.length > 0) {
 }
 
 // ── Cité mais absent du dossier ─────────────────────────────────────────────
-const manquants = catalogues.filter((f) => !source.has(f));
 if (manquants.length > 0) {
   faute = true;
   console.log(`\n${manquants.length} INTROUVABLE(S) dans le dossier :`);
@@ -93,10 +97,6 @@ if (doublons.length > 0) {
 }
 
 // ── Ni catalogué ni écarté : le seul cas qui demande une décision ───────────
-const sansAvis = [...source].filter(
-  (f) => !catalogues.includes(f) && !ecartes.includes(f),
-);
-
 if (sansAvis.length === 0) {
   console.log(`\nChaque fichier du dossier est soit catalogué, soit écarté.`);
 } else {

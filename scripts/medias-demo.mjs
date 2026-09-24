@@ -49,7 +49,7 @@ import {
 } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
-import { lireLesDeuxListes } from "./lire-catalogue.mjs";
+import { lireLesDeuxListes, partagerLeDossier } from "./lire-catalogue.mjs";
 
 const BUCKET = process.env.S3_BUCKET ?? "baobart-media";
 const PREFIXE = "demo/";
@@ -216,20 +216,15 @@ async function main() {
     l'endroit où on l'avait regardée.
   */
   const { ecartes } = await lireLesDeuxListes();
-  const refuses = new Set(ecartes);
-
-  const servables = (await readdir(dossier)).filter((f) =>
-    Object.keys(TYPES).includes(extname(f).toLowerCase()),
+  const { aPoser: fichiers, aRetirer } = partagerLeDossier(
+    await readdir(dossier),
+    ecartes,
+    Object.keys(TYPES),
   );
 
-  const fichiers = servables.filter((f) => !refuses.has(f));
-  const ecartesTrouves = servables.length - fichiers.length;
-
-  if (ecartesTrouves > 0) {
-    console.log(`${ecartesTrouves} visuel(s) écarté(s), non téléversé(s) :`);
-    for (const f of servables.filter((x) => refuses.has(x))) {
-      console.log(`  ${f}`);
-    }
+  if (aRetirer.length > 0) {
+    console.log(`${aRetirer.length} visuel(s) écarté(s), non téléversé(s) :`);
+    for (const f of aRetirer) console.log(`  ${f}`);
   }
 
   /*
@@ -244,7 +239,7 @@ async function main() {
     La portée est étroite volontairement : seules les deux clés dérivées d'un
     nom présent dans `ECARTES`, sous `demo/`. Rien d'autre n'est touché.
   */
-  for (const nom of servables.filter((f) => refuses.has(f))) {
+  for (const nom of aRetirer) {
     for (const cle of [cleDe(nom), cleApercu(nom)]) {
       try {
         await client.send(new HeadObjectCommand({ Bucket: BUCKET, Key: cle }));
