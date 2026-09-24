@@ -11,6 +11,7 @@ import {
   type TypeRemise,
 } from "@/lib/commerce/codes-promo";
 import { declarerUnChamp, retirerUnChamp } from "@/lib/commerce/champs";
+import { minimumLibre } from "@/lib/commerce/montant";
 import { basculerUnUpsell, declarerUnUpsell } from "@/lib/commerce/upsell";
 import { db } from "@/lib/db";
 import { verifierLimiteAction } from "@/lib/securite/garde";
@@ -281,4 +282,74 @@ export async function retirerMonChamp(
   return retire
     ? { ok: true, message: "Question retirée. Les réponses déjà données restent." }
     : { ok: false, message: "Cette question n'est pas la tienne." };
+}
+
+// ──────────────────────────────────────────── montant et pourboire ──
+
+/**
+ * Règle comment se décide le prix d'une ressource.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE PLANCHER EST BORNÉ ICI AUSSI, PAS SEULEMENT À L'ACHAT
+ *
+ * `retenirLeMontant` refuse déjà un montant sous le plancher. Mais un créateur
+ * qui pose `minPrice = 1` verrait un réglage accepté et des achats refusés,
+ * sans rien qui relie les deux. On le lui dit au moment où il le règle.
+ */
+export async function reglerLeMontant(
+  _precedent: EtatPromo | null,
+  donnees: FormData,
+): Promise<EtatPromo> {
+  const moi = await sessionCourante();
+  if (!moi) return { ok: false, message: "Reconnecte-toi." };
+
+  const produitId = String(donnees.get("produitId") ?? "");
+  const mode = donnees.get("mode") === "LIBRE" ? "LIBRE" : "FIXED";
+  const pourboires = donnees.get("pourboires") === "on";
+
+  const sienne = await db.product.count({
+    where: { id: produitId, sellerId: moi.id },
+  });
+  if (sienne !== 1) {
+    return { ok: false, message: "Cette ressource n'est pas la tienne." };
+  }
+
+  const plancher = minimumLibre(null);
+
+  const minBrut = String(donnees.get("minPrice") ?? "").trim();
+  const minPrice = minBrut ? Math.trunc(Number(minBrut)) : null;
+
+  if (mode === "LIBRE" && minPrice !== null) {
+    if (!Number.isFinite(minPrice) || minPrice < plancher) {
+      return {
+        ok: false,
+        message: `Le minimum ne peut pas descendre sous ${plancher} F : en dessous, les frais dépassent ce qui te reste.`,
+      };
+    }
+  }
+
+  const suggeres = String(donnees.get("suggeres") ?? "")
+    .split(",")
+    .map((v) => Math.trunc(Number(v.trim())))
+    .filter((v) => Number.isInteger(v) && v > 0);
+
+  await db.product.update({
+    where: { id: produitId },
+    data: {
+      pricingMode: mode,
+      minPrice: mode === "LIBRE" ? minPrice : null,
+      suggestedPrices: mode === "LIBRE" ? suggeres : [],
+      tipsEnabled: pourboires,
+    },
+  });
+
+  revalidatePath(`/dashboard/produits/${produitId}`);
+
+  return {
+    ok: true,
+    message:
+      mode === "LIBRE"
+        ? "Prix libre : l'acheteur choisira son montant."
+        : "Prix fixe.",
+  };
 }

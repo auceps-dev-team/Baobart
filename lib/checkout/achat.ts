@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 
 import { nouvelleLicence } from "@/lib/checkout/licence";
 import { champsDe, validerLesReponses } from "@/lib/commerce/champs";
+import { retenirLeMontant } from "@/lib/commerce/montant";
 import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -78,7 +79,14 @@ export type MotifRefus =
    * `validerLesReponses`, avant qu'on arrive ici. Ce motif-ci couvre le cas
    * où quelqu'un poste directement, sans passer par le formulaire.
    */
-  | "CHAMPS_INVALIDES";
+  | "CHAMPS_INVALIDES"
+  /**
+   * Le montant choisi n'est pas acceptable.
+   *
+   * Comme pour les champs, le détail — trop bas, invalide, pourboire hors
+   * plafond — est rendu à l'écran d'achat avant qu'on arrive ici.
+   */
+  | "MONTANT_REFUSE";
 
 export type Resultat =
   | {
@@ -98,6 +106,8 @@ export type Resultat =
       redirection?: string;
       /** Ce que le code promo a fait gagner, quand il y en avait un. */
       remise?: { code: string; montant: number };
+      /** Ce que l'acheteur a ajouté, quand il a ajouté quelque chose. */
+      pourboire?: number;
     }
   | { ok: false; motif: MotifRefus };
 
@@ -116,6 +126,8 @@ export const MESSAGES: Record<MotifRefus, string> = {
     "Ce code promo n'a pas pu être appliqué. Reprends sans lui, ou réessaie.",
   CHAMPS_INVALIDES:
     "Il manque une information demandée par le créateur. Reprends depuis la fiche.",
+  MONTANT_REFUSE:
+    "Ce montant n'a pas pu être retenu. Reprends depuis la fiche.",
 };
 
 /** La simulation est-elle ouverte ? */
@@ -149,6 +161,10 @@ export async function acheter(input: {
   codePromo?: string | null;
   /** Les réponses aux champs personnalisés, par identifiant de champ. */
   champs?: Record<string, string>;
+  /** Le montant choisi, sur une ressource à prix libre. */
+  montant?: string | number | null;
+  /** Le pourboire ajouté, quand la ressource en invite un. */
+  pourboire?: string | number | null;
 }): Promise<Resultat> {
   // La simulation prime quand elle est ouverte : c'est un réglage de
   // développement, et le laisser cohabiter avec un opérateur réel produirait
@@ -180,6 +196,7 @@ export async function acheter(input: {
     licence: string;
     total: number;
     devise: string;
+    pourboire: number;
     remise?: { code: string; montant: number };
   };
 
@@ -196,6 +213,9 @@ export async function acheter(input: {
             price: true,
             currency: true,
             sellerId: true,
+            pricingMode: true,
+            minPrice: true,
+            tipsEnabled: true,
             _count: { select: { files: { where: { role: "SOURCE", deletedAt: null } } } },
           },
         });
@@ -204,7 +224,25 @@ export async function acheter(input: {
           return refus("INTROUVABLE");
         }
         if (produit._count.files === 0) return refus("SANS_FICHIER");
-        if (produit.price === 0) return refus("GRATUITE");
+
+        // ══════════════════════════════════════════════════════════════════
+        // « GRATUITE » NE VAUT PLUS POUR UNE RESSOURCE À PRIX LIBRE
+        //
+        // La règle d'origine — `lib/domain/delivery.ts` — dit qu'une ressource
+        // offerte se télécharge sans commande, parce que « simuler l'achat
+        // inscrirait une vente qui n'a pas eu lieu ».
+        //
+        // Elle tenait tant qu'un prix nul voulait dire « gratuit ». En
+        // `LIBRE`, il veut dire « le créateur n'a pas suggéré de montant » —
+        // et l'acheteur, lui, va en donner un. Refuser ici rendrait
+        // impossible de soutenir quelqu'un qui offre son travail, ce qui est
+        // exactement le cas d'usage du produit « coffee ».
+        //
+        // Le montant réellement facturé est contrôlé plus bas, contre le
+        // plancher : une ressource `LIBRE` ne peut pas se vendre à zéro.
+        if (produit.pricingMode === "FIXED" && produit.price === 0) {
+          return refus("GRATUITE");
+        }
         if (produit.sellerId === input.acheteurId) {
           return refus("SA_PROPRE_RESSOURCE");
         }
@@ -280,7 +318,26 @@ export async function acheter(input: {
         const suiteChamps = validerLesReponses(declares, input.champs ?? {});
         if (!suiteChamps.ok) return refus("CHAMPS_INVALIDES");
 
-        let prixFacture = produit.price;
+        // ══════════════════════════════════════════════════════════════
+        // LE MONTANT SE RETIENT AVANT LA REMISE, ET C'EST L'ORDRE JUSTE
+        //
+        // En `LIBRE`, la remise s'applique à ce que l'acheteur a choisi, pas
+        // au montant suggéré par le créateur. L'inverse ferait qu'un code
+        // « -20 % » retire un cinquième d'un prix que personne n'a payé —
+        // et sur un montant choisi plus bas que la suggestion, la remise
+        // pourrait dépasser ce qui est donné.
+        const retenu = retenirLeMontant({
+          mode: produit.pricingMode,
+          prix: produit.price,
+          minPrice: produit.minPrice,
+          pourboiresOuverts: produit.tipsEnabled,
+          montantChoisi: input.montant,
+          pourboireChoisi: input.pourboire,
+        });
+
+        if (!retenu.ok) return refus("MONTANT_REFUSE");
+
+        let prixFacture = retenu.prix;
         let prixAffiche: number | null = null;
         let codeApplique: { id: string; code: string; remise: number } | null =
           null;
@@ -290,7 +347,7 @@ export async function acheter(input: {
             code: input.codePromo,
             vendeurId: produit.sellerId,
             produitId: produit.id,
-            prix: produit.price,
+            prix: retenu.prix,
           });
 
           if (!remise.ok) return refus("CODE_REFUSE");
@@ -311,7 +368,9 @@ export async function acheter(input: {
         const commande = await tx.order.create({
           data: {
             buyerId: input.acheteurId,
-            total: prixFacture,
+            // Le pourboire est dans le total : c'est ce que l'acheteur
+            // débourse, et c'est ce montant-là qu'on présente à l'opérateur.
+            total: prixFacture + retenu.pourboire,
             currency: produit.currency,
             provider: fournisseur,
             items: {
@@ -329,6 +388,7 @@ export async function acheter(input: {
                 price: prixFacture,
                 listPrice: prixAffiche,
                 offerCodeId: codeApplique?.id ?? null,
+                tipAmount: retenu.pourboire,
                 // Figées avec leur libellé d'alors : le vendeur peut renommer
                 // ou supprimer un champ après la vente, et relire la
                 // définition montrerait « Taille : M » sous « Couleur ».
@@ -363,8 +423,9 @@ export async function acheter(input: {
           // celui qu'on a figé, et c'est à lui que le rappel de l'opérateur
           // sera confronté. Remisé, le cas échéant : c'est ce que l'acheteur
           // va réellement payer chez l'opérateur.
-          total: prixFacture,
+          total: prixFacture + retenu.pourboire,
           devise: produit.currency as string,
+          pourboire: retenu.pourboire,
           remise: codeApplique
             ? { code: codeApplique.code, montant: codeApplique.remise }
             : undefined,
@@ -406,6 +467,7 @@ export async function acheter(input: {
       licence: creation.licence,
       paye: true,
       remise: creation.remise,
+      pourboire: creation.pourboire > 0 ? creation.pourboire : undefined,
     };
   }
 

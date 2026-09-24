@@ -99,12 +99,33 @@ export interface FeeInput {
   sellerBearsAffiliateFee?: boolean;
   /** Taxe collectée EN PLUS du prix, due à l'administration fiscale. */
   taxAmount?: number;
+  /**
+   * Pourboire ajouté par l'acheteur.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * IL ENTRE DANS LE BRUT, UNE FOIS — PAS PAR UNITÉ
+   *
+   * Un pourboire se donne à la commande, pas à l'exemplaire : quelqu'un qui
+   * achète trois licences et ajoute 1 000 F donne mille francs, pas trois
+   * mille. Le multiplier par la quantité prélèverait à l'acheteur trois fois
+   * ce qu'il a voulu donner — et le prélèvement serait réel, chez son
+   * opérateur.
+   *
+   * Il est soumis aux mêmes frais que le reste : il emprunte le même rail de
+   * paiement, qui coûte le même pourcentage. Le créateur touche donc un
+   * pourboire net, pas brut, et c'est ce que fait Gumroad.
+   *
+   * Conséquence voulue : un pourboire sur une ressource gratuite produit un
+   * brut non nul, donc une vente encaissée. C'est exactement ce qu'on veut —
+   * sans quoi soutenir un créateur qui offre son travail serait impossible.
+   */
+  tipAmount?: number;
   schedule?: FeeSchedule;
 }
 
 export interface FeeBreakdown {
   regime: FeeRegime;
-  /** Prix × quantité, avant tout prélèvement. */
+  /** Prix × quantité + pourboire, avant tout prélèvement. */
   gross: number;
   /** Ce que l'acheteur débourse réellement (brut + taxe). */
   buyerTotal: number;
@@ -147,11 +168,13 @@ export function computeFees(input: FeeInput): FeeBreakdown {
     affiliateBasisPoints = 0,
     sellerBearsAffiliateFee = false,
     taxAmount = 0,
+    tipAmount = 0,
     schedule = BAREME_XOF,
   } = input;
 
   assertMinorAmount(unitPrice, "unitPrice");
   assertMinorAmount(taxAmount, "taxAmount");
+  assertMinorAmount(tipAmount, "tipAmount");
   if (!Number.isInteger(quantity) || quantity < 1) {
     throw new RangeError(`quantity doit être un entier ≥ 1, reçu : ${quantity}`);
   }
@@ -161,7 +184,9 @@ export function computeFees(input: FeeInput): FeeBreakdown {
     );
   }
 
-  const gross = unitPrice * quantity;
+  // Le pourboire s'ajoute UNE fois, hors de la multiplication : voir
+  // `tipAmount` dans `FeeInput`.
+  const gross = unitPrice * quantity + tipAmount;
 
   // Un produit gratuit ne coûte rien à personne (règle vérifiée dans
   // calculate_fees : `price_cents == 0 → fee_cents = 0`). Sans ça, la part

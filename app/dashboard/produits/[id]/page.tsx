@@ -16,11 +16,14 @@ import {
   supprimerRessource,
 } from "@/lib/products/actions";
 import { PanneauChampsProduit } from "@/components/dashboard/champs-produit";
+import { ReglageMontant } from "@/components/dashboard/reglage-montant";
 import {
   declarerMonChamp,
+  reglerLeMontant,
   retirerMonChamp,
 } from "@/lib/commerce/actions-promo";
 import { champsDe } from "@/lib/commerce/champs";
+import { minimumLibre } from "@/lib/commerce/montant";
 
 export const metadata = { title: "Ressource — Baobart." };
 export const dynamic = "force-dynamic";
@@ -100,6 +103,10 @@ export default async function ProduitDuTableauDeBord({
       coverUrl: true,
       previewUrl: true,
       previewKind: true,
+      pricingMode: true,
+      minPrice: true,
+      suggestedPrices: true,
+      tipsEnabled: true,
       tags: { select: { tag: { select: { name: true } } } },
       licenseType: { select: { code: true } },
       files: {
@@ -401,6 +408,45 @@ export default async function ProduitDuTableauDeBord({
             La suppression n'est proposée que si rien n'a été vendu. L'afficher
             pour la refuser ensuite serait une promesse en trompe-l'œil.
           */}
+          {/*
+            Le mode de prix, avant les questions : il décide de ce que
+            l'acheteur voit en premier au moment de payer.
+          */}
+          <div
+            style={{
+              width: "100%",
+              marginBottom: 24,
+              padding: 22,
+              border: CADRE,
+              borderRadius: 20,
+              background: BLANC,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 17,
+                marginBottom: 14,
+              }}
+            >
+              Montant et pourboire
+            </div>
+
+            <ReglageMontant
+              produitId={produit.id}
+              mode={produit.pricingMode}
+              minPrice={produit.minPrice}
+              suggeres={
+                Array.isArray(produit.suggestedPrices)
+                  ? (produit.suggestedPrices as unknown[]).map(Number)
+                  : []
+              }
+              pourboires={produit.tipsEnabled}
+              plancher={minimumLibre(null)}
+              regler={reglerLeMontant}
+            />
+          </div>
+
           {/*
             Les questions posées à l'achat. Placées après le contenu et avant
             les gestes destructeurs : c'est un réglage, pas une action.

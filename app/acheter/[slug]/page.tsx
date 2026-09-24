@@ -5,6 +5,7 @@ import { ChoixPaiement } from "@/components/checkout/choix-paiement";
 import { acheterRessource } from "@/lib/checkout/actions";
 import { apercuDuCode } from "@/lib/commerce/actions-promo";
 import { champsDe } from "@/lib/commerce/champs";
+import { minimumLibre, montantsSuggeres } from "@/lib/commerce/montant";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
@@ -49,6 +50,10 @@ export default async function ChoisirLePaiementPage({
       slug: true,
       price: true,
       currency: true,
+      pricingMode: true,
+      minPrice: true,
+      suggestedPrices: true,
+      tipsEnabled: true,
       seller: { select: { profile: { select: { displayName: true } } } },
     },
   });
@@ -132,6 +137,19 @@ export default async function ChoisirLePaiementPage({
             produitId={produit.id}
             apercu={apercuDuCode}
             champs={await champsDe(produit.id)}
+            montantLibre={
+              produit.pricingMode === "LIBRE"
+                ? {
+                    minimum: minimumLibre(produit.minPrice),
+                    suggeres: montantsSuggeres(
+                      produit.price,
+                      produit.minPrice,
+                      produit.suggestedPrices,
+                    ),
+                  }
+                : null
+            }
+            pourboiresOuverts={produit.tipsEnabled}
           />
         </div>
 

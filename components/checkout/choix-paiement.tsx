@@ -55,6 +55,8 @@ export function ChoixPaiement({
   produitId,
   apercu,
   champs = [],
+  montantLibre = null,
+  pourboiresOuverts = false,
 }: {
   /** Déjà liée à son sujet par l'appelant. Le refus vit dedans, pas ici. */
   action: (donnees: FormData) => Promise<void>;
@@ -74,7 +76,21 @@ export function ChoixPaiement({
   apercu?: (produitId: string, code: string) => Promise<ApercuCode>;
   /** Les questions que le créateur pose à l'achat. Vide s'il n'en pose pas. */
   champs?: ChampDeclare[];
+  /** Ce que l'acheteur décide du montant, quand il décide quelque chose. */
+  montantLibre?: {
+    /** Le minimum accepté, plancher de la plateforme compris. */
+    minimum: number;
+    /** Les montants proposés en un clic. */
+    suggeres: number[];
+  } | null;
+  /** Vrai quand le créateur invite un pourboire. */
+  pourboiresOuverts?: boolean;
 }) {
+  const [montant, setMontant] = useState(
+    montantLibre ? String(montantLibre.suggeres[0] ?? montantLibre.minimum) : "",
+  );
+  const [pourboire, setPourboire] = useState("");
+
   const [codePromo, setCodePromo] = useState("");
   const [remise, setRemise] = useState<ApercuCode | null>(null);
   const [verifieEnCours, transitionCode] = useTransition();
@@ -128,6 +144,99 @@ export function ChoixPaiement({
         consomme, et qui peut donc refuser si quelqu'un a pris le dernier
         entre-temps. L'aperçu est une aide à la saisie, pas une promesse.
       */}
+      {montantLibre ? (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>
+            Combien veux-tu donner ?
+          </div>
+
+          {/*
+            Trois boutons avant le champ, et pas l'inverse : personne ne sait
+            quoi donner, et un champ vide se remplit surtout du montant le plus
+            bas. Les boutons ne remplacent pas la saisie — ils la préremplissent.
+          */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            {montantLibre.suggeres.map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMontant(String(m))}
+                style={{
+                  padding: "9px 15px",
+                  border: `2.5px solid ${ENCRE}`,
+                  borderRadius: 12,
+                  background: montant === String(m) ? JAUNE : "#FFFFFF",
+                  fontFamily: "inherit",
+                  fontSize: 13.5,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                {m.toLocaleString("fr-FR")} F
+              </button>
+            ))}
+          </div>
+
+          <input
+            name="montant"
+            value={montant}
+            onChange={(e) => setMontant(e.target.value)}
+            inputMode="numeric"
+            required
+            aria-label="Montant en francs"
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              border: `2.5px solid ${ENCRE}`,
+              borderRadius: 13,
+              background: "#FFFFFF",
+              fontFamily: "inherit",
+              fontSize: 15,
+              fontWeight: 700,
+            }}
+          />
+
+          <p style={{ fontSize: 12.5, opacity: 0.75, margin: "8px 0 0" }}>
+            {`Minimum ${montantLibre.minimum.toLocaleString("fr-FR")} F — en dessous, les frais dépassent ce qui reste au créateur.`}
+          </p>
+        </div>
+      ) : null}
+
+      {pourboiresOuverts ? (
+        <div>
+          <label
+            htmlFor="pourboire"
+            style={{ display: "block", fontSize: 13, fontWeight: 800, marginBottom: 10 }}
+          >
+            Ajouter un pourboire{" "}
+            <span style={{ opacity: 0.6, fontWeight: 600 }}>— si tu veux</span>
+          </label>
+
+          <input
+            id="pourboire"
+            name="pourboire"
+            value={pourboire}
+            onChange={(e) => setPourboire(e.target.value)}
+            inputMode="numeric"
+            placeholder="0"
+            style={{
+              width: 190,
+              padding: "12px 14px",
+              border: `2.5px solid ${ENCRE}`,
+              borderRadius: 13,
+              background: "#FFFFFF",
+              fontFamily: "inherit",
+              fontSize: 15,
+              fontWeight: 700,
+            }}
+          />
+
+          <p style={{ fontSize: 12.5, opacity: 0.75, margin: "8px 0 0" }}>
+            {"Il s'ajoute au prix et part au créateur, frais déduits comme le reste."}
+          </p>
+        </div>
+      ) : null}
+
       {champs.length > 0 ? (
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>

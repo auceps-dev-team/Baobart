@@ -93,6 +93,10 @@ export async function encaisserLigne(input: EncaissementInput) {
       affiliateBasisPoints,
       sellerBearsAffiliateFee,
       taxAmount,
+      // Le pourboire entre dans le brut, une fois — il se donne à la commande,
+      // pas à l'exemplaire. Il supporte les mêmes frais que le reste : il
+      // emprunte le même rail de paiement, qui coûte le même pourcentage.
+      tipAmount: ligne.tipAmount,
     });
 
     // Un produit gratuit est livré sans encaissement : la ligne aboutit, mais
@@ -189,7 +193,20 @@ export async function rembourserLigne(input: {
       throw new RemboursementInterditError(orderItemId, ligne.state);
     }
 
-    const encaisse = ligne.price * ligne.quantity;
+    // ══════════════════════════════════════════════════════════════════════
+    // LE POURBOIRE SE REMBOURSE COMME LE RESTE
+    //
+    // Il aurait été plus simple de le laisser dehors : un pourboire est un
+    // geste, et on pourrait défendre qu'il ne se reprend pas.
+    //
+    // Mais du point de vue de qui demande son argent, c'est indéfendable :
+    // on lui rendrait tout sauf ce qu'il a donné en plus par bonne volonté,
+    // et personne ne comprendrait que la générosité soit la seule chose non
+    // remboursable. Le plafond de remboursement est donc la somme des deux.
+    //
+    // La ligne vaut pour toutes les ventes passées : `tipAmount` vaut zéro
+    // par défaut, l'expression est identique pour elles.
+    const encaisse = ligne.price * ligne.quantity + ligne.tipAmount;
     const dejaRembourse = ligne.refundedAmount;
     if (dejaRembourse + amount > encaisse) {
       throw new RangeError(

@@ -57,6 +57,10 @@ export async function acheterRessource(
     // Le préfixe `champ:` isole ce qui vient des champs personnalisés, et la
     // clé qui suit est l'identifiant du champ — que `validerLesReponses`
     // confronte à ce que la ressource déclare vraiment.
+    // Bruts : `retenirLeMontant` les relit, les borne et décide. Rien de ce
+    // qui vient d'ici n'est employé tel quel — voir son en-tête.
+    montant: String(donnees?.get("montant") ?? "") || null,
+    pourboire: String(donnees?.get("pourboire") ?? "") || null,
     champs: Object.fromEntries(
       [...(donnees?.entries() ?? [])]
         .filter(([cle]) => cle.startsWith("champ:"))

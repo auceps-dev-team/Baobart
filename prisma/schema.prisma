@@ -149,6 +149,25 @@ enum WorkItemStatus {
 }
 
 // État de la SESSION de paiement (le panier), pas de l'argent.
+/// Comment le prix d'une ressource se decide.
+///
+/// ============================================================================
+/// DEUX LIGNES DE LA MATRICE, UN SEUL MECANISME
+///
+/// « Pourboires » et « produits coffee » (§3.4-B et §3.4-D) demandent la meme
+/// chose : que l'acheteur choisisse le montant. Les traiter separement aurait
+/// donne deux chemins d'encaissement paralleles a tenir en phase.
+///
+/// `LIBRE` couvre le produit « coffee » — soutiens l'auteur, choisis combien.
+/// Le pourboire, lui, s'ajoute a un prix fixe : c'est `Product.tipsEnabled`
+/// et `OrderItem.tipAmount`, sur le meme calcul de frais.
+enum PricingMode {
+  /// Le createur fixe le prix. Comportement de toutes les ressources jusqu'ici.
+  FIXED
+  /// L'acheteur choisit, au-dessus d'un plancher.
+  LIBRE
+}
+
 enum OrderStatus {
   IN_PROGRESS
   COMPLETED
@@ -1181,6 +1200,36 @@ model Product {
   currency      Currency       @default(XOF)
   licenseTypeId String?
 
+  // ── Montant choisi par l'acheteur (§3.4-B, §3.4-D) ──────────────────────
+
+  /// `FIXED` par defaut : rien ne change pour les ressources existantes.
+  pricingMode PricingMode @default(FIXED)
+
+  /// Le plancher en `LIBRE`. `price` sert alors de montant suggere.
+  ///
+  /// ==========================================================================
+  /// POURQUOI GARDER `price` EN PLUS
+  ///
+  /// Tout le reste du site lit `price` : la mosaique, le fil, la recherche, le
+  /// tri par prix. Le vider en `LIBRE` ferait afficher « gratuit » sur une
+  /// ressource payante — et `acheter` refuse justement le prix zero.
+  ///
+  /// `price` reste donc le montant propose, et `minPrice` le minimum accepte.
+  minPrice Int?
+
+  /// Montants proposes en un clic. `[500, 1000, 2500]`.
+  ///
+  /// Trois boutons valent mieux qu'un champ vide : personne ne sait quoi
+  /// donner, et un champ vide se remplit surtout du montant le plus bas.
+  suggestedPrices Json @default("[]")
+
+  /// Le createur invite-t-il un pourboire au moment de payer ?
+  ///
+  /// Faux par defaut, et c'est deliberement un choix et non une constante :
+  /// afficher un champ de pourboire sur toutes les fiches ajouterait une
+  /// question a chaque achat, y compris la ou elle n'a pas de sens.
+  tipsEnabled Boolean @default(false)
+
   // découverte
   isStaffPicked          Boolean   @default(false) // sélection éditoriale §3.10-A
   staffPickedAt          DateTime?
@@ -1322,6 +1371,22 @@ model OrderItem {
   /// Le code employe. Scalaire, comme `OfferCode.sellerId` — voir l'audit du
   /// 28 aout sur les cles etrangeres scalaires de ce bloc.
   offerCodeId  String?
+
+  /// Le pourboire ajoute par l'acheteur, en plus du prix.
+  ///
+  /// ==========================================================================
+  /// A COTE DE `price`, PAS DEDANS
+  ///
+  /// Chaque colonne dit une chose et une seule : `price` est ce qu'a coute la
+  /// ressource, `tipAmount` ce qu'on a donne en plus. Les additionner dans
+  /// `price` rendrait impossible de repondre a « combien mes acheteurs
+  /// donnent-ils ? », qui est toute la raison d'offrir le pourboire.
+  ///
+  /// Les frais sont calcules sur la somme des deux — le pourboire emprunte le
+  /// meme rail de paiement, qui coute le meme pourcentage. Et le remboursement
+  /// rend la somme des deux : rendre tout sauf le pourboire a quelqu'un qui
+  /// demande son argent serait indefendable.
+  tipAmount    Int  @default(0)
 
   /// Ce que l'acheteur a repondu aux champs personnalises du vendeur.
   ///
