@@ -75,6 +75,26 @@ export async function autoriserTelechargement(
       };
     }
 
+    // Une ressource sous retrait juridique n'est plus servie non plus, et pour
+    // la même raison que le fichier supprimé ci-dessus : « retirer » ne peut
+    // pas vouloir dire « invisible sur la vitrine, toujours livrable ».
+    //
+    // Ce contrôle manquait, et il n'aurait rien cassé de le laisser manquer :
+    // la fiche 404, le fil ne la montre plus, et seul quelqu'un qui possède
+    // déjà l'identifiant du fichier pouvait encore le tirer. C'est-à-dire tous
+    // ceux qui l'ont acheté — précisément les gens à qui le contenu litigieux
+    // continuait d'être distribué.
+    //
+    // Ce qui n'est pas repris : ce qui a déjà été téléchargé. Aucun retrait ne
+    // peut l'atteindre, et prétendre le contraire serait faux.
+    if (fichier.product.status === "SUSPENDED") {
+      return {
+        decision: { autorise: false, raison: "RETRAIT_JURIDIQUE" } as const,
+        dureeUrlSecondes: null,
+        fichier: null,
+      };
+    }
+
     // 1. Une ressource offerte se retire sans commande — voir `SourceAcces`.
     if (fichier.product.price === 0) {
       const decision = decideAcces({

@@ -3,8 +3,13 @@ import { redirect } from "next/navigation";
 
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { LIBELLE_STATUT } from "@/lib/dashboard/lectures";
 import { db } from "@/lib/db";
-import type { Currency, ProductFamily } from "@/lib/domain/prisma-types";
+import type {
+  Currency,
+  ProductFamily,
+  ProductStatus,
+} from "@/lib/domain/prisma-types";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
 
 export const metadata = { title: "Produits — Baobart." };
@@ -20,7 +25,7 @@ export default async function MesProduitsPage() {
   const produits: Array<{
     id: string;
     name: string;
-    status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    status: ProductStatus;
     price: number;
     currency: Currency;
     family: ProductFamily | null;
@@ -146,7 +151,7 @@ export default async function MesProduitsPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {p.status === "PUBLISHED" ? "En ligne" : "Brouillon"}
+                {LIBELLE_STATUT[p.status]}
               </span>
 
               <span style={{ flex: "1 1 auto", minWidth: 0 }}>

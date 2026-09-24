@@ -106,6 +106,14 @@ export type RefusAcces =
   | "LITIGE"
   /** Accès coupé à la main par le vendeur. */
   | "ACCES_RETIRE"
+  /**
+   * Ressource retirée par la plateforme sur notification juridique.
+   *
+   * Distinct d'`ACCES_RETIRE`, qui est un geste du vendeur : ici le vendeur
+   * n'y peut rien, et le message doit envoyer la personne vers le dossier, pas
+   * vers lui.
+   */
+  | "RETRAIT_JURIDIQUE"
   | "ABONNEMENT_INACTIF"
   | "ACCES_EXPIRE"
   | "QUOTA_EPUISE";

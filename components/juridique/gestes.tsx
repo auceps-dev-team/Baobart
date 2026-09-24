@@ -7,7 +7,7 @@ import {
   trancherLeDossier,
   type EtatGeste,
 } from "@/lib/juridique/actions";
-import { BLANC, CADRE, ENCRE, GRIS, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 /**
  * Trancher un dossier juridique.
@@ -48,6 +48,7 @@ const BOUTON: React.CSSProperties = {
 export function RetirerProvisoirement({ reference }: { reference: string }) {
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const [avis, setAvis] = useState<string | null>(null);
 
   return (
     <div>
@@ -56,9 +57,11 @@ export function RetirerProvisoirement({ reference }: { reference: string }) {
         disabled={enCours}
         onClick={() => {
           setErreur(null);
+          setAvis(null);
           demarrer(async () => {
             const suite = await retirerLeContenu(reference);
-            if (!suite.ok) setErreur(suite.message);
+            if (suite.ok) setAvis(suite.avis ?? null);
+            else setErreur(suite.message);
           });
         }}
         className="sticker-press"
@@ -68,6 +71,32 @@ export function RetirerProvisoirement({ reference }: { reference: string }) {
       </button>
 
       {erreur ? <Erreur>{erreur}</Erreur> : null}
+
+      {/*
+        Le geste a réussi, et il n'a pas tout atteint. Ce n'est pas une erreur
+        — un dossier peut viser un message de forum — mais le taire ferait lire
+        « retiré » à l'identique qu'on ait retiré trois ressources ou zéro.
+
+        `pre-wrap` parce que chaque adresse est sur sa ligne : les recoller en
+        paragraphe obligerait le modérateur à les découper à l'œil pour les
+        comparer au dossier.
+      */}
+      {avis ? (
+        <p
+          style={{
+            marginTop: 12,
+            padding: "10px 12px",
+            border: CADRE,
+            borderRadius: 12,
+            background: JAUNE,
+            fontSize: 13,
+            lineHeight: 1.5,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {avis}
+        </p>
+      ) : null}
     </div>
   );
 }

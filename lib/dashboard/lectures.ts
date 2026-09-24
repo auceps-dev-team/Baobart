@@ -10,9 +10,41 @@ import "server-only";
  */
 
 import { db } from "@/lib/db";
-import type { Currency, ProductFamily } from "@/lib/domain/prisma-types";
+import type {
+  Currency,
+  ProductFamily,
+  ProductStatus,
+} from "@/lib/domain/prisma-types";
 
-export type ProductStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+// Ré-exporté, jamais recopié : la copie qui vivait ici a manqué `SUSPENDED`,
+// et c'est le typecheck qui l'a signalé — pas le test du miroir, qui ne
+// regarde que `prisma-types.ts`.
+export type { ProductStatus };
+
+/**
+ * Ce que le créateur lit sur sa fiche.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * UN `Record` EXHAUSTIF, PAS UN TERNAIRE
+ *
+ * Trois écrans écrivaient `status === "PUBLISHED" ? "En ligne" : "Brouillon"`.
+ * Tant qu'il n'y avait que trois états, `ARCHIVED` s'affichait « Brouillon » —
+ * inexact, sans conséquence. Avec `SUSPENDED`, la même ligne dit à un créateur
+ * dont la ressource est sous retrait juridique qu'elle est en brouillon : il
+ * clique « publier », et se fait renvoyer par une garde qu'il ne comprend pas.
+ *
+ * Un `Record<ProductStatus, string>` ne compile pas tant qu'un état n'a pas de
+ * libellé. C'est le seul dispositif ici qui rende l'oubli impossible plutôt
+ * qu'improbable.
+ */
+export const LIBELLE_STATUT: Record<ProductStatus, string> = {
+  DRAFT: "Brouillon",
+  PUBLISHED: "En ligne",
+  ARCHIVED: "Archivée",
+  // Court, parce qu'il s'affiche dans une pastille. Le détail — quelle
+  // notification, depuis quand — est sur la fiche.
+  SUSPENDED: "Retirée (juridique)",
+};
 export type OrderStatus = "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
 export type PurchaseState = "IN_PROGRESS" | "SUCCESSFUL" | "FAILED" | "NOT_CHARGED";
 

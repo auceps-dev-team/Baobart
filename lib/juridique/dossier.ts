@@ -7,6 +7,12 @@ import { journal } from "@/lib/observabilite/journal";
 import { urlDuSite } from "@/lib/config/site";
 
 import {
+  retablirLesProduits,
+  suspendreLesProduits,
+  type BilanRetrait,
+} from "@/lib/juridique/retrait";
+
+import {
   exigencesManquantes,
   validerNotification,
   type Manque,
@@ -46,10 +52,33 @@ import {
  * ════════════════════════════════════════════════════════════════════════════
  * LE RETRAIT EST PROVISOIRE, ET LE MOT EST TENU
  *
- * `RETRAIT_PROVISOIRE` ne supprime rien. C'est un état du dossier ; le contenu
- * lui-même est masqué par la modération, et revient si la notification ne
- * tient pas. Supprimer tout de suite ferait de « provisoire » un mensonge, et
- * rendrait la restauration impossible.
+ * `RETRAIT_PROVISOIRE` ne supprime rien. C'est un état du dossier ; les
+ * ressources visées passent en `SUSPENDED` et reviennent à l'état qu'elles
+ * avaient si la notification ne tient pas — voir `lib/juridique/retrait.ts`.
+ * Supprimer tout de suite ferait de « provisoire » un mensonge, et rendrait la
+ * restauration impossible.
+ *
+ * ⚠️ CORRECTION DU 24 SEPTEMBRE 2026 — ce paragraphe était faux.
+ *
+ * Il disait « le contenu lui-même est masqué par la modération ». C'était vrai
+ * pour le forum (`retirerParLaPlateforme`), le blog et les événements. Ça ne
+ * l'était pas pour les **produits** — c'est-à-dire pour ce qu'une notification
+ * pour marque ou image volée vise réellement.
+ *
+ * Mesuré ce jour-là : `lib/juridique/` ne référençait `Product` nulle part, et
+ * hors de ce dossier personne ne lisait `legalNotice`. Le geste changeait
+ * l'état, écrivait « contenu.retirer » au journal, et envoyait à l'auteur « un
+ * de tes contenus a été retiré ». La ressource restait `PUBLISHED`, dans le
+ * fil, et achetable.
+ *
+ * Trois écrans disaient vrai sur le dossier et faux sur le monde, sans qu'une
+ * seule erreur soit levée. C'est la forme la plus coûteuse du défaut
+ * silencieux : elle porte sur une obligation légale (art. 46), et elle se lit
+ * comme une conformité.
+ *
+ * L'affirmation tenait depuis des mois parce qu'elle parlait d'un AUTRE
+ * module et qu'aucun test ne l'y vérifiait. Elle en a un maintenant —
+ * `retrait.integration.test.ts`.
  */
 
 // ════════════════════════════════════════════════════════════ les engagements ══
@@ -193,7 +222,7 @@ export async function completer(input: {
 export async function retirerProvisoirement(input: {
   reference: string;
   parId: string;
-}): Promise<Suite<{ avisEnvoye: boolean }>> {
+}): Promise<Suite<{ avisEnvoye: boolean; retrait: BilanRetrait }>> {
   const dossier = await db.legalNotice.findUnique({
     where: { reference: input.reference },
     select: {
@@ -202,6 +231,7 @@ export async function retirerProvisoirement(input: {
       reference: true,
       legalGrounds: true,
       targetUserId: true,
+      targetUrls: true,
     },
   });
 
@@ -213,27 +243,61 @@ export async function retirerProvisoirement(input: {
     maintenant.getTime() + ENGAGEMENTS.reponseJours * 86_400_000,
   );
 
-  // L'état d'avant est dans le `WHERE` : deux modérateurs qui cliquent en même
-  // temps ne doivent pas poser deux échéances différentes.
-  const ecrit = await db.legalNotice.updateMany({
-    where: { id: dossier.id, state: "RECUE" },
-    data: {
-      state: "RETRAIT_PROVISOIRE",
-      suspendedAt: maintenant,
-      replyDueAt: echeance,
-    },
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    L'ÉTAT ET LE RETRAIT DANS LA MÊME TRANSACTION
+
+    Ils étaient séparés — plus exactement, le retrait n'existait pas. Les
+    remettre côte à côte sans transaction rejouerait le même défaut sous une
+    autre forme : un dossier qui annonce un retrait qui a échoué, ou des
+    ressources retirées sans dossier qui l'explique, donc sans rien pour les
+    rendre.
+
+    L'état d'avant reste dans le `WHERE` : deux modérateurs qui cliquent en
+    même temps ne doivent pas poser deux échéances différentes.
+
+    Ce qui reste dehors — l'audit, l'avis — le reste volontairement. Une
+    notification qui échoue ne doit pas défaire un retrait légalement dû.
+  */
+  let retrait: BilanRetrait = { suspendus: [], nonResolues: [] };
+
+  const pose = await db.$transaction(async (tx) => {
+    const ecrit = await tx.legalNotice.updateMany({
+      where: { id: dossier.id, state: "RECUE" },
+      data: {
+        state: "RETRAIT_PROVISOIRE",
+        suspendedAt: maintenant,
+        replyDueAt: echeance,
+      },
+    });
+
+    if (ecrit.count !== 1) return false;
+
+    retrait = await suspendreLesProduits(tx, {
+      noticeId: dossier.id,
+      targetUrls: dossier.targetUrls,
+    });
+
+    return true;
   });
 
-  if (ecrit.count !== 1) return { ok: false, motif: "ETAT" };
+  if (!pose) return { ok: false, motif: "ETAT" };
 
   await consigner({
     acteurId: input.parId,
     action: "contenu.retirer",
     ressource: ressource("dossier-juridique", dossier.id),
-    details: { geste: "retrait provisoire", reference: dossier.reference },
+    details: {
+      geste: "retrait provisoire",
+      reference: dossier.reference,
+      // Ce que le geste a atteint, et ce qu'il a manqué. Un journal qui dit
+      // « retrait » sans dire « de quoi » ne se relit pas six mois plus tard.
+      retirees: retrait.suspendus,
+      nonResolues: retrait.nonResolues,
+    },
   });
 
-  if (!dossier.targetUserId) return { ok: true, avisEnvoye: false };
+  if (!dossier.targetUserId) return { ok: true, avisEnvoye: false, retrait };
 
   const base = urlDuSite();
   await notifier({
@@ -251,7 +315,7 @@ export async function retirerProvisoirement(input: {
     },
   });
 
-  return { ok: true, avisEnvoye: true };
+  return { ok: true, avisEnvoye: true, retrait };
 }
 
 /**
@@ -331,23 +395,50 @@ export async function trancher(input: {
   const tranchables: string[] = ["RECUE", "INCOMPLETE", "RETRAIT_PROVISOIRE", "CONTESTEE"];
   if (!tranchables.includes(dossier.state)) return { ok: false, motif: "ETAT" };
 
-  const ecrit = await db.legalNotice.updateMany({
-    where: { id: dossier.id, state: dossier.state },
-    data: {
-      state: input.sens,
-      decidedById: input.parId,
-      decidedAt: new Date(),
-      decisionReason: motif,
-    },
+  /*
+    ──────────────────────────────────────────────────────────────────────────
+    DEUX SENS SUR TROIS RENDENT LE CONTENU
+
+    `RESTAUREE` le dit ; `CLASSEE` aussi, même si son nom ne le crie pas — un
+    classement sans suite est l'abandon de la notification, et laisser le
+    contenu retiré ferait de ce classement une décision contre l'auteur.
+
+    `RETIREE` seul laisse la suspension courir. Elle n'est pas « oubliée » :
+    la ligne reste ouverte dans `LegalSuspension`, ce qui empêche une autre
+    levée de remettre la ressource en ligne par erreur.
+
+    On rend l'état d'avant, jamais `PUBLISHED` par défaut : une ressource en
+    brouillon au moment du retrait serait autrement publiée par sa
+    restauration, sans que son auteur l'ait demandé.
+  */
+  const rendu = await db.$transaction(async (tx) => {
+    const ecrit = await tx.legalNotice.updateMany({
+      where: { id: dossier.id, state: dossier.state },
+      data: {
+        state: input.sens,
+        decidedById: input.parId,
+        decidedAt: new Date(),
+        decisionReason: motif,
+      },
+    });
+
+    if (ecrit.count !== 1) return null;
+
+    return input.sens === "RETIREE" ? [] : await retablirLesProduits(tx, dossier.id);
   });
 
-  if (ecrit.count !== 1) return { ok: false, motif: "ETAT" };
+  if (rendu === null) return { ok: false, motif: "ETAT" };
 
   await consigner({
     acteurId: input.parId,
     action: input.sens === "RESTAUREE" ? "contenu.publier" : "contenu.retirer",
     ressource: ressource("dossier-juridique", dossier.id),
-    details: { geste: LIBELLE_SENS[input.sens], reference: dossier.reference, motif },
+    details: {
+      geste: LIBELLE_SENS[input.sens],
+      reference: dossier.reference,
+      motif,
+      remisesEnLigne: rendu,
+    },
   });
 
   return { ok: true };

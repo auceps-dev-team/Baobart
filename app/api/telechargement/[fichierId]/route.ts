@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { RefusAcces } from "@/lib/domain/delivery";
 
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -19,8 +20,14 @@ import { signerTelechargement, stockageConfigure } from "@/lib/upload/storage";
  * l'abonné.
  */
 
-/** Ce que la personne peut corriger, dit dans ses mots. */
-const MESSAGES: Record<string, string> = {
+/**
+ * Ce que la personne peut corriger, dit dans ses mots.
+ *
+ * Typé sur `RefusAcces` et non sur `string` : un motif ajouté sans message
+ * tomberait autrement dans le texte par défaut, qui ne dit rien d'utile — et
+ * personne ne s'en apercevrait avant de lire un rapport d'incident.
+ */
+const MESSAGES: Record<RefusAcces, string> = {
   COMMANDE_NON_PAYEE:
     "Cette ressource n'est pas dans tes achats. Achète-la pour la télécharger.",
   REMBOURSE:
@@ -29,6 +36,8 @@ const MESSAGES: Record<string, string> = {
     "Le paiement de cette commande est contesté. L'accès reprendra si la contestation est levée.",
   ACCES_RETIRE:
     "L'accès à cette ressource a été retiré par son créateur. Écris-lui si tu penses que c'est une erreur.",
+  RETRAIT_JURIDIQUE:
+    "Cette ressource fait l'objet d'une notification juridique et n'est plus distribuée le temps que le dossier soit tranché. Son créateur n'y peut rien.",
   ABONNEMENT_INACTIF:
     "Ton abonnement n'est plus actif. Renouvelle-le pour reprendre tes téléchargements.",
   ACCES_EXPIRE: "Ton accès à cette ressource est arrivé à terme.",

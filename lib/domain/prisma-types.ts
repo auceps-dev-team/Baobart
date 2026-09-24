@@ -38,6 +38,15 @@ export type ProductFamily =
   | "AUDIO"
   | "VIDEO";
 
+/**
+ * L'état d'une ressource.
+ *
+ * `SUSPENDED` est un retrait juridique (loi 2013-451, art. 46) : il se
+ * distingue d'`ARCHIVED`, que le créateur pose lui-même, parce que lui seul ne
+ * peut pas le lever. Voir `lib/juridique/retrait.ts`.
+ */
+export type ProductStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED" | "SUSPENDED";
+
 export type LicenseCode = "PERSONAL" | "COMMERCIAL" | "EXTENDED";
 
 export type BalanceTransactionType =

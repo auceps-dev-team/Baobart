@@ -186,8 +186,19 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
       // achetés, et un `OrderItem` les désigne. Les supprimer effacerait ce
       // que des gens ont payé. On les dépublie — invisibles, mais toujours
       // téléchargeables par qui les a acquis.
+      //
+      // `SUSPENDED` est laissé tel quel : c'est un retrait juridique, et
+      // l'archiver le remplacerait par un état que le créateur peut, lui,
+      // avoir posé. La ressource resterait invisible — donc rien ne
+      // planterait — mais `retablirLesProduits` ne retrouverait plus rien à
+      // rendre le jour où le dossier tombe, et la restauration ne ferait
+      // silencieusement rien. L'effacement cache déjà ce qu'il doit cacher :
+      // SUSPENDED n'est pas PUBLISHED, la ressource est hors du fil.
       const produits = await tx.product.updateMany({
-        where: { sellerId: userId, status: { not: "ARCHIVED" } },
+        where: {
+          sellerId: userId,
+          status: { notIn: ["ARCHIVED", "SUSPENDED"] },
+        },
         data: { status: "ARCHIVED" },
       });
       if (produits.count > 0) supprimees["product (archivés)"] = produits.count;

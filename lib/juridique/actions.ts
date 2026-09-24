@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { sessionCourante } from "@/lib/auth/session";
 import type { Manque, Qualite, Saisie } from "@/lib/juridique/article47";
+import type { BilanRetrait } from "@/lib/juridique/retrait";
 import { verifierLimiteAction } from "@/lib/securite/garde";
 import {
   MESSAGES_ECHEC,
@@ -55,7 +56,17 @@ export type EtatDepot =
   | { ok: true; reference: string; complete: false; manques: Manque[] }
   | { ok: false; message: string };
 
-export type EtatGeste = { ok: true } | { ok: false; message: string };
+/**
+ * Le geste a-t-il abouti, et qu'a-t-il atteint.
+ *
+ * `avis` n'est pas une erreur : le geste a réussi. Il porte ce que le retrait
+ * n'a PAS touché — une adresse qui ne désigne aucune ressource, ou un dossier
+ * qui n'en désignait aucune du tout. Sans lui, « retiré » s'afficherait à
+ * l'identique qu'on ait retiré trois ressources ou zéro.
+ */
+export type EtatGeste =
+  | { ok: true; avis?: string }
+  | { ok: false; message: string };
 
 // ════════════════════════════════════════════════════════════════════ dépôt ══
 
@@ -104,7 +115,39 @@ export async function retirerLeContenu(reference: string): Promise<EtatGeste> {
   if (!suite.ok) return { ok: false, message: MESSAGES_ECHEC[suite.motif] };
 
   revalidatePath("/dashboard/signalements");
-  return { ok: true };
+
+  // Les fiches retirées, et la liste où elles apparaissaient. Sans ça, la
+  // ressource sort de la base et reste dans le cache de la page — un retrait
+  // qui a eu lieu et qu'on continue de voir.
+  for (const slug of suite.retrait.suspendus) {
+    revalidatePath(`/products/${slug}`);
+  }
+  if (suite.retrait.suspendus.length > 0) revalidatePath("/explore");
+
+  return { ok: true, avis: avisDeRetrait(suite.retrait) };
+}
+
+/**
+ * Ce que le modérateur doit lire après avoir cliqué.
+ *
+ * Rien à dire quand tout a été atteint — un message systématique se lit sans
+ * être lu, et celui-ci doit se remarquer. Le cas qui compte est « zéro
+ * ressource retirée » : le dossier passe en retrait provisoire, l'auteur
+ * reçoit « un de tes contenus a été retiré », et rien n'a bougé.
+ */
+function avisDeRetrait(retrait: BilanRetrait): string | undefined {
+  if (retrait.nonResolues.length === 0) return undefined;
+
+  const debut =
+    retrait.suspendus.length === 0
+      ? "Aucune ressource retirée."
+      : `${retrait.suspendus.length} ressource(s) retirée(s).`;
+
+  return (
+    `${debut} Ces adresses ne désignent aucune ressource de Baobart — ` +
+    `elles visent peut-être un message de forum ou un article, à traiter ` +
+    `ailleurs :\n${retrait.nonResolues.join("\n")}`
+  );
 }
 
 export async function trancherLeDossier(

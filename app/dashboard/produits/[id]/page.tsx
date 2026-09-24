@@ -5,7 +5,9 @@ import { FileUploader } from "@/components/dashboard/file-uploader";
 import { FormulaireProduit } from "@/components/dashboard/product-form";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { LIBELLE_STATUT } from "@/lib/dashboard/lectures";
 import { db } from "@/lib/db";
+import { dossiersQuiRetiennent } from "@/lib/juridique/retrait";
 import { LIBELLE_PAR_FAMILLE } from "@/lib/feed/types";
 import { formatPrice } from "@/lib/i18n/money";
 import { extensionDe, formatPoids } from "@/lib/upload/formats";
@@ -73,6 +75,10 @@ const MESSAGES_ERREUR: Record<string, string> = {
     "Cette ressource a déjà été vendue : elle ne peut plus être supprimée. Retire-la de la vente — les acheteurs gardent ce qu'ils ont payé.",
   "sans-fichier":
     "Attache au moins un fichier avant de publier : sans lui, un acheteur paierait sans rien recevoir.",
+  // La garde de `lib/products/actions.ts`. Sans ce message, le clic échouerait
+  // sans un mot, et l'auteur croirait à une panne.
+  "retrait-juridique":
+    "Cette ressource fait l'objet d'une notification juridique : tu ne peux ni la publier, ni la modifier, ni la supprimer tant que le dossier n'est pas tranché. Le détail est dans « Mes dossiers ».",
 };
 
 export default async function ProduitDuTableauDeBord({
@@ -138,6 +144,11 @@ export default async function ProduitDuTableauDeBord({
   const fichiersApercu = produit.files.filter((f) => f.role === "PREVIEW");
 
   const enLigne = produit.status === "PUBLISHED";
+  const retiree = produit.status === "SUSPENDED";
+
+  // Une seule requête, et seulement quand elle sert : la fiche d'une ressource
+  // qui n'est pas retirée n'a aucune raison d'interroger les dossiers.
+  const retenues = retiree ? await dossiersQuiRetiennent(produit.id) : [];
   const dejaVendue = produit._count.orderItems > 0;
   const sansFichier = fichiersSources.length === 0;
 
@@ -215,15 +226,47 @@ export default async function ProduitDuTableauDeBord({
             padding: "6px 12px",
             border: `2px solid ${ENCRE}`,
             borderRadius: 999,
-            background: enLigne ? JAUNE : BLANC,
+            background: retiree ? ORANGE : enLigne ? JAUNE : BLANC,
+            color: retiree ? BLANC : ENCRE,
             fontFamily: "var(--font-mono)",
             fontSize: 11,
             textTransform: "uppercase",
             letterSpacing: ".1em",
           }}
         >
-          {enLigne ? "En ligne" : "Brouillon"}
+          {LIBELLE_STATUT[produit.status]}
         </div>
+
+        {/*
+          Quel dossier la retient, et depuis quand.
+
+          Une pastille « retirée » sans référence laisserait l'auteur sans rien
+          à citer : il écrirait au support pour demander ce que la page aurait
+          pu lui dire. La référence est celle qu'il retrouvera dans « Mes
+          dossiers » et dans toute correspondance.
+        */}
+        {retenues.length > 0 ? (
+          <div
+            style={{
+              marginTop: 14,
+              maxWidth: 640,
+              padding: "13px 15px",
+              border: CADRE,
+              borderRadius: 14,
+              background: BLANC,
+              fontSize: 13,
+              lineHeight: 1.55,
+            }}
+          >
+            <strong>Retrait à titre provisoire.</strong>{" "}
+            {retenues.length === 1
+              ? `Dossier ${retenues[0]!.reference}, ouvert le ${retenues[0]!.suspendedAt.toLocaleDateString("fr-FR")}.`
+              : `${retenues.length} dossiers : ${retenues.map((r) => r.reference).join(", ")}.`}{" "}
+            <Link href="/dashboard/mes-dossiers" style={{ fontWeight: 700 }}>
+              Répondre
+            </Link>
+          </div>
+        ) : null}
 
         <h1
           style={{

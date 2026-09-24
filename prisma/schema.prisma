@@ -140,6 +140,12 @@ enum ProductStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+
+  /// Retirée par la plateforme sur notification juridique (loi 2013-451,
+  /// art. 46). Distincte d'ARCHIVED, qui est un geste du créateur ou une
+  /// sanction de compte : lui seul ne peut pas la lever, et `LegalSuspension`
+  /// garde l'état à rendre si le dossier se solde par une remise en ligne.
+  SUSPENDED
 }
 
 enum WorkItemStatus {
@@ -483,16 +489,16 @@ model User {
   updatedAt   DateTime  @updatedAt
 
   // identité
-  profile        Profile?
-  billing        BillingInfo?
-  payoutAccounts PayoutAccount[]
-  accounts       Account[]
-  sessions       Session[]
-  passkeys       Passkey[]
+  profile           Profile?
+  billing           BillingInfo?
+  payoutAccounts    PayoutAccount[]
+  accounts          Account[]
+  sessions          Session[]
+  passkeys          Passkey[]
   totpRecoveryCodes TotpRecoveryCode[]
   totpChallenges    TotpChallenge[]
   deletionRequest   DeletionRequest?
-  passwordResets PasswordReset[]
+  passwordResets    PasswordReset[]
 
   // équipes multi-rôles (§3.10-B)
   memberships TeamMembership[] @relation("TeamMember")
@@ -903,18 +909,18 @@ model TotpChallenge {
 /// quelqu'un qui change d'avis le decouvrirait enferme dehors, avec un bouton
 /// d'annulation derriere une connexion qui ne marche plus.
 model DeletionRequest {
-  id          String    @id @default(cuid())
-  userId      String    @unique
+  id           String    @id @default(cuid())
+  userId       String    @unique
   /// Ce que la personne a ecrit, s'il y a lieu. Jamais exige.
-  reason      String?   @db.Text
+  reason       String?   @db.Text
   /// Quand l'effacement devient executable.
   executeAfter DateTime
   /// Pose a l'execution. La ligne reste : elle prouve que la demande a ete
   /// honoree, et c'est la seule trace qui subsiste du passage.
-  executedAt  DateTime?
+  executedAt   DateTime?
   /// Pose a l'annulation, par la personne elle-meme.
-  cancelledAt DateTime?
-  createdAt   DateTime  @default(now())
+  cancelledAt  DateTime?
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -922,24 +928,24 @@ model DeletionRequest {
 }
 
 model Passkey {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  credentialId String   @unique
-  publicKey    String   @db.Text
+  credentialId String    @unique
+  publicKey    String    @db.Text
   /// Compteur anti-rejeu de l'authentificateur.
   ///
   /// Il s'incremente a chaque usage. S'il RECULE, la cle a ete clonee — c'est
   /// le seul signal de clonage que la specification offre, et le refuser fait
   /// partie du contrat. Beaucoup d'authentificateurs modernes le laissent a
   /// zero en permanence ; on ne refuse donc que la regression stricte.
-  counter      Int      @default(0)
+  counter      Int       @default(0)
   label        String?
   /// Les moyens par lesquels l'authentificateur se joint : usb, nfc, ble,
   /// internal, hybrid. Gardes pour que le navigateur propose le bon geste au
   /// lieu de lister tout ce qu'il connait.
   transports   String?
   lastUsedAt   DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1283,6 +1289,9 @@ model Product {
   likes       Like[]
   comments    Comment[]
 
+  /// Les retraits juridiques qui la visent — voir LegalSuspension.
+  legalSuspensions LegalSuspension[]
+
   @@index([status, createdAt, id]) // curseur feed
   @@index([status, family, createdAt, id]) // curseur feed filtré par famille
   @@index([sellerId, status])
@@ -1374,7 +1383,7 @@ model OrderItem {
 
   // Décomposition BRUT → NET, figée au moment de la vente. Le net est ce qui
   // alimente le solde du vendeur : net = price × quantity − les quatre parts.
-  price        Int // prix unitaire encaissé
+  price Int // prix unitaire encaissé
 
   /// Le prix affiche avant remise, quand un code promo a joue.
   ///
@@ -1392,19 +1401,19 @@ model OrderItem {
   /// Nul quand aucun code n'a joue : on ne recopie pas `price` dans les deux
   /// colonnes, sinon « il y a une remise » et « il n'y en a pas » se lisent
   /// pareil.
-  listPrice    Int?
+  listPrice   Int?
   /// Le code employe. Scalaire, comme `OfferCode.sellerId` — voir l'audit du
   /// 28 aout sur les cles etrangeres scalaires de ce bloc.
-  offerCodeId  String?
+  offerCodeId String?
 
   /// Le pays declare par l'acheteur au moment de payer, et ce qu'il a change.
   ///
   /// Garde meme quand aucune reduction ne s'applique : c'est ce qui permet de
   /// savoir d'ou viennent les ventes, et de repondre plus tard a « la parite
   /// change-t-elle quelque chose ? » sans avoir a instrumenter apres coup.
-  buyerCountry String?
+  buyerCountry  String?
   /// Les points de base reellement appliques. 0 = prix inchange.
-  pppDiscountBp Int @default(0)
+  pppDiscountBp Int     @default(0)
 
   /// Le pourboire ajoute par l'acheteur, en plus du prix.
   ///
@@ -1420,7 +1429,7 @@ model OrderItem {
   /// meme rail de paiement, qui coute le meme pourcentage. Et le remboursement
   /// rend la somme des deux : rendre tout sauf le pourboire a quelqu'un qui
   /// demande son argent serait indefendable.
-  tipAmount    Int  @default(0)
+  tipAmount Int @default(0)
 
   /// Ce que l'acheteur a repondu aux champs personnalises du vendeur.
   ///
@@ -1436,10 +1445,10 @@ model OrderItem {
   /// reponse. Pas d'identifiant de champ : un champ supprime laisserait une
   /// reponse orpheline qu'on ne saurait plus nommer.
   customFields Json?
-  platformFee  Int @default(0) // commission Baobart (§2.4 — 10 % ou 20 %, non tranché)
-  processorFee Int @default(0) // mobile money / carte
-  affiliateFee Int @default(0) // part de l'affilié (§10.1)
-  taxAmount    Int @default(0)
+  platformFee  Int   @default(0) // commission Baobart (§2.4 — 10 % ou 20 %, non tranché)
+  processorFee Int   @default(0) // mobile money / carte
+  affiliateFee Int   @default(0) // part de l'affilié (§10.1)
+  taxAmount    Int   @default(0)
 
   /// Cumul remboursé, dénormalisé depuis Refund. Permet le remboursement
   /// PARTIEL, qu'un simple statut « remboursé » ne sait pas exprimer.
@@ -1663,18 +1672,18 @@ model MobileMoneyAccount {
 /// alors afficher un prix qui tient a Paris et rester abordable a Abidjan.
 /// C'est pour ce jour-la qu'il est ecrit, et la matrice le dit.
 model PppFactor {
-  id      String @id @default(cuid())
+  id         String   @id @default(cuid())
   /// Code ISO 3166-1 alpha-2, en majuscules.
-  country String @unique
+  country    String   @unique
   /// Le coefficient en points de base, relatif au pays de reference.
   ///
   /// 10 000 = prix inchange. 6 000 = l'acheteur paie 60 %. Au-dessus de
   /// 10 000, le prix monterait : `lib/commerce/ppp.ts` le refuse, parce
   /// qu'une « parite » qui renchérit n'est pas ce que le mot annonce.
-  factorBp Int
+  factorBp   Int
   /// D'ou vient ce nombre. Obligatoire : un coefficient sans source ne peut
   /// pas etre reverifie, et personne n'osera le corriger.
-  source  String
+  source     String
   /// Quand il a ete releve — pas quand la ligne a ete ecrite.
   measuredAt DateTime
   updatedAt  DateTime @updatedAt
@@ -3295,7 +3304,8 @@ model LegalNotice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  replies LegalNoticeReply[]
+  replies     LegalNoticeReply[]
+  suspensions LegalSuspension[]
 
   /// La file : « les dossiers qui attendent, le plus ancien d'abord ».
   @@index([state, notifiedAt])
@@ -3307,6 +3317,50 @@ model LegalNotice {
 /// Distincte du droit de réponse de l'article 6, qui vise autre chose — être
 /// nommé dans un service — et court sur trois mois. Celle-ci conteste le
 /// retrait lui-même.
+/// Ce qu'un dossier juridique a effectivement retiré, et comment le rendre.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// « PROVISOIRE » EST UNE PROMESSE, ET ELLE A BESOIN D'UNE MÉMOIRE
+///
+/// `RETRAIT_PROVISOIRE` annonce que le contenu reviendra si la notification
+/// ne tient pas. Le remettre en `PUBLISHED` par défaut trahirait la promesse
+/// dans un cas : une ressource qui était en brouillon au moment du retrait
+/// serait publiée par sa restauration, sans que son auteur l'ait demandé.
+///
+/// D'où `previousStatus` : on rend l'état qu'on a pris, pas l'état qu'on
+/// suppose.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// DEUX DOSSIERS PEUVENT VISER LE MÊME CONTENU
+///
+/// La ligne n'est pas supprimée à la levée, elle est datée (`liftedAt`). Deux
+/// notifications distinctes sur la même ressource posent deux lignes ; lever
+/// la première ne doit pas remettre en ligne ce que la seconde retient encore.
+/// C'est la raison d'être de l'index sur `[productId, liftedAt]`.
+model LegalSuspension {
+  id        String @id @default(cuid())
+  noticeId  String
+  productId String
+
+  /// L'état à rendre. Jamais SUSPENDED : quand un second dossier suspend une
+  /// ressource déjà suspendue, on recopie l'état d'origine plutôt que de
+  /// l'empiler — sinon la dernière levée la laisserait suspendue pour
+  /// toujours.
+  previousStatus ProductStatus
+
+  suspendedAt DateTime  @default(now())
+  /// Nul tant que la suspension court.
+  liftedAt    DateTime?
+
+  notice  LegalNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// Un dossier ne suspend une ressource qu'une fois.
+  @@unique([noticeId, productId])
+  /// « cette ressource est-elle encore retenue par un autre dossier ? »
+  @@index([productId, liftedAt])
+}
+
 model LegalNoticeReply {
   id       String @id @default(cuid())
   noticeId String

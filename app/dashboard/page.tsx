@@ -12,7 +12,11 @@ import {
 } from "@/components/dashboard/frame";
 import { deconnecter } from "@/lib/auth/actions";
 import { sessionCourante } from "@/lib/auth/session";
-import { lireProduitsCreateur, lireResumeDashboard } from "@/lib/dashboard/lectures";
+import {
+  LIBELLE_STATUT,
+  lireProduitsCreateur,
+  lireResumeDashboard,
+} from "@/lib/dashboard/lectures";
 import { messageProgression } from "@/lib/dashboard/nav";
 import { formatMoney } from "@/lib/i18n/money";
 
@@ -120,7 +124,7 @@ export default async function DashboardPage() {
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 14, fontWeight: 900 }}>{p.name}</span>
                     <span style={{ display: "block", fontSize: 11.5, opacity: 0.66 }}>
-                      {p.status === "PUBLISHED" ? "En ligne" : "Brouillon"} · {p._count.files} fichier{p._count.files > 1 ? "s" : ""}
+                      {LIBELLE_STATUT[p.status]} · {p._count.files} fichier{p._count.files > 1 ? "s" : ""}
                     </span>
                   </span>
                   <span style={{ fontSize: 18, fontWeight: 900 }}>›</span>

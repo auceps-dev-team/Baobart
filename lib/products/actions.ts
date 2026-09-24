@@ -186,6 +186,35 @@ async function ressourceDe(userId: string, produitId: string) {
   return produit && produit.sellerId === userId ? produit : null;
 }
 
+/**
+ * Une ressource sous retrait juridique n'obéit plus à son auteur.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * SANS CETTE GARDE, LE RETRAIT SE DÉFAIT EN UN CLIC
+ *
+ * `SUSPENDED` est posé par `lib/juridique/retrait.ts` sur notification (loi
+ * 2013-451). Les quatre gestes ci-dessous appartiennent au propriétaire, et
+ * trois d'entre eux annuleraient le retrait sans rien signaler :
+ *
+ *   publier      remet en ligne ce que la plateforme devait retirer ;
+ *   dépublier    passe en DRAFT, donc sort de SUSPENDED — et la restauration
+ *                du dossier ne retrouverait plus rien à rendre ;
+ *   modifier     laisse changer le contenu contesté pendant l'examen ;
+ *   supprimer    efface la pièce avant que le dossier soit tranché.
+ *
+ * Le dernier est le plus grave : le dossier reste ouvert, le notifiant attend,
+ * et l'objet du litige n'existe plus. La suppression en cascade emporterait
+ * même la ligne de `LegalSuspension`.
+ *
+ * On redirige plutôt qu'on ne lève : l'auteur n'a rien fait de mal en
+ * cliquant, et l'écran lui dit où lire le dossier.
+ */
+function refuserSiRetiree(produit: { id: string; status: string }): void {
+  if (produit.status === "SUSPENDED") {
+    redirect(`/dashboard/produits/${produit.id}?erreur=retrait-juridique`);
+  }
+}
+
 /** Ouvre la vitrine : le second geste, celui qui rend la ressource visible. */
 export async function publierRessource(produitId: string): Promise<void> {
   const utilisateur = await sessionCourante();
@@ -193,6 +222,7 @@ export async function publierRessource(produitId: string): Promise<void> {
 
   const produit = await ressourceDe(utilisateur.id, produitId);
   if (!produit) notFound();
+  refuserSiRetiree(produit);
 
   // Une ressource sans fichier est invendable : l'acheteur paierait et
   // n'aurait rien à télécharger. On refuse la publication plutôt que de la
@@ -223,6 +253,7 @@ export async function depublierRessource(produitId: string): Promise<void> {
 
   const produit = await ressourceDe(utilisateur.id, produitId);
   if (!produit) notFound();
+  refuserSiRetiree(produit);
 
   await db.product.update({
     where: { id: produit.id },
@@ -248,6 +279,7 @@ export async function supprimerRessource(produitId: string): Promise<void> {
 
   const produit = await ressourceDe(utilisateur.id, produitId);
   if (!produit) notFound();
+  refuserSiRetiree(produit);
 
   const ventes = await db.orderItem.count({ where: { productId: produit.id } });
   if (ventes > 0) {
@@ -302,6 +334,7 @@ export async function modifierRessource(
 
   const produit = await ressourceDe(utilisateur.id, produitId);
   if (!produit) notFound();
+  refuserSiRetiree(produit);
 
   const titre = String(donnees.get("titre") ?? "").trim();
   const familleLibelle = String(donnees.get("famille") ?? "");

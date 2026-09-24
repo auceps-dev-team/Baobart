@@ -48,40 +48,51 @@ function valeursDuMiroir(nom: string): string[] {
 }
 
 /**
- * Les enums que le miroir prétend refléter.
+ * Les types que le miroir définit, lus dans le miroir.
  *
- * Ajouter une entrée ici quand on ajoute un type au miroir : c'est le seul
- * geste manuel qui reste, et il est visible.
+ * ────────────────────────────────────────────────────────────────────────────
+ * ELLE ÉTAIT UNE LISTE À LA MAIN, ET ELLE MENTAIT
+ *
+ * Mesuré le 24 septembre 2026 : la liste écrite ici annonçait huit types ; le
+ * miroir en définissait cinq, et le test en vérifiait **trois**. Les cinq
+ * autres — `PayoutStatus`, `ProductStatus`, `PurchaseState`, `OrderStatus`,
+ * `BalanceState` — étaient filtrés par un `try/catch` qui transformait
+ * « absent du miroir » en « pas vérifié », sans un mot. Et deux types que le
+ * miroir définit bel et bien, `ProductType` et `ProductFamily`, n'étaient pas
+ * dans la liste, donc pas vérifiés non plus.
+ *
+ * Un garde-fou contre la dérive d'une liste recopiée, désamorcé par une liste
+ * recopiée. Il a laissé passer exactement ce qu'il surveillait : `SUSPENDED`
+ * ajouté à `ProductStatus` au schéma, et la copie du tableau de bord restée à
+ * trois valeurs. C'est le typecheck qui l'a signalé, pas lui.
+ *
+ * Elle se lit donc dans le miroir. Il n'y a plus rien à tenir à jour, donc
+ * plus rien à oublier.
  */
-const REFLETES = [
-  "Currency",
-  "LicenseCode",
-  "BalanceTransactionType",
-  "PayoutStatus",
-  "ProductStatus",
-  "PurchaseState",
-  "OrderStatus",
-  "BalanceState",
-] as const;
+function typesDuMiroir(): string[] {
+  return [...MIROIR.matchAll(/^export type ([A-Za-z]+) =/gm)].map((m) => m[1]!);
+}
 
 describe("miroir des enums Prisma", () => {
-  const presentes = REFLETES.filter((nom) => {
-    try {
-      valeursDuMiroir(nom);
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const refletes = typesDuMiroir();
 
   it("reflète au moins les enums de l'argent", () => {
     // Si quelqu'un retire l'un de ces types du miroir, le test suivant ne
     // vérifierait plus rien sans que personne ne s'en aperçoive.
-    expect(presentes).toContain("BalanceTransactionType");
-    expect(presentes).toContain("Currency");
+    expect(refletes).toContain("BalanceTransactionType");
+    expect(refletes).toContain("Currency");
   });
 
-  it.each(presentes)("%s dit exactement ce que dit le schéma", (nom) => {
+  it("reflète tout ce que le miroir déclare, sans exception silencieuse", () => {
+    // Le nombre est écrit pour qu'un type retiré du miroir se voie. Il montera
+    // quand on en ajoutera un — et c'est le moment de vérifier que le schéma
+    // porte bien l'enum du même nom.
+    expect(refletes.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it.each(refletes)("%s dit exactement ce que dit le schéma", (nom) => {
+    // `valeursDuSchema` lève si l'enum n'existe pas : un type du miroir qui ne
+    // reflète rien est une faute, pas un cas à sauter.
     const attendues = valeursDuSchema(nom).sort();
     const copiees = valeursDuMiroir(nom).sort();
 
