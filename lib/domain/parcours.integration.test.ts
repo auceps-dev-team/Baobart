@@ -156,6 +156,21 @@ describe("encaissement d'une vente", () => {
     expect(await db.balance.count({ where: { userId: createur.id } })).toBe(0);
   });
 
+  it("compte la vente une fois, même encaissée deux fois", async () => {
+    // `salesCount` n'était écrit par aucun code : « 0 ventes » partout
+    // (mesuré le 25/09, Qualitytest S34).
+    const createur = await creerCreateur("-v18");
+    const acheteur = await creerCreateur("-a18");
+    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
+    const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
+
+    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await expect(encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" })).rejects.toThrow();
+
+    const relu = await db.product.findUniqueOrThrow({ where: { id: produit.id } });
+    expect(relu.salesCount).toBe(1);
+  });
+
   it("refuse d'encaisser deux fois la même ligne", async () => {
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);

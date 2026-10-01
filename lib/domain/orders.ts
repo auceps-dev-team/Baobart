@@ -129,6 +129,20 @@ export async function encaisserLigne(input: EncaissementInput) {
       );
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // LE COMPTEUR DE VENTES AVANCE ICI, ET NULLE PART AILLEURS
+    //
+    // `salesCount` était lu par les statistiques, le profil public et les
+    // cartes du fil — et écrit par aucun code : « 0 ventes » sur les 127
+    // ressources (mesuré le 25/09, Qualitytest S34). Il avance dans la même
+    // transaction que la transition ci-dessus, donc une fois par ligne, même
+    // sous deux rappels concurrents. Un remboursement ne le fait pas reculer :
+    // la vente a eu lieu, le remboursement se lit à part.
+    await tx.product.update({
+      where: { id: ligne.productId },
+      data: { salesCount: { increment: 1 } },
+    });
+
     const ligneEncaissee = await tx.orderItem.findUniqueOrThrow({
       where: { id: orderItemId },
     });
