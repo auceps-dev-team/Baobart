@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { soldeVersableJusqua } from "@/lib/domain/balances";
 import { autoriserTelechargement } from "@/lib/domain/downloads";
 import { encaisserLigne, rembourserLigne } from "@/lib/domain/orders";
+import { REGLAGES_PAR_DEFAUT } from "@/lib/ndank/cycle";
 
 const MO = 1024 * 1024;
 
@@ -418,6 +419,41 @@ describe("téléchargement", () => {
 
     const quotaApres = await db.downloadQuota.findFirstOrThrow({});
     expect(quotaApres.used).toBe(1);
+  });
+
+  it("tient la grâce promise après l'échéance, et pas au-delà", async () => {
+    // Mesuré le 25/09 (Qualitytest P8.7) : refusé dès le lendemain de
+    // l'échéance, pendant que la page du forfait promettait « accès maintenu
+    // jusqu'au » échéance + 7 jours.
+    const createur = await creerCreateur("-v13");
+    const { fichier } = await creerProduitAvecFichier(createur.id, 10_000);
+    const plan = await db.plan.upsert({
+      where: { code: "EXPLORER" },
+      update: { downloadsPerMonth: 20 },
+      create: { code: "EXPLORER", name: "Explorer", priceMonthly: 2_500, downloadsPerMonth: 20 },
+    });
+    const abonne = async (suffixe: string, echeanceIlYaJours: number) => {
+      const u = await creerCreateur(suffixe);
+      await db.subscription.create({
+        data: {
+          userId: u.id,
+          planId: plan.id,
+          status: "ACTIVE",
+          cycleEnd: new Date(Date.now() - echeanceIlYaJours * 86_400_000),
+        },
+      });
+      return u;
+    };
+
+    const enGrace = await abonne("-grace", 1);
+    expect(
+      (await autoriserTelechargement({ userId: enGrace.id, productFileId: fichier.id })).decision.autorise,
+    ).toBe(true);
+
+    const auDela = await abonne("-echu", REGLAGES_PAR_DEFAUT.graceJours + 1);
+    expect(
+      (await autoriserTelechargement({ userId: auDela.id, productFileId: fichier.id })).decision,
+    ).toEqual({ autorise: false, raison: "ABONNEMENT_INACTIF" });
   });
 
   it("livre une ressource offerte sans commande ni quota", async () => {

@@ -14,6 +14,7 @@ import { envoyerSms } from "@/lib/sms/pilotes";
 import { texteRelance } from "@/lib/sms/relance";
 import {
   REGLAGES_PAR_DEFAUT,
+  accesJusquA,
   ajouterJours,
   type Cadence,
   type Cycle,
@@ -65,13 +66,13 @@ import type {
  * abonnements existants garderaient l'ancienne sans qu'on le voie.
  */
 export function cycleDe(debut: Date, echeance: Date): Cycle {
-  const accesJusquA = ajouterJours(echeance, REGLAGES_PAR_DEFAUT.graceJours);
+  const acces = accesJusquA(echeance);
 
   return {
     debut,
     echeance,
-    accesJusquA,
-    repriseJusquA: ajouterJours(accesJusquA, REGLAGES_PAR_DEFAUT.repriseJours),
+    accesJusquA: acces,
+    repriseJusquA: ajouterJours(acces, REGLAGES_PAR_DEFAUT.repriseJours),
   };
 }
 

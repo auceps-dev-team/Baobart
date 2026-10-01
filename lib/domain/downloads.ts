@@ -14,6 +14,7 @@
 import type { ConsumptionType } from "@/lib/domain/delivery";
 
 import { estOfferte } from "@/lib/commerce/montant";
+import { accesJusquA } from "@/lib/ndank/cycle";
 import { db } from "@/lib/db";
 import {
   decideAcces,
@@ -208,7 +209,8 @@ export async function autoriserTelechargement(
       decision = decideAcces({
         source: "ABONNEMENT",
         achatAbouti: true,
-        abonnementActif: abonnement.cycleEnd.getTime() > now.getTime(),
+        // Grâce comprise : c'est ce que la page du forfait promet (P8.7).
+        abonnementActif: accesJusquA(abonnement.cycleEnd).getTime() > now.getTime(),
         dejaTelecharge: dejaTelecharge !== null,
         quota: quota ? { utilises: quota.used, limite: quota.limit } : null,
         now,

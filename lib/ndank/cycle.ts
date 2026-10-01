@@ -113,6 +113,18 @@ export interface Cycle {
 }
 
 /**
+ * Jusqu'à quand un abonnement donne accès : l'échéance, plus la grâce.
+ *
+ * Le seul calcul de la grâce. Le téléchargement s'arrêtait à l'échéance
+ * pendant que la page du forfait promettait « accès maintenu jusqu'au » —
+ * échéance + 7 jours, avec sa propre copie de la formule (mesuré le 25/09,
+ * Qualitytest P8.7 : refusé dès le lendemain de l'échéance).
+ */
+export function accesJusquA(echeance: Date, reglages: Reglages = REGLAGES_PAR_DEFAUT): Date {
+  return ajouterJours(echeance, reglages.graceJours);
+}
+
+/**
  * Le cycle qui commence quand un paiement est confirmé.
  *
  * L'accès va jusqu'à l'échéance **plus** la grâce : l'abonné garde son service
@@ -127,13 +139,13 @@ export function cycleApresPaiement(
 ): Cycle {
   const debut = jour(paiement);
   const echeance = ajouterJours(debut, JOURS_DE_CADENCE[cadence]);
-  const accesJusquA = ajouterJours(echeance, reglages.graceJours);
+  const acces = accesJusquA(echeance, reglages);
 
   return {
     debut,
     echeance,
-    accesJusquA,
-    repriseJusquA: ajouterJours(accesJusquA, reglages.repriseJours),
+    accesJusquA: acces,
+    repriseJusquA: ajouterJours(acces, reglages.repriseJours),
   };
 }
 

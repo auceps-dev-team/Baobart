@@ -7,7 +7,7 @@ import { DashboardFrame, DashboardPanel, EmptyState, ENCRE, JAUNE } from "@/comp
 import { sessionCourante } from "@/lib/auth/session";
 import { lireAbonnements, lirePlans } from "@/lib/dashboard/lectures";
 import { formatMoney } from "@/lib/i18n/money";
-import { REGLAGES_PAR_DEFAUT, ajouterJours } from "@/lib/ndank/cycle";
+import { REGLAGES_PAR_DEFAUT, accesJusquA as finDeLAcces } from "@/lib/ndank/cycle";
 import { relancesAnnoncees } from "@/lib/ndank/etats";
 import { clePubliqueVapid } from "@/lib/push/pilotes";
 
@@ -36,9 +36,7 @@ export default async function ForfaitPage() {
   // Les deux horloges de Ndank : l'échéance dit quand payer, l'accès dit
   // jusqu'à quand le service tient. Les confondre ferait croire à une coupure
   // le jour de l'échéance, alors qu'il reste la grâce.
-  const accesJusquA = actif
-    ? ajouterJours(actif.cycleEnd, REGLAGES_PAR_DEFAUT.graceJours)
-    : null;
+  const accesJusquA = actif ? finDeLAcces(actif.cycleEnd) : null;
 
   return (
     <DashboardFrame utilisateur={utilisateur} titre="Forfait & pass" description="Choisis ton niveau d'accès : découverte gratuite, quotas ou usage studio.">
