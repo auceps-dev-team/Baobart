@@ -13,6 +13,7 @@
 
 import type { ConsumptionType } from "@/lib/domain/delivery";
 
+import { estOfferte } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 import {
   decideAcces,
@@ -96,7 +97,7 @@ export async function autoriserTelechargement(
     }
 
     // 1. Une ressource offerte se retire sans commande — voir `SourceAcces`.
-    if (fichier.product.price === 0) {
+    if (estOfferte(fichier.product)) {
       const decision = decideAcces({
         source: "GRATUIT",
         achatAbouti: true,

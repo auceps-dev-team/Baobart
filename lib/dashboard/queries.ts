@@ -1,5 +1,6 @@
 import "server-only";
 
+import { estOfferte } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 import {
   debutDuMois,
@@ -198,6 +199,7 @@ export async function historiqueDesTelechargements(
       slug: true,
       name: true,
       price: true,
+      pricingMode: true,
       coverUrl: true,
       files: {
         where: { role: "SOURCE", deletedAt: null },
@@ -234,7 +236,7 @@ export async function historiqueDesTelechargements(
       // est le dernier retrait.
       dernierRetrait: e.consumedAt,
       repetitions: 1,
-      gratuite: produit.price === 0,
+      gratuite: estOfferte(produit),
       visuel: produit.coverUrl,
       fichierId: produit.files[0]?.id ?? null,
     });

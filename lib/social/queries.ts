@@ -1,5 +1,6 @@
 import "server-only";
 
+import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 
 /** Ce que la fiche doit savoir de la relation entre le visiteur et l'objet. */
@@ -161,6 +162,9 @@ export interface ElementSuivi {
   titre: string;
   auteur: string;
   prix: number;
+  /** Prix fixe à zéro (`estOfferte`). Un prix libre ne l'est jamais. */
+  offerte: boolean;
+  prixAffiche: string;
   coverUrl: string | null;
   aimeLe: Date;
 }
@@ -179,6 +183,9 @@ export async function elementsAimes(userId: string): Promise<ElementSuivi[]> {
           slug: true,
           name: true,
           price: true,
+          pricingMode: true,
+          minPrice: true,
+          currency: true,
           coverUrl: true,
           status: true,
           seller: {
@@ -200,6 +207,8 @@ export async function elementsAimes(userId: string): Promise<ElementSuivi[]> {
         l.product!.seller.profile?.username ??
         "Créateur Baobart",
       prix: l.product!.price,
+      offerte: estOfferte(l.product!),
+      prixAffiche: libelleDuPrix(l.product!),
       coverUrl: l.product!.coverUrl,
       aimeLe: l.createdAt,
     }));

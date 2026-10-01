@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
-import { formatPrice } from "@/lib/i18n/money";
 import { ilYA } from "@/lib/social/regles";
 import { elementsAimes } from "@/lib/social/queries";
 
@@ -20,14 +19,14 @@ export default async function ElementsSuivisPage() {
     cle: r.produitId,
     titre: r.titre,
     meta: `${r.auteur} · aimé ${ilYA(r.aimeLe)}`,
-    montant: formatPrice(r.prix),
-    etat: r.prix === 0 ? "OFFERTE" : "EN VENTE",
-    etatFond: r.prix === 0 ? "#C9A8F5" : undefined,
+    montant: r.prixAffiche,
+    etat: r.offerte ? "OFFERTE" : "EN VENTE",
+    etatFond: r.offerte ? "#C9A8F5" : undefined,
     visuel: r.coverUrl,
     action: { label: "Voir", href: `/products/${r.slug}` },
   }));
 
-  const offertes = aimes.filter((r) => r.prix === 0).length;
+  const offertes = aimes.filter((r) => r.offerte).length;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>

@@ -6,6 +6,7 @@ import type {
   ProductType,
 } from "@/lib/domain/prisma-types";
 
+import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 import {
   FAMILLE_PAR_LIBELLE,
@@ -38,6 +39,8 @@ type ProduitFeed = {
   type: ProductType;
   family: ProductFamily | null;
   price: number;
+  pricingMode: "FIXED" | "LIBRE";
+  minPrice: number | null;
   currency: Currency;
   coverUrl: string | null;
   /** L'extrait public, quand il existe. Sert d'aperçu de repli sur la carte. */
@@ -161,6 +164,8 @@ export async function listerFeed(
       type: true,
       family: true,
       price: true,
+      pricingMode: true,
+      minPrice: true,
       currency: true,
       coverUrl: true,
       previewUrl: true,
@@ -189,6 +194,8 @@ export async function listerFeed(
       famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
       price: p.price,
       currency: p.currency,
+      prixAffiche: libelleDuPrix(p),
+      offerte: estOfferte(p),
       coverUrl: p.coverUrl,
 
       extrait: extraitDe(p.previewUrl, p.previewKind),
@@ -221,6 +228,8 @@ export async function listerAlaUne(
       type: true,
       family: true,
       price: true,
+      pricingMode: true,
+      minPrice: true,
       currency: true,
       coverUrl: true,
       previewUrl: true,
@@ -245,6 +254,8 @@ export async function listerAlaUne(
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
     price: p.price,
     currency: p.currency,
+    prixAffiche: libelleDuPrix(p),
+    offerte: estOfferte(p),
     coverUrl: p.coverUrl,
 
     extrait: extraitDe(p.previewUrl, p.previewKind),

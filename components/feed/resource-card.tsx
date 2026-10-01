@@ -3,7 +3,7 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 
 import type { CarteRessource } from "@/lib/feed/types";
-import { formatCount, formatPrice } from "@/lib/i18n/money";
+import { formatCount } from "@/lib/i18n/money";
 
 /**
  * Carte de ressource du feed.
@@ -300,7 +300,7 @@ export interface CarteProps {
 export function CarteMosaique(props: CarteProps) {
   const { ressource: r, style, survolee } = props;
   const d = decorer(style, r.coverUrl !== null, survolee);
-  const prixGratuit = r.price === 0;
+  const prixGratuit = r.offerte;
 
   // L'extrait ne remplace que ce qui manque : une couverture choisie par le
   // créateur passe avant, toujours. On ne joue que la vidéo — un fichier audio
@@ -411,7 +411,7 @@ export function CarteMosaique(props: CarteProps) {
               whiteSpace: "nowrap",
             }}
           >
-            {formatPrice(r.price, r.currency)}
+            {r.prixAffiche}
           </div>
         </div>
       ) : null}
@@ -436,7 +436,7 @@ export function CarteMosaique(props: CarteProps) {
 export function CarteAlaUne(props: CarteProps) {
   const { ressource: r, style, survolee } = props;
   const d = decorer(style, r.coverUrl !== null, survolee);
-  const prixGratuit = r.price === 0;
+  const prixGratuit = r.offerte;
 
   // Même règle que la mosaïque : l'extrait ne comble qu'une couverture absente.
   const apercuVideo =
@@ -534,7 +534,7 @@ export function CarteAlaUne(props: CarteProps) {
               whiteSpace: "nowrap",
             }}
           >
-            {formatPrice(r.price, r.currency)}
+            {r.prixAffiche}
           </div>
         </div>
       ) : null}

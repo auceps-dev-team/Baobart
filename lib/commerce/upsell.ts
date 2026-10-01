@@ -1,5 +1,6 @@
 import "server-only";
 
+import { estOfferte } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 
 /**
@@ -100,6 +101,7 @@ export async function offreApresAchat(input: {
         name: true,
         slug: true,
         price: true,
+        pricingMode: true,
         currency: true,
         status: true,
         coverUrl: true,
@@ -113,7 +115,7 @@ export async function offreApresAchat(input: {
     // refus est pire que ne rien proposer.
     if (!produit || produit.status !== "PUBLISHED") continue;
     if (produit._count.files === 0) continue;
-    if (produit.price === 0) continue;
+    if (estOfferte(produit)) continue;
     if (produit.sellerId === input.acheteurId) continue;
 
     // La remise est bornée à 100 % côté lecture aussi : le schéma ne la

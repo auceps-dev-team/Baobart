@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import type { CarteRessource } from "@/lib/feed/types";
-import { formatCount, formatMoney } from "@/lib/i18n/money";
+import { formatCount } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE } from "@/lib/systeme/charte";
 
 /**
@@ -72,9 +72,7 @@ export function CarteRessourceLien({ ressource }: { ressource: CarteRessource })
           }}
         >
           <span style={{ fontSize: 13.5, fontWeight: 800 }}>
-            {ressource.price === 0
-              ? "Offert"
-              : formatMoney(ressource.price, ressource.currency)}
+            {ressource.offerte ? "Offert" : ressource.prixAffiche}
           </span>
           <span
             style={{

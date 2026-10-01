@@ -4,7 +4,7 @@ import { simulationOuverte } from "@/lib/checkout/achat";
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
-import { formatPrice } from "@/lib/i18n/money";
+import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
 
@@ -31,6 +31,8 @@ export interface FicheProduit {
   description: string | null;
   famille: Filtre | null;
   prix: number;
+  /** Le prix affiché — voir `libelleDuPrix` ; « dès 1 000 F » pour un prix libre. */
+  prixAffiche: string;
   devise: Currency;
   coverUrl: string | null;
   /** Extrait jouable avant achat, quand une image ne suffit pas à juger. */
@@ -88,6 +90,8 @@ export async function droitDeTelecharger(
     where: { id: produitId },
     select: {
       price: true,
+      pricingMode: true,
+      minPrice: true,
       currency: true,
       sellerId: true,
       files: {
@@ -106,7 +110,7 @@ export async function droitDeTelecharger(
   const aAcheter = (possible: boolean): DroitTelechargement => ({
     etat: "A_ACHETER",
     produitId,
-    prix: formatPrice(produit.price, produit.currency),
+    prix: libelleDuPrix(produit),
     // Sans fichier, l'acheteur paierait pour rien. Sur sa propre ressource, il
     // se créditerait son propre argent. Sans moyen d'encaisser, l'achat
     // n'aboutirait pas. Trois raisons de ne pas montrer le bouton.
@@ -127,7 +131,7 @@ export async function droitDeTelecharger(
 
   // Une ressource offerte se retire dès qu'on est connecté : demander de
   // « l'acheter » à 0 F n'aurait aucun sens.
-  if (produit.price === 0) {
+  if (estOfferte(produit)) {
     return userId
       ? { etat: "TELECHARGEABLE", fichiers }
       : { etat: "A_CONNECTER" };
@@ -187,6 +191,8 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
       description: true,
       family: true,
       price: true,
+      pricingMode: true,
+      minPrice: true,
       currency: true,
       coverUrl: true,
       previewUrl: true,
@@ -246,6 +252,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
     description: p.description,
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
     prix: p.price,
+    prixAffiche: libelleDuPrix(p),
     devise: p.currency,
     coverUrl: p.coverUrl,
     extrait:

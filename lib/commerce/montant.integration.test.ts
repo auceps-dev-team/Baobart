@@ -19,10 +19,15 @@ import { acheter } from "@/lib/checkout/achat";
 import {
   MESSAGES_MONTANT,
   PLAFOND_POURBOIRE,
+  estOfferte,
+  libelleDuPrix,
   minimumLibre,
   montantsSuggeres,
   retenirLeMontant,
 } from "@/lib/commerce/montant";
+import { autoriserTelechargement } from "@/lib/domain/downloads";
+import { formatMoney } from "@/lib/i18n/money";
+import { droitDeTelecharger } from "@/lib/products/queries";
 import { db } from "@/lib/db";
 import { computeFees } from "@/lib/domain/fees";
 import { rembourserLigne } from "@/lib/domain/orders";
@@ -488,5 +493,47 @@ describe("l'achat", () => {
     await expect(
       rembourserLigne({ orderItemId: suite.orderItemId, amount: 7_001 }),
     ).rejects.toThrow(RangeError);
+  });
+});
+
+describe("ce qui est offert", () => {
+  it("n'offre qu'un prix fixe à zéro — jamais un prix libre", () => {
+    expect(estOfferte({ pricingMode: "FIXED", price: 0 })).toBe(true);
+    expect(estOfferte({ pricingMode: "FIXED", price: 5_000 })).toBe(false);
+    // En prix libre, zéro veut dire « pas de suggestion » : le produit
+    // « coffee » se vend, minimum ou pas.
+    expect(estOfferte({ pricingMode: "LIBRE", price: 0 })).toBe(false);
+  });
+
+  it("affiche le plancher d'un prix libre, pas « GRATUIT »", () => {
+    expect(libelleDuPrix({ pricingMode: "FIXED", price: 0, minPrice: null, currency: "XOF" })).toBe("GRATUIT");
+    expect(libelleDuPrix({ pricingMode: "FIXED", price: 8_000, minPrice: null, currency: "XOF" })).toBe(formatMoney(8_000));
+    expect(libelleDuPrix({ pricingMode: "LIBRE", price: 0, minPrice: 1_000, currency: "XOF" })).toBe(`dès ${formatMoney(1_000)}`);
+    expect(libelleDuPrix({ pricingMode: "LIBRE", price: 0, minPrice: null, currency: "XOF" })).toBe("Prix libre");
+  });
+
+  it("ne laisse pas télécharger sans payer un prix libre à suggestion nulle", async () => {
+    // Le cas mesuré le 25/09 (Qualitytest P5.4) : minimum 1 000 F, suggestion
+    // 0 — la fiche disait « GRATUIT · Télécharger », et le fichier partait.
+    const { produit } = await creerRessource({ mode: "LIBRE", prix: 0, minPrice: 1_000 });
+    const acheteur = await creerAcheteur();
+    const fichier = await db.productFile.findFirstOrThrow({ where: { productId: produit.id }, select: { id: true } });
+
+    const droit = await droitDeTelecharger(produit.id, acheteur.id);
+    expect(droit.etat).toBe("A_ACHETER");
+    expect(droit.etat === "A_ACHETER" ? droit.prix : null).toBe(`dès ${formatMoney(1_000)}`);
+
+    const { decision } = await autoriserTelechargement({ userId: acheteur.id, productFileId: fichier.id });
+    expect(decision.autorise).toBe(false);
+    expect(await db.consumptionEvent.count({ where: { productId: produit.id } })).toBe(0);
+  });
+
+  it("laisse toujours télécharger une ressource offerte", async () => {
+    const { produit } = await creerRessource({ mode: "FIXED", prix: 0 });
+    const acheteur = await creerAcheteur();
+    const fichier = await db.productFile.findFirstOrThrow({ where: { productId: produit.id }, select: { id: true } });
+
+    expect((await droitDeTelecharger(produit.id, acheteur.id)).etat).toBe("TELECHARGEABLE");
+    expect((await autoriserTelechargement({ userId: acheteur.id, productFileId: fichier.id })).decision.autorise).toBe(true);
   });
 });

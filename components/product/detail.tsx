@@ -12,7 +12,7 @@ import {
 } from "@/components/shell/nav-data";
 import type { MotifRefus } from "@/lib/checkout/achat";
 import { texteDuRetour } from "@/lib/checkout/retour";
-import { formatCount, formatPrice } from "@/lib/i18n/money";
+import { formatCount } from "@/lib/i18n/money";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
 import type {
@@ -578,7 +578,7 @@ export function DetailProduit({
             }}
           >
             <div style={{ fontFamily: "var(--font-display)", fontSize: 30 }}>
-              {formatPrice(produit.prix, produit.devise)}
+              {produit.prixAffiche}
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
               licence commerciale

@@ -62,6 +62,10 @@ export interface CarteRessource {
   famille: Filtre | null;
   price: number;
   currency: Currency;
+  /** Le prix affiché — « GRATUIT », « 8 000 F », « dès 1 000 F » (`libelleDuPrix`). */
+  prixAffiche: string;
+  /** Prix fixe à zéro (`estOfferte`). Un prix libre ne l'est jamais. */
+  offerte: boolean;
   coverUrl: string | null;
   /**
    * L'extrait public, quand la ressource en a un.

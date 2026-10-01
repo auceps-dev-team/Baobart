@@ -1,6 +1,8 @@
 import "server-only";
 
 import { prixPlancher } from "@/lib/commerce/codes-promo";
+import type { Currency } from "@/lib/domain/prisma-types";
+import { formatMoney, formatPrice } from "@/lib/i18n/money";
 
 /**
  * Montant choisi par l'acheteur — §3.4-B (pourboires) et §3.4-D (« coffee »).
@@ -87,6 +89,40 @@ export const MESSAGES_MONTANT: Record<MotifMontant, string> = {
  */
 export function minimumLibre(minPriceDuCreateur: number | null): number {
   return Math.max(prixPlancher(), minPriceDuCreateur ?? 0);
+}
+
+/**
+ * Une ressource offerte : à prix fixe, et à zéro. Le seul endroit qui le décide.
+ *
+ * Dix endroits le décidaient par `price === 0`. En prix libre, `price` est la
+ * suggestion du créateur, et zéro y veut dire « pas de suggestion » — pas
+ * « gratuit » : le tunnel d'achat le savait, la fiche et le téléchargement
+ * non. Mesuré le 25/09 (Qualitytest P5.4) : une ressource à prix libre,
+ * minimum 1 000 F, s'affichait « GRATUIT · Télécharger » et se téléchargeait
+ * sans rien payer.
+ *
+ * Un prix libre n'est donc jamais offert, même sans minimum : il garde le
+ * plancher de la plateforme, et c'est ce qui permet le produit « coffee » —
+ * soutenir quelqu'un qui offre son travail.
+ */
+export function estOfferte(p: { pricingMode: string; price: number }): boolean {
+  return p.pricingMode !== "LIBRE" && p.price === 0;
+}
+
+/**
+ * Le prix tel qu'il s'affiche : « GRATUIT », « 8 000 F », ou, pour un prix
+ * libre, son plancher — « dès 1 000 F », ou « Prix libre » quand le créateur
+ * n'en a pas posé.
+ */
+export function libelleDuPrix(p: {
+  pricingMode: string;
+  price: number;
+  minPrice: number | null;
+  currency: Currency;
+}): string {
+  if (p.pricingMode !== "LIBRE") return formatPrice(p.price, p.currency);
+  if (!p.minPrice || p.minPrice <= 0) return "Prix libre";
+  return `dès ${formatMoney(minimumLibre(p.minPrice), p.currency)}`;
 }
 
 export interface EntreeMontant {

@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 
 import { nouvelleLicence } from "@/lib/checkout/licence";
 import { champsDe, validerLesReponses } from "@/lib/commerce/champs";
-import { retenirLeMontant, type MotifMontant } from "@/lib/commerce/montant";
+import { estOfferte, retenirLeMontant, type MotifMontant } from "@/lib/commerce/montant";
 import { ajusterAuPays } from "@/lib/commerce/ppp";
 import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
@@ -267,7 +267,7 @@ export async function acheter(input: {
         //
         // Le montant réellement facturé est contrôlé plus bas, contre le
         // plancher : une ressource `LIBRE` ne peut pas se vendre à zéro.
-        if (produit.pricingMode === "FIXED" && produit.price === 0) {
+        if (estOfferte(produit)) {
           return refus("GRATUITE");
         }
         if (produit.sellerId === input.acheteurId) {
