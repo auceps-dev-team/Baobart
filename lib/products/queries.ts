@@ -1,9 +1,7 @@
 import "server-only";
 
-import { simulationOuverte } from "@/lib/checkout/achat";
-import { urlDuSite } from "@/lib/config/site";
+import { encaissementPossible } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
-import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
@@ -16,10 +14,8 @@ import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
  * rien. `APP_URL` en fait partie — sans elle, l'opérateur n'a nulle part où
  * renvoyer l'acheteur.
  */
-function encaissementPossible(): boolean {
-  if (simulationOuverte()) return true;
-  return piloteCourant().nom !== "aucun" && urlDuSite() !== null;
-}
+// La règle vit dans lib/checkout/achat.ts : un bouton qui apparaît là où
+// l'action refuse promet un écran qui n'ouvre sur rien.
 
 type RessourceLiee = { slug: string; name: string; coverUrl: string | null };
 

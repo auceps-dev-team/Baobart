@@ -8,6 +8,7 @@ import {
   commandeTelechargeable,
   filtreAchats,
 } from "@/lib/dashboard/historique";
+import { encaissementPossible } from "@/lib/checkout/achat";
 import { historiqueDesAchats } from "@/lib/dashboard/queries";
 import { formatMoney, formatPrice } from "@/lib/i18n/money";
 
@@ -130,7 +131,9 @@ export default async function HistoriqueDesAchatsPage({
           },
         }}
         enfants={
-          <p
+          // Seulement quand c'est vrai : écrit en dur, le bandeau s'affichait sous
+          // une commande payée (D11, 25/09).
+          encaissementPossible() ? null : <p
             style={{
               marginTop: 16,
               fontSize: 12.5,

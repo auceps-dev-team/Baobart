@@ -14,6 +14,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { renouvellementPossible } from "@/lib/abonnements/renouvellement";
+import { encaissementPossible } from "@/lib/checkout/achat";
 import { droitDeTelecharger } from "@/lib/products/queries";
 
 const AVANT = {
@@ -164,3 +166,25 @@ describe("le bouton d'achat", () => {
     expect(d.etat === "A_ACHETER" && d.achatPossible).toBe(false);
   });
 });
+
+describe("une seule règle pour tous les écrans", () => {
+  // La fiche et le renouvellement en tenaient chacun une copie ; l'historique
+  // des achats n'en lisait aucune et affichait en dur « Le paiement n'est pas
+  // encore branché » (mesuré le 25/09, Qualitytest D11).
+  const cas: Array<[string, () => void, boolean]> = [
+    ["rien de branché", () => {}, false],
+    ["simulation ouverte", () => { process.env.CHECKOUT_SIMULATION_ENABLED = "1"; }, true],
+    ["opérateur branché", () => { process.env.PAYMENTS_DRIVER = "bac-a-sable"; process.env.PAYMENTS_SANDBOX_SECRET = "un-secret-de-bac-a-sable-assez-long"; }, true],
+    ["opérateur sans secret", () => { process.env.PAYMENTS_DRIVER = "bac-a-sable"; }, false],
+    ["opérateur sans adresse publique", () => { process.env.PAYMENTS_DRIVER = "bac-a-sable"; process.env.PAYMENTS_SANDBOX_SECRET = "un-secret-de-bac-a-sable-assez-long"; delete process.env.APP_URL; }, false],
+  ];
+
+  for (const [nom, poser, attendu] of cas) {
+    it(`${nom} : la fiche, le renouvellement et l'historique répondent pareil`, () => {
+      poser();
+      expect(encaissementPossible()).toBe(attendu);
+      expect(renouvellementPossible()).toBe(attendu);
+    });
+  }
+});
+

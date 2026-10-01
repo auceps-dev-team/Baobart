@@ -156,6 +156,20 @@ export function simulationOuverte(
 }
 
 /**
+ * Un paiement peut-il aboutir aujourd'hui ? La simulation de développement,
+ * ou un opérateur branché avec une adresse de retour (`APP_URL`).
+ *
+ * Le seul endroit qui le décide. La fiche produit et le renouvellement en
+ * tenaient chacun une copie ; l'historique des achats n'en lisait aucune et
+ * affichait en dur « Le paiement n'est pas encore branché » — y compris sous
+ * une commande payée (mesuré le 25/09, Qualitytest D11).
+ */
+export function encaissementPossible(): boolean {
+  if (simulationOuverte()) return true;
+  return piloteCourant().nom !== "aucun" && urlDuSite() !== null;
+}
+
+/**
  * Un achat lancé il y a moins de deux minutes bloque le suivant.
  *
  * C'est la protection contre le double clic. Au-delà, une ligne restée

@@ -3,7 +3,7 @@ import "server-only";
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
-import { simulationOuverte } from "@/lib/checkout/achat";
+import { encaissementPossible, simulationOuverte } from "@/lib/checkout/achat";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import { finaliserRenouvellement } from "@/lib/abonnements/reglement";
 
@@ -106,8 +106,7 @@ const FENETRE_DOUBLON_MS = 2 * 60_000;
  * elle, l'opérateur n'a nulle part où renvoyer l'abonné.
  */
 export function renouvellementPossible(): boolean {
-  if (simulationOuverte()) return true;
-  return piloteCourant().nom !== "aucun" && urlDuSite() !== null;
+  return encaissementPossible();
 }
 
 export async function ouvrirRenouvellement(input: {
