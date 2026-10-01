@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { encaisserLigne } from "@/lib/domain/orders";
+import { encaisserLigne, rembourserLigne } from "@/lib/domain/orders";
 import { gainsDe, masquerCompte } from "@/lib/payments/gains";
 import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
 import {
@@ -150,6 +150,49 @@ describe("les trois sommes", () => {
 
     // Les soldes sont réservés : ils ne sont plus disponibles.
     expect((await gainsDe(createur, MAINTENANT)).disponible).toBe(0);
+  });
+
+  it("dit la dette quand un remboursement arrive après le versement", async () => {
+    // Le cas mesuré le 25/09 (Qualitytest S40) : vente, versement, puis
+    // remboursement. L'écran affichait « 0 F — rien à verser » pour un
+    // créateur qui devait de l'argent.
+    const o = await db.order.create({
+      data: {
+        buyerId: acheteur,
+        currency: "XOF",
+        total: 10_000,
+        status: "COMPLETED",
+        items: { create: { productId: produit, price: 10_000, quantity: 1, state: "IN_PROGRESS" } },
+      },
+      select: { items: { select: { id: true } } },
+    });
+    const ligne = o.items[0]!.id;
+    await encaisserLigne({ orderItemId: ligne, regime: "DIRECT", date: new Date(MAINTENANT.getTime() - 20 * JOUR) });
+    await enregistrerCompte();
+    await preparerVersement({
+      userId: createur,
+      cycleDate: new Date("2026-07-24T00:00:00Z"),
+      rail: RAILS_BAOBART.wave!,
+      method: "MOBILE_MONEY",
+      accountRef: "+221770004821",
+    });
+
+    await rembourserLigne({ orderItemId: ligne, amount: 10_000, date: MAINTENANT });
+
+    const g = await gainsDe(createur, MAINTENANT);
+    const nonVerse = await db.balance.aggregate({
+      where: { userId: createur, state: "UNPAID" },
+      _sum: { holdingAmount: true },
+    });
+
+    expect(nonVerse._sum.holdingAmount).toBeLessThan(0);
+    expect(g.aDeduire).toBe(-(nonVerse._sum.holdingAmount ?? 0));
+    expect(g.enAttente).toBe(0);
+  });
+
+  it("ne parle d'aucune dette quand le solde est positif", async () => {
+    await vendre(10_000, 2);
+    expect((await gainsDe(createur, MAINTENANT)).aDeduire).toBe(0);
   });
 });
 

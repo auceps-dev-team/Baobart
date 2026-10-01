@@ -59,6 +59,13 @@ export interface Gains {
   disponible: number;
   /** Encaissé, encore en rétention. */
   enAttente: number;
+  /**
+   * Ce que le créateur doit à la plateforme : la somme non versée quand elle
+   * est négative — typiquement un remboursement arrivé après un versement.
+   * Zéro sinon. Elle sera retenue sur les prochaines ventes, puisque le cycle
+   * additionne toutes les lignes non versées, négatives comprises.
+   */
+  aDeduire: number;
   /** Cumul versé depuis le 1er janvier. */
   cumulAnnee: number;
   /** Part du prix qui revient au créateur, dérivée du barème réel. */
@@ -146,6 +153,11 @@ export async function gainsDe(
   // Ce qui reste dans les sept jours : la différence, jamais un second calcul
   // qui pourrait diverger du premier.
   const enAttente = Math.max(0, totalNonVerse - disponible);
+  // Le `Math.max(0, …)` est juste pour « en attente », qui ne peut pas être
+  // négatif ; il ne l'est pas pour le total. Mesuré le 25/09 (S40) : deux
+  // remboursements après un versement laissaient −2 300 F, et l'écran
+  // affichait « 0 F — rien à verser ». La dette se dit, elle ne s'arrondit pas.
+  const aDeduire = Math.max(0, -totalNonVerse);
 
   const debutAnnee = new Date(Date.UTC(maintenant.getUTCFullYear(), 0, 1));
 
@@ -203,6 +215,7 @@ export async function gainsDe(
     devise,
     disponible,
     enAttente,
+    aDeduire,
     cumulAnnee,
     partCreateur: partCreateurLisible(),
     prochainVersement: prochain,

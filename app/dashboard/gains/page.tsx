@@ -95,11 +95,19 @@ export default async function GainsPage() {
                 : REFUS_COURT[gains.blocage.raison],
             fond: JAUNE,
           },
-          {
-            label: "En attente de validation",
-            valeur: formatMoney(gains.enAttente),
-            precision: "ventes encore en période de rétention",
-          },
+          // Une dette remplace « en attente » plutôt que de s'y cacher : la case
+          // affichait « 0 F » pour un créateur qui devait 2 300 F (S40, 25/09).
+          gains.aDeduire > 0
+            ? {
+                label: "À déduire",
+                valeur: formatMoney(-gains.aDeduire),
+                precision: "remboursé après ton dernier versement — retenu sur tes prochaines ventes",
+              }
+            : {
+                label: "En attente de validation",
+                valeur: formatMoney(gains.enAttente),
+                precision: "ventes encore en période de rétention",
+              },
           {
             label: `Cumul ${new Date().getFullYear()}`,
             valeur: formatMoney(gains.cumulAnnee),
@@ -262,6 +270,9 @@ export default async function GainsPage() {
  */
 function introDe(gains: Awaited<ReturnType<typeof gainsDe>>): string {
   const part = `${gains.partCreateur} du prix de vente te reviennent.`;
+  if (gains.aDeduire > 0) {
+    return `${part} Tu dois ${formatMoney(gains.aDeduire)} : des remboursements sont arrivés après ton dernier versement. Ils seront retenus sur tes prochaines ventes.`;
+  }
   if (gains.prochainVersement) {
     return `${part} Prochain versement le ${DATE.format(gains.prochainVersement)}.`;
   }
