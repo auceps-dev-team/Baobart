@@ -9,6 +9,7 @@ import "server-only";
  * `select` par écran, sans décision.
  */
 
+import { ETATS_ABOUTIS } from "@/lib/dashboard/historique";
 import { db } from "@/lib/db";
 import type {
   Currency,
@@ -235,9 +236,25 @@ export async function lireCommandesAcheteur(userId: string, limit = 10) {
   }) as Promise<CommandeAcheteur[]>;
 }
 
-export async function lireVentesCreateur(userId: string, limit = 10) {
+/**
+ * Les lignes vendues par ce créateur.
+ *
+ * Par défaut, seulement celles qui ont abouti : une vente est un paiement
+ * reçu. Les lignes en cours ou échouées s'affichaient « Paiement encaissé,
+ * accès actif », avec « Rembourser… » — 9 000 F « encaissés » pour un
+ * paiement abandonné (mesuré le 25/09, S15). `toutes` sert l'écran des
+ * commandes, qui montre chaque ligne avec son état réel.
+ */
+export async function lireVentesCreateur(
+  userId: string,
+  limit = 10,
+  { toutes = false }: { toutes?: boolean } = {},
+) {
   return db.orderItem.findMany({
-    where: { product: { sellerId: userId } },
+    where: {
+      product: { sellerId: userId },
+      ...(toutes ? {} : { state: { in: [...ETATS_ABOUTIS] } }),
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

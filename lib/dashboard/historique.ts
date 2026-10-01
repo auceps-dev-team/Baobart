@@ -39,12 +39,24 @@ export interface LigneCommande {
   refundedAmount: number;
 }
 
+/**
+ * Les états d'une ligne qui a réellement abouti : payée, ou offerte sans
+ * prélèvement.
+ *
+ * Exporté parce que deux écrans en dépendent — l'historique de l'acheteur et
+ * les ventes du vendeur. Les ventes recopiaient l'idée sans la liste, et
+ * montraient « encaissé » un paiement échoué (mesuré le 25/09, S15).
+ */
+export const ETATS_ABOUTIS = ["SUCCESSFUL", "NOT_CHARGED"] as const;
+
+export function ligneAboutie(state: string): boolean {
+  return (ETATS_ABOUTIS as readonly string[]).includes(state);
+}
+
 export function etatCommande(lignes: LigneCommande[]): EtatCommande {
   if (lignes.length === 0) return "EN ATTENTE";
 
-  const abouties = lignes.filter(
-    (l) => l.state === "SUCCESSFUL" || l.state === "NOT_CHARGED",
-  );
+  const abouties = lignes.filter((l) => ligneAboutie(l.state));
 
   if (abouties.length === 0) {
     return lignes.some((l) => l.state === "FAILED") ? "ÉCHOUÉE" : "EN ATTENTE";
