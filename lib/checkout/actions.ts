@@ -74,7 +74,12 @@ export async function acheterRessource(
   // `redirect` lève : il doit rester hors du bloc qui traite le résultat, sinon
   // un `catch` autour l'avalerait et la navigation n'aurait pas lieu.
   if (!resultat.ok) {
-    redirect(`/products/${produit.slug}?achat=${resultat.motif}`);
+    // Le détail d'un montant refusé voyage avec le motif : sans lui, la fiche
+    // n'avait rien à dire (mesuré le 25/09, P4.3, P5.1, S21).
+    const detail = resultat.montant
+      ? `&montant=${resultat.montant.motif}${resultat.montant.minimum !== undefined ? `&minimum=${resultat.montant.minimum}` : ""}`
+      : "";
+    redirect(`/products/${produit.slug}?achat=${resultat.motif}${detail}` as Route);
   }
 
   // Le paiement n'est qu'ouvert : l'acheteur part chez l'opérateur, et on ne

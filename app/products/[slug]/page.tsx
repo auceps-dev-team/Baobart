@@ -37,10 +37,10 @@ export default async function FicheProduitPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ achat?: string }>;
+  searchParams: Promise<{ achat?: string; montant?: string; minimum?: string }>;
 }) {
   const { slug } = await params;
-  const { achat } = await searchParams;
+  const { achat, montant, minimum } = await searchParams;
   const [produit, utilisateur] = await Promise.all([
     obtenirProduit(slug),
     sessionCourante(),
@@ -80,7 +80,7 @@ export default async function FicheProduitPage({
         >
           <EnTeteFiche titre={produit.titre} />
           <div style={{ padding: "0 24px" }}>
-            <RetourAchat code={achat} />
+            <RetourAchat code={achat} montant={montant} minimum={minimum} />
           </div>
           <DetailProduit
             produit={produit}

@@ -10,6 +10,8 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
+import type { MotifRefus } from "@/lib/checkout/achat";
+import { texteDuRetour } from "@/lib/checkout/retour";
 import { formatCount, formatPrice } from "@/lib/i18n/money";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
@@ -213,42 +215,43 @@ function BoutonTelechargement({
   );
 }
 
-const MESSAGES_ACHAT: Record<string, { texte: string; fond: string }> = {
-  ok: {
-    texte:
-      "Achat enregistré. Le téléchargement est ouvert, et le reçu part par courriel.",
-    fond: JAUNE,
-  },
-  DEJA_ACQUISE: {
-    texte: "Tu possèdes déjà cette ressource. Retrouve-la dans tes achats.",
-    fond: JAUNE,
-  },
-  SA_PROPRE_RESSOURCE: {
-    texte: "On n'achète pas sa propre ressource.",
-    fond: ORANGE,
-  },
-  SANS_FICHIER: {
-    texte:
-      "Cette ressource n'a aucun fichier attaché : elle ne peut pas être vendue.",
-    fond: ORANGE,
-  },
-  GRATUITE: {
-    texte: "Cette ressource est offerte — télécharge-la directement.",
-    fond: JAUNE,
-  },
-  EN_COURS: { texte: "Un achat est déjà en cours pour cette ressource.", fond: JAUNE },
-  CONFLIT: { texte: "Deux achats sont partis en même temps. Réessaie.", fond: JAUNE },
-  PAIEMENT_INDISPONIBLE: {
-    texte: "Le paiement n'est pas encore disponible. Reviens bientôt.",
-    fond: ORANGE,
-  },
-  INTROUVABLE: { texte: "Cette ressource n'est plus disponible.", fond: ORANGE },
+/**
+ * La couleur de chaque retour d'achat. Le texte, lui, vient du tunnel.
+ *
+ * Cette table recopiait les messages de `lib/checkout/achat.ts` et en avait
+ * perdu trois — CODE_REFUSE, CHAMPS_INVALIDES, MONTANT_REFUSE. Typée sur
+ * `string`, elle compilait quand même ; l'acheteur revenait sur la fiche sans
+ * un mot (mesuré le 25/09 : P4.3, P5.1, P5.3, S21). Typée sur les motifs, un
+ * motif ajouté sans couleur ne compile plus.
+ */
+const FOND_RETOUR: Record<MotifRefus | "ok", string> = {
+  ok: JAUNE,
+  DEJA_ACQUISE: JAUNE,
+  SA_PROPRE_RESSOURCE: ORANGE,
+  SANS_FICHIER: ORANGE,
+  GRATUITE: JAUNE,
+  EN_COURS: JAUNE,
+  CONFLIT: JAUNE,
+  PAIEMENT_INDISPONIBLE: ORANGE,
+  INTROUVABLE: ORANGE,
+  CODE_REFUSE: ORANGE,
+  CHAMPS_INVALIDES: ORANGE,
+  MONTANT_REFUSE: ORANGE,
 };
 
 /** Le retour d'un achat, lu depuis l'URL après la redirection de l'action. */
-export function RetourAchat({ code }: { code: string | undefined }) {
-  const message = code ? MESSAGES_ACHAT[code] : undefined;
-  if (!message) return null;
+export function RetourAchat({
+  code,
+  montant,
+  minimum,
+}: {
+  code: string | undefined;
+  montant?: string;
+  minimum?: string;
+}) {
+  const texte = code ? texteDuRetour(code, montant, minimum) : null;
+  if (!code || !texte) return null;
+  const message = { texte, fond: FOND_RETOUR[code as MotifRefus | "ok"] };
 
   return (
     <div

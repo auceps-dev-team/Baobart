@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 
 import { nouvelleLicence } from "@/lib/checkout/licence";
 import { champsDe, validerLesReponses } from "@/lib/commerce/champs";
-import { retenirLeMontant } from "@/lib/commerce/montant";
+import { retenirLeMontant, type MotifMontant } from "@/lib/commerce/montant";
 import { ajusterAuPays } from "@/lib/commerce/ppp";
 import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
@@ -110,7 +110,23 @@ export type Resultat =
       /** Ce que l'acheteur a ajouté, quand il a ajouté quelque chose. */
       pourboire?: number;
     }
-  | { ok: false; motif: MotifRefus };
+  | {
+      ok: false;
+      motif: MotifRefus;
+      /**
+       * Pourquoi le montant a été refusé, quand c'est le motif.
+       *
+       * Il se perdait : la fiche recevait « MONTANT_REFUSE » et n'affichait
+       * rien (mesuré le 25/09, P4.3, P5.1, S21). Le détail voyage désormais
+       * jusqu'à elle, avec le minimum quand il y en a un.
+       */
+      montant?: DetailMontant;
+    };
+
+export interface DetailMontant {
+  motif: MotifMontant;
+  minimum?: number;
+}
 
 export const MESSAGES: Record<MotifRefus, string> = {
   INTROUVABLE: "Cette ressource n'est plus disponible.",
@@ -346,7 +362,12 @@ export async function acheter(input: {
           pourboireChoisi: input.pourboire,
         });
 
-        if (!retenu.ok) return refus("MONTANT_REFUSE");
+        if (!retenu.ok) {
+          return refus("MONTANT_REFUSE", {
+            motif: retenu.motif,
+            ...(retenu.minimum !== undefined ? { minimum: retenu.minimum } : {}),
+          });
+        }
 
         // ══════════════════════════════════════════════════════════════
         // LA PARITÉ S'APPLIQUE AVANT LE CODE PROMO, ET L'ORDRE COMPTE
@@ -473,7 +494,11 @@ export async function acheter(input: {
       { isolationLevel: "Serializable", timeout: 15_000, maxWait: 10_000 },
     );
   } catch (cause) {
-    if (cause instanceof RefusInterne) return { ok: false, motif: cause.motif };
+    if (cause instanceof RefusInterne) {
+      return cause.montant
+        ? { ok: false, motif: cause.motif, montant: cause.montant }
+        : { ok: false, motif: cause.motif };
+    }
     // P2034 : conflit de sérialisation. La base a fait son travail.
     if (
       cause instanceof Prisma.PrismaClientKnownRequestError &&
@@ -579,7 +604,10 @@ export async function acheter(input: {
 }
 
 class RefusInterne extends Error {
-  constructor(readonly motif: MotifRefus) {
+  constructor(
+    readonly motif: MotifRefus,
+    readonly montant?: DetailMontant,
+  ) {
     super(motif);
     this.name = "RefusInterne";
   }
@@ -592,8 +620,8 @@ class RefusInterne extends Error {
  * ici, mais l'habitude est mauvaise et le premier `create` ajouté au-dessus
  * d'un refus serait conservé.
  */
-function refus(motif: MotifRefus): never {
-  throw new RefusInterne(motif);
+function refus(motif: MotifRefus, montant?: DetailMontant): never {
+  throw new RefusInterne(motif, montant);
 }
 
 /** Le sérial doit être unique. Une collision est improbable, pas impossible. */

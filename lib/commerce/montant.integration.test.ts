@@ -374,7 +374,13 @@ describe("l'achat", () => {
         acheteurId: acheteur.id,
         montant: "100",
       }),
-    ).toEqual({ ok: false, motif: "MONTANT_REFUSE" });
+      // La raison et le minimum voyagent jusqu'à la fiche : sans eux, elle
+      // n'avait rien à dire (mesuré le 25/09, P5.1).
+    ).toEqual({
+      ok: false,
+      motif: "MONTANT_REFUSE",
+      montant: { motif: "TROP_BAS", minimum: 2_000 },
+    });
 
     expect(await db.order.count({ where: { buyerId: acheteur.id } })).toBe(0);
   });
