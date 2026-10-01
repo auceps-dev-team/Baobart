@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { compterRessources, listerAlaUne, listerFeed } from "@/lib/feed/queries";
+import { compterRessources, listerAlaUne, listerFeed, rechercher } from "@/lib/feed/queries";
 
 async function creerCreateur() {
   return db.user.create({
@@ -45,6 +45,18 @@ async function publier(
     },
   });
 }
+
+describe("la recherche", () => {
+  it("ne casse pas sur un octet nul, et cherche quand même le reste", async () => {
+    // Mesuré le 25/09 (Qualitytest R79b) : « ?q=%00 » → HTTP 500.
+    const c = await creerCreateur();
+    await publier(c.id, 7);
+
+    await expect(rechercher("\u0000")).resolves.toEqual([]);
+    const trouves = await rechercher("Resso\u0000urce 7");
+    expect(trouves.map((t) => t.title)).toEqual(["Ressource 7"]);
+  });
+});
 
 describe("pagination par curseur", () => {
   let sellerId: string;

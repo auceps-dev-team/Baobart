@@ -282,7 +282,12 @@ export async function compterRessources(filtre: Filtre = "Tous") {
  * qu'affiche le panneau de la maquette.
  */
 export async function rechercher(q: string) {
-  const terme = q.trim();
+  // Les caractères de contrôle sortent avant la requête. Mesuré le 25/09
+  // (Qualitytest R79b) : un octet nul — « ?q=%00 », seul ou au milieu d'un
+  // mot — faisait répondre HTTP 500, PostgreSQL refusant l'octet
+  // (22021, « invalid byte sequence for encoding UTF8: 0x00 »). Les autres
+  // contrôles ne cassaient rien mais ne cherchent rien non plus.
+  const terme = q.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 100);
   if (terme.length === 0) return [];
 
   const lignes: SuggestionProduit[] = await db.product.findMany({
