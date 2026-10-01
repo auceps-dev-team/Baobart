@@ -172,7 +172,12 @@ describe("encaissement d'une vente", () => {
 });
 
 describe("remboursement", () => {
-  it("débite le créateur au prorata de son net, sans lui faire rendre la commission", async () => {
+  // Les deux titres ci-dessous décrivaient la règle de v0.7.0 — débit au
+  // prorata du net. Depuis la décision d'août 2026 (v1.25.0), le vendeur
+  // finance le remboursement brut ; les corps l'avaient suivie, pas les titres.
+  // Relevé le 01/10 en recoupant une mesure du 25/09 (P3.2 : −10 000 F pour
+  // une vente nette de 8 850 F).
+  it("débite le créateur du brut remboursé, et la plateforme garde sa commission", async () => {
     const createur = await creerCreateur("-v2");
     const acheteur = await creerCreateur("-a2");
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
@@ -222,10 +227,9 @@ describe("remboursement", () => {
     expect(await db.refund.count({ where: { orderItemId: ligne.id } })).toBe(2);
   });
 
-  it("une suite de remboursements ne débite jamais le créateur plus que son net", async () => {
-    // Le défaut anticipé : arrondir chaque remboursement isolément faisait
-    // payer au créateur la monnaie de la division. Franc par franc, il rendait
-    // 100 pour un net de 71.
+  it("une suite de remboursements franc par franc retient la commission exacte", async () => {
+    // Le défaut anticipé : arrondir chaque remboursement isolément ferait
+    // dériver la part retenue par la plateforme sur cent passages.
     const createur = await creerCreateur("-v17");
     const acheteur = await creerCreateur("-a17");
     const { produit } = await creerProduitAvecFichier(createur.id, 100);
