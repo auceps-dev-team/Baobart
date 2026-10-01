@@ -151,6 +151,25 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
 
   await db.$transaction(
     async (tx) => {
+      // ── Rendre les places avant de supprimer les inscriptions ────────────
+      //
+      // La boucle ci-dessous supprime les lignes `EventRegistration` ; le
+      // compteur de l'événement, lui, ne bougeait pas. Mesuré le 25/09
+      // (Qualitytest S9, S39) : l'effacement de qa4 a laissé « Atelier QA »
+      // complet avec une place libre — « Toutes les places sont prises » pour
+      // tout le monde. Les places partent ici, dans la même transaction.
+      await tx.$executeRaw`
+        UPDATE "Event" AS e
+        SET "participantsCount" = GREATEST(0, e."participantsCount" - r.n)
+        FROM (
+          SELECT "eventId", COUNT(*)::int AS n
+          FROM "EventRegistration"
+          WHERE "userId" = ${userId}
+          GROUP BY "eventId"
+        ) AS r
+        WHERE e."id" = r."eventId"
+      `;
+
       for (const [table, ...colonnes] of A_SUPPRIMER) {
         // Le client Prisma est indexé par nom de modèle ; le cast est le prix
         // à payer pour parcourir une liste plutôt que d'écrire trente appels

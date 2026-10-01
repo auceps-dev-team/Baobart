@@ -144,6 +144,35 @@ describe("le caviardage", () => {
     expect(evenement!.ipAddress).toBeNull();
   });
 
+  it("rend les places d'événement qu'il occupait", async () => {
+    // Mesuré le 25/09 (Qualitytest S9, S39) : l'inscription partait, la place
+    // restait prise — l'événement se disait complet avec une place libre.
+    // Pas creerCompte() : il pose le même téléphone, unique en base.
+    const organisateur = await db.user.create({ data: { email: `org-${suffixe()}@baobart.test` }, select: { id: true } });
+    const compte = await creerCompte();
+    const evenement = await db.event.create({
+      data: {
+        organizerId: organisateur.id,
+        title: "Atelier",
+        kind: "WORKSHOP",
+        description: "Un atelier décrit avec assez de mots pour être publiable.",
+        startsAt: new Date(Date.now() + 10 * 86_400_000),
+        endsAt: new Date(Date.now() + 10 * 86_400_000 + 7_200_000),
+        capacity: 2,
+        participantsCount: 2,
+        state: "PUBLIE",
+      },
+    });
+    await db.eventRegistration.create({ data: { eventId: evenement.id, userId: compte.id } });
+    await db.eventRegistration.create({ data: { eventId: evenement.id, userId: organisateur.id } });
+
+    await anonymiser(compte.id);
+
+    const apres = await db.event.findUniqueOrThrow({ where: { id: evenement.id } });
+    expect(apres.participantsCount).toBe(1);
+    expect(await db.eventRegistration.count({ where: { eventId: evenement.id } })).toBe(1);
+  });
+
   it("archive les produits au lieu de les supprimer", async () => {
     // Ils ont été achetés : un `OrderItem` les désigne, et les supprimer
     // effacerait ce que des gens ont payé.
