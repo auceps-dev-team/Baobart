@@ -247,8 +247,15 @@ describe("ce que l'écran affiche", () => {
     const g = await gainsDe(createur, MAINTENANT);
 
     // La maquette annonçait « 80 % » : un taux que la lecture du dépôt de
-    // référence a fait abandonner.
-    expect(g.partCreateur).toBe("90 %");
+    // référence a fait abandonner. Puis l'écran a dit « 90 % », en oubliant
+    // les frais d'opérateur (mesuré le 25/09 : 8 850 F pour 10 000 F).
+    expect(g.partCreateur).toEqual({ directe: "88,5\u00a0%", decouverte: "70\u00a0%" });
+  });
+
+  it("annonce la part qu'une vente directe crédite vraiment", async () => {
+    const net = await vendre(10_000, 2);
+    const g = await gainsDe(createur, MAINTENANT);
+    expect(g.partCreateur.directe).toBe(`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(net / 100)}\u00a0%`);
   });
 
   it("masque le numéro du compte", async () => {

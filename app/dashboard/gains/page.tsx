@@ -269,7 +269,7 @@ export default async function GainsPage() {
  * le virement.
  */
 function introDe(gains: Awaited<ReturnType<typeof gainsDe>>): string {
-  const part = `${gains.partCreateur} du prix de vente te reviennent.`;
+  const part = `${gains.partCreateur.directe} du prix d'une vente directe te reviennent, ${gains.partCreateur.decouverte} quand l'acheteur te trouve par l'exploration.`;
   if (gains.aDeduire > 0) {
     return `${part} Tu dois ${formatMoney(gains.aDeduire)} : des remboursements sont arrivés après ton dernier versement. Ils seront retenus sur tes prochaines ventes.`;
   }

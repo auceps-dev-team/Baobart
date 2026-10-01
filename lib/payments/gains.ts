@@ -68,8 +68,12 @@ export interface Gains {
   aDeduire: number;
   /** Cumul versé depuis le 1er janvier. */
   cumulAnnee: number;
-  /** Part du prix qui revient au créateur, dérivée du barème réel. */
-  partCreateur: string;
+  /**
+   * Part du prix qui revient au créateur, dérivée du barème réel : en vente
+   * directe (commission et frais d'opérateur déduits), et en vente venue de
+   * l'exploration (taux tout compris).
+   */
+  partCreateur: { directe: string; decouverte: string };
   /** Prochaine date de versement, ou `null` si rien ne part. */
   prochainVersement: Date | null;
   /** Pourquoi rien ne part, le cas échéant. */
@@ -285,6 +289,21 @@ function parMois(
  * (VERIFICATION_GUMROAD §2.1). Deux chiffres qui se contredisent entre le code
  * et l'écran finissent toujours par être découverts par un créateur.
  */
-function partCreateurLisible(): string {
-  return `${100 - BAREME_XOF.directRateBp / 100} %`;
+/**
+ * La part du créateur, telle que `computeFees` la calcule vraiment.
+ *
+ * Elle disait `100 − commission`, soit « 90 % ». Mesuré le 25/09 (Qualitytest
+ * S-90pc) : une vente directe de 10 000 F a crédité 8 850 F — 88,5 %, parce
+ * que les frais d'opérateur (1,5 %) restent aussi à la charge du vendeur. Et
+ * une vente venue de l'exploration suit un autre taux, tout compris.
+ */
+function pourcent(bp: number): string {
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(bp / 100)}\u00a0%`;
+}
+
+function partCreateurLisible(): { directe: string; decouverte: string } {
+  return {
+    directe: pourcent(10_000 - BAREME_XOF.directRateBp - BAREME_XOF.processorRateBp),
+    decouverte: pourcent(10_000 - BAREME_XOF.decouverteRateBp),
+  };
 }
