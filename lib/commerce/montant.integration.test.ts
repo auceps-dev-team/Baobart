@@ -154,6 +154,44 @@ describe("la retenue du montant", () => {
     }
   });
 
+  it("refuse un point qui ne sépare pas des milliers", () => {
+    // Mesuré le 25/09 (Qualitytest R24) : « 5000.5 » dans le montant libre
+    // est devenu une commande de 50 005 F, sans un mot.
+    for (const forme of ["5000.5", "5.5", "25.00", "2,500", "2500,00", "1.00.000", "12 34"]) {
+      expect(
+        retenirLeMontant({
+          mode: "LIBRE",
+          prix: 2_000,
+          minPrice: 1_000,
+          pourboiresOuverts: false,
+          montantChoisi: forme,
+        }),
+        forme,
+      ).toEqual({ ok: false, motif: "INVALIDE" });
+    }
+  });
+
+  it("garde les vrais séparateurs de milliers, y compris l'espace insécable", () => {
+    for (const [forme, attendu] of [
+      ["5 000", 5_000],
+      ["5.000", 5_000],
+      ["1.000.000", 1_000_000],
+      ["12 345", 12_345],
+      ["5 000", 5_000],
+      ["5 000", 5_000],
+      ["15000", 15_000],
+    ] as const) {
+      const suite = retenirLeMontant({
+        mode: "LIBRE",
+        prix: 2_000,
+        minPrice: 1_000,
+        pourboiresOuverts: false,
+        montantChoisi: forme,
+      });
+      expect(suite, forme).toEqual({ ok: true, prix: attendu, pourboire: 0, total: attendu });
+    }
+  });
+
   it("traite un champ vide comme « pas de pourboire »", () => {
     expect(
       (

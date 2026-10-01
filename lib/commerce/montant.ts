@@ -166,6 +166,15 @@ export function retenirLeMontant(entree: EntreeMontant): SuiteMontant {
  *
  * Un champ vide rend `0`, pas `null` : ne rien mettre dans un pourboire
  * facultatif veut dire « pas de pourboire », pas « erreur de saisie ».
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * UN SÉPARATEUR DE MILLIERS SÉPARE DES MILLIERS
+ *
+ * Tout point était retiré, où qu'il soit. Mesuré le 25/09 (Qualitytest R24) :
+ * « 5000.5 » est devenu 50 005 F — dix fois le montant voulu, commande créée,
+ * aucun message. Un point ou une espace n'est donc toléré qu'entre des groupes
+ * de trois chiffres ; tout le reste — une décimale, une virgule — est refusé :
+ * le franc CFA n'a pas de centimes, et on ne devine pas l'intention.
  */
 function lireUnEntier(brut: string | number | null | undefined): number | null {
   if (brut === null || brut === undefined) return 0;
@@ -173,9 +182,12 @@ function lireUnEntier(brut: string | number | null | undefined): number | null {
     return Number.isInteger(brut) && brut >= 0 ? brut : null;
   }
 
-  const net = brut.replace(/[\s. ]/g, "").trim();
-  if (net === "") return 0;
-  if (!/^\d+$/.test(net)) return null;
+  // Les espaces fines et insécables se ramènent à une espace simple.
+  const saisie = brut.replace(/[\s\u00a0\u202f]+/g, " ").trim();
+  if (saisie === "") return 0;
+  // Un point ou une espace n'est toléré qu'entre des groupes de trois chiffres.
+  if (!/^(\d+|\d{1,3}([ .]\d{3})+)$/.test(saisie)) return null;
+  const net = saisie.replace(/[ .]/g, "");
 
   const valeur = Number(net);
   return Number.isSafeInteger(valeur) ? valeur : null;
