@@ -14,7 +14,7 @@ export const MOTS_CLES_MAX = 12;
 
 export interface EtatProduit {
   erreur?: string;
-  champ?: "titre" | "famille" | "prix" | "description";
+  champ?: "titre" | "famille" | "prix" | "description" | "motsCles";
   /**
    * Posé par la modification quand elle a abouti.
    *
@@ -71,6 +71,32 @@ export function decouperMotsCles(brut: string): string[] {
   }
 
   return resultat;
+}
+
+/**
+ * Le refus à opposer quand il y a trop de mots-clés, ou `null`.
+ *
+ * `decouperMotsCles` garde les douze premiers et jette le reste : c'est sa
+ * borne. Mais le jeter sans le dire faisait perdre un mot-clé à son auteur
+ * sans qu'il le sache (mesuré le 25/09, Qualitytest R29, S23 : 13 saisis, 12
+ * enregistrés, rien à l'écran). On refuse donc, en nommant ce qui dépasse.
+ */
+export function tropDeMotsCles(brut: string): string | null {
+  const vus = new Set<string>();
+  const tous: string[] = [];
+  for (const morceau of brut.split(/[,\n]/)) {
+    const nom = morceau.trim().replace(/\s+/g, " ");
+    const slug = slugifier(nom);
+    if (slug.length === 0 || vus.has(slug)) continue;
+    vus.add(slug);
+    tous.push(nom);
+  }
+  if (tous.length <= MOTS_CLES_MAX) return null;
+  const enTrop = tous.slice(MOTS_CLES_MAX);
+  return (
+    `${MOTS_CLES_MAX} mots-clés au plus — tu en as saisi ${tous.length}. ` +
+    `Retire ${enTrop.length > 1 ? "ceux-ci" : "celui-ci"}, ou d'autres à la place : ${enTrop.join(", ")}.`
+  );
 }
 
 /**

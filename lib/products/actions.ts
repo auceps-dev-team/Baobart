@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { FILTRES, familleDepuisLibelle, type Filtre } from "@/lib/feed/queries";
 import {
   decouperMotsCles,
+  tropDeMotsCles,
   prixRetenu,
   slugifier,
   type EtatProduit,
@@ -88,6 +89,9 @@ export async function creerBrouillon(
       saisie,
     };
   }
+
+  const tropDeMots = tropDeMotsCles(motsClesBrut);
+  if (tropDeMots) return { erreur: tropDeMots, champ: "motsCles", saisie };
 
   const famille =
     (FILTRES as readonly string[]).includes(familleLibelle) &&
@@ -360,6 +364,9 @@ export async function modifierRessource(
   if (titre.length < 3) {
     return { erreur: "Donne un titre d'au moins 3 caractères.", champ: "titre", saisie };
   }
+
+  const tropDeMots = tropDeMotsCles(motsClesBrut);
+  if (tropDeMots) return { erreur: tropDeMots, champ: "motsCles", saisie };
 
   const famille =
     (FILTRES as readonly string[]).includes(familleLibelle) &&

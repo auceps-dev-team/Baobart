@@ -4,6 +4,7 @@ import {
   MOTS_CLES_MAX,
   PRIX_MAX,
   decouperMotsCles,
+  tropDeMotsCles,
   prixRetenu,
   slugifier,
 } from "./validation";
@@ -36,6 +37,18 @@ describe("mots-clés", () => {
 
   it("accepte aussi les retours à la ligne", () => {
     expect(decouperMotsCles("wax\nportrait")).toEqual(["wax", "portrait"]);
+  });
+
+  it("dit ce qui dépasse au lieu de le jeter en silence", () => {
+    // Mesuré le 25/09 (Qualitytest R29) : 13 saisis, 12 enregistrés, rien à
+    // l'écran.
+    const treize = Array.from({ length: 13 }, (_, i) => `mot${i}`).join(", ");
+    expect(tropDeMotsCles(treize)).toContain("tu en as saisi 13");
+    expect(tropDeMotsCles(treize)).toContain("mot12");
+    const douze = Array.from({ length: 12 }, (_, i) => `mot${i}`).join(", ");
+    expect(tropDeMotsCles(douze)).toBeNull();
+    // Les doublons ne comptent pas : « wax, Wax » fait un mot-clé.
+    expect(tropDeMotsCles(`${douze}, mot0, MOT1`)).toBeNull();
   });
 
   it("plafonne : au-delà, les mots-clés ne classent plus rien", () => {

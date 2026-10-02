@@ -204,7 +204,7 @@ export function FormulaireProduit({
             defaultValue={saisie?.motsCles ?? ""}
             key={`mots-${saisie?.motsCles ?? ""}`}
             placeholder="wax, portrait, motif"
-            style={champStyle(false)}
+            style={champStyle(etat.champ === "motsCles")}
           />
         </Champ>
 
