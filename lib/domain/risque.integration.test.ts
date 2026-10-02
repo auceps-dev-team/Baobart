@@ -175,12 +175,19 @@ describe("lever une suspension", () => {
     expect(compte.suspendedAt).toBeNull();
   });
 
-  it("ne remet pas les produits en vente tout seul", async () => {
-    // On ne sait pas lesquels étaient publiés avant la sanction : tout
-    // republier remettrait en vente ce que le créateur avait lui-même retiré.
+  it("remet en vente ce que la suspension a retiré, et cela seulement", async () => {
+    // Ce test disait l'inverse jusqu'en v1.69.14 : « on ne sait pas lesquels
+    // étaient publiés avant la sanction ». La marque archivedByRiskAt le dit
+    // désormais. Mesuré le 25/09 (Qualitytest S5) : 7 ressources restées
+    // archivées après la levée, boutique vide pour un créateur blanchi.
     const userId = await compteVerifie();
-    const produit = await produitPublie(userId);
+    const enVente = await produitPublie(userId);
+    const archiveeParLui = await produitPublie(userId);
+    await db.product.update({ where: { id: archiveeParLui.id }, data: { status: "ARCHIVED" } });
+
     await appliquerEvenementRisque({ userId, event: "SUSPEND_TOS", auteur: "a" });
+    expect((await db.product.findUniqueOrThrow({ where: { id: enVente.id } })).status).toBe("ARCHIVED");
+
     await appliquerEvenementRisque({
       userId,
       event: "MARK_COMPLIANT",
@@ -188,8 +195,22 @@ describe("lever une suspension", () => {
       clearSuspension: true,
     });
 
-    const relu = await db.product.findUniqueOrThrow({ where: { id: produit.id } });
-    expect(relu.status).toBe("ARCHIVED");
+    const rendu = await db.product.findUniqueOrThrow({ where: { id: enVente.id } });
+    expect(rendu.status).toBe("PUBLISHED");
+    expect(rendu.archivedByRiskAt).toBeNull();
+    // Ce que le créateur avait archivé lui-même reste archivé.
+    expect((await db.product.findUniqueOrThrow({ where: { id: archiveeParLui.id } })).status).toBe("ARCHIVED");
+  });
+
+  it("laisse intacte une ressource sous retrait juridique", async () => {
+    const userId = await compteVerifie();
+    const retiree = await produitPublie(userId);
+    await db.product.update({ where: { id: retiree.id }, data: { status: "SUSPENDED" } });
+
+    await appliquerEvenementRisque({ userId, event: "SUSPEND_TOS", auteur: "a" });
+    await appliquerEvenementRisque({ userId, event: "MARK_COMPLIANT", auteur: "a", clearSuspension: true });
+
+    expect((await db.product.findUniqueOrThrow({ where: { id: retiree.id } })).status).toBe("SUSPENDED");
   });
 });
 

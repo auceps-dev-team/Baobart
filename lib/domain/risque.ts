@@ -239,21 +239,27 @@ async function executerEffets(
       }
 
       case "DESACTIVER_PRODUITS":
+        // La marque dit « c'est la sanction qui l'a retirée » : sans elle, la
+        // levée ne saurait pas quoi rendre.
         await tx.product.updateMany({
           where: { sellerId: userId, status: "PUBLISHED" },
-          data: { status: "ARCHIVED" },
+          data: { status: "ARCHIVED", archivedByRiskAt: new Date() },
         });
         break;
 
-      case "REACTIVER_PRODUITS":
-        // Volontairement non fait : on ne sait pas lesquels étaient publiés
-        // avant la sanction, et tout republier remettrait en vente ce que le
-        // créateur avait lui-même retiré.
-        journal.info("effet de risque non exécuté : réactivation des produits", {
-          userId,
-          raison: "l'état d'avant sanction n'est pas conservé",
+      case "REACTIVER_PRODUITS": {
+        // Seules les ressources que la sanction a archivées reviennent. Celles
+        // que le créateur avait archivées lui-même, ses brouillons et celles
+        // sous retrait juridique ne bougent pas. Cet effet n'écrivait qu'une
+        // ligne de journal : un créateur blanchi gardait une boutique vide
+        // (mesuré le 25/09, Qualitytest S5 — 7 ressources sur 7).
+        const { count } = await tx.product.updateMany({
+          where: { sellerId: userId, status: "ARCHIVED", archivedByRiskAt: { not: null } },
+          data: { status: "PUBLISHED", archivedByRiskAt: null },
         });
+        journal.info("produits remis en vente après levée", { userId, combien: count });
         break;
+      }
 
       case "JOURNALISER":
         break;

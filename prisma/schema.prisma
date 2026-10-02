@@ -1193,6 +1193,10 @@ model Product {
   /// Famille affichée dans la barre de filtres du feed.
   family        ProductFamily?
   status        ProductStatus  @default(DRAFT)
+  /// Posé quand une suspension de compte archive la ressource, effacé quand la
+  /// levée la remet en vente. C'est ce qui permet de rendre ce que la sanction
+  /// a retiré sans republier ce que le créateur avait archivé lui-même.
+  archivedByRiskAt DateTime?
   /// URL CDN de la couverture, dénormalisée : le feed en affiche des dizaines
   /// par page et ne doit pas résoudre un MediaAsset par carte (PLAN §8.2).
   coverUrl      String?
