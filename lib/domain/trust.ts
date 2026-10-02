@@ -141,6 +141,22 @@ export class TransitionInterditeError extends Error {
   }
 }
 
+/**
+ * La sanction visait un compte dont l'identité n'est pas vérifiée.
+ *
+ * Une sorte de transition interdite, mais qui ne doit pas se dire comme les
+ * autres : le refus affichait « L'événement SUSPEND_TOS n'est pas autorisé
+ * depuis l'état NOT_REVIEWED » — faux, c'est l'identité qui manque, pas l'état
+ * (mesuré le 25/09, Qualitytest N6-sans-kyc).
+ */
+export class IdentiteNonVerifieeError extends TransitionInterditeError {
+  constructor(depuis: RiskState, event: RiskEvent) {
+    super(depuis, event);
+    this.message = "Identité non vérifiée : ce compte ne peut être ni signalé ni suspendu.";
+    this.name = "IdentiteNonVerifieeError";
+  }
+}
+
 export interface TransitionInput {
   from: RiskState;
   event: RiskEvent;
@@ -184,7 +200,7 @@ export function applyRiskEvent(input: TransitionInput): TransitionResult {
   const estSanction =
     estSuspendu(to) || to === "FLAGGED_FRAUD" || to === "FLAGGED_TOS";
   if (estSanction && !isVerified) {
-    throw new TransitionInterditeError(from, event);
+    throw new IdentiteNonVerifieeError(from, event);
   }
 
   // LE GARDE-FOU CENTRAL. Il est posé sur l'ENTRÉE dans un état réhabilitant,

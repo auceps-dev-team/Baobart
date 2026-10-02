@@ -10,6 +10,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { decisionsPour } from "@/lib/domain/membres";
 import { appliquerEvenementRisque } from "@/lib/domain/risque";
 
 let n = 0;
@@ -211,6 +212,31 @@ describe("lever une suspension", () => {
     await appliquerEvenementRisque({ userId, event: "MARK_COMPLIANT", auteur: "a", clearSuspension: true });
 
     expect((await db.product.findUniqueOrThrow({ where: { id: retiree.id } })).status).toBe("SUSPENDED");
+  });
+});
+
+describe("un compte sans identité vérifiée", () => {
+  // Mesuré le 25/09 (Qualitytest N6-sans-kyc) : l'écran proposait « Signaler… »
+  // et « Suspendre… », et le refus disait « L'événement SUSPEND_TOS n'est pas
+  // autorisé depuis l'état NOT_REVIEWED » — c'est l'identité qui manque.
+  it("dit pourquoi il ne peut pas être suspendu", async () => {
+    n += 1;
+    const u = await db.user.create({ data: { email: `sans-kyc-${n}@baobart.test` }, select: { id: true } });
+
+    const r = await appliquerEvenementRisque({ userId: u.id, event: "SUSPEND_TOS", auteur: "a" });
+
+    expect(r).toEqual({
+      applique: false,
+      motif: "NON_VERIFIE",
+      message: "Identité non vérifiée : ce compte ne peut être ni signalé ni suspendu.",
+    });
+  });
+
+  it("ne se voit proposer aucune sanction à l'écran", () => {
+    expect(decisionsPour("NOT_REVIEWED", "NONE")).toEqual([]);
+    expect(decisionsPour("NOT_REVIEWED", "VERIFIED").map((d) => d.event)).toContain("SUSPEND_TOS");
+    // Une suspension existante reste levable, vérifié ou non.
+    expect(decisionsPour("SUSPENDED_TOS", "NONE").map((d) => d.event)).toEqual(["MARK_COMPLIANT"]);
   });
 });
 

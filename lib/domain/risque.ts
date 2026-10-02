@@ -7,6 +7,7 @@ import {
   applyRiskEvent,
   estSuspendu,
   SuspensionNonAutoriseeError,
+  IdentiteNonVerifieeError,
   TransitionInterditeError,
   type RiskEffect,
   type RiskEvent,
@@ -38,6 +39,7 @@ export type SuiteRisque =
       applique: false;
       motif:
         | "COMPTE_INTROUVABLE"
+        | "NON_VERIFIE"
         | "TRANSITION_INTERDITE"
         | "SUSPENSION_NON_LEVEE"
         | "DEJA_DANS_CET_ETAT";
@@ -93,6 +95,11 @@ export async function appliquerEvenementRisque(input: {
         message:
           "Cette transition lèverait une suspension : il faut le demander explicitement.",
       };
+    }
+    // Avant la transition interdite, dont elle est un cas : le message doit
+    // dire que c'est l'identité qui manque.
+    if (cause instanceof IdentiteNonVerifieeError) {
+      return { applique: false, motif: "NON_VERIFIE", message: cause.message };
     }
     if (cause instanceof TransitionInterditeError) {
       return {

@@ -92,7 +92,7 @@ export default async function MembresRisquePage({
 
   const lignes: LigneOps[] = membres.map((m) => {
     const etat = etatMembreDe(m.etatRisque);
-    const decisions = decisionsPour(m.etatRisque);
+    const decisions = decisionsPour(m.etatRisque, m.kyc);
 
     return {
       id: m.id,
@@ -120,7 +120,10 @@ export default async function MembresRisquePage({
         fond: d.event.startsWith("SUSPEND") ? ORANGE : JAUNE,
         demande: { champ: "motif", etiquette: "Raison de cette décision" },
       })),
-      sansAction: "Aucune décision possible dans cet état.",
+      sansAction:
+        m.kyc === "NONE" && decisions.length === 0
+          ? "Identité non vérifiée : ce compte ne peut être ni signalé ni suspendu."
+          : "Aucune décision possible dans cet état.",
     };
   });
 

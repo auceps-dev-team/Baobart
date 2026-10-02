@@ -61,6 +61,7 @@ export function filtreMembresValide(brut: string | undefined): FiltreMembres {
  */
 export function decisionsPour(
   etat: RiskState,
+  kyc?: string,
 ): Array<{ event: RiskEvent; libelle: string; leveSuspension: boolean }> {
   if (ETATS_SUSPENDUS.includes(etat)) {
     return [
@@ -75,6 +76,11 @@ export function decisionsPour(
       { event: "MARK_COMPLIANT", libelle: "Lever le signalement", leveSuspension: false },
     ];
   }
+
+  // Un compte sans identité vérifiée ne peut être ni signalé ni suspendu : la
+  // machine le refuse. Proposer ces gestes faisait cliquer pour un refus à
+  // la raison fausse (mesuré le 25/09, Qualitytest N6-sans-kyc).
+  if (kyc === "NONE") return [];
 
   return [
     { event: "FLAG_TOS", libelle: "Signaler (conditions)", leveSuspension: false },
