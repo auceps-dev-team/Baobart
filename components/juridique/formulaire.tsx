@@ -31,8 +31,13 @@ import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/ch
  * deux endroits à changer le jour où la loi bouge — avec la certitude qu'on en
  * oubliera un. Sur un formulaire juridique, cet oubli-là se paierait.
  *
- * `required` reste sur les champs : c'est un raccourci d'affichage, pas une
- * garde.
+ * `required` n'est PAS un raccourci d'affichage : le navigateur refuse
+ * d'envoyer. Posé sur les éléments de l'article 47, il empêchait d'enregistrer
+ * ce que ce module promet d'enregistrer — une notification sans motifs ou sans
+ * correspondance préalable ne partait jamais (mesuré le 25/09, Qualitytest
+ * R41, R43). Il ne reste donc que sur le courriel : la loi ne l'exige pas,
+ * mais sans lui personne ne peut répondre au notifiant, et un formulaire
+ * vide ne consomme pas une référence.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * UNE NOTIFICATION INCOMPLÈTE EST ENREGISTRÉE, ET LE DIT
@@ -112,7 +117,7 @@ export function FormulaireNotification() {
             libelle={morale ? "Dénomination" : "Nom"}
             erreur={manque("nom")}
           >
-            <input name="nom" required maxLength={120} style={CHAMP} />
+            <input name="nom" maxLength={120} style={CHAMP} />
           </Champ>
 
           {!morale ? (
@@ -148,7 +153,7 @@ export function FormulaireNotification() {
             libelle={morale ? "Siège social" : "Domicile"}
             erreur={manque("adresse")}
           >
-            <textarea name="adresse" required rows={2} maxLength={300} style={CHAMP} />
+            <textarea name="adresse" rows={2} maxLength={300} style={CHAMP} />
           </Champ>
 
           <Champ
@@ -167,7 +172,7 @@ export function FormulaireNotification() {
             aide="Tel qu'il apparaît sur le contenu. Un pseudonyme suffit."
             erreur={manque("destinataireNom")}
           >
-            <input name="destinataireNom" required maxLength={120} style={CHAMP} />
+            <input name="destinataireNom" maxLength={120} style={CHAMP} />
           </Champ>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Champ libelle="Prénoms, si tu les connais">
@@ -182,7 +187,7 @@ export function FormulaireNotification() {
         {/* ── Les faits ─────────────────────────────────────────────── */}
         <Bloc titre="Ce qui est litigieux, et où" note="Article 47, quatrième tiret">
           <Champ libelle="Décris les faits" erreur={manque("faits")}>
-            <textarea name="faits" required rows={4} maxLength={4000} style={CHAMP} />
+            <textarea name="faits" rows={4} maxLength={4000} style={CHAMP} />
           </Champ>
 
           <Champ
@@ -192,7 +197,6 @@ export function FormulaireNotification() {
           >
             <textarea
               name="adressesVisees"
-              required
               rows={3}
               placeholder="https://baobart.ci/products/…"
               style={{ ...CHAMP, fontFamily: "var(--font-mono)", fontSize: 13.5 }}
@@ -207,7 +211,7 @@ export function FormulaireNotification() {
             aide="Droit d'auteur, marque, vie privée, diffamation… et ce qui te fait dire qu'il s'applique."
             erreur={manque("motifs")}
           >
-            <textarea name="motifs" required rows={4} maxLength={4000} style={CHAMP} />
+            <textarea name="motifs" rows={4} maxLength={4000} style={CHAMP} />
           </Champ>
         </Bloc>
 
@@ -251,7 +255,7 @@ export function FormulaireNotification() {
             }
             erreur={manque("contactPrealable")}
           >
-            <textarea name="contactPrealable" required rows={5} maxLength={6000} style={CHAMP} />
+            <textarea name="contactPrealable" rows={5} maxLength={6000} style={CHAMP} />
           </Champ>
         </Bloc>
 
