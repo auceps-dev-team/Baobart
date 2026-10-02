@@ -93,6 +93,12 @@ export function PanneauEffacement({
   ) => Promise<EtatAction>;
 }) {
   const [ouvert, setOuvert] = useState(false);
+  // Le dernier geste fait, pour n'afficher que SA réponse. Les deux états
+  // d'action survivent au changement de branche : après « Annuler la
+  // demande », l'écran rouvrait le formulaire et réaffichait « Demande
+  // enregistrée… » — l'inverse de la vérité (mesuré le 25/09, Qualitytest
+  // B16, S56).
+  const [dernier, setDernier] = useState<"demande" | "annule" | null>(null);
   const [suiteDemande, agirDemander, demandeEnCours] = useActionState(
     demander,
     null,
@@ -114,7 +120,7 @@ export function PanneauEffacement({
           }
         </p>
 
-        <form action={agirAnnuler} style={{ marginTop: 14 }}>
+        <form action={agirAnnuler} onSubmit={() => setDernier("annule")} style={{ marginTop: 14 }}>
           <button
             type="submit"
             disabled={annuleEnCours}
@@ -131,7 +137,7 @@ export function PanneauEffacement({
           >
             {annuleEnCours ? "…" : "Annuler la demande"}
           </button>
-          <Message etat={suiteAnnule} />
+          <Message etat={dernier === "annule" ? suiteAnnule : null} />
         </form>
       </div>
     );
@@ -167,10 +173,16 @@ export function PanneauEffacement({
         ont achetées.
       </div>
 
-      {!ouvert ? (
+      {/* L'annulation vient de réussir : on le dit, et le formulaire reste replié. */}
+      {dernier === "annule" ? <Message etat={suiteAnnule} /> : null}
+
+      {!ouvert || dernier === "annule" ? (
         <button
           type="button"
-          onClick={() => setOuvert(true)}
+          onClick={() => {
+            setOuvert(true);
+            setDernier(null);
+          }}
           style={{
             marginTop: 14,
             padding: "11px 17px",
@@ -187,7 +199,7 @@ export function PanneauEffacement({
           Demander l&apos;effacement
         </button>
       ) : (
-        <form action={agirDemander} style={{ marginTop: 16, maxWidth: 460 }}>
+        <form action={agirDemander} onSubmit={() => setDernier("demande")} style={{ marginTop: 16, maxWidth: 460 }}>
           <label htmlFor="confirmation" style={etiquette}>
             Recopie ton adresse pour confirmer
           </label>
@@ -248,7 +260,7 @@ export function PanneauEffacement({
             </button>
           </div>
 
-          <Message etat={suiteDemande} />
+          <Message etat={dernier === "demande" ? suiteDemande : null} />
         </form>
       )}
     </div>
