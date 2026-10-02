@@ -101,7 +101,8 @@ export function Rail({
       style={{
         position: "fixed",
         left: 18,
-        top: 104,
+        // Sous l'en-tête, quelle que soit sa hauteur — voir header.tsx.
+        top: "var(--bas-entete, 104px)",
         bottom: 24,
         zIndex: 45,
         display: "flex",

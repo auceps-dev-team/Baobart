@@ -157,6 +157,22 @@ export function Header({
   useEffect(() => annulerFermeture, [annulerFermeture]);
   const dernier = useRef(0);
 
+  // La hauteur réelle de l'en-tête, pour que le rail fixe se cale dessous.
+  // Il était posé à 104 px — un en-tête sur une ligne. Mesuré le 24/09
+  // (Qualitytest A1) : à 1280 et 1366 px, ou avec un nom de compte long,
+  // l'en-tête passe sur deux lignes et le rail recouvre « Panier ».
+  const entete = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = entete.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const poser = () =>
+      document.documentElement.style.setProperty("--bas-entete", `${el.offsetHeight + 8}px`);
+    poser();
+    const observateur = new ResizeObserver(poser);
+    observateur.observe(el);
+    return () => observateur.disconnect();
+  }, []);
+
   // Les suggestions viennent de la base, pas d'une liste figée : c'est le seul
   // écart assumé avec la maquette, qui filtrait un tableau en dur.
   useEffect(() => {
@@ -194,7 +210,7 @@ export function Header({
           : null;
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 40, padding: "18px 32px 0" }}>
+    <div ref={entete} style={{ position: "sticky", top: 0, zIndex: 40, padding: "18px 32px 0" }}>
       <div
         style={{
           maxWidth: 1400,
