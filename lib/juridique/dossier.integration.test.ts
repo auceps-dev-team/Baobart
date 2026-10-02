@@ -327,7 +327,7 @@ describe("répondre", () => {
 
     expect(
       await repondre({ reference: d.reference, auteurId: d.vise.id, corps: "non" }),
-    ).toEqual({ ok: false, motif: "ETAT" });
+    ).toEqual({ ok: false, motif: "TEXTE_COURT" });
   });
 
   it("refuse de répondre à un dossier qui n'est pas en retrait provisoire", async () => {
@@ -356,7 +356,7 @@ describe("trancher", () => {
       motif: "  ok  ",
     });
 
-    expect(suite).toEqual({ ok: false, motif: "ETAT" });
+    expect(suite).toEqual({ ok: false, motif: "TEXTE_COURT" });
     const dossier = await db.legalNotice.findUniqueOrThrow({
       where: { reference: depot.reference },
       select: { state: true },
@@ -401,7 +401,13 @@ describe("trancher", () => {
     };
 
     await trancher(avis);
-    expect(await trancher(avis)).toEqual({ ok: false, motif: "ETAT" });
+    // Le second apprend que c'est déjà fait, et ce qui a été décidé — il
+    // lisait « écris un motif d'au moins huit caractères » (R49, 25/09).
+    expect(await trancher({ ...avis, sens: "RETIREE" })).toEqual({
+      ok: false,
+      motif: "DEJA_TRANCHE",
+      decision: "CLASSEE",
+    });
   });
 
   it("consigne un retrait comme un retrait, une restauration comme une publication", async () => {

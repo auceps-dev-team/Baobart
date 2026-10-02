@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.69.17",
+  "version": "1.69.18",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {

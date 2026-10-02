@@ -8,6 +8,7 @@ import type { Manque, Qualite, Saisie } from "@/lib/juridique/article47";
 import { texteDuBilan, type BilanRetrait } from "@/lib/juridique/retrait";
 import { verifierLimiteAction } from "@/lib/securite/garde";
 import {
+  LIBELLE_SENS,
   MESSAGES_ECHEC,
   deposer,
   rapprocher,
@@ -151,14 +152,16 @@ export async function trancherLeDossier(
 
   const suite = await trancher({ reference, parId: qui.id, sens, motif });
   if (!suite.ok) {
-    // `ETAT` recouvre ici deux choses : un motif trop court, et un dossier déjà
-    // tranché. Le message le dit, parce que l'écran ne peut pas deviner.
+    // Les deux cas que `ETAT` confondait sont séparés : le second modérateur
+    // lisait « écris un motif » pour un motif de 46 caractères (R49, 25/09).
     return {
       ok: false,
       message:
-        suite.motif === "ETAT"
-          ? "Écris un motif d'au moins huit caractères — et vérifie que le dossier est encore ouvert."
-          : MESSAGES_ECHEC[suite.motif],
+        suite.motif === "TEXTE_COURT"
+          ? "Écris un motif d'au moins huit caractères : il reste au dossier et au journal."
+          : suite.motif === "DEJA_TRANCHE"
+            ? `Ce dossier vient d'être tranché par quelqu'un d'autre — ${LIBELLE_SENS[suite.decision]}. Recharge la page pour lire la décision.`
+            : MESSAGES_ECHEC[suite.motif],
     };
   }
 
@@ -204,9 +207,11 @@ export async function repondreAuDossier(
     return {
       ok: false,
       message:
-        suite.motif === "ETAT"
-          ? "Écris au moins une phrase — et vérifie que le délai n'est pas passé."
-          : MESSAGES_ECHEC[suite.motif],
+        suite.motif === "TEXTE_COURT"
+          ? "Écris au moins une phrase."
+          : suite.motif === "ETAT"
+            ? "Le délai de réponse est passé, ou ce dossier n'attend plus de réponse."
+            : MESSAGES_ECHEC[suite.motif],
     };
   }
 

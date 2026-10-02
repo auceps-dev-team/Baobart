@@ -100,7 +100,17 @@ export const ENGAGEMENTS = {
 export type Echec =
   | { motif: "INCOMPLETE"; manques: Manque[] }
   | { motif: "INTROUVABLE" }
-  | { motif: "ETAT" };
+  | { motif: "ETAT" }
+  /**
+   * Un motif ou une réponse trop courts.
+   *
+   * Séparé d'ETAT : les deux se confondaient, et le second modérateur à
+   * trancher un dossier lisait « écris un motif d'au moins huit caractères »
+   * pour un motif de 46 (mesuré le 25/09, Qualitytest R49).
+   */
+  | { motif: "TEXTE_COURT" }
+  /** Quelqu'un a tranché avant : la décision prise est rendue. */
+  | { motif: "DEJA_TRANCHE"; decision: Sens };
 
 export type Suite<T = object> = ({ ok: true } & T) | ({ ok: false } & Echec);
 
@@ -108,6 +118,8 @@ export const MESSAGES_ECHEC: Record<Echec["motif"], string> = {
   INCOMPLETE: "Il manque des éléments que la loi exige.",
   INTROUVABLE: "Ce dossier n'existe pas.",
   ETAT: "Ce dossier n'est plus dans un état qui permet ce geste.",
+  TEXTE_COURT: "Le texte est trop court.",
+  DEJA_TRANCHE: "Ce dossier a déjà été tranché.",
 };
 
 // ════════════════════════════════════════════════════════════════════ dépôt ══
@@ -333,7 +345,7 @@ export async function repondre(input: {
   conteste?: boolean;
 }): Promise<Suite> {
   const corps = input.corps.trim();
-  if (corps.length < 12) return { ok: false, motif: "ETAT" };
+  if (corps.length < 12) return { ok: false, motif: "TEXTE_COURT" };
 
   const dossier = await db.legalNotice.findUnique({
     where: { reference: input.reference },
@@ -363,6 +375,15 @@ export async function repondre(input: {
 
 export type Sens = "RETIREE" | "RESTAUREE" | "CLASSEE";
 
+const SENS: readonly string[] = ["RETIREE", "RESTAUREE", "CLASSEE"];
+
+/** Le refus à rendre quand le dossier n'est plus tranchable. */
+function dejaTranche(etat: string): Echec & { ok: false } {
+  return SENS.includes(etat)
+    ? { ok: false, motif: "DEJA_TRANCHE", decision: etat as Sens }
+    : { ok: false, motif: "ETAT" };
+}
+
 /**
  * Trancher.
  *
@@ -381,7 +402,7 @@ export async function trancher(input: {
   motif: string;
 }): Promise<Suite> {
   const motif = input.motif.trim();
-  if (motif.length < 8) return { ok: false, motif: "ETAT" };
+  if (motif.length < 8) return { ok: false, motif: "TEXTE_COURT" };
 
   const dossier = await db.legalNotice.findUnique({
     where: { reference: input.reference },
@@ -393,7 +414,7 @@ export async function trancher(input: {
   // On tranche ce qui est en cours. Un dossier déjà tranché ne se retranche
   // pas : il faudrait une nouvelle notification, avec sa propre date.
   const tranchables: string[] = ["RECUE", "INCOMPLETE", "RETRAIT_PROVISOIRE", "CONTESTEE"];
-  if (!tranchables.includes(dossier.state)) return { ok: false, motif: "ETAT" };
+  if (!tranchables.includes(dossier.state)) return dejaTranche(dossier.state);
 
   /*
     ──────────────────────────────────────────────────────────────────────────
@@ -427,7 +448,14 @@ export async function trancher(input: {
     return input.sens === "RETIREE" ? [] : await retablirLesProduits(tx, dossier.id);
   });
 
-  if (rendu === null) return { ok: false, motif: "ETAT" };
+  // Perdu la course : un autre a écrit entre notre lecture et notre écriture.
+  if (rendu === null) {
+    const relu = await db.legalNotice.findUnique({
+      where: { id: dossier.id },
+      select: { state: true },
+    });
+    return dejaTranche(relu?.state ?? "");
+  }
 
   await consigner({
     acteurId: input.parId,
