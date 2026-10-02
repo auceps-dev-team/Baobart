@@ -128,13 +128,23 @@ function Ligne({ ligne, peutAgir }: { ligne: LigneFile; peutAgir: boolean }) {
         <Texte attenue={0.75}>{ligne.derniereErreur ?? "—"}</Texte>
       </div>
 
+      {/*
+        Les boutons passent à la ligne plutôt que de déborder, et la colonne
+        est au premier plan. Mesuré le 25/09 (Qualitytest N11) : sur une ligne
+        en échec, « Relancer » débordait sous le texte de la dernière erreur —
+        dont l'opacité le peint au-dessus de ses voisins — et ne se cliquait
+        plus à la souris, précisément le seul cas où il sert.
+      */}
       <div
         style={{
           flex: "1.5 1 0",
           minWidth: 0,
           display: "flex",
+          flexWrap: "wrap",
           gap: 7,
           justifyContent: "flex-end",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {/*
