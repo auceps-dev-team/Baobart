@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { sessionCourante } from "@/lib/auth/session";
 import type { Manque, Qualite, Saisie } from "@/lib/juridique/article47";
-import type { BilanRetrait } from "@/lib/juridique/retrait";
+import { texteDuBilan, type BilanRetrait } from "@/lib/juridique/retrait";
 import { verifierLimiteAction } from "@/lib/securite/garde";
 import {
   MESSAGES_ECHEC,
@@ -136,18 +136,10 @@ export async function retirerLeContenu(reference: string): Promise<EtatGeste> {
  * reçoit « un de tes contenus a été retiré », et rien n'a bougé.
  */
 function avisDeRetrait(retrait: BilanRetrait): string | undefined {
+  // Le même texte que la fiche du dossier, qui le reconstitue depuis la base
+  // et l'affiche durablement (voir `bilanEnregistre`).
   if (retrait.nonResolues.length === 0) return undefined;
-
-  const debut =
-    retrait.suspendus.length === 0
-      ? "Aucune ressource retirée."
-      : `${retrait.suspendus.length} ressource(s) retirée(s).`;
-
-  return (
-    `${debut} Ces adresses ne désignent aucune ressource de Baobart — ` +
-    `elles visent peut-être un message de forum ou un article, à traiter ` +
-    `ailleurs :\n${retrait.nonResolues.join("\n")}`
-  );
+  return texteDuBilan(retrait);
 }
 
 export async function trancherLeDossier(

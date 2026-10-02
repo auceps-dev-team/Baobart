@@ -119,6 +119,42 @@ export function slugsDesUrls(brut: string): {
 }
 
 /**
+ * Le bilan d'un retrait, reconstitué depuis ce qui est enregistré.
+ *
+ * Le bilan rendu par `suspendreLesProduits` vivait dans l'état d'un composant,
+ * démonté dès que le dossier changeait d'état : le modérateur ne le voyait
+ * jamais (mesuré le 25/09, Qualitytest O6, P10.6, S31, S54). Tout est pourtant
+ * en base — les lignes `LegalSuspension` disent ce qui a été retiré, et
+ * `targetUrls` ce qui était visé. Une adresse visée que rien n'a retirée est
+ * « non atteinte », quelle qu'en soit la raison.
+ */
+export function bilanEnregistre(targetUrls: string, retirees: string[]): BilanRetrait {
+  const { slugs, origine, nonResolues } = slugsDesUrls(targetUrls);
+  const faites = new Set(retirees);
+  return {
+    suspendus: [...faites],
+    nonResolues: [
+      ...nonResolues,
+      ...slugs.filter((s) => !faites.has(s)).map((s) => origine[s] ?? s),
+    ],
+  };
+}
+
+/** Ce que le modérateur lit : combien a été retiré, et ce qui ne l'a pas été. */
+export function texteDuBilan(bilan: BilanRetrait): string {
+  const debut =
+    bilan.suspendus.length === 0
+      ? "Aucune ressource retirée."
+      : `${bilan.suspendus.length} ressource(s) retirée(s) : ${bilan.suspendus.join(", ")}.`;
+  if (bilan.nonResolues.length === 0) return debut;
+  return (
+    `${debut} Ces adresses ne désignent aucune ressource de Baobart — ` +
+    `elles visent peut-être un message de forum ou un article, à traiter ` +
+    `ailleurs :\n${bilan.nonResolues.join("\n")}`
+  );
+}
+
+/**
  * Retire les ressources qu'un dossier désigne.
  *
  * ────────────────────────────────────────────────────────────────────────────

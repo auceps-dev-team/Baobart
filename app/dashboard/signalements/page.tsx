@@ -8,6 +8,7 @@ import {
   FermerLaCommunaute,
 } from "@/components/forum/decision-signalement";
 import { RetirerProvisoirement, Trancher } from "@/components/juridique/gestes";
+import { texteDuBilan } from "@/lib/juridique/retrait";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import {
   dossiersEnCours,
@@ -249,6 +250,28 @@ export default async function SignalementsPage({
                   ))}
                 </ul>
               </div>
+
+              {/*
+                Le bilan du retrait, lu en base : il restait dans l'état d'un
+                composant démonté au changement d'état, et personne ne le voyait
+                (O6, S31, 25/09). Jaune quand une adresse n'a pas été atteinte.
+              */}
+              {d.retrait ? (
+                <p
+                  style={{
+                    marginTop: 14,
+                    padding: "10px 12px",
+                    border: CADRE,
+                    borderRadius: 12,
+                    background: d.retrait.nonResolues.length > 0 || d.retrait.suspendus.length === 0 ? JAUNE : BLANC,
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {texteDuBilan(d.retrait)}
+                </p>
+              ) : null}
 
               {d.reponseAvantLe ? (
                 <p style={{ fontSize: 13, fontWeight: 700, marginTop: 14 }}>

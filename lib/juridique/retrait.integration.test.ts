@@ -45,9 +45,11 @@ import { db } from "@/lib/db";
 import type { ProductStatus } from "@/lib/domain/prisma-types";
 import { autoriserTelechargement } from "@/lib/domain/downloads";
 import { retirerProvisoirement, trancher } from "@/lib/juridique/dossier";
+import { dossiersEnCours } from "@/lib/juridique/queries";
 import {
   dossiersQuiRetiennent,
   slugsDesUrls,
+  texteDuBilan,
 } from "@/lib/juridique/retrait";
 
 let n = 0;
@@ -231,6 +233,32 @@ describe("retirer provisoirement", () => {
     expect(suite.retrait.nonResolues).toContain(
       "https://baobart.ci/communautes/design/7",
     );
+  });
+
+  it("garde le bilan lisible sur le dossier, après le geste", async () => {
+    // Mesuré le 25/09 (Qualitytest O6, S31) : le bilan n'apparaissait jamais —
+    // il vivait dans un composant démonté dès que le dossier changeait d'état.
+    await ressource("existe-bilan");
+    const d = await dossier(
+      ["https://baobart.ci/products/existe-bilan", "https://baobart.ci/communautes/design/9"].join("\n"),
+    );
+    await retirerProvisoirement({ reference: d.reference, parId: (await vendeur()).id });
+
+    const lu = (await dossiersEnCours()).find((x) => x.reference === d.reference);
+    expect(lu?.retrait).toEqual({
+      suspendus: ["existe-bilan"],
+      nonResolues: ["https://baobart.ci/communautes/design/9"],
+    });
+    expect(texteDuBilan(lu!.retrait!)).toContain("1 ressource(s) retirée(s) : existe-bilan.");
+  });
+
+  it("dit « aucune ressource retirée » quand rien n'a été atteint", async () => {
+    const d = await dossier("https://baobart.ci/products/faute-de-frappe-bilan");
+    await retirerProvisoirement({ reference: d.reference, parId: (await vendeur()).id });
+
+    const lu = (await dossiersEnCours()).find((x) => x.reference === d.reference);
+    expect(texteDuBilan(lu!.retrait!)).toMatch(/^Aucune ressource retirée\./);
+    expect(lu!.retrait!.nonResolues).toEqual(["https://baobart.ci/products/faute-de-frappe-bilan"]);
   });
 
   it("nomme les dossiers qui retiennent une ressource", async () => {

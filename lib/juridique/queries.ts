@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { bilanEnregistre, type BilanRetrait } from "@/lib/juridique/retrait";
 
 /**
  * Lire les dossiers juridiques.
@@ -42,6 +43,8 @@ export interface LigneDossier {
   decideLe: Date | null;
   motifDecision: string | null;
   reponses: number;
+  /** Ce que le retrait a atteint, et ce qu'il n'a pas atteint. Nul avant tout retrait. */
+  retrait: BilanRetrait | null;
 }
 
 /** L'ordre de traitement : ce qui attend, le plus ancien d'abord. */
@@ -93,9 +96,19 @@ async function lire(
       replyDueAt: true,
       decidedAt: true,
       decisionReason: true,
+      suspensions: { select: { productId: true } },
       _count: { select: { replies: true } },
     },
   });
+
+  // Les slugs des ressources retirées, en une requête pour toute la page.
+  const ids = [...new Set(lignes.flatMap((d) => d.suspensions.map((s) => s.productId)))];
+  const slugs = new Map(
+    (ids.length === 0
+      ? []
+      : await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, slug: true } })
+    ).map((p) => [p.id, p.slug]),
+  );
 
   return lignes.map((d) => ({
     reference: d.reference,
@@ -116,6 +129,12 @@ async function lire(
     decideLe: d.decidedAt,
     motifDecision: d.decisionReason,
     reponses: d._count.replies,
+    retrait: d.suspendedAt
+      ? bilanEnregistre(
+          d.targetUrls,
+          d.suspensions.map((s) => slugs.get(s.productId)).filter((s): s is string => Boolean(s)),
+        )
+      : null,
   }));
 }
 
