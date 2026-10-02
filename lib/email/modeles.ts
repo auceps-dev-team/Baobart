@@ -59,6 +59,13 @@ export const MODELES = [
   // quelqu'un qui a renoncé est le genre de détail qui fait classer un
   // expéditeur en indésirable, et la délivrabilité ne revient pas.
   "PAIEMENT_ABANDONNE",
+
+  // ── Ajouté en v1.69.12 : la levée d'une annulation ──────────────────────
+  //
+  // Le pendant d'EVENEMENT_ANNULE. Qui a lu « annulé » a pu renoncer à un
+  // déplacement ; lui laisser découvrir seul que l'événement revient, c'est
+  // le faire manquer ce qu'il avait prévu (mesuré le 25/09, Qualitytest S6).
+  "EVENEMENT_MAINTENU",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -223,6 +230,7 @@ const SCHEMAS = {
     /** Combien d'heures il reste avant que la commande ne se referme. */
     heures: z.number().int().positive(),
   }),
+  EVENEMENT_MAINTENU: z.object({ nom, titre: z.string().min(1).max(160) }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
 export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
@@ -414,6 +422,21 @@ ${c.raison}
 ` +
       `« ${c.titre} » a été relu et publié. C'est visible de tout le monde, ` +
       `et les inscriptions sont ouvertes.` +
+      SIGNATURE,
+  }),
+
+  EVENEMENT_MAINTENU: (c) => ({
+    // Le titre dans le sujet, comme pour l'annulation : il faut savoir LEQUEL
+    // revient sans ouvrir le message.
+    sujet: `Maintenu : ${c.titre}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `L'annulation de « ${c.titre} » est levée : l'événement a bien lieu.
+
+` +
+      `Ton inscription tient toujours — tu n'as rien à refaire.` +
       SIGNATURE,
   }),
 

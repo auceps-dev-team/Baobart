@@ -343,6 +343,30 @@ describe("rétablir", () => {
     expect(apres.cancelReason).toBeNull();
   });
 
+  it("prévient les inscrits à chaque annulation et à chaque levée", async () => {
+    // Mesuré le 25/09 (Qualitytest S6) : trois annulations dans la journée,
+    // chacune levée ; seul le premier avis partait, et aucune levée n'était
+    // annoncée. Un inscrit qui avait lu « annulé » ne savait jamais que
+    // l'événement revenait, ni qu'il était annulé de nouveau.
+    const e = await evenement("PUBLIE");
+    const inscrit = await organisateur();
+    await db.eventRegistration.create({ data: { eventId: e.id, userId: inscrit.id } });
+    const avis = (type: string) =>
+      db.notification.count({ where: { userId: inscrit.id, type } });
+
+    for (let tour = 1; tour <= 2; tour += 1) {
+      await annuler({ evenementId: e.id, raison: `Salle indisponible, tour ${tour}.`, acteurId: e.auteurId, portee: TOUT });
+      await retablir({ evenementId: e.id, acteurId: e.auteurId, portee: TOUT });
+      expect(await avis("EVENEMENT_ANNULE")).toBe(tour);
+      expect(await avis("EVENEMENT_MAINTENU")).toBe(tour);
+    }
+
+    const courriels = await db.emailOutbox.count({
+      where: { template: { in: ["EVENEMENT_ANNULE", "EVENEMENT_MAINTENU"] } },
+    });
+    expect(courriels).toBe(4);
+  });
+
   it("refuse de rétablir ce qui n'est pas annulé", async () => {
     const e = await evenement("PUBLIE");
     expect(await retablir({ evenementId: e.id, acteurId: e.auteurId, portee: TOUT })).toEqual({

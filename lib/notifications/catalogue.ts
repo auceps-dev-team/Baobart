@@ -109,6 +109,7 @@ export type EvenementNotifiable =
   | "ABONNEMENT_A_RENOUVELER"
   | "ABONNEMENT_RECU"
   | "EVENEMENT_ANNULE"
+  | "EVENEMENT_MAINTENU"
   // ── Vendeur, créateur, organisateur ─────────────────────────────────────
   | "VENTE_REALISEE"
   | "VERSEMENT_ENVOYE"
@@ -193,6 +194,17 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     // c'est le laisser venir devant une porte fermée.
     imperatif: true,
     modele: "EVENEMENT_ANNULE",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  EVENEMENT_MAINTENU: {
+    audience: "acheteur",
+    libelle: "Événement maintenu",
+    explication: "Un événement annulé où tu étais inscrit a finalement lieu.",
+    // Le pendant de l'annulation, et impératif pour la même raison : qui a lu
+    // « annulé » a pu renoncer à un déplacement. Ne pas lui dire que
+    // l'événement revient, c'est le lui faire manquer.
+    imperatif: true,
+    modele: "EVENEMENT_MAINTENU",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
 

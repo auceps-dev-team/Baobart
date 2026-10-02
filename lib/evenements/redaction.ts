@@ -342,13 +342,14 @@ export async function annuler(input: {
 
   // `cancelledAt: null` dans le WHERE : deux annulations simultanées ne
   // doivent pas écraser la première raison par la seconde.
+  const annuleLe = new Date();
   const ecrit = await db.event.updateMany({
     where: {
       id: evenement.id,
       cancelledAt: null,
       ...clauseDePortee(input.portee),
     },
-    data: { cancelledAt: new Date(), cancelReason: raison },
+    data: { cancelledAt: annuleLe, cancelReason: raison },
   });
 
   if (ecrit.count !== 1) return { ok: false, motif: "DEJA_ANNULE" };
@@ -362,7 +363,7 @@ export async function annuler(input: {
 
   journal.info("événement annulé", { evenement: evenement.id });
 
-  await prevenirLesInscrits(evenement.id, evenement.title, raison);
+  await prevenirLesInscrits(evenement.id, evenement.title, raison, annuleLe);
 
   return { ok: true };
 }
@@ -402,6 +403,7 @@ async function prevenirLesInscrits(
   evenementId: string,
   titre: string,
   raison: string,
+  annuleLe: Date,
 ): Promise<void> {
   const inscrits = await db.eventRegistration.findMany({
     where: { eventId: evenementId },
@@ -412,9 +414,12 @@ async function prevenirLesInscrits(
     await notifier({
       destinataireId: userId,
       evenement: "EVENEMENT_ANNULE",
-      // La clé porte l'événement ET la personne : un seul avis chacun, et un
-      // rejeu de l'annulation n'en pose pas un second.
-      cle: `annulation-${evenementId}-${userId}`,
+      // La clé porte l'événement, la personne ET l'instant de l'annulation :
+      // un rejeu de CETTE annulation n'en pose pas un second, mais une
+      // annulation suivante, après une levée, prévient de nouveau. Sans
+      // l'instant, toute annulation après la première était avalée (mesuré le
+      // 25/09, Qualitytest S6 : la troisième n'a prévenu personne).
+      cle: `annulation-${evenementId}-${userId}-${annuleLe.getTime()}`,
       titre: `« ${titre} » est annulé`,
       corps: raison,
       lien: `/evenements/${evenementId}`,
@@ -440,6 +445,11 @@ export async function retablir(input: {
   acteurId: string;
   portee: Portee;
 }): Promise<Suite> {
+  const avant = await db.event.findFirst({
+    where: { id: input.evenementId, ...clauseDePortee(input.portee) },
+    select: { title: true, cancelledAt: true },
+  });
+
   const ecrit = await db.event.updateMany({
     where: {
       id: input.evenementId,
@@ -457,6 +467,27 @@ export async function retablir(input: {
     ressource: ressource("evenement", input.evenementId),
     details: { geste: "annulation levée" },
   });
+
+  // Qui a appris l'annulation doit apprendre la levée. Elle n'était annoncée
+  // à personne (mesuré le 25/09, Qualitytest S6). La clé porte l'annulation
+  // levée : un rejeu ne prévient pas deux fois, une levée suivante si.
+  if (avant?.cancelledAt) {
+    const inscrits = await db.eventRegistration.findMany({
+      where: { eventId: input.evenementId },
+      select: { userId: true },
+    });
+    for (const { userId } of inscrits) {
+      await notifier({
+        destinataireId: userId,
+        evenement: "EVENEMENT_MAINTENU",
+        cle: `maintien-${input.evenementId}-${userId}-${avant.cancelledAt.getTime()}`,
+        titre: `« ${avant.title} » est maintenu`,
+        corps: "L'annulation est levée : l'événement a bien lieu, et ton inscription tient toujours.",
+        lien: `/evenements/${input.evenementId}`,
+        charge: { titre: avant.title },
+      });
+    }
+  }
 
   return { ok: true };
 }

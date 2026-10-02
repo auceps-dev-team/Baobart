@@ -3039,6 +3039,11 @@ enum EmailTemplate {
   /// d'un fait. Une seule relance par commande, garantie par la contrainte
   /// d'unicite de `RelancePaiement.orderId`.
   PAIEMENT_ABANDONNE
+
+  /// Ajouté en v1.69.12 : l'avis aux inscrits quand une annulation est levée.
+  /// Sans lui, quelqu'un qui avait lu « annulé » n'apprenait jamais que
+  /// l'événement revenait.
+  EVENEMENT_MAINTENU
 }
 
 /// File d'attente des messages transactionnels.

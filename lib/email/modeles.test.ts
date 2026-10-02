@@ -73,6 +73,7 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     lien: "https://baobart.test/acheter/pack-textures",
     heures: 22,
   },
+  EVENEMENT_MAINTENU: { nom: "Awa", titre: "Atelier sérigraphie sur wax" },
 };
 
 describe("modèles de courriel", () => {

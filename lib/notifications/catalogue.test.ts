@@ -149,8 +149,11 @@ describe("les impératifs", () => {
         "VERSEMENT_ENVOYE",
         // Une décision qui n'a aucun autre canal vers son auteur.
         "CONTENU_REFUSE",
-        // Un déplacement prévu, parfois payé.
+        // Un déplacement prévu, parfois payé — qu'on annule, ou qu'on
+        // maintient après l'avoir annulé (ajouté en v1.69.12 : qui a lu
+        // « annulé » a pu renoncer à son déplacement).
         "EVENEMENT_ANNULE",
+        "EVENEMENT_MAINTENU",
         // Un délai au bout duquel le silence fait perdre son travail.
         "RETRAIT_JURIDIQUE",
       ].sort(),
