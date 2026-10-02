@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   REGLES,
+  attenteAvantPassage,
   cleDe,
   juger,
   seauDe,
   type NomRegle,
+  type Regle,
 } from "@/lib/securite/limites";
 
 const REGLE = { quota: 10, fenetreMs: 60_000 };
@@ -91,6 +93,64 @@ describe("la fenêtre glissante", () => {
       ecouleMs: 59_999,
     });
     expect(v.dansSecondes).toBeGreaterThanOrEqual(1);
+  });
+});
+
+/**
+ * Rejoue la fenêtre : un nouveau geste, `d` millisecondes plus tard, sans
+ * aucun autre entre-temps. C'est ce que fait la personne qui obéit au message.
+ */
+function gesteDansLeFutur(
+  etat: { precedent: number; courant: number; ecouleMs: number },
+  regle: Regle,
+  d: number,
+) {
+  const plus = etat.ecouleMs + d;
+  if (plus < regle.fenetreMs) {
+    return juger({ precedent: etat.precedent, courant: etat.courant + 1, regle, ecouleMs: plus });
+  }
+  if (plus < 2 * regle.fenetreMs) {
+    return juger({ precedent: etat.courant, courant: 1, regle, ecouleMs: plus - regle.fenetreMs });
+  }
+  return juger({ precedent: 0, courant: 1, regle, ecouleMs: plus - 2 * regle.fenetreMs });
+}
+
+describe("le délai annoncé", () => {
+  // Mesuré le 25/09 (Qualitytest R56) : à l'heure annoncée, toujours refusé.
+  const cas: Array<[string, Regle, { precedent: number; courant: number; ecouleMs: number }]> = [
+    // Le relevé : 11e connexion ratée à 13:57, dans le seau 13:45–14:00.
+    ["connexion mesurée", REGLES.connexion, { precedent: 0, courant: 11, ecouleMs: 12 * 60_000 }],
+    // Le relevé : 4e dépôt juridique à 13:57, dans le seau 13:00–14:00.
+    ["dépôt juridique mesuré", REGLES["juridique.depot"], { precedent: 0, courant: 4, ecouleMs: 57 * 60_000 }],
+    ["juste après la bascule", REGLE, { precedent: 10, courant: 1, ecouleMs: 1_000 }],
+    ["à mi-fenêtre", REGLE, { precedent: 10, courant: 6, ecouleMs: 30_000 }],
+    ["martelé", REGLE, { precedent: 40, courant: 40, ecouleMs: 5_000 }],
+    ["quota d'un seul geste", { quota: 1, fenetreMs: 60_000 }, { precedent: 0, courant: 2, ecouleMs: 10_000 }],
+  ];
+
+  for (const [nom, regle, etat] of cas) {
+    it(`${nom} : à l'heure annoncée le geste passe, une seconde avant il est refusé`, () => {
+      const v = juger({ ...etat, regle });
+      expect(v.autorise).toBe(false);
+
+      const annonce = v.dansSecondes * 1000;
+      expect(gesteDansLeFutur(etat, regle, annonce).autorise).toBe(true);
+      if (annonce > 1000) {
+        expect(gesteDansLeFutur(etat, regle, annonce - 2000).autorise).toBe(false);
+      }
+    });
+  }
+
+  it("dit plus que la fin du seau quand le précédent pèse encore", () => {
+    // Le message du 25/09 disait 3 minutes ; il en fallait près de six.
+    const reste = 3 * 60_000;
+    const t = attenteAvantPassage({
+      precedent: 0,
+      courant: 11,
+      regle: REGLES.connexion,
+      ecouleMs: REGLES.connexion.fenetreMs - reste,
+    });
+    expect(t).toBeGreaterThan(reste + 2 * 60_000);
   });
 });
 

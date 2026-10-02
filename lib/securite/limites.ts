@@ -214,10 +214,55 @@ export function juger(input: {
   return {
     autorise: estimation <= regle.quota,
     restant,
-    // Le temps qu'il reste au seau courant : c'est le moment où l'estimation
-    // baissera pour de bon.
-    dansSecondes: Math.max(1, Math.ceil((regle.fenetreMs - ecouleMs) / 1000)),
+    dansSecondes: Math.max(
+      1,
+      Math.ceil((attenteAvantPassage({ precedent, courant, regle, ecouleMs }) + 1) / 1000),
+    ),
   };
+}
+
+/**
+ * Combien de millisecondes attendre pour que le PROCHAIN geste passe, si
+ * personne n'en fait d'autre d'ici là.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LA FIN DU SEAU N'EST PAS LA FIN DE L'ATTENTE
+ *
+ * On annonçait le temps restant au seau courant. Mesuré le 25/09 (Qualitytest
+ * R56) : « Réessaie dans 3 minutes » pour la connexion, « dans 4 minutes » pour
+ * un dépôt juridique — et à l'heure dite, toujours refusé, avec « 15 minutes »
+ * puis « 60 minutes ». Au début du seau suivant, le précédent compte encore
+ * presque en entier : c'est tout l'intérêt de la fenêtre glissante, et c'est
+ * ce que l'annonce oubliait. Le geste refusé est lui-même compté (« on compte
+ * d'abord ») ; chaque essai à l'heure annoncée allongeait donc l'attente.
+ *
+ * Deux moments où le prochain geste peut passer :
+ *
+ *   - dans ce seau, si le précédent s'efface assez vite :
+ *       précédent × (1 − (écoulé + t) / F) + courant + 1 ≤ quota
+ *   - dans le suivant, où le courant devient le précédent :
+ *       courant × (1 − e / F) + 1 ≤ quota, e = t − (F − écoulé)
+ */
+export function attenteAvantPassage(input: {
+  precedent: number;
+  courant: number;
+  regle: Regle;
+  ecouleMs: number;
+}): number {
+  const { precedent, courant, regle, ecouleMs } = input;
+  const F = regle.fenetreMs;
+  const resteAuSeau = Math.max(0, F - ecouleMs);
+
+  // Dans ce seau : seulement si le courant laisse encore une place.
+  if (precedent > 0 && courant + 1 <= regle.quota) {
+    const t = F * (1 - (regle.quota - courant - 1) / precedent) - ecouleMs;
+    if (t < resteAuSeau) return Math.max(0, t);
+  }
+
+  // Dans le suivant : le courant y pèse, puis s'efface à son tour.
+  const dansLeSuivant =
+    courant + 1 <= regle.quota ? 0 : Math.min(F, F * (1 - (regle.quota - 1) / courant));
+  return resteAuSeau + dansLeSuivant;
 }
 
 /**
