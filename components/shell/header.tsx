@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { deconnecter } from "@/lib/auth/actions";
@@ -108,6 +110,11 @@ export function Header({
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  // Ce que le panneau a à dire. Il ne s'ouvrait que s'il y avait des
+  // résultats : zéro résultat, recherche en cours et recherche en panne se
+  // rendaient tous par rien du tout (mesuré le 25/09, Qualitytest S29, S57).
+  const [etatRecherche, setEtatRecherche] = useState<"repos" | "chargement" | "pret" | "erreur">("repos");
+  const router = useRouter();
   const [menuOuvert, setMenuOuvert] = useState<string | null>(null);
   const [compteOuvert, setCompteOuvert] = useState(false);
 
@@ -155,19 +162,36 @@ export function Header({
   useEffect(() => {
     if (q.trim().length === 0) {
       setSuggestions([]);
+      setEtatRecherche("repos");
       return;
     }
     const jeton = ++dernier.current;
+    setEtatRecherche("chargement");
     const minuteur = setTimeout(async () => {
-      const reponse = await fetch(`/api/recherche?q=${encodeURIComponent(q)}`);
-      const data = await reponse.json();
-      // Une réponse plus ancienne ne doit pas écraser une plus récente.
-      if (jeton === dernier.current) setSuggestions(data.items ?? []);
+      try {
+        const reponse = await fetch(`/api/recherche?q=${encodeURIComponent(q)}`);
+        if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
+        const data = await reponse.json();
+        // Une réponse plus ancienne ne doit pas écraser une plus récente.
+        if (jeton !== dernier.current) return;
+        setSuggestions(data.items ?? []);
+        setEtatRecherche("pret");
+      } catch {
+        if (jeton === dernier.current) setEtatRecherche("erreur");
+      }
     }, 180);
     return () => clearTimeout(minuteur);
   }, [q]);
 
-  const montreSuggestions = focus && q.length > 0 && suggestions.length > 0;
+  const montreSuggestions = focus && q.trim().length > 0 && etatRecherche !== "repos";
+  const messageRecherche =
+    etatRecherche === "erreur"
+      ? "La recherche ne répond pas. Réessaie dans un instant."
+      : etatRecherche === "pret" && suggestions.length === 0
+        ? `Aucune ressource ne correspond à « ${q.trim()} ».`
+        : etatRecherche === "chargement" && suggestions.length === 0
+          ? "Recherche…"
+          : null;
 
   return (
     <div style={{ position: "sticky", top: 0, zIndex: 40, padding: "18px 32px 0" }}>
@@ -273,13 +297,21 @@ export function Header({
                 animation: "popin .16s ease-out",
               }}
             >
-              {suggestions.map((s) => (
+              {messageRecherche ? (
+                <div role="status" style={{ padding: "9px 10px", fontSize: 13.5, fontWeight: 600 }}>
+                  {messageRecherche}
+                </div>
+              ) : null}
+              {etatRecherche !== "erreur" && suggestions.map((s) => (
                 <button
                   key={s.slug}
                   type="button"
+                  // La maquette ouvre la ressource (`open: r.id`) ; on ne faisait
+                  // que recopier son titre dans le champ.
                   onClick={() => {
                     setQ(s.title);
                     setFocus(false);
+                    router.push(`/products/${s.slug}` as Route);
                   }}
                   style={{
                     width: "100%",
