@@ -1,6 +1,7 @@
 import "server-only";
 
 import { consigner, ressource } from "@/lib/admin/audit";
+import { annoncerLaDecision } from "@/lib/cms/annonce";
 import { appliquer, type Geste } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -92,6 +93,17 @@ export async function trancher(input: {
       auteur: offre.creatorId,
       ...(motif ? { motif } : {}),
     },
+  });
+
+  await annoncerLaDecision({
+    auteurId: offre.creatorId,
+    acteurId: input.moderateurId,
+    geste: input.geste,
+    nature: "service",
+    id: offre.id,
+    titre: offre.title,
+    motif,
+    lien: input.geste === "publier" ? `/services/${offre.id}` : "/services/deposer",
   });
 
   journal.info("service tranché", {

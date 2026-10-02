@@ -1,6 +1,7 @@
 import "server-only";
 
 import { consigner, ressource } from "@/lib/admin/audit";
+import { annoncerLaDecision } from "@/lib/cms/annonce";
 import { appliquer, type Geste } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -172,7 +173,7 @@ export async function trancher(input: {
 }): Promise<Suite<{ vers: string }>> {
   const article = await db.blogPost.findUnique({
     where: { id: input.articleId },
-    select: { id: true, state: true, title: true, publishedAt: true },
+    select: { id: true, state: true, title: true, slug: true, authorId: true, publishedAt: true },
   });
 
   if (!article) return { ok: false, motif: "INTROUVABLE" };
@@ -230,6 +231,17 @@ export async function trancher(input: {
       titre: article.title,
       ...(motif ? { motif } : {}),
     },
+  });
+
+  await annoncerLaDecision({
+    auteurId: article.authorId,
+    acteurId: input.acteurId,
+    geste: input.geste,
+    nature: "article",
+    id: article.id,
+    titre: article.title,
+    motif,
+    lien: input.geste === "publier" ? `/blog/${article.slug}` : `/dashboard/blog/${article.id}`,
   });
 
   journal.info("article tranché", {

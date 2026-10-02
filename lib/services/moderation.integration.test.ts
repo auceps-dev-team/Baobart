@@ -59,6 +59,20 @@ beforeEach(() => {
 });
 
 describe("trancher un service", () => {
+  it("prévient le créateur du refus comme de la publication", async () => {
+    // Mesuré le 25/09 (Qualitytest P9.3, S55) : un refus ne prévenait personne.
+    const qui = await moderateur();
+    const refuse = await creerService();
+    const publie = await creerService();
+
+    await trancher({ offreId: refuse.id, geste: "refuser", moderateurId: qui.id, motif: "Les tarifs ne sont pas lisibles." });
+    await trancher({ offreId: publie.id, geste: "publier", moderateurId: qui.id });
+
+    const type = async (userId: string) => (await db.notification.findMany({ where: { userId }, select: { type: true } })).map((a) => a.type);
+    expect(await type(refuse.creatorId)).toEqual(["CONTENU_REFUSE"]);
+    expect(await type(publie.creatorId)).toEqual(["CONTENU_PUBLIE"]);
+  });
+
   it("publie un service en attente", async () => {
     const mod = await moderateur();
     const svc = await creerService("SOUMIS");

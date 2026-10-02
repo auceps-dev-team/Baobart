@@ -174,6 +174,21 @@ describe("l'adresse", () => {
 });
 
 describe("trancher", () => {
+  it("prévient l'auteur d'un refus, pas de sa propre publication", async () => {
+    // Mesuré le 25/09 (Qualitytest S55) : seuls les événements prévenaient.
+    const refuse = await article();
+    await trancher({ articleId: refuse.id, geste: "soumettre", acteurId: refuse.auteurId });
+    const relecteur = await redacteur();
+    await trancher({ articleId: refuse.id, geste: "refuser", acteurId: relecteur.id, motif: "Les sources ne sont pas citées." });
+
+    const publie = await article();
+    await trancher({ articleId: publie.id, geste: "publier", acteurId: publie.auteurId });
+
+    const types = async (userId: string) => (await db.notification.findMany({ where: { userId }, select: { type: true } })).map((a) => a.type);
+    expect(await types(refuse.auteurId)).toEqual(["CONTENU_REFUSE"]);
+    expect(await types(publie.auteurId)).toEqual([]);
+  });
+
   it("publie un brouillon sans passer par une file", async () => {
     // §18.1 : l'auteur porte déjà le droit de publier. Lui faire traverser une
     // file l'obligerait à s'auto-approuver.

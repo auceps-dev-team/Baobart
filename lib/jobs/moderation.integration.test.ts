@@ -121,6 +121,20 @@ describe("trancher", () => {
     expect(apres.moderatorId).toBe(qui.id);
   });
 
+  it("prévient le recruteur du refus, avec le motif", async () => {
+    // Mesuré le 25/09 (Qualitytest P9.3) : 0 notification à l'agence après un
+    // refus, et aucun écran ne lui montrait le motif.
+    const qui = await moderateur();
+    const offre = await offreSoumise();
+    const { recruiterId } = await db.jobPosting.findUniqueOrThrow({ where: { id: offre.id }, select: { recruiterId: true } });
+
+    await trancher({ offreId: offre.id, geste: "refuser", moderateurId: qui.id, motif: "Lien de candidature introuvable." });
+
+    const avis = await db.notification.findMany({ where: { userId: recruiterId }, select: { type: true, corps: true } });
+    expect(avis).toEqual([{ type: "CONTENU_REFUSE", corps: "Lien de candidature introuvable." }]);
+    expect(await db.emailOutbox.count({ where: { template: "CONTENU_REFUSE" } })).toBe(1);
+  });
+
   it("exige un motif pour refuser", async () => {
     const qui = await moderateur();
     const offre = await offreSoumise();

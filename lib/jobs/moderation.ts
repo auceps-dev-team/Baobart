@@ -1,6 +1,7 @@
 import "server-only";
 
 import { consigner, ressource } from "@/lib/admin/audit";
+import { annoncerLaDecision } from "@/lib/cms/annonce";
 import { appliquer, type Geste } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
@@ -89,6 +90,19 @@ export async function trancher(input: {
       auteur: offre.recruiterId,
       ...(motif ? { motif } : {}),
     },
+  });
+
+  await annoncerLaDecision({
+    auteurId: offre.recruiterId,
+    acteurId: input.moderateurId,
+    geste: input.geste,
+    nature: "offre",
+    id: offre.id,
+    titre: offre.title,
+    motif,
+    // Après un refus, aucun écran ne liste encore les offres d'un recruteur
+    // (Qualitytest H3) : l'avis porte le motif, et mène au dépôt.
+    lien: input.geste === "publier" ? `/jobs/${offre.id}` : "/jobs/deposer",
   });
 
   journal.info("offre d'emploi tranchée", {
