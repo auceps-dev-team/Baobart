@@ -179,7 +179,13 @@ export function Footer() {
             opacity: 0.65,
           }}
         >
-          <span>© 2026 Baobart — Dakar, Sénégal</span>
+          {/*
+            La maquette écrit « Dakar, Sénégal ». Baobart est établie à Abidjan,
+            et cette ligne est la seule du site qui dise où : sur sa foi, un
+            module juridique entier avait été bâti sur la loi sénégalaise
+            (corrigé en v1.57.0, sans que le pied de page le soit).
+          */}
+          <span>© 2026 Baobart — Abidjan, Côte d&apos;Ivoire</span>
           <span>
             Conditions · Confidentialité · Licences ·{" "}
             <Link href={"/cookies" as Route} style={{ color: "inherit" }}>
