@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useState, useTransition } from "react";
 
+import { GrilleMasonry } from "@/components/feed/grille-masonry";
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
+import { hauteurDeCarte } from "@/lib/feed/masonry";
 import { FILTRES, type CarteRessource, type Filtre } from "@/lib/feed/types";
 import { basculerLike } from "@/lib/social/actions";
 
@@ -30,6 +32,8 @@ export interface FeedProps {
   /** Identifiants des ressources déjà aimées par le visiteur. */
   aimesInitiaux?: string[];
   connecte?: boolean;
+  /** Colonnes du premier rendu, devinées par la page — voir `GrilleMasonry`. */
+  colonnesInitiales?: number;
 }
 
 export function Feed({
@@ -39,6 +43,7 @@ export function Feed({
   filtreInitial = "Tous",
   aimesInitiaux = [],
   connecte = false,
+  colonnesInitiales = 4,
 }: FeedProps) {
   const [items, setItems] = useState(itemsInitiaux);
   const [curseur, setCurseur] = useState(curseurInitial);
@@ -242,18 +247,24 @@ export function Feed({
         </div>
       ) : null}
 
-      <div data-masonry="1" style={{ columns: "250px", columnGap: 20 }}>
-        {items.map((r) => (
-          <Link
-            key={r.id}
-            href={`/products/${r.slug}`}
-            scroll={false}
-            style={{ display: "block", breakInside: "avoid" }}
-          >
+      <GrilleMasonry
+        elements={items}
+        cle={(r) => r.id}
+        colonnesInitiales={colonnesInitiales}
+        hauteur={(r, largeurColonne) =>
+          hauteurDeCarte({
+            visuel: r.visualHeight,
+            titre: r.title,
+            largeurColonne,
+            infosVisibles: styleCarte !== "Image pleine",
+          })
+        }
+        rendu={(r) => (
+          <Link href={`/products/${r.slug}`} scroll={false} style={{ display: "block" }}>
             <CarteMosaique {...proprietesCarte(r)} />
           </Link>
-        ))}
-      </div>
+        )}
+      />
 
       {items.length === 0 ? (
         <div

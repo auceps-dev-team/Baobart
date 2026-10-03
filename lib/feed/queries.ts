@@ -30,7 +30,10 @@ function clauseFamille(filtre: Filtre) {
   return famille ? { family: famille } : {};
 }
 
-const TAILLE_PAGE = 24;
+// 50, comme la grille Mayosis dont la structure est reprise (`item_per_page`).
+// Les visuels se chargent à l'approche de l'écran (`loading="lazy"`) : la
+// cinquantaine de cartes ne coûte que celles qu'on regarde.
+const TAILLE_PAGE = 50;
 
 type ProduitFeed = {
   id: string;

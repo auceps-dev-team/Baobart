@@ -10,7 +10,10 @@ import {
 } from "@/components/home/sections";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
+import { headers } from "next/headers";
+
 import { sessionCourante } from "@/lib/auth/session";
+import { colonnesDepuisAgent } from "@/lib/feed/masonry";
 import { BAREME_XOF } from "@/lib/domain/fees";
 import { aimesParmi } from "@/lib/social/feed";
 import {
@@ -32,6 +35,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AccueilPage() {
   const utilisateur = await sessionCourante();
+  const colonnes = colonnesDepuisAgent((await headers()).get("user-agent"));
   const [page, alaUne, familles, createurs, chiffres] = await Promise.all([
     listerFeed(),
     listerAlaUne(),
@@ -64,6 +68,7 @@ export default async function AccueilPage() {
           alaUne={alaUne}
           aimesInitiaux={aimes}
           connecte={utilisateur !== null}
+          colonnesInitiales={colonnes}
         />
         <CollectionsTrieesMain />
         <EspacesEquipe createurs={createurs} />

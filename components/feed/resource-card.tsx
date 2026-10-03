@@ -324,7 +324,11 @@ export function CarteMosaique(props: CarteProps) {
         display: "inline-block",
         width: "100%",
         border: d.bd,
-        boxShadow: d.sh,
+        // Le survol de la grille Mayosis (`imagehovereffect`), dans le geste
+        // « sticker » de la charte : la carte se soulève, son ombre s'allonge.
+        boxShadow: survolee ? d.shBig : d.sh,
+        transform: survolee ? "translate(-2px, -2px)" : "none",
+        transition: "transform .18s ease, box-shadow .18s ease",
       }}
     >
       <div
@@ -336,11 +340,32 @@ export function CarteMosaique(props: CarteProps) {
           height: r.visualHeight,
           position: "relative",
           overflow: "hidden",
-          background: r.coverUrl
-            ? `center / cover no-repeat url(${r.coverUrl})`
-            : trameDe(r.id),
+          background: r.coverUrl ? "#F4EEFC" : trameDe(r.id),
         }}
       >
+        {r.coverUrl ? (
+          // `<img loading="lazy">` et non un fond CSS : la page porte cinquante
+          // cartes, et un fond se télécharge dès l'ouverture, même au bas de la
+          // page. Pas `<Image>` de Next : son optimiseur n'accepte que les hôtes
+          // déclarés, et une couverture peut venir d'ailleurs (voir cms/corps).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={r.coverUrl}
+            alt={r.title}
+            loading="lazy"
+            decoding="async"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: survolee ? "scale(1.04)" : "none",
+              transition: "transform .35s ease",
+            }}
+          />
+        ) : null}
+
         {apercuVideo ? (
           <div style={{ position: "absolute", inset: 0 }}>
             <ApercuVideo
@@ -382,11 +407,33 @@ export function CarteMosaique(props: CarteProps) {
           }}
         >
           <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.25 }}>
+            {/* Deux lignes au plus : c'est ce que la grille suppose pour placer
+                la carte (`hauteurDeCarte`). Le titre entier reste dans `title`. */}
+            <div
+              title={r.title}
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                lineHeight: 1.25,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
               {r.title}
             </div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.65 }}>
-              {r.author}
+            <div
+              style={{
+                fontSize: 11.5,
+                fontWeight: 600,
+                opacity: 0.65,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              par {r.author}
               {r.famille ? ` · ${r.famille}` : ""}
             </div>
             <div

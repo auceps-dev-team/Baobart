@@ -1,7 +1,10 @@
+import { headers } from "next/headers";
+
 import { Feed } from "@/components/feed/feed";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { Rail } from "@/components/shell/rail";
+import { colonnesDepuisAgent } from "@/lib/feed/masonry";
 import { listerAlaUne, listerFeed } from "@/lib/feed/queries";
 import { FILTRES, type Filtre } from "@/lib/feed/types";
 import { aimesParmi } from "@/lib/social/feed";
@@ -82,6 +85,7 @@ export default async function ExplorerPage({
           aimesInitiaux={aimes}
           connecte={utilisateur !== null}
           filtreInitial={filtre}
+          colonnesInitiales={colonnesDepuisAgent((await headers()).get("user-agent"))}
         />
       </div>
     </>

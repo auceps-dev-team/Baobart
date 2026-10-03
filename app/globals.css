@@ -164,18 +164,8 @@
   }
 }
 
-/* La mosaïque se resserre avant de passer sur une seule colonne. */
-@media (max-width: 900px) {
-  [data-masonry] {
-    columns: 200px !important;
-  }
-}
-
-@media (max-width: 620px) {
-  [data-masonry] {
-    columns: 1 !important;
-  }
-}
+/* La mosaïque ne se règle plus ici : son nombre de colonnes se calcule à la
+   largeur mesurée (lib/feed/masonry.ts), une colonne sous 520 px. */
 
 @media (prefers-reduced-motion: reduce) {
   *,
