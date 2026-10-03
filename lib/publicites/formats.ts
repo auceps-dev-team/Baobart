@@ -25,10 +25,14 @@
  * : il lui faut la hauteur d'une bannière sans attendre que l'image arrive.
  * Les dimensions sont donc lues une fois, au dépôt, et rangées avec la pub.
  *
- * Ce qui n'est pas lu : l'orientation EXIF d'une photo de téléphone. Une photo
- * portrait enregistrée « couchée » donnera des dimensions inversées. Ça ne
- * casse rien — la bannière s'affiche à sa vraie taille (`height: auto`), seule
- * l'estimation de la colonne est fausse —, mais la colonne sera mal équilibrée.
+ * L'orientation EXIF d'un JPEG est lue depuis v1.71.3. Un téléphone enregistre
+ * souvent une photo portrait « couchée », avec une étiquette qui dit au
+ * navigateur de la redresser : sans la lire, on rangeait ses dimensions à
+ * l'envers, et la colonne de la bannière était mal équilibrée. L'affichage,
+ * lui, n'a jamais été faux (`height: auto` suit l'image redressée).
+ *
+ * Ce qui n'est toujours pas lu : l'EXIF d'un WebP. Les téléphones n'en
+ * produisent pas, et un WebP retourné s'estimera mal sans rien casser.
  *
  * Pur : des octets entrent, un format sort.
  */
@@ -98,9 +102,14 @@ export function dimensionsImage(octets: Uint8Array): Dimensions | null {
  * JPEG : les dimensions sont dans le segment « début de trame » (SOF), qui
  * vient après un nombre variable d'autres segments (EXIF, tables…). On saute
  * de segment en segment grâce à la longueur que chacun annonce.
+ *
+ * Le segment EXIF (APP1) vient avant la trame : on y lit l'orientation au
+ * passage. De 5 à 8, l'image est tournée d'un quart de tour — le navigateur
+ * l'affiche avec largeur et hauteur échangées, et c'est ce qu'on range.
  */
 function dimensionsJpeg(o: Uint8Array): Dimensions | null {
   let i = 2;
+  let orientation = 1;
   while (i + 9 < o.length) {
     if (o[i] !== 0xff) {
       i += 1;
@@ -120,11 +129,47 @@ function dimensionsJpeg(o: Uint8Array): Dimensions | null {
       marqueur >= 0xc0 && marqueur <= 0xcf &&
       marqueur !== 0xc4 && marqueur !== 0xc8 && marqueur !== 0xcc;
     if (estTrame) {
-      return { hauteur: u16be(o, i + 5), largeur: u16be(o, i + 7) };
+      const hauteur = u16be(o, i + 5);
+      const largeur = u16be(o, i + 7);
+      return orientation >= 5 && orientation <= 8
+        ? { largeur: hauteur, hauteur: largeur }
+        : { largeur, hauteur };
     }
     const longueur = u16be(o, i + 2);
     if (longueur < 2) return null;
+    if (marqueur === 0xe1) orientation = orientationExif(o, i + 4, i + 2 + longueur) ?? orientation;
     i += 2 + longueur;
+  }
+  return null;
+}
+
+/**
+ * L'orientation rangée dans un segment EXIF, de 1 à 8. `null` si le segment
+ * n'est pas de l'EXIF ou ne la porte pas.
+ *
+ * L'EXIF est un petit fichier TIFF : un ordre des octets (« II » pour Intel,
+ * « MM » pour Motorola), puis une table d'entrées de douze octets. L'entrée
+ * 0x0112 est l'orientation.
+ */
+function orientationExif(o: Uint8Array, debut: number, fin: number): number | null {
+  if (texte(o, debut, debut + 6) !== "Exif\u0000\u0000") return null;
+  const tiff = debut + 6;
+  const ordre = texte(o, tiff, tiff + 2);
+  if (ordre !== "II" && ordre !== "MM") return null;
+  const lire16 = (k: number) => (ordre === "II" ? u16le(o, k) : u16be(o, k));
+  const lire32 = (k: number) =>
+    ordre === "II" ? u16le(o, k) + u16le(o, k + 2) * 0x10000 : u16be(o, k) * 0x10000 + u16be(o, k + 2);
+
+  const table = tiff + lire32(tiff + 4);
+  if (table + 2 > fin) return null;
+  const entrees = lire16(table);
+  for (let e = 0; e < entrees; e += 1) {
+    const k = table + 2 + e * 12;
+    if (k + 12 > fin) return null;
+    if (lire16(k) === 0x0112) {
+      const v = lire16(k + 8);
+      return v >= 1 && v <= 8 ? v : null;
+    }
   }
   return null;
 }

@@ -47,6 +47,29 @@ describe("les dimensions d'une image", () => {
     expect(dimensionsImage(readFileSync(join(dossier, "beaute-afro.jpg")))).toEqual({ largeur: 736, hauteur: 880 });
   });
 
+  describe("l'orientation EXIF d'une photo de téléphone", () => {
+    // Un JPEG minimal : un segment EXIF, puis une trame de 1200 × 600.
+    const jpeg = (exif: number[]) =>
+      octets(
+        [0xff, 0xd8, 0xff, 0xe1, 0, exif.length + 2], exif,
+        [0xff, 0xc0, 0, 0x11, 8, 0x02, 0x58, 0x04, 0xb0, 3], Array.from({ length: 12 }, () => 0),
+      );
+    const exifIntel = (o: number) => [...octets("Exif\0\0II"), 0x2a, 0, 8, 0, 0, 0, 1, 0, 0x12, 0x01, 3, 0, 1, 0, 0, 0, o, 0, 0, 0, 0, 0, 0, 0];
+    const exifMotorola = (o: number) => [...octets("Exif\0\0MM"), 0, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, o, 0, 0, 0, 0, 0, 0];
+
+    it("échange largeur et hauteur d'une photo tournée d'un quart de tour", () => {
+      // Avant v1.71.3 : { largeur: 1200, hauteur: 600 }, l'inverse de ce que
+      // le navigateur affiche.
+      expect(dimensionsImage(jpeg(exifIntel(6)))).toEqual({ largeur: 600, hauteur: 1200 });
+      expect(dimensionsImage(jpeg(exifMotorola(8)))).toEqual({ largeur: 600, hauteur: 1200 });
+    });
+
+    it("garde le sens quand la photo est droite ou retournée", () => {
+      expect(dimensionsImage(jpeg(exifIntel(1)))).toEqual({ largeur: 1200, hauteur: 600 });
+      expect(dimensionsImage(jpeg(exifMotorola(3)))).toEqual({ largeur: 1200, hauteur: 600 });
+    });
+  });
+
   it("rend null quand l'entête est tronquée", () => {
     expect(dimensionsImage(octets([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]))).toBeNull();
     expect(dimensionsImage(octets("<svg>"))).toBeNull();
