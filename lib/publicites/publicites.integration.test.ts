@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
+import { LIMITES_PAR_DEFAUT } from "@/lib/publicites/limites";
 import {
   archiver,
   attribuer,
@@ -89,7 +90,7 @@ describe("ce qui paraît dans la mosaïque", () => {
 
   it("ne montre rien quand la diffusion est coupée", async () => {
     await creerPub();
-    await regler({ actives: false, ecartMinimal: 6 });
+    await regler({ actives: false, ecartMinimal: 6, limites: LIMITES_PAR_DEFAUT });
     expect((await diffusion(MAINTENANT)).pubs).toEqual([]);
   });
 });

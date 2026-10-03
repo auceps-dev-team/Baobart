@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import { pubMenantA } from "@/lib/publicites/attribution";
+import { LIMITES_PAR_DEFAUT, type LimitesPub } from "@/lib/publicites/limites";
 import { ECART_PAR_DEFAUT, lienExterieur, type PubValide } from "@/lib/publicites/regles";
 import { AUCUNE_DIFFUSION, type Diffusion } from "@/lib/publicites/types";
 import { PREFIXE_PUBLIC, urlPublique } from "@/lib/upload/storage";
@@ -26,20 +27,65 @@ export function racineMedias(): string {
 export interface Reglages {
   actives: boolean;
   ecartMinimal: number;
+  limites: LimitesPub;
 }
 
 /** La ligne n'existe qu'une fois réglée : avant, ce sont les défauts du schéma. */
 export async function reglages(): Promise<Reglages> {
   const r = await db.adSettings.findUnique({ where: { id: "global" } });
-  return { actives: r?.enabled ?? true, ecartMinimal: r?.minGap ?? ECART_PAR_DEFAUT };
+  return {
+    actives: r?.enabled ?? true,
+    ecartMinimal: r?.minGap ?? ECART_PAR_DEFAUT,
+    limites: r
+      ? {
+          vuesParMinute: r.viewsPerMinute,
+          clicsParMinute: r.clicksPerMinute,
+          vuesParVisiteurJour: r.maxViewsPerVisitorDay,
+          clicsParVisiteurJour: r.maxClicksPerVisitorDay,
+        }
+      : LIMITES_PAR_DEFAUT,
+  };
 }
 
 export async function regler(r: Reglages): Promise<void> {
+  const donnees = {
+    enabled: r.actives,
+    minGap: r.ecartMinimal,
+    viewsPerMinute: r.limites.vuesParMinute,
+    clicksPerMinute: r.limites.clicsParMinute,
+    maxViewsPerVisitorDay: r.limites.vuesParVisiteurJour,
+    maxClicksPerVisitorDay: r.limites.clicsParVisiteurJour,
+  };
   await db.adSettings.upsert({
     where: { id: "global" },
-    create: { id: "global", enabled: r.actives, minGap: r.ecartMinimal },
-    update: { enabled: r.actives, minGap: r.ecartMinimal },
+    create: { id: "global", ...donnees },
+    update: donnees,
   });
+  enCache = null;
+}
+
+let enCache: { valeur: Reglages; jusqua: number } | null = null;
+
+/**
+ * Les réglages, relus au plus toutes les trente secondes.
+ *
+ * Les routes de mesure en ont besoin à chaque envoi d'affichages — une lecture
+ * de base par défilement serait le prix d'un réglage qui change une fois par
+ * mois. Un réglage enregistré s'applique donc en trente secondes au plus sur
+ * les autres processus, tout de suite sur celui qui l'a écrit.
+ *
+ * Une lecture qui échoue retombe sur les défauts : un compteur qui ne compte
+ * plus parce que la base hoquette se lirait « la campagne ne marche plus ».
+ */
+export async function reglagesEnCache(maintenant = Date.now()): Promise<Reglages> {
+  if (enCache && enCache.jusqua > maintenant) return enCache.valeur;
+  const valeur = await reglages().catch(() => ({
+    actives: true,
+    ecartMinimal: ECART_PAR_DEFAUT,
+    limites: LIMITES_PAR_DEFAUT,
+  }));
+  enCache = { valeur, jusqua: maintenant + 30_000 };
+  return valeur;
 }
 
 /**

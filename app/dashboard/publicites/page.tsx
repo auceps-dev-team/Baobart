@@ -64,7 +64,7 @@ export default async function PublicitesPage() {
       }
     >
       <div style={{ display: "grid", gap: 20 }}>
-        <ReglagesPublicites actives={r.actives} ecartMinimal={r.ecartMinimal} />
+        <ReglagesPublicites actives={r.actives} ecartMinimal={r.ecartMinimal} limites={r.limites} />
 
         {actives.length === 0 ? (
           <div

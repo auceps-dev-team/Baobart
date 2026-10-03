@@ -1454,6 +1454,17 @@ model AdSettings {
   enabled   Boolean  @default(true)
   /// L'écart minimal entre deux bannières, en produits.
   minGap    Int      @default(4)
+
+  /// Les limites contre le gonflage des compteurs, réglables depuis l'écran
+  /// (demandé le 03/10). Les deux premières bornent le DÉBIT par adresse ;
+  /// les deux suivantes, ce qu'une même adresse peut faire COMPTER par pub et
+  /// par jour — c'est ce plafond-là qui empêche le gonflage, le débit ne fait
+  /// que le ralentir.
+  viewsPerMinute         Int @default(120)
+  clicksPerMinute        Int @default(30)
+  maxViewsPerVisitorDay  Int @default(20)
+  maxClicksPerVisitorDay Int @default(1)
+
   updatedAt DateTime @updatedAt
 }
 

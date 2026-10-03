@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { ajouterClic } from "@/lib/publicites/attribution";
-import { enregistrerClic, lienDe } from "@/lib/publicites/service";
+import { parMinute } from "@/lib/publicites/limites";
+import { sousLePlafond } from "@/lib/publicites/plafond";
+import { enregistrerClic, jourDe, lienDe, reglagesEnCache } from "@/lib/publicites/service";
 import { COOKIE_CLICS, DUREE_ATTRIBUTION_S } from "@/lib/publicites/types";
+import { sujetAnonyme } from "@/lib/securite/adresse";
 import { verifierLimiteHttp } from "@/lib/securite/garde";
 
 /**
@@ -21,15 +24,31 @@ import { verifierLimiteHttp } from "@/lib/securite/garde";
  * Au-delà de la limite, le clic n'est pas compté — mais le visiteur arrive
  * là où la bannière promettait. Le punir d'un écran d'erreur pour un compteur
  * serait inverser les priorités.
+ *
+ * Même chose au-delà du plafond du jour (un clic compté par adresse et par pub,
+ * par défaut — réglable depuis l'écran des publicités) : le second clic d'une
+ * même adresse ne compte pas, et mène quand même où il doit.
  */
 export async function GET(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const passage = await verifierLimiteHttp("pub.clic", requete);
+  const { limites } = await reglagesEnCache();
+  const passage = await verifierLimiteHttp("pub.clic", requete, parMinute(limites.clicsParMinute));
 
-  const lien = passage.autorise ? await enregistrerClic(id) : await lienDe(id);
+  const maintenant = new Date();
+  const aCompter =
+    passage.autorise &&
+    (await sousLePlafond({
+      nature: "clic",
+      sujet: sujetAnonyme(requete),
+      ids: [id],
+      plafond: limites.clicsParVisiteurJour,
+      jour: jourDe(maintenant),
+    })).length > 0;
+
+  const lien = aCompter ? await enregistrerClic(id, maintenant) : await lienDe(id);
   if (!lien) return NextResponse.redirect(new URL("/", requete.url), 303);
 
   const reponse = NextResponse.redirect(new URL(lien, requete.url), 303);

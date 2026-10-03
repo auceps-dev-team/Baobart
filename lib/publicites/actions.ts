@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { consigner } from "@/lib/admin/audit";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
+import { validerLimites, type LimitesPub } from "@/lib/publicites/limites";
 import {
   validerEcart,
   validerPublicite,
@@ -122,7 +123,7 @@ export async function archiverPublicite(id: string, archivee: boolean): Promise<
   return { ok: true };
 }
 
-export type EtatReglages = { ok: boolean; message?: string };
+export type EtatReglages = { ok: boolean; message?: string; champ?: keyof LimitesPub | "ecartMinimal" };
 
 export async function reglerPublicites(
   _precedent: EtatReglages | null,
@@ -132,17 +133,28 @@ export async function reglerPublicites(
 
   const ecart = validerEcart(String(donnees.get("ecartMinimal") ?? ""));
   if (ecart === null) {
-    return { ok: false, message: "L'écart minimal va d'un produit à cinquante." };
+    return { ok: false, champ: "ecartMinimal", message: "L'écart minimal va d'un produit à cinquante." };
   }
+  const lire = (nom: string) => String(donnees.get(nom) ?? "");
+  const verdict = validerLimites({
+    vuesParMinute: lire("vuesParMinute"),
+    clicsParMinute: lire("clicsParMinute"),
+    vuesParVisiteurJour: lire("vuesParVisiteurJour"),
+    clicsParVisiteurJour: lire("clicsParVisiteurJour"),
+  });
+  if (!verdict.ok) return { ok: false, champ: verdict.champ, message: verdict.message };
+
   // Une case cochée arrive « on » ; décochée, elle n'arrive pas du tout.
   const actives = donnees.get("actives") !== null;
 
-  await regler({ actives, ecartMinimal: ecart });
+  await regler({ actives, ecartMinimal: ecart, limites: verdict.limites });
+  // Les limites entrent dans l'audit : un plafond relevé du jour au lendemain
+  // est exactement ce qu'on cherche quand des chiffres s'envolent.
   await consigner({
     acteurId: qui.id,
     action: "publicite.regler",
     ressource: "adsettings:global",
-    details: { actives, ecartMinimal: ecart },
+    details: { actives, ecartMinimal: ecart, ...verdict.limites },
   });
 
   rafraichir();

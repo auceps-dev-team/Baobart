@@ -1,6 +1,9 @@
-import { reponseTropDeGestes, verifierLimiteHttp } from "@/lib/securite/garde";
-import { enregistrerVues } from "@/lib/publicites/service";
 import { journal } from "@/lib/observabilite/journal";
+import { parMinute } from "@/lib/publicites/limites";
+import { sousLePlafond } from "@/lib/publicites/plafond";
+import { enregistrerVues, jourDe, reglagesEnCache } from "@/lib/publicites/service";
+import { sujetAnonyme } from "@/lib/securite/adresse";
+import { reponseTropDeGestes, verifierLimiteHttp } from "@/lib/securite/garde";
 
 /**
  * Les bannières qu'un visiteur a vues.
@@ -19,13 +22,21 @@ import { journal } from "@/lib/observabilite/journal";
  * ════════════════════════════════════════════════════════════════════════════
  * CE QUI N'EST PAS GARDÉ
  *
- * Ni l'adresse, ni le compte. Le plugin gardait une ligne par vue, avec
- * l'adresse IP hachée sans sel — ce qui se retrouve en quelques minutes, il
- * n'y a que quatre milliards d'adresses. Ici, un compteur par bannière et par
- * jour, et rien d'autre.
+ * En base : ni l'adresse, ni le compte. Le plugin gardait une ligne par vue,
+ * avec l'adresse IP hachée sans sel — ce qui se retrouve en quelques minutes,
+ * il n'y a que quatre milliards d'adresses. Ici, un compteur par bannière et
+ * par jour.
  *
- * Ce que ça ne règle pas : un script qui gonfle les vues d'une bannière. La
- * limite par adresse le ralentit ; elle ne l'empêche pas.
+ * Hors base, depuis v1.71.2 : le plafond par visiteur garde vingt-six heures,
+ * dans le compteur (Redis), une empreinte de l'adresse calculée avec le secret
+ * du site et le jour. La politique de cookies le dit.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * DEUX LIMITES, RÉGLABLES DEPUIS L'ÉCRAN DES PUBLICITÉS
+ *
+ * Le débit par adresse ralentit un script ; le plafond par adresse, par pub et
+ * par jour l'arrête — voir `lib/publicites/limites.ts`. Ce qui reste hors de
+ * portée : un script qui change d'adresse à chaque envoi.
  */
 
 const ID = /^c[a-z0-9]{20,32}$/;
@@ -33,7 +44,8 @@ const ID = /^c[a-z0-9]{20,32}$/;
 const PAR_ENVOI = 60;
 
 export async function POST(requete: Request) {
-  const passage = await verifierLimiteHttp("pub.vues", requete);
+  const { limites } = await reglagesEnCache();
+  const passage = await verifierLimiteHttp("pub.vues", requete, parMinute(limites.vuesParMinute));
   if (!passage.autorise) return reponseTropDeGestes(passage);
 
   let ids: string[] = [];
@@ -49,7 +61,15 @@ export async function POST(requete: Request) {
 
   if (ids.length > 0) {
     try {
-      await enregistrerVues(ids);
+      const maintenant = new Date();
+      const comptees = await sousLePlafond({
+        nature: "vue",
+        sujet: sujetAnonyme(requete),
+        ids,
+        plafond: limites.vuesParVisiteurJour,
+        jour: jourDe(maintenant),
+      });
+      await enregistrerVues(comptees, maintenant);
     } catch (cause) {
       journal.erreur("vues de publicité non comptées", {
         cause: cause instanceof Error ? cause.message : String(cause),

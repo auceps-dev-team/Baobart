@@ -8,6 +8,7 @@ import {
   juger,
   seauDe,
   type NomRegle,
+  type Regle,
   type Verdict,
 } from "@/lib/securite/limites";
 import { piloteLimite } from "@/lib/securite/pilotes";
@@ -57,14 +58,18 @@ const LIBRE: Passage = { autorise: true, restant: null, dansSecondes: 0 };
  * Le sujet est ce qui identifie l'auteur : une adresse pour l'anonyme, un
  * identifiant de compte pour qui est connecté. Deux règles différentes ne
  * partagent jamais de compteur — le nom de la règle est dans la clé.
+ *
+ * `regle` remplace le quota écrit dans `REGLES` quand il se règle ailleurs —
+ * les limites des bannières se règlent depuis leur écran. Le nom, lui, reste
+ * celui de `REGLES` : c'est lui qui sépare les compteurs.
  */
 export async function verifierLimite(
   regleNom: NomRegle,
   sujet: string | null,
+  regle: Regle = REGLES[regleNom],
 ): Promise<Passage> {
   if (!sujet) return LIBRE;
 
-  const regle = REGLES[regleNom];
   const pilote = piloteLimite();
   const maintenant = Date.now();
 
@@ -111,8 +116,9 @@ export async function verifierLimite(
 export async function verifierLimiteHttp(
   regleNom: NomRegle,
   requete: Request,
+  regle?: Regle,
 ): Promise<Passage> {
-  return verifierLimite(regleNom, sujetAnonyme(requete));
+  return verifierLimite(regleNom, sujetAnonyme(requete), regle);
 }
 
 /**
