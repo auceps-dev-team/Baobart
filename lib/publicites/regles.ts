@@ -169,25 +169,29 @@ export function validerEcart(brut: string): number | null {
   return n !== null && n >= ECART_MIN && n <= ECART_MAX ? n : null;
 }
 
-export type EtatPub = "ACTIVE" | "PROGRAMMEE" | "EN_PAUSE" | "TERMINEE";
+export type EtatPub = "ACTIVE" | "PROGRAMMEE" | "EN_PAUSE" | "TERMINEE" | "ARCHIVEE";
 
 export const LIBELLE_ETAT_PUB: Record<EtatPub, string> = {
   ACTIVE: "En diffusion",
   PROGRAMMEE: "Programmée",
   EN_PAUSE: "En pause",
   TERMINEE: "Terminée",
+  ARCHIVEE: "Archivée",
 };
 
 /**
  * Où en est une publicité.
  *
- * « Terminée » passe avant « en pause » : une campagne finie ne reprendra pas,
- * et l'afficher « en pause » inviterait à cliquer « reprendre » pour rien.
+ * « Archivée » passe avant tout : elle a quitté la mosaïque, quelles que soient
+ * ses dates. « Terminée » passe avant « en pause » : une campagne finie ne
+ * reprendra pas, et l'afficher « en pause » inviterait à cliquer « reprendre »
+ * pour rien.
  */
 export function etatDeLaPublicite(
-  pub: { pausedAt: Date | null; startsAt: Date | null; endsAt: Date | null },
+  pub: { pausedAt: Date | null; startsAt: Date | null; endsAt: Date | null; archivedAt?: Date | null },
   maintenant: Date,
 ): EtatPub {
+  if (pub.archivedAt) return "ARCHIVEE";
   if (pub.endsAt && pub.endsAt <= maintenant) return "TERMINEE";
   if (pub.pausedAt) return "EN_PAUSE";
   if (pub.startsAt && pub.startsAt > maintenant) return "PROGRAMMEE";

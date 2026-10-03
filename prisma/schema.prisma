@@ -1420,6 +1420,10 @@ model Ad {
   startsAt  DateTime?
   endsAt    DateTime?
   pausedAt  DateTime?
+  /// Archivée : hors de la mosaïque et de la liste active, chiffres gardés.
+  /// Il n'y a pas de suppression depuis l'écran — elle effaçait les
+  /// affichages et les clics, que rien ne recrée.
+  archivedAt DateTime?
   /// Qui l'a créée. Sans relation : effacer ce compte ne doit pas effacer la pub.
   createdById String
   createdAt   DateTime @default(now())
@@ -1428,7 +1432,7 @@ model Ad {
   stats  AdDailyStat[]
   orders Order[]
 
-  @@index([pausedAt, startsAt, endsAt])
+  @@index([archivedAt, pausedAt, startsAt, endsAt])
 }
 
 /// Vues et clics d'une pub, par jour. Les ventes se comptent à la lecture,

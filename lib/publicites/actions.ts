@@ -13,12 +13,12 @@ import {
   type SaisiePub,
 } from "@/lib/publicites/regles";
 import {
+  archiver,
   creer,
   mettreEnPause,
   modifier,
   racineMedias,
   regler,
-  supprimer,
 } from "@/lib/publicites/service";
 
 /**
@@ -103,12 +103,20 @@ export async function basculerPause(id: string, enPause: boolean): Promise<EtatG
   return { ok: true };
 }
 
-export async function supprimerPublicite(id: string): Promise<EtatGestePub> {
+/**
+ * Archiver, ou restaurer. Il n'y a plus de suppression : elle effaçait les
+ * affichages et les clics de la campagne, et rien ne les recrée.
+ */
+export async function archiverPublicite(id: string, archivee: boolean): Promise<EtatGestePub> {
   const qui = await exigerLePouvoir("promouvoir_du_contenu");
 
-  if (!(await supprimer(id))) return { ok: false, message: "Cette publicité n'existe plus." };
+  if (!(await archiver(id, archivee))) return { ok: false, message: "Cette publicité n'existe plus." };
 
-  await consigner({ acteurId: qui.id, action: "publicite.supprimer", ressource: `ad:${id}` });
+  await consigner({
+    acteurId: qui.id,
+    action: archivee ? "publicite.archiver" : "publicite.restaurer",
+    ressource: `ad:${id}`,
+  });
 
   rafraichir();
   return { ok: true };

@@ -4,30 +4,32 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useState, useTransition } from "react";
 
-import { basculerPause, supprimerPublicite } from "@/lib/publicites/actions";
+import { archiverPublicite, basculerPause } from "@/lib/publicites/actions";
 import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
 
 /**
- * Modifier, suspendre, supprimer — sous chaque publicité.
+ * Modifier, suspendre, archiver — sous chaque publicité.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * LA SUPPRESSION DEMANDE UN SECOND CLIC
+ * ARCHIVER, PAS SUPPRIMER
  *
- * Elle efface les affichages et les clics de la campagne, et rien ne les
- * recrée. Le second bouton dit ce qui sera perdu et propose la pause, qui
- * garde tout : c'est presque toujours ce qu'on voulait.
+ * La suppression effaçait les affichages et les clics de la campagne, et rien
+ * ne les recréait. L'archive la retire de la mosaïque et de la liste active, et
+ * garde tout. Comme elle se défait d'un clic, elle ne demande pas de
+ * confirmation.
  */
 export function GestesPublicite({
   id,
   enPause,
   terminee,
+  archivee = false,
 }: {
   id: string;
   enPause: boolean;
   terminee: boolean;
+  archivee?: boolean;
 }) {
   const [enCours, demarrer] = useTransition();
-  const [confirmer, setConfirmer] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
   const agir = (geste: () => Promise<{ ok: boolean; message?: string }>) => {
@@ -35,9 +37,24 @@ export function GestesPublicite({
     demarrer(async () => {
       const suite = await geste();
       if (!suite.ok) setErreur(suite.message ?? "Le geste n'a pas abouti.");
-      setConfirmer(false);
     });
   };
+
+  if (archivee) {
+    return (
+      <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <button type="button" disabled={enCours} onClick={() => agir(() => archiverPublicite(id, false))} style={bouton(BLANC)}>
+            Restaurer
+          </button>
+          <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.65 }}>
+            Elle reviendra en pause : relis-la avant de la remettre en diffusion.
+          </span>
+        </div>
+        {erreur ? <Erreur>{erreur}</Erreur> : null}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
@@ -58,40 +75,21 @@ export function GestesPublicite({
           </button>
         )}
 
-        {confirmer ? (
-          <>
-            <button
-              type="button"
-              disabled={enCours}
-              onClick={() => agir(() => supprimerPublicite(id))}
-              style={{ ...bouton(ORANGE), color: BLANC }}
-            >
-              Supprimer, chiffres compris
-            </button>
-            <button type="button" disabled={enCours} onClick={() => setConfirmer(false)} style={bouton(BLANC)}>
-              Garder
-            </button>
-          </>
-        ) : (
-          <button type="button" disabled={enCours} onClick={() => setConfirmer(true)} style={bouton(BLANC)}>
-            Supprimer
-          </button>
-        )}
+        <button type="button" disabled={enCours} onClick={() => agir(() => archiverPublicite(id, true))} style={bouton(BLANC)}>
+          Archiver
+        </button>
       </div>
 
-      {confirmer ? (
-        <span style={{ fontSize: 12, fontWeight: 700 }}>
-          Les affichages et les clics de cette campagne seront effacés. Les ventes restent, sans
-          bannière attachée. Pour arrêter sans rien perdre, mets-la plutôt en pause.
-        </span>
-      ) : null}
-
-      {erreur ? (
-        <span role="status" style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>
-          {erreur}
-        </span>
-      ) : null}
+      {erreur ? <Erreur>{erreur}</Erreur> : null}
     </div>
+  );
+}
+
+function Erreur({ children }: { children: React.ReactNode }) {
+  return (
+    <span role="status" style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>
+      {children}
+    </span>
   );
 }
 

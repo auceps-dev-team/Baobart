@@ -82,6 +82,10 @@ describe("l'état et les chiffres", () => {
     expect(etatDeLaPublicite({ pausedAt: null, startsAt: hier, endsAt: demain }, maintenant)).toBe("ACTIVE");
   });
 
+  it("dit archivée avant tout le reste", () => {
+    expect(etatDeLaPublicite({ pausedAt: null, startsAt: null, endsAt: demain, archivedAt: hier }, maintenant)).toBe("ARCHIVEE");
+  });
+
   it("ne donne pas de taux de clic sans affichage", () => {
     expect(tauxDeClic(0, 0)).toBeNull();
     expect(tauxDeClic(1000, 25)).toBe(2.5);

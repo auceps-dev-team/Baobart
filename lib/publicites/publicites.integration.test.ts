@@ -8,13 +8,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
 import {
+  archiver,
   attribuer,
   diffusion,
   enregistrerClic,
   enregistrerVues,
   listerPourAdministration,
   regler,
-  supprimer,
 } from "@/lib/publicites/service";
 
 const AVANT = process.env.CHECKOUT_SIMULATION_ENABLED;
@@ -116,7 +116,7 @@ describe("les compteurs", () => {
 });
 
 describe("l'attribution d'une vente", () => {
-  it("revient à la bannière qui menait à la fiche, et survit à sa suppression", async () => {
+  it("revient à la bannière qui menait à la fiche, et survit à son archivage", async () => {
     const { produit, acheteur } = await creerProduitAchetable();
     const menant = await creerPub({ linkUrl: `/products/${produit.slug}` });
     const ailleurs = await creerPub({ linkUrl: "/explore" });
@@ -137,9 +137,36 @@ describe("l'attribution d'une vente", () => {
     expect(ligne?.ventes).toBe(1);
     expect(lignes.find((l) => l.id === ailleurs.id)?.peutVendre).toBe(false);
 
-    // La campagne part ; la vente reste, détachée.
-    await supprimer(menant.id);
+    // La campagne part aux archives ; la vente lui reste attachée.
+    await archiver(menant.id, true);
     const apres = await db.order.findUniqueOrThrow({ where: { id: commande.id }, select: { adId: true } });
-    expect(apres.adId).toBeNull();
+    expect(apres.adId).toBe(menant.id);
+    expect((await listerPourAdministration()).find((l) => l.id === menant.id)?.ventes).toBe(1);
+  });
+});
+
+describe("l'archivage", () => {
+  it("retire la pub de la mosaïque sans effacer ses chiffres", async () => {
+    // Avant v1.71.1, « supprimer » effaçait affichages et clics, que rien ne recréait.
+    const pub = await creerPub();
+    await enregistrerVues([pub.id, pub.id, pub.id], MAINTENANT);
+    await enregistrerClic(pub.id, MAINTENANT);
+
+    await archiver(pub.id, true);
+    expect((await diffusion(MAINTENANT)).pubs).toEqual([]);
+    const ligne = (await listerPourAdministration()).find((l) => l.id === pub.id);
+    expect(ligne).toMatchObject({ vues: 3, clics: 1 });
+    expect(ligne?.archiveeLe).not.toBeNull();
+  });
+
+  it("restaure en pause : une campagne qui ressort se relit avant de reparaître", async () => {
+    const pub = await creerPub();
+    await archiver(pub.id, true);
+    await archiver(pub.id, false);
+
+    const relue = await db.ad.findUniqueOrThrow({ where: { id: pub.id }, select: { archivedAt: true, pausedAt: true } });
+    expect(relue.archivedAt).toBeNull();
+    expect(relue.pausedAt).not.toBeNull();
+    expect((await diffusion(MAINTENANT)).pubs).toEqual([]);
   });
 });

@@ -66,6 +66,7 @@ export async function diffusion(maintenant = new Date()): Promise<Diffusion> {
     const pubs = await db.ad.findMany({
       where: {
         pausedAt: null,
+        archivedAt: null,
         AND: [
           { OR: [{ startsAt: null }, { startsAt: { lte: maintenant } }] },
           { OR: [{ endsAt: null }, { endsAt: { gt: maintenant } }] },
@@ -179,6 +180,7 @@ export interface LignePub {
   debut: Date | null;
   fin: Date | null;
   enPauseDepuis: Date | null;
+  archiveeLe: Date | null;
   vues: number;
   clics: number;
   ventes: number;
@@ -200,6 +202,7 @@ export async function listerPourAdministration(): Promise<LignePub[]> {
         startsAt: true,
         endsAt: true,
         pausedAt: true,
+        archivedAt: true,
       },
     }),
     db.adDailyStat.groupBy({ by: ["adId"], _sum: { views: true, clicks: true } }),
@@ -225,6 +228,7 @@ export async function listerPourAdministration(): Promise<LignePub[]> {
     debut: p.startsAt,
     fin: p.endsAt,
     enPauseDepuis: p.pausedAt,
+    archiveeLe: p.archivedAt,
     vues: parStat.get(p.id)?.views ?? 0,
     clics: parStat.get(p.id)?.clicks ?? 0,
     ventes: parVente.get(p.id) ?? 0,
@@ -256,10 +260,16 @@ export async function mettreEnPause(id: string, enPause: boolean): Promise<boole
 }
 
 /**
- * Efface la pub et ses compteurs. Les ventes restent, détachées : une vente a
- * eu lieu, qu'on garde ou non la campagne qui l'a amenée.
+ * Archive la pub, ou la restaure. Ses compteurs et ses ventes restent : c'est
+ * toute la raison d'archiver plutôt que de supprimer.
+ *
+ * Restaurer ne la remet pas en diffusion d'office — elle revient en pause.
+ * Une campagne qu'on ressort des archives se relit avant de reparaître.
  */
-export async function supprimer(id: string): Promise<boolean> {
-  const n = await db.ad.deleteMany({ where: { id } });
+export async function archiver(id: string, archiver: boolean): Promise<boolean> {
+  const n = await db.ad.updateMany({
+    where: { id },
+    data: archiver ? { archivedAt: new Date() } : { archivedAt: null, pausedAt: new Date() },
+  });
   return n.count > 0;
 }

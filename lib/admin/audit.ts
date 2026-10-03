@@ -77,6 +77,10 @@ export type ActionAdmin =
   | "publicite.modifier"
   | "publicite.suspendre"
   | "publicite.reprendre"
+  | "publicite.archiver"
+  | "publicite.restaurer"
+  // Plus émise depuis v1.71.1 : l'écran archive au lieu de supprimer. Gardée
+  // pour relire les traces d'avant.
   | "publicite.supprimer"
   | "publicite.regler";
 

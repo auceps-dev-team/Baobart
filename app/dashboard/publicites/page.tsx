@@ -5,8 +5,8 @@ import { DashboardFrame } from "@/components/dashboard/frame";
 import { GestesPublicite } from "@/components/publicites/gestes";
 import { ReglagesPublicites } from "@/components/publicites/reglages";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
-import { LIBELLE_ETAT_PUB, etatDeLaPublicite, tauxDeClic, type EtatPub } from "@/lib/publicites/regles";
-import { listerPourAdministration, reglages } from "@/lib/publicites/service";
+import { LIBELLE_ETAT_PUB, etatDeLaPublicite, lienExterieur, tauxDeClic, type EtatPub } from "@/lib/publicites/regles";
+import { listerPourAdministration, reglages, type LignePub } from "@/lib/publicites/service";
 import { BLANC, CADRE, ENCRE, GRIS, JAUNE, LAVANDE, VERT } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Publicités — Baobart." };
@@ -17,6 +17,7 @@ const FOND_ETAT: Record<EtatPub, string> = {
   PROGRAMMEE: LAVANDE,
   EN_PAUSE: JAUNE,
   TERMINEE: GRIS,
+  ARCHIVEE: GRIS,
 };
 
 /**
@@ -34,6 +35,8 @@ const FOND_ETAT: Record<EtatPub, string> = {
 export default async function PublicitesPage() {
   const utilisateur = await exigerLePouvoir("promouvoir_du_contenu");
   const [pubs, r] = await Promise.all([listerPourAdministration(), reglages()]);
+  const actives = pubs.filter((p) => !p.archiveeLe);
+  const archivees = pubs.filter((p) => p.archiveeLe);
   const maintenant = new Date();
 
   return (
@@ -63,7 +66,7 @@ export default async function PublicitesPage() {
       <div style={{ display: "grid", gap: 20 }}>
         <ReglagesPublicites actives={r.actives} ecartMinimal={r.ecartMinimal} />
 
-        {pubs.length === 0 ? (
+        {actives.length === 0 ? (
           <div
             style={{
               border: CADRE,
@@ -82,107 +85,139 @@ export default async function PublicitesPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {pubs.map((p) => {
-              const etat = etatDeLaPublicite(
-                { pausedAt: p.enPauseDepuis, startsAt: p.debut, endsAt: p.fin },
-                maintenant,
-              );
-              const taux = tauxDeClic(p.vues, p.clics);
-              return (
-                <div
-                  key={p.id}
-                  data-pub={p.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "120px minmax(0,1fr)",
-                    gap: 16,
-                    alignItems: "start",
-                    border: CADRE,
-                    borderRadius: 20,
-                    background: BLANC,
-                    boxShadow: `4px 4px 0 ${ENCRE}`,
-                    padding: 16,
-                    color: ENCRE,
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    style={{
-                      width: 120,
-                      height: 90,
-                      objectFit: "cover",
-                      border: CADRE,
-                      borderRadius: 12,
-                      background: LAVANDE,
-                    }}
-                  />
-
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                      <Pastille fond={FOND_ETAT[etat]}>{LIBELLE_ETAT_PUB[etat]}</Pastille>
-                      <Pastille fond={BLANC}>{p.nature === "VIDEO" ? "Vidéo" : "Image"}</Pastille>
-                      <Pastille fond={BLANC}>Tous les {p.frequence} produits</Pastille>
-                    </div>
-
-                    <div style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.3, marginTop: 8 }}>
-                      {p.titre}
-                    </div>
-
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 11.5,
-                        opacity: 0.7,
-                        marginTop: 4,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      → {p.lien}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "6px 18px",
-                        marginTop: 10,
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                      }}
-                    >
-                      <span>{periode(p.debut, p.fin)}</span>
-                      <span>
-                        <b>{p.vues.toLocaleString("fr-FR")}</b> affichage{p.vues > 1 ? "s" : ""}
-                      </span>
-                      <span>
-                        <b>{p.clics.toLocaleString("fr-FR")}</b> clic{p.clics > 1 ? "s" : ""}
-                        {taux !== null ? ` · ${taux.toLocaleString("fr-FR")} %` : ""}
-                      </span>
-                      <span>
-                        {p.peutVendre ? (
-                          <>
-                            <b>{p.ventes.toLocaleString("fr-FR")}</b> vente{p.ventes > 1 ? "s" : ""}
-                          </>
-                        ) : (
-                          <span style={{ opacity: 0.65 }}>ventes non suivies : le lien ne mène pas à une fiche</span>
-                        )}
-                      </span>
-                    </div>
-
-                    <GestesPublicite id={p.id} enPause={p.enPauseDepuis !== null} terminee={etat === "TERMINEE"} />
-                  </div>
-                </div>
-              );
-            })}
+            {actives.map((p) => (
+              <Ligne key={p.id} p={p} maintenant={maintenant} />
+            ))}
           </div>
         )}
+
+        {/*
+          Repliées : on y vient pour retrouver les chiffres d'une campagne
+          passée, pas à chaque visite. Le compte reste visible, pour qu'on
+          sache qu'elles sont là.
+        */}
+        {archivees.length > 0 ? (
+          <details style={{ border: CADRE, borderRadius: 20, background: BLANC, padding: 16 }}>
+            <summary style={{ fontSize: 15, fontWeight: 800, cursor: "pointer" }}>
+              Archivées · {archivees.length}
+            </summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+              {archivees.map((p) => (
+                <Ligne key={p.id} p={p} maintenant={maintenant} />
+              ))}
+            </div>
+          </details>
+        ) : null}
       </div>
     </DashboardFrame>
+  );
+}
+
+function Ligne({ p, maintenant }: { p: LignePub; maintenant: Date }) {
+  const etat = etatDeLaPublicite(
+    { pausedAt: p.enPauseDepuis, startsAt: p.debut, endsAt: p.fin, archivedAt: p.archiveeLe },
+    maintenant,
+  );
+  const taux = tauxDeClic(p.vues, p.clics);
+
+  return (
+    <div
+      data-pub={p.id}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "120px minmax(0,1fr)",
+        gap: 16,
+        alignItems: "start",
+        border: CADRE,
+        borderRadius: 20,
+        background: BLANC,
+        boxShadow: `4px 4px 0 ${ENCRE}`,
+        padding: 16,
+        color: ENCRE,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={p.imageUrl}
+        alt=""
+        loading="lazy"
+        style={{
+          width: 120,
+          height: 90,
+          objectFit: "cover",
+          border: CADRE,
+          borderRadius: 12,
+          background: LAVANDE,
+        }}
+      />
+
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <Pastille fond={FOND_ETAT[etat]}>{LIBELLE_ETAT_PUB[etat]}</Pastille>
+          <Pastille fond={BLANC}>{p.nature === "VIDEO" ? "Vidéo" : "Image"}</Pastille>
+          <Pastille fond={BLANC}>Tous les {p.frequence} produits</Pastille>
+        </div>
+
+        <div style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.3, marginTop: 8 }}>{p.titre}</div>
+
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            opacity: 0.7,
+            marginTop: 4,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          → {p.lien}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "6px 18px",
+            marginTop: 10,
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+          }}
+        >
+          <span>{periode(p.debut, p.fin)}</span>
+          <span>
+            <b>{p.vues.toLocaleString("fr-FR")}</b> affichage{p.vues > 1 ? "s" : ""}
+          </span>
+          <span>
+            <b>{p.clics.toLocaleString("fr-FR")}</b> clic{p.clics > 1 ? "s" : ""}
+            {taux !== null ? ` · ${taux.toLocaleString("fr-FR")} %` : ""}
+          </span>
+          <span>
+            {p.peutVendre ? (
+              <>
+                <b>{p.ventes.toLocaleString("fr-FR")}</b> vente{p.ventes > 1 ? "s" : ""}
+              </>
+            ) : (
+              // Décidé le 03/10 : hors de Baobart, on ne compte que les
+              // affichages et les clics. Le dire évite qu'un zéro se lise
+              // « cette campagne ne vend pas ».
+              <span style={{ opacity: 0.65 }}>
+                {lienExterieur(p.lien)
+                  ? "lien extérieur : affichages et clics seulement"
+                  : "ventes non suivies : le lien ne mène pas à une fiche"}
+              </span>
+            )}
+          </span>
+        </div>
+
+        <GestesPublicite
+          id={p.id}
+          enPause={p.enPauseDepuis !== null}
+          terminee={etat === "TERMINEE"}
+          archivee={etat === "ARCHIVEE"}
+        />
+      </div>
+    </div>
   );
 }
 
