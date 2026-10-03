@@ -53,6 +53,10 @@ export function AuthShell({
       <div
         style={{
           display: "flex",
+          // Replié sur deux lignes sous 360 px : le logo et « Créer un compte »
+          // ne tenaient pas côte à côte, et la page défilait de 23 à 48 px de
+          // travers (mesuré le 03/10).
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 16,
@@ -94,7 +98,7 @@ export function AuthShell({
           </span>
         </Link>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}>
             {indiceBascule}
           </span>

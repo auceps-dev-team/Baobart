@@ -210,7 +210,7 @@ export function Header({
           : null;
 
   return (
-    <div ref={entete} style={{ position: "sticky", top: 0, zIndex: 40, padding: "18px 32px 0" }}>
+    <div ref={entete} data-entete="1" style={{ position: "sticky", top: 0, zIndex: 40, padding: "18px 32px 0" }}>
       <div
         style={{
           maxWidth: 1400,

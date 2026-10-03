@@ -71,7 +71,7 @@ export default async function GainsPage() {
   const maximum = Math.max(1, ...gains.parMois.map((m) => m.montant));
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
+    <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
       <DashboardSidebar
         etape={utilisateur.progression.etape}
         nom={utilisateur.nom}

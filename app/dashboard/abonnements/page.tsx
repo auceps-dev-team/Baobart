@@ -40,7 +40,7 @@ export default async function AbonnementsPage() {
   const publiantes = suivis.filter((c) => c.ressourcesPubliees > 0).length;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
+    <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
       <DashboardSidebar
         etape={utilisateur.progression.etape}
         nom={utilisateur.nom}

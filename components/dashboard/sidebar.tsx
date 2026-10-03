@@ -87,6 +87,7 @@ export async function DashboardSidebar({
 
   return (
     <aside
+      data-sidebar="1"
       style={{
         width: 268,
         flex: "0 0 auto",

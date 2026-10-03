@@ -93,7 +93,9 @@ export function BandeauGravite({
 
       {puces.length > 0 ? (
         <div
-          style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 9 }}
+          // Rétrécissable : en `0 0 auto`, le groupe gardait la largeur de ses
+          // puces sur une ligne, et ne passait jamais à la ligne sur téléphone.
+          style={{ flex: "0 1 auto", minWidth: 0, display: "flex", flexWrap: "wrap", gap: 9 }}
         >
           {puces.map((p) => (
             <div

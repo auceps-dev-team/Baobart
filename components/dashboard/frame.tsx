@@ -23,7 +23,7 @@ export function DashboardFrame({
   children: ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
+    <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
       <DashboardSidebar
         etape={utilisateur.progression.etape}
         nom={utilisateur.nom}
@@ -48,6 +48,9 @@ export function DashboardFrame({
                 letterSpacing: "-1.4px",
                 margin: 0,
                 textTransform: "uppercase",
+                // « REMBOURSEMENT » en capitales de 30 px dépasse un écran de
+                // 320 px : le mot se coupe plutôt que de pousser la page.
+                overflowWrap: "anywhere",
               }}
             >
               {titre}

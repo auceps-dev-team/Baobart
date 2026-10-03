@@ -71,7 +71,10 @@ function LigneConstat({ constat }: { constat: Constat }) {
             >
               REMÈDE
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.4 }}>
+            {/* Un nom de variable (« RATE_LIMIT_DRIVER=redis ») ne se coupe pas
+                de lui-même : sur un téléphone, il poussait la page de 66 à
+                136 px de travers (mesuré le 03/10). */}
+            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.4, minWidth: 0, overflowWrap: "anywhere" }}>
               {constat.remede}
             </div>
           </div>
