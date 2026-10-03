@@ -21,8 +21,9 @@ import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/ch
  * ce que le formulaire envoie est son adresse. Corriger le lien ne renvoie pas
  * une vidéo de quinze mégaoctets.
  *
- * Ce que ça implique, et qui n'est pas réglé : un média déposé puis remplacé
- * reste au stockage. Le blog a la même dette ; aucun des deux n'a de balayage.
+ * Ce que ça implique : un média déposé puis remplacé reste au stockage jusqu'au
+ * passage quotidien `/api/cron/medias` (depuis v1.71.5), qui retire ce que
+ * plus rien ne cite, vingt-quatre heures après le dépôt.
  */
 export function FormulairePublicite({
   pubId,

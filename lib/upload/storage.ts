@@ -7,6 +7,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -283,6 +284,35 @@ export async function deposerObjet(input: {
       CacheControl: "public, max-age=31536000, immutable",
     }),
   );
+}
+
+export interface ObjetListe {
+  cle: string;
+  /** La date du dépôt, telle que le stockage la rend. */
+  modifieLe: Date;
+}
+
+/**
+ * Les objets sous un préfixe, page après page.
+ *
+ * Le stockage rend mille clés au plus par appel : sans suivre le jeton de
+ * continuation, un dossier de mille un fichiers paraîtrait en contenir mille,
+ * et le mille-et-unième ne serait jamais examiné.
+ */
+export async function listerObjets(prefixe: string): Promise<ObjetListe[]> {
+  await assurerBucket();
+  const objets: ObjetListe[] = [];
+  let jeton: string | undefined;
+  do {
+    const page = await s3().send(
+      new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefixe, ContinuationToken: jeton }),
+    );
+    for (const o of page.Contents ?? []) {
+      if (o.Key && o.LastModified) objets.push({ cle: o.Key, modifieLe: o.LastModified });
+    }
+    jeton = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (jeton);
+  return objets;
 }
 
 export async function supprimerObjet(cle: string): Promise<void> {

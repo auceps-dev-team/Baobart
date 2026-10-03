@@ -425,10 +425,10 @@ function Champ({
  * retransférer le fichier à chaque correction de typo, et ferait échouer
  * l'enregistrement entier si le stockage bronchait.
  *
- * Ce que ça implique, et qui n'est pas réglé : une image envoyée puis
- * abandonnée reste au stockage. Les ressources ont un balayage des envois
- * orphelins (`balayerLesAbandons`) ; le blog n'en a pas, et ses images pèsent
- * deux mégaoctets au plus.
+ * Ce que ça implique : une image envoyée puis abandonnée reste au stockage
+ * jusqu'au passage quotidien `/api/cron/medias` (depuis v1.71.5), qui retire
+ * ce que plus aucun texte ne cite, vingt-quatre heures après le dépôt — voir
+ * `lib/medias/balayage.ts`.
  */
 function EnvoiImage({
   libelle,

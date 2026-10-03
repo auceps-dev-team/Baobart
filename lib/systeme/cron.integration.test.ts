@@ -47,6 +47,7 @@ import { GET as blog } from "@/app/api/cron/blog/route";
 import { GET as commandes } from "@/app/api/cron/commandes/route";
 import { GET as courriels } from "@/app/api/cron/courriels/route";
 import { GET as juridique } from "@/app/api/cron/juridique/route";
+import { GET as medias } from "@/app/api/cron/medias/route";
 import { GET as securite } from "@/app/api/cron/securite/route";
 import { GET as versements } from "@/app/api/cron/versements/route";
 import { db } from "@/lib/db";
@@ -60,6 +61,7 @@ const ROUTES: Record<string, Gestionnaire> = {
   "/api/cron/commandes": commandes,
   "/api/cron/courriels": courriels,
   "/api/cron/juridique": juridique,
+  "/api/cron/medias": medias,
   "/api/cron/securite": securite,
   "/api/cron/versements": versements,
 };
