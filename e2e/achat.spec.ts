@@ -3,6 +3,21 @@ import { expect, test } from "@playwright/test";
 import { db, nouveauCompte, ressourceVendable } from "./fixtures/donnees";
 
 /**
+ * Le temps qu'un humain met à remplir le formulaire.
+ *
+ * Depuis v1.59.1, l'anti-bot refuse une inscription envoyée moins de deux
+ * secondes après l'ouverture du formulaire (`DELAI_MINIMUM_MS`, motif
+ * « trop_rapide »). Ce test, écrit avant, remplissait tout d'un trait : il
+ * recevait « Quelque chose a coincé » et attendait le tableau de bord en vain.
+ * Mesuré le 03/10 : les deux parcours d'inscription échouaient ainsi, seuls
+ * comme dans la suite entière.
+ *
+ * Recopié et non importé : `lib/securite/antibot.ts` est `server-only`, et
+ * Playwright refuse de le charger. Si le délai change là-bas, il change ici.
+ */
+const PAUSE_HUMAINE_MS = 2_000 + 600;
+
+/**
  * Le parcours qui fait vivre Baobart : arriver, s'inscrire, acheter, retirer.
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -35,6 +50,7 @@ test.describe("de l'inscription au téléchargement", () => {
     // La case de conditions est validée côté action : la sauter ferait échouer
     // l'inscription avec un message, pas une erreur — donc il faut la cocher.
     await page.getByRole("checkbox").check();
+    await page.waitForTimeout(PAUSE_HUMAINE_MS);
     await page.getByRole("button", { name: /créer mon compte/i }).click();
 
     // Une inscription réussie ouvre une session et emmène au tableau de bord.
@@ -132,6 +148,7 @@ test.describe("de l'inscription au téléchargement", () => {
     await page.getByLabel("Email").fill(compte.email);
     await page.getByLabel("Mot de passe").fill(compte.motDePasse);
     await page.getByRole("checkbox").check();
+    await page.waitForTimeout(PAUSE_HUMAINE_MS);
     await page.getByRole("button", { name: /créer mon compte/i }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
 
