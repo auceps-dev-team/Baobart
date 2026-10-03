@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { enregistrerConsentement } from "@/lib/consentement/actions";
 import { COOKIE_CONSENTEMENT, lireConsentement } from "@/lib/consentement/regles";
@@ -46,10 +46,34 @@ function choixActuel() {
  * toutes les pages dynamiques. La bannière se décide donc dans le navigateur,
  * une fois la page montée — pour qui a déjà choisi, elle n'apparaît jamais,
  * même une fraction de seconde.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ELLE NE CACHE RIEN QU'ON NE PUISSE FAIRE REMONTER
+ *
+ * Posée par-dessus le bas de l'écran, elle couvrait le bouton « Payer » de la
+ * page d'achat — tout en bas, impossible à faire défiler au-dessus d'elle :
+ * qui n'avait pas encore choisi ne pouvait pas payer. Trouvé le 03/10 par
+ * `e2e/achat.spec.ts` (« subtree intercepts pointer events »).
+ *
+ * Tant qu'elle est là, une cale de sa hauteur s'ajoute au bas de la page :
+ * tout ce qu'elle couvre peut défiler au-dessus d'elle.
  */
 export function BanniereCookies() {
   const [visible, setVisible] = useState(false);
   const [enCours, demarrer] = useTransition();
+  const carte = useRef<HTMLDivElement>(null);
+  const [cale, setCale] = useState(0);
+
+  useEffect(() => {
+    const el = carte.current;
+    if (!visible || !el) return;
+    const mesurer = () => setCale(el.getBoundingClientRect().height + 24);
+    mesurer();
+    if (typeof ResizeObserver === "undefined") return;
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(el);
+    return () => observateur.disconnect();
+  }, [visible]);
 
   useEffect(() => {
     if (!choixActuel()) setVisible(true);
@@ -68,58 +92,62 @@ export function BanniereCookies() {
     });
 
   return (
-    <div
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="cookies-titre"
-      style={{
-        position: "fixed",
-        left: 12,
-        right: 12,
-        bottom: 12,
-        zIndex: 1000,
-        display: "flex",
-        justifyContent: "center",
-        pointerEvents: "none",
-      }}
-    >
+    <>
+      <div aria-hidden style={{ height: cale }} />
       <div
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="cookies-titre"
         style={{
-          pointerEvents: "auto",
-          width: "100%",
-          maxWidth: 640,
-          border: `2.5px solid ${ENCRE}`,
-          borderRadius: 22,
-          background: BLANC,
-          boxShadow: `6px 6px 0 ${ENCRE}`,
-          padding: "18px 20px",
-          color: ENCRE,
+          position: "fixed",
+          left: 12,
+          right: 12,
+          bottom: 12,
+          zIndex: 1000,
+          display: "flex",
+          justifyContent: "center",
+          pointerEvents: "none",
         }}
       >
-        <div id="cookies-titre" style={{ fontSize: 16, fontWeight: 800 }}>
-          Un seul cookie facultatif, si tu veux bien
-        </div>
-        <p style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, margin: "8px 0 0", opacity: 0.85 }}>
-          Baobart pose les cookies sans lesquels le site ne marche pas — ta connexion, ton choix ici.
-          Le seul autre retient les bannières que tu cliques, pour savoir si une vente vient d&apos;une
-          publicité. Le refuser ne change rien à ce que tu peux faire ici.
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 14 }}>
-          <button type="button" disabled={enCours} onClick={() => choisir(false)} style={bouton(BLANC)}>
-            Refuser
-          </button>
-          <button type="button" disabled={enCours} onClick={() => choisir(true)} style={bouton(JAUNE)}>
-            Accepter
-          </button>
-          <Link
-            href={"/cookies" as Route}
-            style={{ fontSize: 12.5, fontWeight: 700, color: ENCRE, textDecoration: "underline", marginLeft: 4 }}
-          >
-            Lire la politique de cookies
-          </Link>
+        <div
+          ref={carte}
+          style={{
+            pointerEvents: "auto",
+            width: "100%",
+            maxWidth: 640,
+            border: `2.5px solid ${ENCRE}`,
+            borderRadius: 22,
+            background: BLANC,
+            boxShadow: `6px 6px 0 ${ENCRE}`,
+            padding: "18px 20px",
+            color: ENCRE,
+          }}
+        >
+          <div id="cookies-titre" style={{ fontSize: 16, fontWeight: 800 }}>
+            Un seul cookie facultatif, si tu veux bien
+          </div>
+          <p style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, margin: "8px 0 0", opacity: 0.85 }}>
+            Baobart pose les cookies sans lesquels le site ne marche pas — ta connexion, ton choix ici.
+            Le seul autre retient les bannières que tu cliques, pour savoir si une vente vient d&apos;une
+            publicité. Le refuser ne change rien à ce que tu peux faire ici.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 14 }}>
+            <button type="button" disabled={enCours} onClick={() => choisir(false)} style={bouton(BLANC)}>
+              Refuser
+            </button>
+            <button type="button" disabled={enCours} onClick={() => choisir(true)} style={bouton(JAUNE)}>
+              Accepter
+            </button>
+            <Link
+              href={"/cookies" as Route}
+              style={{ fontSize: 12.5, fontWeight: 700, color: ENCRE, textDecoration: "underline", marginLeft: 4 }}
+            >
+              Lire la politique de cookies
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
