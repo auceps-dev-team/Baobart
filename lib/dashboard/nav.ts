@@ -219,6 +219,16 @@ const ADMINISTRATION: EntreeAdmin[] = [
     pouvoir: "publier_du_contenu",
   },
   {
+    // Hors de `/dashboard/systeme` : ce dossier exige `consulter_le_systeme`
+    // dans son layout, et le marketing ne l'a pas. Décidé le 03/10 :
+    // l'administration ET le marketing gèrent les bannières.
+    cle: "a_publicites",
+    label: "Publicités",
+    glyph: "▣",
+    href: "/dashboard/publicites",
+    pouvoir: "promouvoir_du_contenu",
+  },
+  {
     cle: "a_sys_config",
     pouvoir: "consulter_le_systeme" as const,
     label: "Système · Configuration",

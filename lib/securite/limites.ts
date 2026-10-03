@@ -175,6 +175,25 @@ export const REGLES = {
    * l'opérateur — et les appels refusés ont déjà leur propre plafond de traces.
    */
   rappelPaiement: { quota: 300, fenetreMs: 60_000 },
+
+  /**
+   * Affichages de bannières. Cent vingt envois par minute et par adresse.
+   *
+   * Un envoi groupe toutes les bannières vues depuis le précédent ; un
+   * visiteur qui fait défiler la mosaïque en envoie un toutes les deux
+   * secondes au plus. Cent vingt laisse de la marge à un bureau entier
+   * derrière une même adresse, et borne qui gonflerait les compteurs d'un
+   * concurrent à coups de script.
+   */
+  "pub.vues": { quota: 120, fenetreMs: 60_000 },
+
+  /**
+   * Clics sur une bannière. Trente par minute et par adresse.
+   *
+   * Personne ne clique trente bannières en une minute ; un script qui veut
+   * faire monter un taux de clic, si.
+   */
+  "pub.clic": { quota: 30, fenetreMs: 60_000 },
 } as const satisfies Record<string, Regle>;
 
 export type NomRegle = keyof typeof REGLES;

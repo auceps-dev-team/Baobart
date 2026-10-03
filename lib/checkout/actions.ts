@@ -1,11 +1,15 @@
 "use server";
 
 import type { Route } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { sessionCourante } from "@/lib/auth/session";
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
+import { lireClics } from "@/lib/publicites/attribution";
+import { attribuer } from "@/lib/publicites/service";
+import { COOKIE_CLICS } from "@/lib/publicites/types";
 
 /** Les rails que Baobart sait viser. Tout le reste est ignoré. */
 const MOYENS = new Set(["om", "wave", "mtn", "moov"]);
@@ -34,7 +38,15 @@ export async function acheterRessource(
   });
   if (!produit) redirect("/explore");
 
+  // La bannière cliquée qui menait ici, s'il y en a une. Une erreur de lecture
+  // ne coûte qu'une ligne de statistique : elle ne doit jamais coûter la vente.
+  const publiciteId = await attribuer(
+    produit.slug,
+    lireClics((await cookies()).get(COOKIE_CLICS)?.value),
+  ).catch(() => null);
+
   const resultat = await acheter({
+    publiciteId,
     produitId,
     acheteurId: utilisateur.id,
     // Le rail choisi par l'acheteur. La maquette du sélecteur n'existe pas

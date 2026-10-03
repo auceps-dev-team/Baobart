@@ -1366,11 +1366,91 @@ model Order {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  /// La publicité de l'ADS manager qui a amené cet achat, quand l'acheteur a
+  /// cliqué une bannière menant à cette ressource. Nul sinon. La pub peut être
+  /// supprimée : la commande reste, l'attribution s'efface.
+  adId String?
+  ad   Ad?     @relation(fields: [adId], references: [id], onDelete: SetNull)
+
   buyer User        @relation(fields: [buyerId], references: [id])
   items OrderItem[]
 
   @@index([buyerId, createdAt])
   @@index([status, createdAt])
+  @@index([adId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADS MANAGER — les bannières intercalées dans la mosaïque
+//
+// Repris du plugin WordPress « EDD Ads Manager » (Auceps Digital, v2.2.0) :
+// une image ou une vidéo, un lien, une période, une fréquence. Réservé au
+// pouvoir `promouvoir_du_contenu` (ADMIN, SUPER_ADMIN, MARKETING).
+//
+// Deux écarts assumés avec le plugin :
+//   — les compteurs sont agrégés par jour, sans IP ni compte : le plugin
+//     gardait une ligne par vue, avec l'IP hachée sans sel ;
+//   — une vente n'est attribuée qu'à la pub qui menait à la ressource
+//     achetée. Le plugin attribuait toute vente des 30 jours suivant un clic.
+// ════════════════════════════════════════════════════════════════════════════
+
+enum AdMediaKind {
+  IMAGE
+  VIDEO
+}
+
+model Ad {
+  id        String      @id @default(cuid())
+  /// Le nom de la campagne. Il sert aussi de texte de remplacement à l'image,
+  /// pour qui lit la page avec un lecteur d'écran : le formulaire le dit.
+  title     String
+  mediaKind AdMediaKind @default(IMAGE)
+  /// L'image ou le GIF ; pour une vidéo, son affiche.
+  imageUrl    String
+  /// Lues au dépôt : la grille place la bannière avant de l'avoir chargée.
+  imageWidth  Int
+  imageHeight Int
+  /// Une vidéo MP4 déposée chez nous. Pas d'iframe YouTube : elle chargerait
+  /// un traceur tiers dans la mosaïque de chaque visiteur.
+  videoUrl  String?
+  /// Un chemin du site (« /products/… ») ou une adresse https.
+  linkUrl   String
+  /// Une bannière tous les N produits.
+  frequency Int
+  startsAt  DateTime?
+  endsAt    DateTime?
+  pausedAt  DateTime?
+  /// Qui l'a créée. Sans relation : effacer ce compte ne doit pas effacer la pub.
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stats  AdDailyStat[]
+  orders Order[]
+
+  @@index([pausedAt, startsAt, endsAt])
+}
+
+/// Vues et clics d'une pub, par jour. Les ventes se comptent à la lecture,
+/// depuis `Order.adId` : les écrire ici en ferait une seconde vérité.
+model AdDailyStat {
+  adId   String
+  day    DateTime @db.Date
+  views  Int      @default(0)
+  clicks Int      @default(0)
+
+  ad Ad @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@id([adId, day])
+}
+
+/// Les réglages de l'ADS manager : une seule ligne, `global`.
+model AdSettings {
+  id        String   @id @default("global")
+  enabled   Boolean  @default(true)
+  /// L'écart minimal entre deux bannières, en produits.
+  minGap    Int      @default(4)
+  updatedAt DateTime @updatedAt
 }
 
 /// Une ligne d'achat = un produit d'un vendeur. C'est ici que vit l'état de

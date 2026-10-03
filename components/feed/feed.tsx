@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 
 import { GrilleMasonry } from "@/components/feed/grille-masonry";
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
+import { Banniere, hauteurDeBanniere } from "@/components/publicites/banniere";
 import { hauteurDeCarte } from "@/lib/feed/masonry";
+import { intercaler } from "@/lib/publicites/placement";
+import { AUCUNE_DIFFUSION, type Diffusion } from "@/lib/publicites/types";
 import { FILTRES, type CarteRessource, type Filtre } from "@/lib/feed/types";
 import { basculerLike } from "@/lib/social/actions";
 
@@ -34,6 +37,8 @@ export interface FeedProps {
   connecte?: boolean;
   /** Colonnes du premier rendu, devinées par la page — voir `GrilleMasonry`. */
   colonnesInitiales?: number;
+  /** Les bannières de l'ADS manager, et l'écart qui les sépare. */
+  diffusion?: Diffusion;
 }
 
 export function Feed({
@@ -44,6 +49,7 @@ export function Feed({
   aimesInitiaux = [],
   connecte = false,
   colonnesInitiales = 4,
+  diffusion = AUCUNE_DIFFUSION,
 }: FeedProps) {
   const [items, setItems] = useState(itemsInitiaux);
   const [curseur, setCurseur] = useState(curseurInitial);
@@ -55,6 +61,15 @@ export function Feed({
   );
   const [epingles, setEpingles] = useState<Record<string, boolean>>({});
   const [chargement, demarrer] = useTransition();
+
+  // Les bannières se placent d'après le rang des produits, côté navigateur :
+  // « charger plus » et les filtres n'ont rien à demander au serveur, et le
+  // placement des n premiers produits ne dépend pas des suivants — aucune
+  // bannière déjà vue ne bouge (`lib/publicites/placement.ts`).
+  const cases = useMemo(
+    () => intercaler(items, diffusion.pubs, diffusion.ecartMinimal),
+    [items, diffusion],
+  );
 
   const changerFiltre = useCallback((f: Filtre) => {
     setFiltre(f);
@@ -248,22 +263,29 @@ export function Feed({
       ) : null}
 
       <GrilleMasonry
-        elements={items}
-        cle={(r) => r.id}
+        elements={cases}
+        // Le rang entre dans la clé : une même pub revient plusieurs fois.
+        cle={(c) => (c.nature === "produit" ? c.produit.id : `pub:${c.pub.id}:${c.rang}`)}
         colonnesInitiales={colonnesInitiales}
-        hauteur={(r, largeurColonne) =>
-          hauteurDeCarte({
-            visuel: r.visualHeight,
-            titre: r.title,
-            largeurColonne,
-            infosVisibles: styleCarte !== "Image pleine",
-          })
+        hauteur={(c, largeurColonne) =>
+          c.nature === "pub"
+            ? hauteurDeBanniere(c.pub, largeurColonne)
+            : hauteurDeCarte({
+                visuel: c.produit.visualHeight,
+                titre: c.produit.title,
+                largeurColonne,
+                infosVisibles: styleCarte !== "Image pleine",
+              })
         }
-        rendu={(r) => (
-          <Link href={`/products/${r.slug}`} scroll={false} style={{ display: "block" }}>
-            <CarteMosaique {...proprietesCarte(r)} />
-          </Link>
-        )}
+        rendu={(c) =>
+          c.nature === "pub" ? (
+            <Banniere pub={c.pub} style={styleCarte} rang={c.rang} />
+          ) : (
+            <Link href={`/products/${c.produit.slug}`} scroll={false} style={{ display: "block" }}>
+              <CarteMosaique {...proprietesCarte(c.produit)} />
+            </Link>
+          )
+        }
       />
 
       {items.length === 0 ? (

@@ -69,7 +69,16 @@ export type ActionAdmin =
   // un geste distinct de le poser, et c'est celui qu'on cherche quand on
   // relit « qui a rouvert la porte à cette adresse ».
   | "blocage.poser"
-  | "blocage.lever";
+  | "blocage.lever"
+  // ADS manager. La pause et la reprise sont deux actions pour la même raison
+  // que le blocage : c'est la reprise qu'on cherche quand une bannière
+  // reparaît sans que personne s'en souvienne.
+  | "publicite.creer"
+  | "publicite.modifier"
+  | "publicite.suspendre"
+  | "publicite.reprendre"
+  | "publicite.supprimer"
+  | "publicite.regler";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

@@ -204,6 +204,12 @@ export async function acheter(input: {
    * par le créateur — voir `lib/commerce/ppp.ts`.
    */
   pays?: string | null;
+  /**
+   * La bannière à qui revient la vente, déjà relue en base par l'appelant —
+   * voir `lib/publicites/attribution.ts`. Une statistique, jamais un prix :
+   * rien de ce qui suit n'en dépend.
+   */
+  publiciteId?: string | null;
 }): Promise<Resultat> {
   // La simulation prime quand elle est ouverte : c'est un réglage de
   // développement, et le laisser cohabiter avec un opérateur réel produirait
@@ -434,6 +440,7 @@ export async function acheter(input: {
             total: prixFacture + retenu.pourboire,
             currency: produit.currency,
             provider: fournisseur,
+            adId: input.publiciteId ?? null,
             items: {
               create: {
                 productId: produit.id,

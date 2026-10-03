@@ -8,6 +8,7 @@ import { colonnesDepuisAgent } from "@/lib/feed/masonry";
 import { listerAlaUne, listerFeed } from "@/lib/feed/queries";
 import { FILTRES, type Filtre } from "@/lib/feed/types";
 import { aimesParmi } from "@/lib/social/feed";
+import { diffusion } from "@/lib/publicites/service";
 
 export const metadata = {
   title: "Explorer — Baobart.",
@@ -30,9 +31,10 @@ export default async function ExplorerPage({
       : "Tous";
 
   const utilisateur = await sessionCourante();
-  const [page, alaUne] = await Promise.all([
+  const [page, alaUne, pubs] = await Promise.all([
     listerFeed({ filtre }),
     listerAlaUne(),
+    diffusion(),
   ]);
 
   // Une seule requête pour toute la page : un `like` par carte ferait
@@ -86,6 +88,7 @@ export default async function ExplorerPage({
           connecte={utilisateur !== null}
           filtreInitial={filtre}
           colonnesInitiales={colonnesDepuisAgent((await headers()).get("user-agent"))}
+          diffusion={pubs}
         />
       </div>
     </>
