@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { COLONNES_MAX, colonnesDepuisAgent, colonnesPour, hauteurDeCarte, repartir } from "@/lib/feed/masonry";
+import {
+  COLONNES_MAX,
+  colonnesDepuisAgent,
+  colonnesPour,
+  disposer,
+  hauteurDeCarte,
+  largeurDEstimation,
+  repartir,
+} from "@/lib/feed/masonry";
 
 describe("le nombre de colonnes", () => {
   it("suit la largeur, d'une colonne à quatre", () => {
@@ -54,6 +62,36 @@ describe("la répartition", () => {
   it("garde chaque carte une fois, et une seule", () => {
     const piles = repartir(Array.from({ length: 37 }, () => 250), 3);
     expect(piles.flat().sort((a, b) => a - b)).toEqual(Array.from({ length: 37 }, (_, i) => i));
+  });
+});
+
+describe("le passage du serveur au navigateur", () => {
+  it("garde la répartition du serveur quand le nombre de colonnes est le même", () => {
+    // Le cas d'Explorer : le serveur suppose 1336 px, le navigateur mesure
+    // 1264 (le rail en prend 72). Des titres de 27 signes tiennent sur une
+    // ligne à 329 px de colonne, sur deux à 311 : estimés à la largeur
+    // mesurée, ils changeaient de colonne à l'hydratation (mesuré le 03/10).
+    const titres = Array.from({ length: 40 }, (_, i) => (i % 3 === 0 ? "x".repeat(27) : "x".repeat(8 + (i % 5))));
+    const hauteur = (t: string, l: number) =>
+      hauteurDeCarte({ visuel: 220 + (t.length % 4) * 30, titre: t, largeurColonne: l, infosVisibles: true });
+
+    const serveur = disposer({ elements: titres, hauteur, largeurMesuree: null, colonnesInitiales: 4 });
+    const navigateur = disposer({ elements: titres, hauteur, largeurMesuree: 1264, colonnesInitiales: 4 });
+
+    expect(navigateur.colonnes).toBe(4);
+    expect(navigateur.piles).toEqual(serveur.piles);
+  });
+
+  it("refait la répartition quand le nombre de colonnes change", () => {
+    const serveur = disposer({ elements: [1, 2, 3, 4], hauteur: () => 300, largeurMesuree: null, colonnesInitiales: 4 });
+    const telephone = disposer({ elements: [1, 2, 3, 4], hauteur: () => 300, largeurMesuree: 375, colonnesInitiales: 4 });
+    expect(serveur.piles).toHaveLength(4);
+    expect(telephone.piles).toEqual([[0, 1, 2, 3]]);
+  });
+
+  it("estime à la largeur de la maquette pour chaque nombre de colonnes", () => {
+    expect(largeurDEstimation(4)).toBe((1336 - 3 * 20) / 4);
+    expect(largeurDEstimation(1)).toBe(1336);
   });
 });
 

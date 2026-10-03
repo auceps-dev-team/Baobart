@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
-import { ECART, colonnesPour, repartir } from "@/lib/feed/masonry";
+import { ECART, disposer } from "@/lib/feed/masonry";
 
 /**
  * La grille masonry : des colonnes empilées, chaque carte dans la plus courte.
@@ -18,7 +18,9 @@ import { ECART, colonnesPour, repartir } from "@/lib/feed/masonry";
  * quelque chose. Quatre colonnes sur un téléphone, puis une seule à
  * l'hydratation, ferait sauter toute la grille sous le pouce. La page devine
  * donc depuis l'agent utilisateur (`colonnesInitiales`) ; la mesure corrige
- * ensuite, avant la première peinture côté client.
+ * ensuite le nombre de colonnes, et lui seul : les hauteurs s'estiment à la
+ * largeur de la maquette, pour que la répartition du serveur et celle du
+ * navigateur soient les mêmes (`largeurDEstimation`).
  */
 export function GrilleMasonry<T>({
   elements,
@@ -48,14 +50,7 @@ export function GrilleMasonry<T>({
     return () => observateur.disconnect();
   }, []);
 
-  const colonnes = largeur === null ? colonnesInitiales : colonnesPour(largeur);
-  // Sans mesure, on suppose la largeur de la maquette (1400 − 2 × 32).
-  const largeurTotale = largeur ?? 1336;
-  const largeurColonne = (largeurTotale - ECART * (colonnes - 1)) / colonnes;
-  const piles = repartir(
-    elements.map((e) => hauteur(e, largeurColonne)),
-    colonnes,
-  );
+  const { piles } = disposer({ elements, hauteur, largeurMesuree: largeur, colonnesInitiales });
 
   return (
     <div

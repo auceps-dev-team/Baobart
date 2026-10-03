@@ -61,6 +61,55 @@ export function repartir(hauteurs: readonly number[], colonnes: number): number[
   return piles;
 }
 
+/** La largeur de la grille sur la maquette : 1400 − 2 × 32. */
+export const LARGEUR_DE_REFERENCE = 1336;
+
+/**
+ * La largeur de colonne qui sert à ESTIMER les hauteurs : celle de la maquette
+ * pour ce nombre de colonnes, quelle que soit la largeur mesurée.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI PAS LA LARGEUR MESURÉE
+ *
+ * Le serveur ne mesure rien : il dessine la grille en supposant la largeur de
+ * la maquette. Le navigateur, lui, mesure — et sur Explorer le rail en retire
+ * soixante-douze pixels. Estimer avec la largeur mesurée changeait le nombre
+ * de lignes prévu pour certains titres, donc la répartition : à l'hydratation,
+ * des cartes changeaient de colonne sous les yeux du visiteur.
+ *
+ * Mesuré le 03/10 : 1 passage sur 5 relevait six bannières déplacées entre le
+ * premier affichage et la fin du défilement — seulement quand le relevé
+ * tombait avant l'hydratation, d'où l'intermittence. Sur une connexion lente,
+ * c'est le cas ordinaire.
+ *
+ * La largeur mesurée ne sert donc qu'à choisir le nombre de colonnes. Tant que
+ * le serveur l'a deviné juste (`colonnesDepuisAgent`), les deux répartitions
+ * sont identiques. L'estimation y perd un peu de précision — une colonne réelle
+ * plus étroite fait des titres un peu plus hauts que prévu —, et les colonnes
+ * restent des piles : rien ne se chevauche.
+ */
+export function largeurDEstimation(colonnes: number): number {
+  const n = Math.max(1, Math.floor(colonnes));
+  return (LARGEUR_DE_REFERENCE - ECART * (n - 1)) / n;
+}
+
+/**
+ * Les piles à dessiner : le nombre de colonnes vient de la largeur mesurée (ou
+ * de la devinette du serveur avant toute mesure), les hauteurs de la largeur
+ * de référence.
+ */
+export function disposer<T>(input: {
+  elements: readonly T[];
+  hauteur: (element: T, largeurColonne: number) => number;
+  largeurMesuree: number | null;
+  colonnesInitiales: number;
+}): { colonnes: number; piles: number[][] } {
+  const colonnes =
+    input.largeurMesuree === null ? input.colonnesInitiales : colonnesPour(input.largeurMesuree);
+  const largeur = largeurDEstimation(colonnes);
+  return { colonnes, piles: repartir(input.elements.map((e) => input.hauteur(e, largeur)), colonnes) };
+}
+
 /**
  * La hauteur d'une carte de ressource, estimée avant tout rendu.
  *
