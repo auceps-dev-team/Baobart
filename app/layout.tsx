@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo_Black, Poppins, Space_Mono } from "next/font/google";
 
+import { BanniereCookies } from "@/components/consentement/banniere-cookies";
+
 import "./globals.css";
 
 /**
@@ -114,6 +116,8 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         {children}
         {modal}
+        {/* Partout, administration comprise : un cookie se refuse où qu'on soit. */}
+        <BanniereCookies />
       </body>
     </html>
   );

@@ -92,10 +92,14 @@ export const MENUS: GroupeMenu[] = [
         href: "/signalement",
       },
       {
-        label: "Politique de cookies (UE)",
+        // La maquette écrit « Politique de cookies (UE) ». Même raison que pour
+        // « Signalement DMCA » ci-dessus : Baobart est établie à Abidjan, et
+        // la loi qui régit ses traitements est ivoirienne (n° 2013-450). Le
+        // libellé perd « (UE) » ; la place et l'intention sont gardées.
+        label: "Politique de cookies",
         hint: "Traceurs & consentement",
         glyph: "◍",
-        href: null,
+        href: "/cookies",
       },
     ],
   },

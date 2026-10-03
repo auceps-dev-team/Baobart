@@ -5,7 +5,10 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+
+import { GET as clic } from "@/app/api/pub/[id]/clic/route";
 import { acheter } from "@/lib/checkout/achat";
+import { ecrireConsentement } from "@/lib/consentement/regles";
 import { db } from "@/lib/db";
 import { LIMITES_PAR_DEFAUT } from "@/lib/publicites/limites";
 import {
@@ -143,6 +146,30 @@ describe("l'attribution d'une vente", () => {
     const apres = await db.order.findUniqueOrThrow({ where: { id: commande.id }, select: { adId: true } });
     expect(apres.adId).toBe(menant.id);
     expect((await listerPourAdministration()).find((l) => l.id === menant.id)?.ventes).toBe(1);
+  });
+});
+
+describe("le clic et le consentement", () => {
+  const cliquer = (id: string, cookie?: string) =>
+    clic(new Request(`http://localhost:3100/api/pub/${id}/clic`, { headers: cookie ? { cookie } : {} }), {
+      params: Promise.resolve({ id }),
+    });
+
+  it("compte le clic sans rien déposer quand le visiteur n'a pas accepté", async () => {
+    // Décidé le 03/10 : bb_pub n'est posé qu'avec l'accord du visiteur.
+    const pub = await creerPub({ linkUrl: "/explore" });
+    for (const cookie of [undefined, `bb_consentement=${ecrireConsentement({ mesurePub: false })}`]) {
+      const r = await cliquer(pub.id, cookie);
+      expect(r.status).toBe(303);
+      expect(r.headers.get("set-cookie") ?? "").not.toContain("bb_pub=");
+    }
+    expect((await listerPourAdministration()).find((l) => l.id === pub.id)?.clics).toBe(2);
+  });
+
+  it("dépose le cookie d'attribution quand le visiteur a accepté", async () => {
+    const pub = await creerPub({ linkUrl: "/explore" });
+    const r = await cliquer(pub.id, `bb_consentement=${ecrireConsentement({ mesurePub: true })}`);
+    expect(r.headers.get("set-cookie") ?? "").toContain(`bb_pub=${pub.id}`);
   });
 });
 

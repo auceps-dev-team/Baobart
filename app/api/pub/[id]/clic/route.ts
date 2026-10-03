@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { consentementDepuisEntete } from "@/lib/consentement/regles";
 import { ajouterClic } from "@/lib/publicites/attribution";
 import { parMinute } from "@/lib/publicites/limites";
 import { sousLePlafond } from "@/lib/publicites/plafond";
@@ -53,7 +54,12 @@ export async function GET(
 
   const reponse = NextResponse.redirect(new URL(lien, requete.url), 303);
 
-  if (passage.autorise) {
+  // Le cookie d'attribution n'est posé qu'avec l'accord du visiteur (décidé le
+  // 03/10, voir `lib/consentement/regles.ts`). Sans accord, le clic est compté
+  // — un nombre par jour, sans identifiant — mais rien n'est déposé chez lui.
+  const accord = consentementDepuisEntete(requete.headers.get("cookie"))?.mesurePub === true;
+
+  if (passage.autorise && accord) {
     const precedent = requete.headers.get("cookie")?.match(new RegExp(`(?:^|;\\s*)${COOKIE_CLICS}=([^;]*)`))?.[1];
     reponse.cookies.set(COOKIE_CLICS, ajouterClic(precedent, id), {
       httpOnly: true,

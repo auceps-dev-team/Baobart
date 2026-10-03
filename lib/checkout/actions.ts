@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { sessionCourante } from "@/lib/auth/session";
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
+import { COOKIE_CONSENTEMENT, lireConsentement } from "@/lib/consentement/regles";
 import { lireClics } from "@/lib/publicites/attribution";
 import { attribuer } from "@/lib/publicites/service";
 import { COOKIE_CLICS } from "@/lib/publicites/types";
@@ -40,10 +41,15 @@ export async function acheterRessource(
 
   // La bannière cliquée qui menait ici, s'il y en a une. Une erreur de lecture
   // ne coûte qu'une ligne de statistique : elle ne doit jamais coûter la vente.
-  const publiciteId = await attribuer(
-    produit.slug,
-    lireClics((await cookies()).get(COOKIE_CLICS)?.value),
-  ).catch(() => null);
+  //
+  // L'accord est relu ici aussi, pas seulement au clic : un `bb_pub` posé
+  // avant un refus, et que le refus n'aurait pas pu effacer (un autre
+  // navigateur, un cookie restauré), ne doit rien attribuer.
+  const magasin = await cookies();
+  const accord = lireConsentement(magasin.get(COOKIE_CONSENTEMENT)?.value)?.mesurePub === true;
+  const publiciteId = accord
+    ? await attribuer(produit.slug, lireClics(magasin.get(COOKIE_CLICS)?.value)).catch(() => null)
+    : null;
 
   const resultat = await acheter({
     publiciteId,

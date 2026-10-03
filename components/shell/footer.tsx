@@ -1,5 +1,8 @@
 import Image from "next/image";
+import type { Route } from "next";
 import Link from "next/link";
+
+import { GererMesCookies } from "@/components/consentement/banniere-cookies";
 
 import {
   BLANC,
@@ -177,7 +180,13 @@ export function Footer() {
           }}
         >
           <span>© 2026 Baobart — Dakar, Sénégal</span>
-          <span>Conditions · Confidentialité · Licences</span>
+          <span>
+            Conditions · Confidentialité · Licences ·{" "}
+            <Link href={"/cookies" as Route} style={{ color: "inherit" }}>
+              Cookies
+            </Link>{" "}
+            · <GererMesCookies />
+          </span>
         </div>
       </div>
     </div>
