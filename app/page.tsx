@@ -17,12 +17,15 @@ import { colonnesDepuisAgent } from "@/lib/feed/masonry";
 import { BAREME_XOF } from "@/lib/domain/fees";
 import { aimesParmi } from "@/lib/social/feed";
 import { diffusion } from "@/lib/publicites/service";
+import { listerPublics } from "@/lib/blog/queries";
 import {
   compterCommunaute,
   compterParFamille,
   listerAlaUne,
   listerCreateurs,
   listerFeed,
+  rayonsDeLaBibliotheque,
+  vitrineDuHero,
 } from "@/lib/feed/queries";
 
 export const metadata = {
@@ -37,13 +40,16 @@ export const dynamic = "force-dynamic";
 export default async function AccueilPage() {
   const utilisateur = await sessionCourante();
   const colonnes = colonnesDepuisAgent((await headers()).get("user-agent"));
-  const [page, alaUne, familles, createurs, chiffres, pubs] = await Promise.all([
+  const [page, alaUne, familles, createurs, chiffres, pubs, rayons, articles, vitrine] = await Promise.all([
     listerFeed(),
     listerAlaUne(),
     compterParFamille(),
     listerCreateurs(),
     compterCommunaute(),
     diffusion(),
+    rayonsDeLaBibliotheque(),
+    listerPublics({ limite: 3 }),
+    vitrineDuHero(),
   ]);
 
   // Une seule requête pour toute la page : un `like` par carte ferait
@@ -62,7 +68,7 @@ export default async function AccueilPage() {
   return (
     <>
       <Header utilisateur={utilisateur} />
-      <HomeShell chiffres={chiffres}>
+      <HomeShell chiffres={chiffres} vitrine={vitrine}>
         <Categories familles={familles} />
         <Feed
           itemsInitiaux={page.items}
@@ -73,11 +79,11 @@ export default async function AccueilPage() {
           colonnesInitiales={colonnes}
           diffusion={pubs}
         />
-        <CollectionsTrieesMain />
+        <CollectionsTrieesMain total={chiffres.ressources} rayons={rayons} />
         <EspacesEquipe createurs={createurs} />
         <AppelAuxCreatifs partCreateur={partCreateur} />
         <Temoignages />
-        <Blog />
+        <Blog articles={articles} />
         <Footer />
       </HomeShell>
     </>

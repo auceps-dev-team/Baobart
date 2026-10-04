@@ -9,7 +9,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { compterRessources, listerAlaUne, listerFeed, rechercher } from "@/lib/feed/queries";
+import {
+  compterCommunaute,
+  compterRessources,
+  listerAlaUne,
+  listerFeed,
+  rayonsDeLaBibliotheque,
+  rechercher,
+  vitrineDuHero,
+} from "@/lib/feed/queries";
 
 async function creerCreateur() {
   return db.user.create({
@@ -45,6 +53,58 @@ async function publier(
     },
   });
 }
+
+describe("les chiffres de l'accueil", () => {
+  it("rangent la bibliothèque par famille, avec des comptes et des couvertures réels", async () => {
+    // La maquette annonçait « Wax 18 pièces, Portraits 24 pièces » : aucune de
+    // ces collections n'existait (relevé le 04/10).
+    const c = await creerCreateur();
+    await publier(c.id, 1, { family: "PHOTO" });
+    await publier(c.id, 2, { family: "PHOTO" });
+    const police = await publier(c.id, 3, { family: "FONT" });
+    await db.product.update({ where: { id: police.id }, data: { coverUrl: "/img/demo/neon-02.png" } });
+
+    expect(await rayonsDeLaBibliotheque()).toEqual([
+      { famille: "Photo", total: 2, couverture: null },
+      { famille: "Font", total: 1, couverture: "/img/demo/neon-02.png" },
+    ]);
+  });
+
+  it("montrent en vitrine trois vraies ressources, chacune choisie sur son vrai chiffre", async () => {
+    // La maquette y posait « Ankara Editorial · 24 visuels » et « 2 340 dl ».
+    const c = await creerCreateur();
+    const avec = (n: number, data: Record<string, unknown>) =>
+      publier(c.id, n).then((p) => db.product.update({ where: { id: p.id }, data: { coverUrl: `/img/${n}.png`, ...data } }));
+    const choisie = await avec(1, { price: 5_000, isStaffPicked: true, staffPickedAt: new Date() });
+    await avec(2, { price: 0, downloadsCount: 4 });
+    const offerte = await avec(3, { price: 0, downloadsCount: 40 });
+    const vendue = await avec(4, { price: 8_000, salesCount: 9 });
+    await avec(5, { price: 9_000, salesCount: 2 });
+    await publier(c.id, 6); // sans couverture : jamais en vitrine
+
+    const v = await vitrineDuHero();
+    expect(v.principale?.slug).toBe(choisie.slug);
+    expect(v.gratuite).toMatchObject({ slug: offerte.slug, detail: "gratuit · 40 téléchargements" });
+    expect(v.payante?.slug).toBe(vendue.slug);
+    expect(v.payante?.detail).toMatch(/· 9 ventes$/);
+  });
+
+  it("laissent la vitrine vide plutôt que d'inventer", async () => {
+    expect(await vitrineDuHero()).toEqual({ principale: null, gratuite: null, payante: null });
+  });
+
+  it("ne comptent comme créatifs que ceux qui publient", async () => {
+    // Le compteur prenait tous les profils : 20 « créatifs » pour 8 qui publiaient.
+    const actif = await creerCreateur();
+    await publier(actif.id, 1);
+    await creerCreateur(); // un acheteur, sans rien de publié
+    const suspendu = await creerCreateur();
+    await publier(suspendu.id, 2);
+    await db.user.update({ where: { id: suspendu.id }, data: { suspendedAt: new Date() } });
+
+    expect((await compterCommunaute()).createurs).toBe(1);
+  });
+});
 
 describe("la recherche", () => {
   it("ne casse pas sur un octet nul, et cherche quand même le reste", async () => {

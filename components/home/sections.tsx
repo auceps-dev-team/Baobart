@@ -141,21 +141,45 @@ export function Categories({
   );
 }
 
-// ──────────────────────────────────── 170 ressources, triées à la main ──────
+// ─────────────────────────────────────── La bibliothèque, par famille ──────
 
-/** Contenu éditorial — à remplacer par des collections réelles (CMS, §J). */
-const COLLECTIONS = [
-  { nom: "Wax", compte: "18 pièces", fond: trame(BLANC, ORANGE, 6) },
-  { nom: "Portraits", compte: "24 pièces", fond: trame(LAVANDE, ENCRE, 6) },
-  { nom: "Typo", compte: "9 pièces", fond: trame(JAUNE, ENCRE, 6) },
-  { nom: "Affiches", compte: "31 pièces", fond: trame(BLANC, LAVANDE_PROFOND, 6) },
-  { nom: "Mockups", compte: "12 pièces", fond: trame(ORANGE, JAUNE, 6) },
-  { nom: "Textures", compte: "22 pièces", fond: trame(ENCRE, LAVANDE, 6) },
-  { nom: "Icônes", compte: "27 pièces", fond: trame(BLANC, JAUNE, 6) },
-  { nom: "Motifs", compte: "40 pièces", fond: trame(LAVANDE_PROFOND, BLANC, 6) },
+const TRAMES_RAYON = [
+  trame(BLANC, ORANGE, 6),
+  trame(LAVANDE, ENCRE, 6),
+  trame(JAUNE, ENCRE, 6),
+  trame(BLANC, LAVANDE_PROFOND, 6),
+  trame(ORANGE, JAUNE, 6),
+  trame(ENCRE, LAVANDE, 6),
+  trame(BLANC, JAUNE, 6),
+  trame(LAVANDE_PROFOND, BLANC, 6),
 ];
 
-export function CollectionsTrieesMain() {
+/**
+ * La bibliothèque, rayon par rayon.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * TOUT CE QUI EST ÉCRIT ICI EST COMPTÉ
+ *
+ * La maquette annonçait « Plus de 170 ressources, triées à la main » et huit
+ * collections (« Wax 18 pièces », « Portraits 24 pièces »…). Aucune n'existait,
+ * et rien n'est trié à la main : relevé le 04/10, la base ne contient aucune
+ * collection éditoriale. Les huit tuiles sont désormais les familles les plus
+ * fournies, chacune avec son compte réel, la couverture de sa ressource la
+ * plus récente, et un lien vers Explorer filtré.
+ *
+ * La forme de la maquette est gardée : un bandeau lavande, un titre, huit
+ * tuiles. Le jour où des collections éditoriales existeront, elles prendront
+ * la place des familles.
+ */
+export function CollectionsTrieesMain({
+  total,
+  rayons,
+}: {
+  total: number;
+  rayons: Array<{ famille: Filtre; total: number; couverture: string | null }>;
+}) {
+  if (total === 0 || rayons.length === 0) return null;
+
   return (
     <div style={CONTENEUR}>
       <div
@@ -182,7 +206,8 @@ export function CollectionsTrieesMain() {
               textTransform: "uppercase",
             }}
           >
-            Plus de 170 ressources, triées à la main
+            {new Intl.NumberFormat("fr-FR").format(total)} ressource{total > 1 ? "s" : ""}, rangées
+            par famille
           </h2>
           <p
             style={{
@@ -193,12 +218,12 @@ export function CollectionsTrieesMain() {
               opacity: 0.8,
             }}
           >
-            Motifs, portraits, typos, mockups, icônes : des collections pensées
-            pour les projets d&apos;ici. Pas de banque d&apos;images générique,
-            du vrai matériel local.
+            Illustrations, photos, mockups, polices, icônes : publiées par les créateurs de
+            Baobart. Pas de banque d&apos;images générique, du vrai matériel local.
           </p>
           <Link
             href="/explore"
+            className="sticker-press"
             style={{
               display: "inline-block",
               marginTop: 22,
@@ -211,7 +236,7 @@ export function CollectionsTrieesMain() {
               fontWeight: 800,
             }}
           >
-            Voir les collections
+            Voir toutes les ressources
           </Link>
         </div>
 
@@ -222,14 +247,19 @@ export function CollectionsTrieesMain() {
             gap: 14,
           }}
         >
-          {COLLECTIONS.map((k) => (
-            <div
-              key={k.nom}
+          {rayons.map((r, i) => (
+            <Link
+              key={r.famille}
+              href={`/explore?filtre=${encodeURIComponent(r.famille)}`}
+              className="sticker-press"
+              data-rayon={r.famille}
               style={{
+                display: "block",
                 border: CADRE,
                 borderRadius: 16,
                 background: BLANC,
                 padding: 10,
+                color: ENCRE,
               }}
             >
               <div
@@ -237,12 +267,14 @@ export function CollectionsTrieesMain() {
                   height: 74,
                   border: `2px solid ${ENCRE}`,
                   borderRadius: 10,
-                  background: k.fond,
+                  // Une couverture réelle quand la famille en a une ; sinon la
+                  // trame de la maquette, qui ne prétend rien montrer.
+                  background: r.couverture
+                    ? `url(${JSON.stringify(r.couverture)}) center / cover no-repeat`
+                    : TRAMES_RAYON[i % TRAMES_RAYON.length],
                 }}
               />
-              <div style={{ fontSize: 12.5, fontWeight: 800, marginTop: 8 }}>
-                {k.nom}
-              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 800, marginTop: 8 }}>{r.famille}</div>
               <div
                 style={{
                   fontFamily: "var(--font-mono)",
@@ -250,9 +282,9 @@ export function CollectionsTrieesMain() {
                   opacity: 0.6,
                 }}
               >
-                {k.compte}
+                {r.total} pièce{r.total > 1 ? "s" : ""}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -845,29 +877,34 @@ export function Temoignages() {
 
 // ───────────────────────────────────────────────────────────────── Blog ─────
 
-/** Contenu éditorial repris de la maquette — à remplacer par le CMS Blog (§J). */
-const ARTICLES = [
-  {
-    date: "24 juil. 2026",
-    titre: "Comment fixer le prix d'un pack de ressources",
-    extrait: "Trois grilles tarifaires testées par nos vendeurs les plus actifs.",
-    fond: "url('/img/demo/studio-01.png') center 20% / cover no-repeat",
-  },
-  {
-    date: "17 juil. 2026",
-    titre: "Les motifs wax expliqués aux designers",
-    extrait: "Origines, symboliques et pièges à éviter quand on les remixe.",
-    fond: "url('/img/demo/collage-lunettes.jpg') center / cover no-repeat",
-  },
-  {
-    date: "9 juil. 2026",
-    titre: "Nouveau : les espaces d'équipe",
-    extrait: "Collections partagées, commentaires ancrés, invitations en un lien.",
-    fond: "url('/img/demo/mode-blanc-01.png') center 20% / cover no-repeat",
-  },
-];
+const TRAMES_ARTICLE = [trame(ORANGE, JAUNE, 9), trame(LAVANDE_PROFOND, BLANC, 9), trame(JAUNE, ENCRE, 9)];
 
-export function Blog() {
+const DATE_ARTICLE = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/**
+ * « Quoi de neuf » : les trois derniers articles publiés.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * DES ARTICLES QUI EXISTENT, OU RIEN
+ *
+ * Jusqu'au 04/10, les trois cartes étaient celles de la maquette — « Comment
+ * fixer le prix d'un pack », daté du 24 juillet —, et ni elles ni « Tous les
+ * articles » ne menaient nulle part. Elles viennent désormais du blog
+ * (`listerPublics`), chacune vers son article, et la section disparaît tant
+ * qu'aucun n'est publié : trois cartes inventées valent moins qu'aucune.
+ */
+export function Blog({
+  articles,
+}: {
+  articles: Array<{ slug: string; titre: string; extrait: string; couvertureUrl: string | null; publieLe: Date | null }>;
+}) {
+  if (articles.length === 0) return null;
+
   return (
     <div id="blog" style={CONTENEUR}>
       <div
@@ -875,6 +912,8 @@ export function Blog() {
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
           marginBottom: 22,
         }}
       >
@@ -889,47 +928,62 @@ export function Blog() {
         >
           Quoi de neuf
         </h2>
-        <span
+        <Link
+          href="/blog"
           style={{
             fontSize: 13,
             fontWeight: 800,
             borderBottom: CADRE,
-            opacity: 0.55,
+            opacity: 0.75,
+            color: ENCRE,
           }}
         >
           Tous les articles
-        </span>
+        </Link>
       </div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))",
+          gridTemplateColumns: "repeat(auto-fit,minmax(min(300px,100%),1fr))",
           gap: 18,
         }}
       >
-        {ARTICLES.map((p) => (
-          <div
-            key={p.titre}
+        {articles.map((p, i) => (
+          <Link
+            key={p.slug}
+            href={`/blog/${p.slug}`}
             className="sticker-press"
             style={{
+              display: "block",
               border: CADRE,
               borderRadius: 22,
               background: BLANC,
               boxShadow: `5px 5px 0 ${ENCRE}`,
               overflow: "hidden",
+              color: ENCRE,
             }}
           >
-            <div style={{ height: 150, borderBottom: CADRE, background: p.fond }} />
+            <div
+              style={{
+                height: 150,
+                borderBottom: CADRE,
+                background: p.couvertureUrl
+                  ? `url(${JSON.stringify(p.couvertureUrl)}) center / cover no-repeat`
+                  : TRAMES_ARTICLE[i % TRAMES_ARTICLE.length],
+              }}
+            />
             <div style={{ padding: 16 }}>
-              <div
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  opacity: 0.6,
-                }}
-              >
-                {p.date}
-              </div>
+              {p.publieLe ? (
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    opacity: 0.6,
+                  }}
+                >
+                  {DATE_ARTICLE.format(p.publieLe)}
+                </div>
+              ) : null}
               <div
                 style={{
                   fontSize: 17,
@@ -952,7 +1006,7 @@ export function Blog() {
                 {p.extrait}
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
-import { HeroB, type ChiffresCommunaute } from "@/components/home/hero";
+import { HeroB, type ChiffresCommunaute, type Vitrine } from "@/components/home/hero";
 import { Rail } from "@/components/shell/rail";
 
 /**
@@ -16,9 +16,11 @@ import { Rail } from "@/components/shell/rail";
  */
 export function HomeShell({
   chiffres,
+  vitrine,
   children,
 }: {
   chiffres: ChiffresCommunaute;
+  vitrine: Vitrine;
   children: ReactNode;
 }) {
   const [railOuvert, setRailOuvert] = useState(false);
@@ -35,7 +37,7 @@ export function HomeShell({
       }}
     >
       <Rail onOuvertureChange={setRailOuvert} />
-      <HeroB chiffres={chiffres} />
+      <HeroB chiffres={chiffres} vitrine={vitrine} />
       {children}
     </div>
   );

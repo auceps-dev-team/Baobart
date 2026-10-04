@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import {
   BLANC,
   ENCRE,
@@ -30,7 +32,20 @@ export interface ChiffresCommunaute {
   note: number | null;
 }
 
-export function HeroB({ chiffres }: { chiffres: ChiffresCommunaute }) {
+export interface Vitrine {
+  principale: CarteHero | null;
+  gratuite: CarteHero | null;
+  payante: CarteHero | null;
+}
+
+interface CarteHero {
+  slug: string;
+  titre: string;
+  couverture: string;
+  detail: string;
+}
+
+export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vitrine: Vitrine }) {
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "34px 32px 0" }}>
       <div
@@ -168,6 +183,11 @@ export function HeroB({ chiffres }: { chiffres: ChiffresCommunaute }) {
           </div>
         </div>
 
+        {/*
+          Trois ressources publiées, et rien d'inventé : voir `vitrineDuHero`.
+          La maquette y posait « Ankara Editorial · 24 visuels » et « 2 340 dl »,
+          qui ne correspondaient à rien (relevé le 04/10).
+        */}
         <div
           style={{
             display: "grid",
@@ -176,123 +196,91 @@ export function HeroB({ chiffres }: { chiffres: ChiffresCommunaute }) {
             gap: 18,
           }}
         >
-          <div
-            style={{
-              gridColumn: "1 / span 2",
-              border: CADRE,
-              borderRadius: 24,
-              background: BLANC,
-              boxShadow: `6px 6px 0 ${ENCRE}`,
-              padding: 16,
-            }}
-          >
-            <div
+          {vitrine.principale ? (
+            <Link
+              href={`/products/${vitrine.principale.slug}`}
+              scroll={false}
+              className="sticker-press"
               style={{
-                height: 240,
+                gridColumn: "1 / span 2",
+                display: "block",
                 border: CADRE,
-                borderRadius: 16,
-                background:
-                  "url('/img/demo/beaute-afro.jpg') center 30% / cover no-repeat",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 14,
+                borderRadius: 24,
+                background: BLANC,
+                boxShadow: `6px 6px 0 ${ENCRE}`,
+                padding: 16,
+                color: ENCRE,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 800 }}>
-                Ankara Editorial · 24 visuels
-              </div>
-              <a
-                href="#grid"
+              <div
                 style={{
-                  padding: "10px 16px",
+                  height: 240,
                   border: CADRE,
-                  borderRadius: 12,
-                  background: JAUNE,
-                  fontSize: 13,
-                  fontWeight: 800,
+                  borderRadius: 16,
+                  background: `url(${JSON.stringify(vitrine.principale.couverture)}) center 30% / cover no-repeat`,
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  marginTop: 14,
                 }}
               >
-                Ouvrir
-              </a>
-            </div>
-          </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{vitrine.principale.titre}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.7 }}>{vitrine.principale.detail}</div>
+                </div>
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    padding: "10px 16px",
+                    border: CADRE,
+                    borderRadius: 12,
+                    background: JAUNE,
+                    fontSize: 13,
+                    fontWeight: 800,
+                  }}
+                >
+                  Ouvrir
+                </span>
+              </div>
+            </Link>
+          ) : null}
 
-          <div
-            style={{
-              border: CADRE,
-              borderRadius: 24,
-              background: JAUNE,
-              boxShadow: `6px 6px 0 ${ENCRE}`,
-              padding: 16,
-              animation: "floaty 7s ease-in-out infinite",
-            }}
-          >
-            <div
-              style={{
-                height: 130,
-                border: CADRE,
-                borderRadius: 14,
-                background: "url('/img/demo/neon-01.png') center / cover no-repeat",
-              }}
-            />
-            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>
-              Pack Wax &amp; Motifs
-            </div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>
-              gratuit · 2 340 dl
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: CADRE,
-              borderRadius: 24,
-              background: BLANC,
-              boxShadow: `6px 6px 0 ${ENCRE}`,
-              padding: 16,
-            }}
-          >
-            <div
-              style={{
-                height: 130,
-                border: CADRE,
-                borderRadius: 14,
-                /*
-                  LA MAQUETTE MET ICI UN PACKSHOT CERAVE, ET ON NE LA SUIT PAS
-
-                  « Baobart Accueil.dc.html » ligne 244 pose
-                  `img/packshot-soin.png` : une bouteille CeraVe, marque
-                  réelle, photographiée de face avec son étiquette lisible.
-                  La maquette fait foi pour la mise en page ; elle ne peut pas
-                  faire foi pour le droit d'afficher le produit d'autrui sur
-                  une page d'accueil.
-
-                  Le catalogue de démonstration écarte déjà trois CeraVe pour
-                  cette raison exacte (`prisma/demo-catalogue.ts`, ECARTES).
-                  Celui-ci échappait à la règle parce qu'il était commité dans
-                  le dépôt au lieu d'être servi depuis MinIO — la liste des
-                  écartés ne regardait pas là.
-
-                  À la place, une affiche du jeu de démonstration, qui
-                  correspond en plus à ce que la carte annonce. Le fichier
-                  d'origine reste dans « Baobart Design/img/ » : ce dossier
-                  est la maquette elle-même, on ne le modifie pas.
-                */
-                background: "url('/img/demo/affiche-rue.jpg') center / cover no-repeat",
-              }}
-            />
-            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>
-              Mockup Affiche Rue
-            </div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>
-              3 000 FCFA
-            </div>
-          </div>
+          {[vitrine.gratuite, vitrine.payante].map((c, i) =>
+            c ? (
+              <Link
+                key={c.slug}
+                href={`/products/${c.slug}`}
+                scroll={false}
+                className="sticker-press"
+                style={{
+                  display: "block",
+                  border: CADRE,
+                  borderRadius: 24,
+                  background: i === 0 ? JAUNE : BLANC,
+                  boxShadow: `6px 6px 0 ${ENCRE}`,
+                  padding: 16,
+                  color: ENCRE,
+                  animation: i === 0 ? "floaty 7s ease-in-out infinite" : undefined,
+                }}
+              >
+                <div
+                  style={{
+                    height: 130,
+                    border: CADRE,
+                    borderRadius: 14,
+                    background: `url(${JSON.stringify(c.couverture)}) center / cover no-repeat`,
+                  }}
+                />
+                <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>{c.titre}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>{c.detail}</div>
+              </Link>
+            ) : null,
+          )}
         </div>
       </div>
     </div>

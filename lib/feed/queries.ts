@@ -327,6 +327,131 @@ export async function compterParFamille() {
     .sort((a, b) => b.total - a.total);
 }
 
+/**
+ * Les rayons de la bibliothèque : chaque famille, son compte réel, et la
+ * couverture de sa ressource publiée la plus récente.
+ *
+ * Remplace, le 04/10, les huit collections de la maquette (« Wax 18 pièces,
+ * Portraits 24 pièces… » sous « Plus de 170 ressources, triées à la main ») :
+ * aucune n'existait. Il n'y a pas de collection éditoriale en base — une seule
+ * collection, de test — et rien n'est trié à la main.
+ */
+export async function rayonsDeLaBibliotheque(limite = 8): Promise<
+  Array<{ famille: Filtre; total: number; couverture: string | null }>
+> {
+  const [groupes, couvertures] = await Promise.all([
+    db.product.groupBy({
+      by: ["family"],
+      where: { status: "PUBLISHED", family: { not: null } },
+      _count: { _all: true },
+    }),
+    db.$queryRaw<Array<{ family: ProductFamily; coverUrl: string }>>`
+      SELECT DISTINCT ON ("family") "family", "coverUrl" FROM "Product"
+      WHERE status = 'PUBLISHED' AND "family" IS NOT NULL AND "coverUrl" IS NOT NULL
+      ORDER BY "family", "createdAt" DESC`,
+  ]);
+
+  const parFamille = new Map(couvertures.map((c) => [c.family, c.coverUrl]));
+  return groupes
+    .filter((g): g is typeof g & { family: ProductFamily } => g.family !== null)
+    .map((g) => ({
+      famille: LIBELLE_PAR_FAMILLE[g.family],
+      total: g._count._all,
+      couverture: parFamille.get(g.family) ?? null,
+    }))
+    // Départagés par le nom : à égalité, l'ordre de la base n'est pas fixé, et
+    // les tuiles changeaient d'un chargement à l'autre (Font, Logo, Audio à 2,
+    // relevé le 04/10).
+    .sort((a, b) => b.total - a.total || a.famille.localeCompare(b.famille, "fr"))
+    .slice(0, limite);
+}
+
+export interface CarteVitrine {
+  slug: string;
+  titre: string;
+  couverture: string;
+  /** Ce qu'on dit sous le titre : famille et auteur, téléchargements, ou prix. */
+  detail: string;
+}
+
+/**
+ * Les trois cartes du haut de l'accueil.
+ *
+ * La maquette y posait « Ankara Editorial · 24 visuels », « Pack Wax & Motifs
+ * — gratuit · 2 340 dl » et « Mockup Affiche Rue — 3 000 FCFA » : aucune de
+ * ces ressources n'existait, ni aucun de ces chiffres (relevé le 04/10). Ce
+ * sont désormais trois ressources publiées, avec une couverture :
+ *
+ *   — la dernière sélection éditoriale, à défaut la plus téléchargée ;
+ *   — la ressource offerte la plus téléchargée ;
+ *   — la ressource payante la plus vendue.
+ *
+ * Toujours trois ressources distinctes ; une case sans candidate reste vide.
+ */
+export async function vitrineDuHero(): Promise<{
+  principale: CarteVitrine | null;
+  gratuite: CarteVitrine | null;
+  payante: CarteVitrine | null;
+}> {
+  const base = { status: "PUBLISHED" as const, coverUrl: { not: null } };
+  const selection = {
+    slug: true,
+    name: true,
+    family: true,
+    price: true,
+    pricingMode: true,
+    minPrice: true,
+    currency: true,
+    coverUrl: true,
+    downloadsCount: true,
+    salesCount: true,
+    seller: { select: { profile: { select: { displayName: true } } } },
+  } as const;
+  const deja: string[] = [];
+
+  const principale =
+    (await db.product.findFirst({ where: { ...base, isStaffPicked: true }, orderBy: [{ staffPickedAt: "desc" }, { id: "desc" }], select: selection })) ??
+    (await db.product.findFirst({ where: base, orderBy: [{ downloadsCount: "desc" }, { id: "desc" }], select: selection }));
+  if (principale) deja.push(principale.slug);
+
+  const gratuite = await db.product.findFirst({
+    where: { ...base, price: 0, pricingMode: "FIXED", slug: { notIn: deja } },
+    orderBy: [{ downloadsCount: "desc" }, { id: "desc" }],
+    select: selection,
+  });
+  if (gratuite) deja.push(gratuite.slug);
+
+  const payante = await db.product.findFirst({
+    where: { ...base, price: { gt: 0 }, slug: { notIn: deja } },
+    orderBy: [{ salesCount: "desc" }, { id: "desc" }],
+    select: selection,
+  });
+
+  const nombre = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  return {
+    principale: principale && {
+      slug: principale.slug,
+      titre: principale.name,
+      couverture: principale.coverUrl!,
+      detail: [principale.family ? LIBELLE_PAR_FAMILLE[principale.family] : null, principale.seller.profile?.displayName ? `par ${principale.seller.profile.displayName}` : null]
+        .filter(Boolean)
+        .join(" · "),
+    },
+    gratuite: gratuite && {
+      slug: gratuite.slug,
+      titre: gratuite.name,
+      couverture: gratuite.coverUrl!,
+      detail: `gratuit · ${nombre(gratuite.downloadsCount)} téléchargement${gratuite.downloadsCount > 1 ? "s" : ""}`,
+    },
+    payante: payante && {
+      slug: payante.slug,
+      titre: payante.name,
+      couverture: payante.coverUrl!,
+      detail: `${libelleDuPrix(payante)}${payante.salesCount > 0 ? ` · ${nombre(payante.salesCount)} vente${payante.salesCount > 1 ? "s" : ""}` : ""}`,
+    },
+  };
+}
+
 /** Créateurs à suivre, pour le bloc « Créatifs à suivre » des espaces d'équipe. */
 export async function listerCreateurs(limit = 3) {
   const profils: Array<{ username: string; displayName: string; city: string | null }> = await db.profile.findMany({
@@ -349,11 +474,17 @@ export async function listerCreateurs(limit = 3) {
  * « 170+ ressources · 12 400 créatifs · 4.9 », des nombres qu'on n'a pas encore.
  * Afficher une note de satisfaction sans le moindre avis serait un mensonge —
  * elle vaut donc `null` tant que personne n'a noté, et le bloc la masque.
+ *
+ * « Créatifs » compte ceux qui ont publié, comme l'annuaire
+ * (`lib/createurs/queries.ts`). Il comptait tous les profils — acheteurs et
+ * comptes de test compris : 20 « créatifs » le 04/10, pour 8 qui publiaient.
  */
 export async function compterCommunaute() {
   const [ressources, createurs, notes] = await Promise.all([
     db.product.count({ where: { status: "PUBLISHED" } }),
-    db.profile.count(),
+    db.profile.count({
+      where: { user: { suspendedAt: null, products: { some: { status: "PUBLISHED" } } } },
+    }),
     db.profile.aggregate({
       where: { ratingCount: { gt: 0 } },
       _avg: { ratingAvg: true },
