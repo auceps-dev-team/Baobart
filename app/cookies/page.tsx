@@ -1,6 +1,7 @@
 import { EtatDuChoix } from "@/components/consentement/etat-du-choix";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
+import { ADRESSE_DONNEES_PERSONNELLES } from "@/lib/config/contact";
 import { AUTRES_DONNEES, REGISTRE, type EntreeRegistre } from "@/lib/consentement/regles";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
 
@@ -37,19 +38,16 @@ export const dynamic = "force-dynamic";
  * y vérifie que tout fichier qui pose un cookie est déclaré.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * L'ADRESSE DE CONTACT N'EST PAS ÉCRITE EN DUR
+ * L'ADRESSE DE CONTACT
  *
- * La maquette écrit privacy@baobart.africa ; les courriels partent de
- * bonjour@baobart.com (`lib/email/pilotes.ts`). Les deux ne peuvent pas être
- * vrais à la fois, et une adresse fausse sur une page juridique envoie les
- * demandes dans le vide. Elle vient donc de `CONTACT_DONNEES` ; sans elle, la
- * page renvoie au seul chemin qui existe à coup sûr : le profil.
+ * Décidée le 04/10 : privacy@baobart.africa, celle de la maquette. Elle vit
+ * dans `lib/config/contact.ts`, partagée avec la politique de confidentialité.
  */
 export default async function CookiesPage() {
   const visiteur = await sessionCourante();
   const essentiels = REGISTRE.filter((c) => c.categorie === "essentiel");
   const mesure = REGISTRE.filter((c) => c.categorie === "mesure");
-  const contact = process.env.CONTACT_DONNEES?.trim() || null;
+  const contact = ADRESSE_DONNEES_PERSONNELLES;
 
   return (
     <>
@@ -142,16 +140,13 @@ export default async function CookiesPage() {
                   19 juin 2013 relative à la protection des données à caractère personnel. Tu peux demander
                   l&apos;effacement de ton compte depuis ton profil — il prend effet trente jours plus tard,
                   et reste annulable jusque-là.
-                  {contact ? (
-                    <>
-                      {" "}
-                      Pour toute autre demande — accès, rectification —, écris à{" "}
-                      <a href={`mailto:${contact}`} style={{ color: ENCRE, fontWeight: 700 }}>
-                        {contact}
-                      </a>
-                      .
-                    </>
-                  ) : null}
+                  {" "}
+                  Pour toute autre demande — accès, rectification, retrait du consentement —,
+                  écris à{" "}
+                  <a href={`mailto:${contact}`} style={{ color: ENCRE, fontWeight: 700 }}>
+                    {contact}
+                  </a>
+                  .
                 </Texte>
               </Section>
             </div>
