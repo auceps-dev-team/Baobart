@@ -210,6 +210,13 @@ export const REGLES = {
    * l'équipe.
    */
   "contact.envoi": { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
+   * Inscription à la lettre d'information. Chaque inscription envoie un
+   * courriel à l'adresse tapée — sans plafond, le formulaire servirait à
+   * inonder la boîte de quelqu'un d'autre.
+   */
+  "infolettre.inscription": { quota: 5, fenetreMs: 60 * 60_000 },
 } as const satisfies Record<string, Regle>;
 
 export type NomRegle = keyof typeof REGLES;

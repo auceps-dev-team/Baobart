@@ -1553,6 +1553,40 @@ model ContactMessage {
   @@index([email])
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// LA LETTRE D'INFORMATION — inscription confirmée (double opt-in)
+//
+// Décidé le 04/10 : le champ « Reste au courant » du pied de page enregistre
+// l'adresse, envoie un courriel de confirmation, et l'adresse ne compte qu'une
+// fois le lien cliqué. L'ENVOI des lettres elles-mêmes n'est pas construit.
+// Aucun compte requis : la ligne ne se rattache qu'à une adresse.
+// ════════════════════════════════════════════════════════════════════════════
+
+enum NewsletterStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+}
+
+model NewsletterSubscriber {
+  id     String @id @default(cuid())
+  /// En minuscules.
+  email  String @unique
+  status NewsletterStatus @default(PENDING)
+  /// Empreintes SHA-256 des jetons : le lien du courriel porte le jeton, la
+  /// base n'en garde que l'empreinte — une fuite de la table ne permet ni de
+  /// confirmer ni de désinscrire à la place de quelqu'un.
+  confirmTokenHash     String  @unique
+  unsubscribeTokenHash String  @unique
+  /// Un lien de confirmation ne vaut que sept jours.
+  confirmExpiresAt DateTime
+  /// Le consentement, c'est le clic sur le lien : sa date.
+  confirmedAt      DateTime?
+  unsubscribedAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
 /// Une ligne d'achat = un produit d'un vendeur. C'est ici que vit l'état de
 /// l'argent (équivalent de `Purchase` chez Gumroad), et non sur la commande :
 /// un panier multi-vendeurs génère une charge par vendeur, dont l'une peut
@@ -3228,6 +3262,10 @@ enum EmailTemplate {
   /// Sans lui, quelqu'un qui avait lu « annulé » n'apprenait jamais que
   /// l'événement revenait.
   EVENEMENT_MAINTENU
+
+  /// Ajouté le 04/10 : le lien qui confirme une inscription à la lettre
+  /// d'information. Sans clic, l'adresse ne compte pas.
+  INFOLETTRE_CONFIRMATION
 }
 
 /// File d'attente des messages transactionnels.

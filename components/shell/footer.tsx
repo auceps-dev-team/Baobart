@@ -3,16 +3,18 @@ import type { Route } from "next";
 import Link from "next/link";
 
 import { GererMesCookies } from "@/components/consentement/banniere-cookies";
+import { FormulaireInfolettre } from "@/components/infolettre/formulaire";
 
-import {
-  BLANC,
-  ENCRE,
-  LAVANDE_CLAIR,
-  LAVANDE_PROFOND,
-  ORANGE,
-} from "@/components/shell/nav-data";
+import { BLANC, ENCRE, ORANGE } from "@/components/shell/nav-data";
 
-/** Pied de page, traduit du bloc FOOTER de « Baobart Accueil.dc.html ». */
+/**
+ * Pied de page, traduit du bloc FOOTER de « Baobart Accueil.dc.html ».
+ *
+ * Ses liens étaient les ancres de la maquette (« #collab », « #contrib »,
+ * « #blog ») : hors de l'accueil, elles ne menaient nulle part, et le bas de
+ * page écrivait « Conditions · Confidentialité · Licences » sans lien
+ * (relevé le 04/10). Chacun mène désormais à sa page.
+ */
 export function Footer() {
   const colonne = (titre: string, liens: Array<{ label: string; href: string }>) => (
     <div>
@@ -113,10 +115,11 @@ export function Footer() {
           ])}
 
           {colonne("Communauté", [
-            { label: "Espaces", href: "#collab" },
-            { label: "Vendre", href: "#contrib" },
-            { label: "Blog", href: "#blog" },
-            { label: "Créatifs", href: "#collab" },
+            { label: "Espaces", href: "/communautes" },
+            // Sans session, la page renvoie à la connexion, qui mène à l'inscription.
+            { label: "Vendre", href: "/dashboard/produits/nouveau" },
+            { label: "Blog", href: "/blog" },
+            { label: "Créatifs", href: "/createurs" },
           ])}
 
           <div>
@@ -131,38 +134,7 @@ export function Footer() {
             >
               Reste au courant
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                placeholder="ton@email.com"
-                aria-label="Adresse e-mail"
-                style={{
-                  flex: "1 1 auto",
-                  minWidth: 0,
-                  fontFamily: "var(--font-body)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  padding: "10px 12px",
-                  border: `2.5px solid ${ENCRE}`,
-                  borderRadius: 12,
-                  outline: "none",
-                  background: LAVANDE_CLAIR,
-                }}
-              />
-              <button
-                type="button"
-                style={{
-                  padding: "10px 14px",
-                  border: `2.5px solid ${ENCRE}`,
-                  borderRadius: 12,
-                  background: LAVANDE_PROFOND,
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                OK
-              </button>
-            </div>
+            <FormulaireInfolettre />
           </div>
         </div>
 
@@ -187,7 +159,18 @@ export function Footer() {
           */}
           <span>© 2026 Baobart — Abidjan, Côte d&apos;Ivoire</span>
           <span>
-            Conditions · Confidentialité · Licences ·{" "}
+            <Link href={"/conditions" as Route} style={{ color: "inherit" }}>
+              Conditions
+            </Link>{" "}
+            ·{" "}
+            <Link href={"/confidentialite" as Route} style={{ color: "inherit" }}>
+              Confidentialité
+            </Link>{" "}
+            ·{" "}
+            <Link href={"/licences" as Route} style={{ color: "inherit" }}>
+              Licences
+            </Link>{" "}
+            ·{" "}
             <Link href={"/cookies" as Route} style={{ color: "inherit" }}>
               Cookies
             </Link>{" "}

@@ -66,6 +66,14 @@ export const MODELES = [
   // déplacement ; lui laisser découvrir seul que l'événement revient, c'est
   // le faire manquer ce qu'il avait prévu (mesuré le 25/09, Qualitytest S6).
   "EVENEMENT_MAINTENU",
+
+  // ── Ajouté le 04/10 avec la lettre d'information ────────────────────────
+  //
+  // Le seul modèle adressé à quelqu'un qui n'a peut-être pas de compte :
+  // d'où l'absence de `nom`. Et le seul dont le destinataire n'a peut-être
+  // rien demandé — quelqu'un a pu taper son adresse. Le texte le dit, et le
+  // lien de désinscription est déjà là.
+  "INFOLETTRE_CONFIRMATION",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -231,6 +239,7 @@ const SCHEMAS = {
     heures: z.number().int().positive(),
   }),
   EVENEMENT_MAINTENU: z.object({ nom, titre: z.string().min(1).max(160) }),
+  INFOLETTRE_CONFIRMATION: z.object({ confirmer: lien, desinscrire: lien, jours: z.number().int().positive() }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
 export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
@@ -437,6 +446,20 @@ ${c.raison}
 
 ` +
       `Ton inscription tient toujours — tu n'as rien à refaire.` +
+      SIGNATURE,
+  }),
+
+  INFOLETTRE_CONFIRMATION: (c) => ({
+    sujet: "Confirme ton inscription à la lettre de Baobart",
+    texte:
+      "Bonjour,\n\n" +
+      "Quelqu'un — toi, sans doute — a inscrit cette adresse à la lettre " +
+      "d'information de Baobart. Pour la recevoir, confirme ici :\n" +
+      `${c.confirmer}\n\n` +
+      `Le lien vaut ${c.jours} jours. Sans clic, l'adresse n'est pas inscrite ` +
+      "et tu ne recevras plus rien de notre part.\n\n" +
+      "Si ce n'est pas toi, ou si tu changes d'avis plus tard :\n" +
+      `${c.desinscrire}` +
       SIGNATURE,
   }),
 

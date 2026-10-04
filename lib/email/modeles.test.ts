@@ -74,6 +74,11 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     heures: 22,
   },
   EVENEMENT_MAINTENU: { nom: "Awa", titre: "Atelier sérigraphie sur wax" },
+  INFOLETTRE_CONFIRMATION: {
+    confirmer: "https://baobart.test/infolettre/confirmer?jeton=abc",
+    desinscrire: "https://baobart.test/infolettre/desinscription?jeton=def",
+    jours: 7,
+  },
 };
 
 describe("modèles de courriel", () => {

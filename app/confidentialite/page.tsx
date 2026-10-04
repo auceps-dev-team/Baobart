@@ -123,11 +123,12 @@ export default async function ConfidentialitePage() {
         </DocTexte>
       </DocSection>
 
-      <DocSection titre="Quand tu nous écris">
+      <DocSection titre="Quand tu nous écris, ou t'inscris à la lettre">
         <DocListe
           elements={[
             "Les formulaires Contact et Sponsoriser : ton nom, ton adresse, ton message, et le budget indicatif s'il s'agit de sponsoring — lus par l'équipe qui te répond, et rattachés à ton compte si tu étais connecté.",
-            "Ils partent avec l'effacement de ton compte, retrouvés par ton adresse. Sans compte, écris-nous pour qu'on les retire.",
+            "La lettre d'information : ton adresse, l'état de ton inscription, et la date à laquelle tu l'as confirmée. Sans clic sur le lien de confirmation, l'adresse n'est pas inscrite ; le même courriel porte déjà le lien pour te désinscrire.",
+            "Les deux partent avec l'effacement de ton compte, retrouvés par ton adresse. Sans compte, écris-nous pour qu'on les retire.",
           ]}
         />
       </DocSection>

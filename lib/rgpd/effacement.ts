@@ -239,11 +239,13 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
 
       // ── Ce qui ne se rattache qu'à l'adresse ──────────────────────────
       //
-      // Les messages écrits sans être connecté ne portent pas de colonne
-      // vers `User` : seule l'adresse les relie à la personne. Lue AVANT
-      // la coquille, qui la remplace.
+      // La lettre d'information et les messages écrits sans être connecté
+      // ne portent pas de colonne vers `User` : seule l'adresse les relie à
+      // la personne. Lue AVANT la coquille, qui la remplace.
       const { email } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
       const adresse = email.trim().toLowerCase();
+      const lettre = await tx.newsletterSubscriber.deleteMany({ where: { email: adresse } });
+      if (lettre.count > 0) supprimees["newsletterSubscriber (adresse)"] = lettre.count;
       const ecrits = await tx.contactMessage.deleteMany({ where: { email: adresse } });
       if (ecrits.count > 0) supprimees["contactMessage (adresse)"] = ecrits.count;
 

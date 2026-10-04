@@ -85,9 +85,9 @@ describe("le caviardage", () => {
     expect(apres!.suspendedAt).not.toBeNull();
   });
 
-  it("emporte les messages, par le compte comme par l'adresse", async () => {
-    // Ajoutés le 04/10. Un message écrit sans être connecté ne porte aucune
-    // colonne vers User : seule l'adresse le relie.
+  it("emporte la lettre d'information et les messages, par le compte comme par l'adresse", async () => {
+    // Ajoutés le 04/10. La lettre et un message écrit sans être connecté ne
+    // portent aucune colonne vers User : seule l'adresse les relie.
     const compte = await creerCompte();
     // Pas `creerCompte` : son téléphone est fixe, et unique en base.
     const autre = await db.user.create({ data: { email: `rgpd-autre-${suffixe()}@baobart.test` }, select: { email: true } });
@@ -96,11 +96,15 @@ describe("le caviardage", () => {
     await message("autre-adresse@baobart.test", compte.id);
     await message(compte.email, null);
     await message(autre.email, null);
+    await db.newsletterSubscriber.create({
+      data: { email: compte.email, confirmTokenHash: `c-${suffixe()}`, unsubscribeTokenHash: `d-${suffixe()}`, confirmExpiresAt: new Date() },
+    });
 
     const bilan = await anonymiser(compte.id);
 
     expect(await db.contactMessage.count({ where: { OR: [{ senderId: compte.id }, { email: compte.email }] } })).toBe(0);
-    expect(bilan.supprimees).toMatchObject({ contactMessage: 1, "contactMessage (adresse)": 1 });
+    expect(await db.newsletterSubscriber.count({ where: { email: compte.email } })).toBe(0);
+    expect(bilan.supprimees).toMatchObject({ contactMessage: 1, "contactMessage (adresse)": 1, "newsletterSubscriber (adresse)": 1 });
     // Ce qu'un autre a écrit reste.
     expect(await db.contactMessage.count({ where: { email: autre.email } })).toBe(1);
   });
