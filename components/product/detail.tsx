@@ -13,6 +13,7 @@ import {
 import type { MotifRefus } from "@/lib/checkout/achat";
 import { texteDuRetour } from "@/lib/checkout/retour";
 import { formatCount } from "@/lib/i18n/money";
+import { BoutonCollection } from "@/components/collections/bouton-collection";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
 import type {
@@ -280,6 +281,8 @@ export interface SocialFiche {
   chezSoi: boolean;
   commentaires: number;
   connecte: boolean;
+  /** Rangée dans au moins une collection du visiteur. */
+  epingle: boolean;
 }
 
 export function DetailProduit({
@@ -592,24 +595,14 @@ export function DetailProduit({
               totalInitial={social.likes}
               pleineLargeur
             />
-            {/* Les collections restent à faire : le bouton l'annonce plutôt
-                que de faire semblant. */}
-            <span
-              title="Les collections arrivent bientôt."
-              style={{
-                flex: "1 1 auto",
-                padding: 11,
-                border: CADRE,
-                borderRadius: 13,
-                textAlign: "center",
-                fontSize: 13,
-                fontWeight: 800,
-                background: BLANC,
-                opacity: 0.45,
-              }}
-            >
-              ⌸ Collection
-            </span>
+            {/* Les collections existent depuis v1.74.0 : le bouton qui
+                annonçait « bientôt » range désormais pour de vrai. */}
+            <BoutonCollection
+              produitId={produit.id}
+              titre={produit.titre}
+              connecte={social.connecte}
+              rangeeInitiale={social.epingle}
+            />
           </div>
         </div>
 

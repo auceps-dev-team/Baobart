@@ -18,6 +18,8 @@ export interface EtatSocial {
   commentaires: number;
   /** Vrai quand le visiteur regarde sa propre ressource. */
   chezSoi: boolean;
+  /** Rangée dans au moins une collection du visiteur. */
+  epingle: boolean;
 }
 
 export async function etatSocial(input: {
@@ -45,9 +47,9 @@ export async function etatSocial(input: {
 
   // Sans visiteur connecté, rien de personnel à établir : on évite deux
   // requêtes que la réponse rendrait inutiles.
-  if (!input.userId) return { ...base, jaime: false, suit: false };
+  if (!input.userId) return { ...base, jaime: false, suit: false, epingle: false };
 
-  const [like, suivi] = await Promise.all([
+  const [like, suivi, rangee] = await Promise.all([
     db.like.findUnique({
       where: {
         userId_productId: { userId: input.userId, productId: input.produitId },
@@ -63,9 +65,10 @@ export async function etatSocial(input: {
       },
       select: { id: true },
     }),
+    db.save.findFirst({ where: { productId: input.produitId, board: { ownerId: input.userId } }, select: { id: true } }),
   ]);
 
-  return { ...base, jaime: like !== null, suit: suivi !== null };
+  return { ...base, jaime: like !== null, suit: suivi !== null, epingle: rangee !== null };
 }
 
 export interface CommentaireRendu {
