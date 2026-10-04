@@ -486,3 +486,44 @@ export async function compterCommunaute() {
         : null,
   };
 }
+
+/**
+ * Des couvertures réelles pour illustrer une page d'information — les plus
+ * téléchargées d'abord. La maquette y mettait ses propres photos, qui ne sont
+ * pas des ressources de la bibliothèque.
+ */
+export async function couverturesPopulaires(n: number): Promise<Array<{ slug: string; titre: string; couverture: string }>> {
+  const lignes = await db.product.findMany({
+    where: { status: "PUBLISHED", coverUrl: { not: null } },
+    orderBy: [{ downloadsCount: "desc" }, { salesCount: "desc" }, { createdAt: "desc" }],
+    take: n,
+    select: { slug: true, name: true, coverUrl: true },
+  });
+  return lignes.map((p) => ({ slug: p.slug, titre: p.name, couverture: p.coverUrl! }));
+}
+
+/**
+ * Ce que les ventes des sept derniers jours ont crédité aux créateurs, net de
+ * commission et de frais — le chiffre que la page « About » de Gumroad met en
+ * avant (« income earned by creators last week »). Lu dans le grand livre
+ * (`BalanceTransaction` de type SALE, `issuedNet`), pas recalculé : c'est ce
+ * qui a été crédité, remboursements non déduits.
+ */
+export async function creditsAuxCreateurs(jours = 7, now: Date = new Date()): Promise<number> {
+  const r = await db.balanceTransaction.aggregate({
+    where: { type: "SALE", issuedCurrency: "XOF", occurredAt: { gte: new Date(now.getTime() - jours * 86_400_000) } },
+    _sum: { issuedNet: true },
+  });
+  return r._sum.issuedNet ?? 0;
+}
+
+/** Les ressources payantes qui se vendent le plus, avec leur créateur. */
+export async function meilleuresVentes(n: number): Promise<Array<{ slug: string; titre: string; couverture: string | null; ventes: number; createur: string | null }>> {
+  const lignes = await db.product.findMany({
+    where: { status: "PUBLISHED", price: { gt: 0 }, salesCount: { gt: 0 }, seller: { suspendedAt: null } },
+    orderBy: [{ salesCount: "desc" }, { createdAt: "desc" }],
+    take: n,
+    select: { slug: true, name: true, coverUrl: true, salesCount: true, seller: { select: { profile: { select: { displayName: true } } } } },
+  });
+  return lignes.map((p) => ({ slug: p.slug, titre: p.name, couverture: p.coverUrl, ventes: p.salesCount, createur: p.seller.profile?.displayName ?? null }));
+}

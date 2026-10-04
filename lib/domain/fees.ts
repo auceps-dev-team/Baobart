@@ -306,3 +306,33 @@ export function partProportionnelle(input: {
 
   return Math.max(0, apres - avant);
 }
+
+/**
+ * La part du prix qui revient au créateur, dite en pour cent.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UNE SEULE PHRASE POUR TOUT LE SITE
+ *
+ * L'accueil et l'inscription annonçaient « 90 % » en calculant `100 −
+ * commission` chacun de leur côté. Mesuré le 25/09 (Qualitytest S-90pc) : une
+ * vente directe de 10 000 F crédite 8 850 F — 88,5 %, parce que les frais
+ * d'opérateur (1,5 %) restent aussi à la charge du vendeur. L'écran des gains
+ * avait été corrigé en v1.69.8 ; l'accueil et l'inscription, non (relevé le
+ * 04/10). La phrase vit désormais ici, à côté du barème qu'elle décrit. (La
+ * maquette, elle, annonce « 80 % » : un taux abandonné à la lecture du dépôt
+ * de référence, VERIFICATION_GUMROAD §2.1.)
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * PAS DE PART « DÉCOUVERTE », TANT QU'AUCUNE VENTE NE LA SUIT
+ *
+ * Le régime DECOUVERTE (PLAN §2.4) est calculé ci-dessus, mais rien ne
+ * l'applique : lu le 04/10, `encaisserLigne` n'a qu'un appelant,
+ * `finaliserVente`, qui passe `"DIRECT"` en dur — aucune vente n'est attribuée
+ * à l'exploration. L'écran des gains annonçait pourtant « 70 % quand l'acheteur
+ * te trouve par l'exploration ». La phrase reviendra avec l'attribution.
+ */
+export function partDuCreateur(bareme: FeeSchedule = BAREME_XOF): { directe: string } {
+  const pourcent = (bp: number) =>
+    `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(bp / 100)} %`;
+  return { directe: pourcent(10_000 - bareme.directRateBp - bareme.processorRateBp) };
+}

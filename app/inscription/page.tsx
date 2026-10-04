@@ -38,7 +38,21 @@ export default async function InscriptionPage() {
         titre="Créer un compte"
         sousTitre="Deux minutes, aucune carte bancaire demandée."
         cta="Créer mon compte gratuit"
-        libelleCase="J'accepte les conditions générales et les règles de publication"
+        // Accepter ce qu'on ne peut pas lire n'a pas de sens : les deux pages
+        // existent depuis le 04/10, et s'ouvrent à côté pour ne pas perdre la
+        // saisie.
+        libelleCase={
+          <>
+            J&apos;accepte les{" "}
+            <a href="/conditions" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>
+              conditions générales
+            </a>{" "}
+            et les{" "}
+            <a href="/regles-de-publication" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>
+              règles de publication
+            </a>
+          </>
+        }
         action={inscrire}
         fournisseurs={listerFournisseurs()}
         champs={[

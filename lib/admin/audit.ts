@@ -87,7 +87,9 @@ export type ActionAdmin =
   // c'est lui qu'on cherche quand un avis disparaît de l'accueil.
   | "temoignage.publier"
   | "temoignage.refuser"
-  | "temoignage.retirer";
+  | "temoignage.retirer"
+  // Messages reçus (04/10) : qui a classé un message, quand.
+  | "contact.traiter";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

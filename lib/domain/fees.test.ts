@@ -4,9 +4,22 @@ import {
   BAREME_XOF,
   computeFees,
   minimumViablePrice,
+  partDuCreateur,
   partProportionnelle,
   type FeeSchedule,
 } from "./fees";
+
+describe("la part du créateur, telle que le site l'annonce", () => {
+  it("dit ce que computeFees crédite vraiment, frais d'opérateur compris", () => {
+    // Mesuré le 25/09 (Qualitytest S-90pc) : 10 000 F → 8 850 F crédités.
+    // L'accueil et l'inscription annonçaient pourtant « 90 % ».
+    const directe = computeFees({ unitPrice: 10_000, regime: "DIRECT" });
+    const dire = (net: number) => `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(net / 100)} %`;
+
+    expect(partDuCreateur()).toEqual({ directe: dire(directe.sellerNet) });
+    expect(partDuCreateur().directe).toBe("88,5 %");
+  });
+});
 
 describe("computeFees — régime DIRECT (le créateur amène l'acheteur)", () => {
   it("prélève 10 % de commission et 1,5 % de passerelle", () => {

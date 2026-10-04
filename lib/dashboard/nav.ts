@@ -240,6 +240,16 @@ const ADMINISTRATION: EntreeAdmin[] = [
     pouvoir: "promouvoir_du_contenu",
   },
   {
+    // Les formulaires Contact et Sponsoriser (04/10). Deux pouvoirs, un seul
+    // suffit : le support lit les messages, le marketing les demandes de
+    // sponsoring — chacun ne voit que les siens (`genresLusPar`).
+    cle: "a_messages",
+    label: "Messages reçus",
+    glyph: "✉",
+    href: "/dashboard/messages-recus",
+    pouvoir: ["traiter_les_litiges", "promouvoir_du_contenu"],
+  },
+  {
     cle: "a_sys_config",
     pouvoir: "consulter_le_systeme" as const,
     label: "Système · Configuration",

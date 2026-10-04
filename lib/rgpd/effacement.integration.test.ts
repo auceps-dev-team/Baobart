@@ -85,6 +85,26 @@ describe("le caviardage", () => {
     expect(apres!.suspendedAt).not.toBeNull();
   });
 
+  it("emporte les messages, par le compte comme par l'adresse", async () => {
+    // Ajoutés le 04/10. Un message écrit sans être connecté ne porte aucune
+    // colonne vers User : seule l'adresse le relie.
+    const compte = await creerCompte();
+    // Pas `creerCompte` : son téléphone est fixe, et unique en base.
+    const autre = await db.user.create({ data: { email: `rgpd-autre-${suffixe()}@baobart.test` }, select: { email: true } });
+    const message = (email: string, senderId: string | null) =>
+      db.contactMessage.create({ data: { kind: "CONTACT", senderId, name: "Aya", email, subject: "Un bug", body: "Un message assez long." } });
+    await message("autre-adresse@baobart.test", compte.id);
+    await message(compte.email, null);
+    await message(autre.email, null);
+
+    const bilan = await anonymiser(compte.id);
+
+    expect(await db.contactMessage.count({ where: { OR: [{ senderId: compte.id }, { email: compte.email }] } })).toBe(0);
+    expect(bilan.supprimees).toMatchObject({ contactMessage: 1, "contactMessage (adresse)": 1 });
+    // Ce qu'un autre a écrit reste.
+    expect(await db.contactMessage.count({ where: { email: autre.email } })).toBe(1);
+  });
+
   it("retire le profil et la facturation", async () => {
     const compte = await creerCompte();
 

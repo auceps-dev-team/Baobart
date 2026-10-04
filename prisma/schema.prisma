@@ -532,6 +532,7 @@ model User {
   notifications Notification[]
   blogPosts     BlogPost[]
   testimonial   Testimonial?
+  messagesEnvoyes ContactMessage[] @relation("MessagesEnvoyes")
 
   /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
   /// `CommunityChatMessage` sont NOMMÉES : sans nom, Prisma ne saurait pas
@@ -1505,6 +1506,51 @@ model Testimonial {
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([status, publishedAt])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MESSAGES REÇUS — Contact et Sponsoriser
+//
+// Décidé le 04/10 : les deux formulaires de la maquette (« Envoyer le message
+// », « Envoyer la demande ») étaient des <div>. Ils écrivent ici, et l'équipe
+// les lit dans son tableau de bord : le support pour les messages, le
+// marketing pour les demandes de sponsoring. Aucune adresse « support@ » ni
+// « hello@ » n'est publiée : rien ne dit qu'elles existent.
+// ════════════════════════════════════════════════════════════════════════════
+
+enum ContactKind {
+  CONTACT
+  SPONSOR
+}
+
+enum ContactStatus {
+  NEW
+  HANDLED
+}
+
+model ContactMessage {
+  id      String      @id @default(cuid())
+  kind    ContactKind
+  /// Le compte de l'expéditeur s'il était connecté. Un message se laisse aussi
+  /// sans compte : on écrit souvent au support parce qu'on n'arrive plus à se
+  /// connecter.
+  senderId String?
+  name     String
+  /// En minuscules : l'effacement d'un compte retrouve ses messages par là.
+  email   String
+  subject String
+  body    String  @db.Text
+  /// « Budget indicatif » des demandes de sponsoring, tel qu'écrit.
+  budget  String?
+  status  ContactStatus @default(NEW)
+  handledById String?
+  handledAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  sender User? @relation("MessagesEnvoyes", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([kind, status, createdAt])
+  @@index([email])
 }
 
 /// Une ligne d'achat = un produit d'un vendeur. C'est ici que vit l'état de

@@ -120,6 +120,9 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   ["blogPost", "authorId"],
   // Il porte le nom et l'avatar de son auteur sur l'accueil : il part avec lui.
   ["testimonial", "authorId"],
+  // Ce qu'on a écrit à l'équipe depuis son compte. Ceux écrits sans compte
+  // partent par l'adresse, plus bas.
+  ["contactMessage", "senderId"],
 
   // ── Ce qui s'engage ───────────────────────────────────────────────────
   ["cart", "userId"],
@@ -233,6 +236,16 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
       if (evenements.count > 0) {
         supprimees["consumptionEvent (adresses)"] = evenements.count;
       }
+
+      // ── Ce qui ne se rattache qu'à l'adresse ──────────────────────────
+      //
+      // Les messages écrits sans être connecté ne portent pas de colonne
+      // vers `User` : seule l'adresse les relie à la personne. Lue AVANT
+      // la coquille, qui la remplace.
+      const { email } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+      const adresse = email.trim().toLowerCase();
+      const ecrits = await tx.contactMessage.deleteMany({ where: { email: adresse } });
+      if (ecrits.count > 0) supprimees["contactMessage (adresse)"] = ecrits.count;
 
       // ── La coquille ───────────────────────────────────────────────────
       await tx.user.update({

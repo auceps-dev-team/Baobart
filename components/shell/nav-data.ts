@@ -45,14 +45,15 @@ export const MENUS: GroupeMenu[] = [
         label: "Sponsoriser",
         hint: "Formats & partenariats",
         glyph: "◆",
-        href: null,
+        href: "/sponsoriser",
       },
     ],
   },
   {
     key: "createurs",
     label: "Créateurs",
-    href: null,
+    // Le titre du groupe menait à « # » ; il mène à l'annuaire, sa première entrée.
+    href: "/createurs",
     items: [
       { label: "Créateurs", hint: "Annuaire des membres", glyph: "☺", href: "/createurs" },
       { label: "Services", hint: "Prestations des membres", glyph: "✦", href: "/services" },
@@ -62,19 +63,20 @@ export const MENUS: GroupeMenu[] = [
   {
     key: "conditions",
     label: "Conditions générales",
-    href: null,
+    // Idem : la page des conditions existe depuis le 04/10.
+    href: "/conditions",
     items: [
       {
         label: "Licences Baobart",
         hint: "Ce que tu peux faire des fichiers",
         glyph: "§",
-        href: null,
+        href: "/licences",
       },
       {
         label: "Règles de publication",
         hint: "Pour les contributeurs",
         glyph: "✎",
-        href: null,
+        href: "/regles-de-publication",
       },
       {
         // La maquette écrit « Signalement DMCA ». Le DMCA est une loi
@@ -114,26 +116,26 @@ export const MENUS: GroupeMenu[] = [
         glyph: "◍",
         href: "/communautes",
       },
-      { label: "À propos", hint: "Notre histoire", glyph: "◈", href: null },
-      { label: "Contact", hint: "Nous écrire", glyph: "✉", href: null },
+      { label: "À propos", hint: "Notre histoire", glyph: "◈", href: "/a-propos" },
+      { label: "Contact", hint: "Nous écrire", glyph: "✉", href: "/contact" },
       { label: "Blogs", hint: "Articles et coulisses", glyph: "▤", href: "/blog" },
-      { label: "Support", hint: "Aide et litiges", glyph: "?", href: null },
+      { label: "Support", hint: "Aide et litiges", glyph: "?", href: "/support" },
       {
         label: "Documentation Baobart",
         hint: "Guides d'utilisation",
         glyph: "▦",
-        href: null,
+        href: "/documentation",
       },
       {
         label: "Changelog",
         hint: "Nouveautés de la plateforme",
         glyph: "★",
-        href: null,
+        href: "/changelog",
       },
     ],
   },
-  { key: "features", label: "Fonctionnalités", href: null, items: [] },
-  { key: "tarifs", label: "Tarifs", href: null, items: [] },
+  { key: "features", label: "Fonctionnalités", href: "/fonctionnalites", items: [] },
+  { key: "tarifs", label: "Tarifs", href: "/tarifs", items: [] },
 ];
 
 export interface EntreeRail {

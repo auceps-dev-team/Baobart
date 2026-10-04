@@ -203,6 +203,13 @@ export const REGLES = {
    * même matin, et rend inutile le tâtonnement — 31^32 clés possibles.
    */
   "licence.verification": { quota: 60, fenetreMs: 60_000 },
+
+  /**
+   * Formulaires Contact et Sponsoriser. Cinq messages par heure et par
+   * adresse : assez pour se reprendre, trop peu pour remplir la boîte de
+   * l'équipe.
+   */
+  "contact.envoi": { quota: 5, fenetreMs: 60 * 60_000 },
 } as const satisfies Record<string, Regle>;
 
 export type NomRegle = keyof typeof REGLES;

@@ -74,7 +74,7 @@ export function AuthForm({
   titre: string;
   sousTitre: string;
   cta: string;
-  libelleCase: string;
+  libelleCase: React.ReactNode;
   champs: ChampAuth[];
   action: (etat: EtatFormulaire, donnees: FormData) => Promise<EtatFormulaire>;
   texteBas: string;
