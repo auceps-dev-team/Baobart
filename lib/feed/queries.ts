@@ -452,21 +452,6 @@ export async function vitrineDuHero(): Promise<{
   };
 }
 
-/** Créateurs à suivre, pour le bloc « Créatifs à suivre » des espaces d'équipe. */
-export async function listerCreateurs(limit = 3) {
-  const profils: Array<{ username: string; displayName: string; city: string | null }> = await db.profile.findMany({
-    orderBy: [{ workCount: "desc" }, { createdAt: "desc" }],
-    take: limit,
-    select: { username: true, displayName: true, city: true },
-  });
-
-  return profils.map((p) => ({
-    username: p.username,
-    nom: p.displayName,
-    lieu: p.city,
-  }));
-}
-
 /**
  * Chiffres de preuve sociale du hero.
  *

@@ -15,6 +15,8 @@ import { headers } from "next/headers";
 import { sessionCourante } from "@/lib/auth/session";
 import { colonnesDepuisAgent } from "@/lib/feed/masonry";
 import { BAREME_XOF } from "@/lib/domain/fees";
+import { createursASuivre, espaceDuVisiteur } from "@/lib/collections/espace";
+import { epinglesParmi, mesCollections } from "@/lib/collections/service";
 import { aimesParmi } from "@/lib/social/feed";
 import { diffusion } from "@/lib/publicites/service";
 import { listerPublics } from "@/lib/blog/queries";
@@ -23,7 +25,6 @@ import {
   compterCommunaute,
   compterParFamille,
   listerAlaUne,
-  listerCreateurs,
   listerFeed,
   rayonsDeLaBibliotheque,
   vitrineDuHero,
@@ -45,7 +46,7 @@ export default async function AccueilPage() {
     listerFeed(),
     listerAlaUne(),
     compterParFamille(),
-    listerCreateurs(),
+    createursASuivre(utilisateur?.id ?? null),
     compterCommunaute(),
     diffusion(),
     rayonsDeLaBibliotheque(),
@@ -53,13 +54,17 @@ export default async function AccueilPage() {
     vitrineDuHero(),
     temoignagesPublies(4),
   ]);
+  const [espace, mesCollectionsAccueil] = utilisateur
+    ? await Promise.all([espaceDuVisiteur(utilisateur.id), mesCollections(utilisateur.id, 3)])
+    : [null, []];
 
   // Une seule requête pour toute la page : un `like` par carte ferait
   // vingt-cinq allers-retours pour dessiner un cœur.
-  const aimes = await aimesParmi(
-    utilisateur?.id ?? null,
-    [...page.items, ...alaUne].map((r) => r.id),
-  );
+  const ids = [...page.items, ...alaUne].map((r) => r.id);
+  const [aimes, epingles] = await Promise.all([
+    aimesParmi(utilisateur?.id ?? null, ids),
+    epinglesParmi(utilisateur?.id ?? null, ids),
+  ]);
 
   // La maquette annonçait « garde 80 % » — un taux de 20 % que la lecture du
   // dépôt Gumroad nous a fait abandonner (VERIFICATION_GUMROAD §2.1). On dérive
@@ -77,12 +82,18 @@ export default async function AccueilPage() {
           curseurInitial={page.nextCursor}
           alaUne={alaUne}
           aimesInitiaux={aimes}
+          epinglesInitiaux={epingles}
           connecte={utilisateur !== null}
           colonnesInitiales={colonnes}
           diffusion={pubs}
         />
         <CollectionsTrieesMain total={chiffres.ressources} rayons={rayons} />
-        <EspacesEquipe createurs={createurs} />
+        <EspacesEquipe
+          connecte={utilisateur !== null}
+          espace={espace}
+          collections={mesCollectionsAccueil}
+          createurs={createurs}
+        />
         <AppelAuxCreatifs partCreateur={partCreateur} />
         <Temoignages temoignages={temoignages} />
         <Blog articles={articles} />

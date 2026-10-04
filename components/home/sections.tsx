@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 
 import {
@@ -9,7 +10,10 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { BoutonInviter, BoutonSuivre } from "@/components/home/espace-gestes";
 import { CarteTemoignage } from "@/components/temoignages/carte";
+import type { CreateurASuivre, Espace } from "@/lib/collections/espace";
+import type { ResumeCollection } from "@/lib/collections/service";
 import type { Filtre } from "@/lib/feed/types";
 import type { TemoignagePublic } from "@/lib/temoignages/service";
 
@@ -303,31 +307,41 @@ const TUILES = [
   trame(ORANGE, BLANC, 8),
 ];
 
-const COMMENTAIRES = [
-  {
-    qui: "Awa",
-    quand: "il y a 1 h",
-    texte: "Le motif 3 marche mieux sur fond clair, non ?",
-    fond: trame(ORANGE, JAUNE, 5),
-  },
-  {
-    qui: "Kofi",
-    quand: "il y a 4 h",
-    texte: "J'ai ajouté deux variantes dans la collection.",
-    fond: trame(LAVANDE_PROFOND, BLANC, 5),
-  },
-];
+const BOUTON_ESPACE = {
+  display: "inline-block",
+  padding: "11px 18px",
+  border: CADRE,
+  borderRadius: 13,
+  fontSize: 13.5,
+  fontWeight: 800,
+  color: ENCRE,
+} as const;
 
-const MES_COLLECTIONS = [
-  { nom: "Inspiration wax", compte: "18", fond: trame(ORANGE, BLANC, 5) },
-  { nom: "Refonte site club", compte: "7", fond: trame(LAVANDE_PROFOND, BLANC, 5) },
-  { nom: "Typos à tester", compte: "12", fond: trame(JAUNE, ENCRE, 5) },
-];
-
+/**
+ * « Vos espaces d'équipe » : ce que le visiteur a vraiment.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA FORME DE LA MAQUETTE, LE CONTENU DU VISITEUR
+ *
+ * Trois blocs, comme dans « Baobart Accueil.dc.html » (section `#collab`) :
+ * l'espace et son fil, les collections, les créatifs à suivre. Tout y était
+ * inventé et rien n'y était cliquable (relevé le 04/10) ; tout vient désormais
+ * de `lib/collections/espace.ts` et de `mesCollections`, et chaque élément
+ * mène quelque part.
+ *
+ * Pour qui n'a pas encore d'espace ou de collection, le bloc dit comment en
+ * avoir un, au lieu de montrer celui de quelqu'un d'autre.
+ */
 export function EspacesEquipe({
+  connecte,
+  espace,
+  collections,
   createurs,
 }: {
-  createurs: Array<{ username: string; nom: string; lieu: string | null }>;
+  connecte: boolean;
+  espace: Espace | null;
+  collections: ResumeCollection[];
+  createurs: CreateurASuivre[];
 }) {
   return (
     <div id="collab" style={CONTENEUR}>
@@ -363,6 +377,7 @@ export function EspacesEquipe({
         }}
       >
         <div
+          data-espace={espace?.slug ?? ""}
           style={{
             border: CADRE,
             borderRadius: 24,
@@ -371,118 +386,92 @@ export function EspacesEquipe({
             padding: 20,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              paddingBottom: 16,
-              borderBottom: CADRE,
-            }}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                border: CADRE,
-                borderRadius: 13,
-                background: JAUNE,
-                display: "grid",
-                placeItems: "center",
-                fontFamily: "var(--font-display)",
-                fontSize: 16,
-              }}
-            >
-              AD
-            </div>
-            <div style={{ flex: "1 1 auto" }}>
-              <div style={{ fontSize: 17, fontWeight: 800 }}>
-                Collection · Campagne Dakar 2026
-              </div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.65 }}>
-                4 membres · 38 ressources · mise à jour il y a 2 h
-              </div>
-            </div>
-            <div
-              style={{
-                padding: "9px 14px",
-                border: CADRE,
-                borderRadius: 12,
-                background: LAVANDE,
-                fontSize: 12.5,
-                fontWeight: 800,
-              }}
-            >
-              Inviter
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
-              gap: 12,
-              padding: "16px 0",
-            }}
-          >
-            {TUILES.map((fond, i) => (
-              <div
-                key={i}
-                style={{
-                  height: 96,
-                  border: CADRE,
-                  borderRadius: 14,
-                  background: fond,
-                }}
-              />
-            ))}
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {COMMENTAIRES.map((c) => (
-              <div
-                key={c.qui}
-                style={{ display: "flex", gap: 12, alignItems: "flex-start" }}
-              >
+          {espace ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: CADRE, flexWrap: "wrap" }}>
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
+                    width: 44,
+                    height: 44,
                     flex: "0 0 auto",
                     border: CADRE,
-                    borderRadius: 99,
-                    background: c.fond,
-                  }}
-                />
-                <div
-                  style={{
-                    border: CADRE,
-                    borderRadius: 14,
-                    borderTopLeftRadius: 4,
-                    background: LAVANDE_CLAIR,
-                    padding: "10px 13px",
+                    borderRadius: 13,
+                    background: JAUNE,
+                    display: "grid",
+                    placeItems: "center",
+                    fontFamily: "var(--font-display)",
+                    fontSize: 16,
                   }}
                 >
-                  <div style={{ fontSize: 12.5, fontWeight: 800 }}>
-                    {c.qui}{" "}
-                    <span style={{ fontWeight: 600, opacity: 0.55 }}>
-                      {c.quand}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      lineHeight: 1.4,
-                      marginTop: 3,
-                    }}
-                  >
-                    {c.texte}
-                  </div>
+                  {espace.nom.slice(0, 2).toUpperCase()}
                 </div>
+                <Link href={`/communautes/${espace.slug}`} style={{ flex: "1 1 200px", minWidth: 0, color: ENCRE }}>
+                  <div style={{ fontSize: 17, fontWeight: 800 }}>{espace.nom}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.65 }}>
+                    {espace.membres} membre{espace.membres > 1 ? "s" : ""} · {espace.ressources} ressource
+                    {espace.ressources > 1 ? "s" : ""} partagée{espace.ressources > 1 ? "s" : ""}
+                  </div>
+                </Link>
+                <BoutonInviter slug={espace.slug} />
               </div>
-            ))}
-          </div>
+
+              <Link href={`/communautes/${espace.slug}`} style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, padding: "16px 0" }}>
+                {TUILES.map((fond, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      height: 96,
+                      border: CADRE,
+                      borderRadius: 14,
+                      background: espace.apercu[i] ? `url(${JSON.stringify(espace.apercu[i])}) center / cover no-repeat` : fond,
+                    }}
+                  />
+                ))}
+              </Link>
+
+              {espace.messages.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {espace.messages.map((m, i) => (
+                    <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      <div style={{ width: 34, height: 34, flex: "0 0 auto", border: CADRE, borderRadius: 99, background: TUILES[i % TUILES.length] }} />
+                      <div style={{ border: CADRE, borderRadius: 14, borderTopLeftRadius: 4, background: LAVANDE_CLAIR, padding: "10px 13px", minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 800 }}>
+                          {m.auteur} <span style={{ fontWeight: 600, opacity: 0.55 }}>{m.quand}</span>
+                        </div>
+                        <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.4, marginTop: 3, overflowWrap: "anywhere" }}>{m.texte}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Link href={`/communautes/${espace.slug}`} style={{ fontSize: 13.5, fontWeight: 800, color: ENCRE }}>
+                  Le fil est vide — écris le premier message →
+                </Link>
+              )}
+            </>
+          ) : (
+            <div style={{ display: "grid", gap: 14 }}>
+              <div style={{ fontSize: 17, fontWeight: 800 }}>
+                {connecte ? "Tu n'as pas encore d'espace" : "Un espace pour ton équipe"}
+              </div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.55, opacity: 0.8 }}>
+                Un espace réunit ton équipe autour d&apos;un fil de discussion et des collections que vous partagez.
+                On y commente les ressources au même endroit que là où on les choisit.
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <Link
+                  href={connecte ? "/communautes/nouvelle" : "/inscription"}
+                  className="sticker-press"
+                  style={{ ...BOUTON_ESPACE, background: JAUNE, boxShadow: `3px 3px 0 ${ENCRE}` }}
+                >
+                  Créer un espace
+                </Link>
+                <Link href="/communautes" style={{ ...BOUTON_ESPACE, background: BLANC }}>
+                  Voir les communautés
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -495,129 +484,92 @@ export function EspacesEquipe({
               padding: 20,
             }}
           >
-            <div
+            <Link
+              href={connecte ? "/dashboard/collections" : "/connexion"}
               style={{
                 fontFamily: "var(--font-display)",
                 fontSize: 24,
                 textTransform: "uppercase",
                 lineHeight: 1.05,
+                color: ENCRE,
               }}
             >
               Mes collections
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                marginTop: 16,
-              }}
-            >
-              {MES_COLLECTIONS.map((m) => (
-                <div
-                  key={m.nom}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    border: CADRE,
-                    borderRadius: 14,
-                    background: BLANC,
-                    padding: "10px 12px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 32,
-                      height: 32,
-                      border: `2px solid ${ENCRE}`,
-                      borderRadius: 9,
-                      background: m.fond,
-                    }}
-                  />
-                  <span style={{ flex: "1 1 auto", fontSize: 13.5, fontWeight: 800 }}>
-                    {m.nom}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      opacity: 0.6,
-                    }}
+            </Link>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+              {collections.length > 0 ? (
+                collections.map((m, i) => (
+                  <Link
+                    key={m.id}
+                    href={`/dashboard/collections/${m.id}` as Route}
+                    style={{ display: "flex", alignItems: "center", gap: 12, border: CADRE, borderRadius: 14, background: BLANC, padding: "10px 12px", color: ENCRE }}
                   >
-                    {m.compte}
-                  </span>
-                </div>
-              ))}
+                    <span
+                      style={{
+                        width: 32,
+                        height: 32,
+                        flex: "0 0 auto",
+                        border: `2px solid ${ENCRE}`,
+                        borderRadius: 9,
+                        background: m.apercu[0] ? `url(${JSON.stringify(m.apercu[0])}) center / cover no-repeat` : TUILES[i % TUILES.length],
+                      }}
+                    />
+                    <span style={{ flex: "1 1 auto", minWidth: 0, fontSize: 13.5, fontWeight: 800 }}>{m.titre}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.6 }}>{m.ressources}</span>
+                  </Link>
+                ))
+              ) : (
+                <Link
+                  href={connecte ? "/dashboard/collections" : "/connexion"}
+                  style={{ border: CADRE, borderRadius: 14, background: BLANC, padding: "12px 14px", fontSize: 13.5, fontWeight: 700, lineHeight: 1.45, color: ENCRE }}
+                >
+                  {connecte
+                    ? "Crée ta première collection, puis épingle des ressources depuis la mosaïque →"
+                    : "Connecte-toi pour ranger les ressources que tu aimes →"}
+                </Link>
+              )}
             </div>
           </div>
 
-          <div
-            style={{
-              border: CADRE,
-              borderRadius: 24,
-              background: BLANC,
-              boxShadow: `6px 6px 0 ${ENCRE}`,
-              padding: 20,
-              flex: "1 1 auto",
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 800 }}>Créatifs à suivre</div>
+          {createurs.length > 0 ? (
             <div
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                marginTop: 14,
+                border: CADRE,
+                borderRadius: 24,
+                background: BLANC,
+                boxShadow: `6px 6px 0 ${ENCRE}`,
+                padding: 20,
+                flex: "1 1 auto",
               }}
             >
-              {createurs.map((p, i) => (
-                <div
-                  key={p.username}
-                  style={{ display: "flex", alignItems: "center", gap: 12 }}
-                >
-                  <span
-                    style={{
-                      width: 38,
-                      height: 38,
-                      border: CADRE,
-                      borderRadius: 99,
-                      background: TUILES[i % TUILES.length],
-                    }}
-                  />
-                  <span style={{ flex: "1 1 auto" }}>
-                    <span
-                      style={{ display: "block", fontSize: 13.5, fontWeight: 800 }}
-                    >
-                      {p.nom}
-                    </span>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        opacity: 0.65,
-                      }}
-                    >
-                      {p.lieu ?? "Afrique"}
-                    </span>
-                  </span>
-                  <span
-                    style={{
-                      padding: "7px 13px",
-                      border: `2px solid ${ENCRE}`,
-                      borderRadius: 10,
-                      background: LAVANDE,
-                      fontSize: 12,
-                      fontWeight: 800,
-                    }}
-                  >
-                    Suivre
-                  </span>
-                </div>
-              ))}
+              <Link href="/createurs" style={{ fontSize: 15, fontWeight: 800, color: ENCRE }}>
+                Créatifs à suivre
+              </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+                {createurs.map((p, i) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Link href={`/@${p.username}` as Route} style={{ display: "flex", alignItems: "center", gap: 12, flex: "1 1 auto", minWidth: 0, color: ENCRE }}>
+                      <span
+                        style={{
+                          width: 38,
+                          height: 38,
+                          flex: "0 0 auto",
+                          border: CADRE,
+                          borderRadius: 99,
+                          background: p.avatarUrl ? `url(${JSON.stringify(p.avatarUrl)}) center / cover no-repeat` : TUILES[i % TUILES.length],
+                        }}
+                      />
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 800 }}>{p.nom}</span>
+                        {p.lieu ? <span style={{ display: "block", fontSize: 11.5, fontWeight: 600, opacity: 0.65 }}>{p.lieu}</span> : null}
+                      </span>
+                    </Link>
+                    <BoutonSuivre createurId={p.id} connecte={connecte} />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

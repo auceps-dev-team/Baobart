@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useMemo, useState, useTransition } from "react";
 
+import { ChoixEpingle } from "@/components/collections/choix-epingle";
 import { GrilleMasonry } from "@/components/feed/grille-masonry";
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
 import { Banniere, hauteurDeBanniere } from "@/components/publicites/banniere";
@@ -39,6 +40,8 @@ export interface FeedProps {
   colonnesInitiales?: number;
   /** Les bannières de l'ADS manager, et l'écart qui les sépare. */
   diffusion?: Diffusion;
+  /** Identifiants des ressources déjà rangées dans une collection du visiteur. */
+  epinglesInitiaux?: string[];
 }
 
 export function Feed({
@@ -50,6 +53,7 @@ export function Feed({
   connecte = false,
   colonnesInitiales = 4,
   diffusion = AUCUNE_DIFFUSION,
+  epinglesInitiaux = [],
 }: FeedProps) {
   const [items, setItems] = useState(itemsInitiaux);
   const [curseur, setCurseur] = useState(curseurInitial);
@@ -59,7 +63,12 @@ export function Feed({
   const [likes, setLikes] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(aimesInitiaux.map((id) => [id, true])),
   );
-  const [epingles, setEpingles] = useState<Record<string, boolean>>({});
+  const [epingles, setEpingles] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(epinglesInitiaux.map((id) => [id, true])),
+  );
+  // La ressource dont on choisit la collection. L'épingle ne faisait que
+  // changer de couleur : rien n'était rangé nulle part (relevé le 04/10).
+  const [aRanger, setARanger] = useState<CarteRessource | null>(null);
   const [chargement, demarrer] = useTransition();
 
   // Les bannières se placent d'après le rang des produits, côté navigateur :
@@ -130,7 +139,13 @@ export function Feed({
     onEnter: () => setSurvolee(r.id),
     onLeave: () => setSurvolee((actuel) => (actuel === r.id ? null : actuel)),
     onLike: () => aimer(r.id),
-    onSave: () => setEpingles((s) => ({ ...s, [r.id]: !s[r.id] })),
+    onSave: () => {
+      if (!connecte) {
+        window.location.href = "/connexion";
+        return;
+      }
+      setARanger(r);
+    },
     // Rien ici : la carte est enveloppée dans un lien, ce qui permet à Next
     // d'intercepter la route et d'ouvrir la fiche en modale.
     onOpen: () => {},
@@ -302,6 +317,17 @@ export function Feed({
         >
           Rien dans cette famille pour l&apos;instant.
         </div>
+      ) : null}
+
+      {aRanger ? (
+        <ChoixEpingle
+          produitId={aRanger.id}
+          titre={aRanger.title}
+          onFerme={(rangee) => {
+            setEpingles((s) => ({ ...s, [aRanger.id]: rangee }));
+            setARanger(null);
+          }}
+        />
       ) : null}
 
       {curseur ? (

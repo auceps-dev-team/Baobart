@@ -99,17 +99,6 @@ export interface VenteCreateur {
   product: { name: string; slug: string; currency: Currency };
 }
 
-
-export interface CollectionDashboard {
-  id: string;
-  title: string;
-  description: string | null;
-  isPublic: boolean;
-  savesCount: number;
-  createdAt: Date;
-  _count: { saves: number };
-}
-
 export interface TelechargementDashboard {
   id: string;
   productId: string;
@@ -352,22 +341,6 @@ export async function lireResumeDashboard(userId: string) {
     ventes,
     soldeDisponible: solde._sum.holdingAmount ?? 0,
   };
-}
-
-export async function lireCollections(userId: string): Promise<CollectionDashboard[]> {
-  return db.board.findMany({
-    where: { ownerId: userId },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      isPublic: true,
-      savesCount: true,
-      createdAt: true,
-      _count: { select: { saves: true } },
-    },
-  });
 }
 
 export async function lireTelechargements(userId: string, limit = 20): Promise<TelechargementDashboard[]> {

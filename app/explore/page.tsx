@@ -8,6 +8,7 @@ import { Rail } from "@/components/shell/rail";
 import { colonnesDepuisAgent } from "@/lib/feed/masonry";
 import { listerAlaUne, listerFeed } from "@/lib/feed/queries";
 import { FILTRES, type Filtre } from "@/lib/feed/types";
+import { epinglesParmi } from "@/lib/collections/service";
 import { aimesParmi } from "@/lib/social/feed";
 import { diffusion } from "@/lib/publicites/service";
 
@@ -40,10 +41,11 @@ export default async function ExplorerPage({
 
   // Une seule requête pour toute la page : un `like` par carte ferait
   // vingt-cinq allers-retours pour dessiner un cœur.
-  const aimes = await aimesParmi(
-    utilisateur?.id ?? null,
-    [...page.items, ...alaUne].map((r) => r.id),
-  );
+  const ids = [...page.items, ...alaUne].map((r) => r.id);
+  const [aimes, epingles] = await Promise.all([
+    aimesParmi(utilisateur?.id ?? null, ids),
+    epinglesParmi(utilisateur?.id ?? null, ids),
+  ]);
 
   return (
     <>
@@ -86,6 +88,7 @@ export default async function ExplorerPage({
           curseurInitial={page.nextCursor}
           alaUne={alaUne}
           aimesInitiaux={aimes}
+          epinglesInitiaux={epingles}
           connecte={utilisateur !== null}
           filtreInitial={filtre}
           colonnesInitiales={colonnesDepuisAgent((await headers()).get("user-agent"))}

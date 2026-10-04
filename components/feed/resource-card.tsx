@@ -241,17 +241,14 @@ function ActionsSurvol({
       >
         ⌸
       </button>
-      <button
-        type="button"
-        aria-label="Télécharger"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        style={bouton("#FFFFFF")}
-      >
+      {/*
+        Le bouton arrêtait le clic et ne faisait rien (relevé le 04/10). Le
+        téléchargement se décide sur la fiche — offerte, achetée, ou à acheter —,
+        donc le clic la laisse s'ouvrir : il remonte jusqu'au lien de la carte.
+      */}
+      <span aria-hidden style={bouton("#FFFFFF")} title="Ouvrir la fiche pour télécharger">
         ↓
-      </button>
+      </span>
     </div>
   );
 }
