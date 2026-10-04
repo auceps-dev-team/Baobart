@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { Feed } from "@/components/feed/feed";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { Rail } from "@/components/shell/rail";
@@ -90,6 +91,8 @@ export default async function ExplorerPage({
           colonnesInitiales={colonnesDepuisAgent((await headers()).get("user-agent"))}
           diffusion={pubs}
         />
+        {/* Dans data-root : son retrait à gauche laisse la place au rail. */}
+        <Footer />
       </div>
     </>
   );

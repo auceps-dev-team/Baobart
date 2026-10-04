@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
@@ -301,6 +302,7 @@ export default async function ServicesPage({
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

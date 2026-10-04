@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
 import { BoutonSuivre } from "@/components/social/boutons";
@@ -293,6 +294,7 @@ export default async function ProfilCreateurPage({
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

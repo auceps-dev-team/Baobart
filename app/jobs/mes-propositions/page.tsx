@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { estPublic } from "@/lib/cms/cycle";
@@ -179,6 +180,7 @@ export default async function MesPropositionsPage() {
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

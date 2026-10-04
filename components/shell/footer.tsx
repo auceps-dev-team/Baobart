@@ -46,7 +46,7 @@ export function Footer() {
   );
 
   return (
-    <div style={{ maxWidth: 1400, margin: "72px auto 0", padding: "0 32px 40px" }}>
+    <div data-pied="1" style={{ maxWidth: 1400, margin: "72px auto 0", padding: "0 32px 40px" }}>
       <div
         style={{
           border: `2.5px solid ${ENCRE}`,

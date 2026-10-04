@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { FormulaireService } from "@/components/services/formulaire";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { MESSAGES as MESSAGES_DROIT, peutPublier } from "@/lib/cms/droits";
@@ -161,6 +162,7 @@ export default async function DeposerServicePage() {
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

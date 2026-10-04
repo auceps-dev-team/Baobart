@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { FormulaireCandidature } from "@/components/jobs/formulaire-candidature";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -205,6 +206,7 @@ export default async function PostulerPage({
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import { CompteARebours } from "@/components/evenements/compte-a-rebours";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { GENRES, LIBELLE_GENRE, type EventKind } from "@/lib/evenements/enums";
@@ -396,6 +397,7 @@ export default async function EvenementsPage({
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

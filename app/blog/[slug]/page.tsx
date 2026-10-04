@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { notFound } from "next/navigation";
 
 import { CorpsArticle } from "@/components/cms/corps";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { articlePublic } from "@/lib/blog/queries";
@@ -225,6 +226,7 @@ export default async function ArticlePage({
           }),
         }}
       />
+      <Footer />
     </>
   );
 }

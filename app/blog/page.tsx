@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import {
@@ -278,6 +279,7 @@ export default async function BlogPage({
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

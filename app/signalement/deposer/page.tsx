@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import { FormulaireNotification } from "@/components/juridique/formulaire";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
@@ -89,6 +90,7 @@ export default async function DeposerPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

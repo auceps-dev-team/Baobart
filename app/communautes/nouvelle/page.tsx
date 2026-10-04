@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Route } from "next";
 
 import { FormulaireCommunaute } from "@/components/forum/formulaires";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
@@ -78,6 +79,7 @@ export default async function NouvelleCommunautePage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

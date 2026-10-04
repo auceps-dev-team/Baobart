@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_MODE, LIBELLE_TYPE } from "@/lib/jobs/enums";
@@ -444,6 +445,7 @@ export default async function FicheMissionPage({
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

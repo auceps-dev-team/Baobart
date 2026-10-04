@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { BoutonInscription } from "@/components/evenements/bouton-inscription";
 import { CompteARebours } from "@/components/evenements/compte-a-rebours";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_GENRE } from "@/lib/evenements/enums";
@@ -404,6 +405,7 @@ export default async function FicheEvenementPage({
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

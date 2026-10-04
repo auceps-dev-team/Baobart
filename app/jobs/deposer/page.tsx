@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { FormulaireOffre } from "@/components/jobs/formulaire";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE } from "@/lib/systeme/charte";
@@ -115,6 +116,7 @@ export default async function DeposerOffrePage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

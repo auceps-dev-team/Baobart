@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { listerCommunautes } from "@/lib/forum/queries";
@@ -161,6 +162,7 @@ export default async function CommunautesPage() {
           ) : null}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

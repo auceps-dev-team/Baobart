@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_MODE, LIBELLE_TYPE, TYPES, type JobType } from "@/lib/jobs/enums";
@@ -277,6 +278,7 @@ export default async function JobsPage({
           )}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

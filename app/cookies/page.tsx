@@ -1,4 +1,5 @@
 import { EtatDuChoix } from "@/components/consentement/etat-du-choix";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { ADRESSE_DONNEES_PERSONNELLES } from "@/lib/config/contact";
@@ -153,6 +154,7 @@ export default async function CookiesPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from "@/components/forum/collections";
 import { FormulaireFil } from "@/components/forum/formulaires";
 import { GestesDeMessage } from "@/components/forum/gestes";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import {
@@ -373,6 +374,7 @@ export default async function CommunautePage({
           </section>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
