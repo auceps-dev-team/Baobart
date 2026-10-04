@@ -9,7 +9,9 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { CarteTemoignage } from "@/components/temoignages/carte";
 import type { Filtre } from "@/lib/feed/types";
+import type { TemoignagePublic } from "@/lib/temoignages/service";
 
 /**
  * Sections de l'accueil, traduites de « Baobart Accueil.dc.html ».
@@ -746,41 +748,20 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
 
 // ────────────────────────────────────────────────────────── Témoignages ─────
 
-/** Contenu éditorial repris de la maquette — à remplacer par de vrais avis. */
-const TEMOIGNAGES = [
-  {
-    texte:
-      "Enfin des visuels qui ressemblent à nos clients. On a gagné deux jours de recherche par projet.",
-    nom: "Mariam Sow",
-    role: "DA, Studio Kaay",
-    fond: BLANC,
-    avatar: trame(ORANGE, JAUNE, 5),
-  },
-  {
-    texte:
-      "J'ai vendu mes premiers packs en trois semaines. Le paiement mobile change tout.",
-    nom: "Yao Kouadio",
-    role: "Type designer",
-    fond: JAUNE,
-    avatar: trame(ENCRE, LAVANDE, 5),
-  },
-  {
-    texte: "Les espaces partagés remplacent nos dossiers Drive éparpillés.",
-    nom: "Serge Nkosi",
-    role: "Lead design, Kivu",
-    fond: BLANC,
-    avatar: trame(LAVANDE_PROFOND, BLANC, 5),
-  },
-  {
-    texte: "En école, mes étudiants ont enfin une banque de références locales.",
-    nom: "Aïcha Barry",
-    role: "Enseignante",
-    fond: LAVANDE_PROFOND,
-    avatar: trame(JAUNE, ENCRE, 5),
-  },
-];
+/**
+ * « Ils nous font confiance » : les témoignages publiés.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * QUATRE TÉMOIGNAGES INVENTÉS, RETIRÉS LE 04/10
+ *
+ * La section reprenait ceux de la maquette — « Mariam Sow, DA, Studio Kaay »,
+ * « Yao Kouadio, Type designer »… —, signés de personnes qui n'existent pas.
+ * Elle montre désormais ceux que des membres ont proposés et que l'équipe a
+ * publiés (`lib/temoignages`), et disparaît tant qu'il n'y en a aucun.
+ */
+export function Temoignages({ temoignages }: { temoignages: TemoignagePublic[] }) {
+  if (temoignages.length === 0) return null;
 
-export function Temoignages() {
   return (
     <div style={CONTENEUR}>
       <h2
@@ -797,78 +778,19 @@ export function Temoignages() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+          gridTemplateColumns: "repeat(auto-fit,minmax(min(260px,100%),1fr))",
           gap: 18,
         }}
       >
-        {TEMOIGNAGES.map((t) => (
-          <div
-            key={t.nom}
-            style={{
-              border: CADRE,
-              borderRadius: 22,
-              background: t.fond,
-              boxShadow: `5px 5px 0 ${ENCRE}`,
-              padding: 20,
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 34,
-                lineHeight: 0.6,
-              }}
-            >
-              &ldquo;
-            </div>
-            <div
-              style={{
-                fontSize: 14.5,
-                fontWeight: 600,
-                lineHeight: 1.5,
-                flex: "1 1 auto",
-              }}
-            >
-              {t.texte}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                paddingTop: 12,
-                borderTop: CADRE,
-              }}
-            >
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  border: CADRE,
-                  borderRadius: 99,
-                  background: t.avatar,
-                }}
-              />
-              <span>
-                <span style={{ display: "block", fontSize: 13, fontWeight: 800 }}>
-                  {t.nom}
-                </span>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    opacity: 0.65,
-                  }}
-                >
-                  {t.role}
-                </span>
-              </span>
-            </div>
-          </div>
+        {temoignages.map((t, i) => (
+          <CarteTemoignage
+            key={t.id}
+            texte={t.texte}
+            nom={t.nom}
+            presentation={t.presentation}
+            avatarUrl={t.avatarUrl}
+            rang={i}
+          />
         ))}
       </div>
     </div>

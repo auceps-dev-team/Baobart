@@ -82,7 +82,12 @@ export type ActionAdmin =
   // Plus émise depuis v1.71.1 : l'écran archive au lieu de supprimer. Gardée
   // pour relire les traces d'avant.
   | "publicite.supprimer"
-  | "publicite.regler";
+  | "publicite.regler"
+  // Témoignages (04/10). Retirer un témoignage publié est un geste à part :
+  // c'est lui qu'on cherche quand un avis disparaît de l'accueil.
+  | "temoignage.publier"
+  | "temoignage.refuser"
+  | "temoignage.retirer";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

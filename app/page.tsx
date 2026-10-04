@@ -18,6 +18,7 @@ import { BAREME_XOF } from "@/lib/domain/fees";
 import { aimesParmi } from "@/lib/social/feed";
 import { diffusion } from "@/lib/publicites/service";
 import { listerPublics } from "@/lib/blog/queries";
+import { temoignagesPublies } from "@/lib/temoignages/service";
 import {
   compterCommunaute,
   compterParFamille,
@@ -40,7 +41,7 @@ export const dynamic = "force-dynamic";
 export default async function AccueilPage() {
   const utilisateur = await sessionCourante();
   const colonnes = colonnesDepuisAgent((await headers()).get("user-agent"));
-  const [page, alaUne, familles, createurs, chiffres, pubs, rayons, articles, vitrine] = await Promise.all([
+  const [page, alaUne, familles, createurs, chiffres, pubs, rayons, articles, vitrine, temoignages] = await Promise.all([
     listerFeed(),
     listerAlaUne(),
     compterParFamille(),
@@ -50,6 +51,7 @@ export default async function AccueilPage() {
     rayonsDeLaBibliotheque(),
     listerPublics({ limite: 3 }),
     vitrineDuHero(),
+    temoignagesPublies(4),
   ]);
 
   // Une seule requête pour toute la page : un `like` par carte ferait
@@ -82,7 +84,7 @@ export default async function AccueilPage() {
         <CollectionsTrieesMain total={chiffres.ressources} rayons={rayons} />
         <EspacesEquipe createurs={createurs} />
         <AppelAuxCreatifs partCreateur={partCreateur} />
-        <Temoignages />
+        <Temoignages temoignages={temoignages} />
         <Blog articles={articles} />
         <Footer />
       </HomeShell>

@@ -531,6 +531,7 @@ model User {
   mediaAssets   MediaAsset[]
   notifications Notification[]
   blogPosts     BlogPost[]
+  testimonial   Testimonial?
 
   /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
   /// `CommunityChatMessage` sont NOMMÉES : sans nom, Prisma ne saurait pas
@@ -1466,6 +1467,44 @@ model AdSettings {
   maxClicksPerVisitorDay Int @default(1)
 
   updatedAt DateTime @updatedAt
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TÉMOIGNAGES — « Ils nous font confiance »
+//
+// Décidé le 04/10 : un membre propose le sien depuis son tableau de bord, et
+// l'administration ou le marketing le publie ou le refuse. Rien ne paraît sans
+// validation. Remplace les quatre témoignages de la maquette (« Mariam Sow,
+// DA, Studio Kaay »…), inventés.
+// ════════════════════════════════════════════════════════════════════════════
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Testimonial {
+  id       String @id @default(cuid())
+  /// Un témoignage par membre : le corriger le renvoie en relecture.
+  authorId String @unique
+  body     String @db.Text
+  /// Comment l'auteur se présente sous son nom (« Typographe, Abidjan »).
+  role     String?
+  status   TestimonialStatus @default(PENDING)
+  /// Le motif d'un refus, montré à l'auteur.
+  refusedReason String?
+  moderatorId   String?
+  moderatedAt   DateTime?
+  /// L'accord de l'auteur pour paraître sur l'accueil, nom et avatar compris.
+  consentAt   DateTime
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([status, publishedAt])
 }
 
 /// Une ligne d'achat = un produit d'un vendeur. C'est ici que vit l'état de

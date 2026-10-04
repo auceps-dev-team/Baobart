@@ -118,6 +118,8 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   // cascade depuis `board` l'emporte au passage.
   ["board", "ownerId"],
   ["blogPost", "authorId"],
+  // Il porte le nom et l'avatar de son auteur sur l'accueil : il part avec lui.
+  ["testimonial", "authorId"],
 
   // ── Ce qui s'engage ───────────────────────────────────────────────────
   ["cart", "userId"],

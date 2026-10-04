@@ -84,6 +84,8 @@ const ACHETEUR: EntreeNav[] = [
     href: "/dashboard/abonnements",
   },
   { cle: "abonnement", label: "Forfait & pass d'accès", glyph: "◉", href: "/dashboard/forfait" },
+  // Décidé le 04/10 : les témoignages de l'accueil viennent des membres.
+  { cle: "temoignage", label: "Mon témoignage", glyph: "❝", href: "/dashboard/temoignage" },
 ];
 
 /**
@@ -226,6 +228,15 @@ const ADMINISTRATION: EntreeAdmin[] = [
     label: "Publicités",
     glyph: "▣",
     href: "/dashboard/publicites",
+    pouvoir: "promouvoir_du_contenu",
+  },
+  {
+    // Même porte que les bannières : publier un témoignage met la plateforme
+    // en avant.
+    cle: "a_temoignages",
+    label: "Témoignages",
+    glyph: "❝",
+    href: "/dashboard/temoignages",
     pouvoir: "promouvoir_du_contenu",
   },
   {
