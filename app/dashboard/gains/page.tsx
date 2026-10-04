@@ -269,7 +269,9 @@ export default async function GainsPage() {
  * le virement.
  */
 function introDe(gains: Awaited<ReturnType<typeof gainsDe>>): string {
-  const part = `${gains.partCreateur.directe} du prix d'une vente directe te reviennent, ${gains.partCreateur.decouverte} quand l'acheteur te trouve par l'exploration.`;
+  // « 70 % quand l'acheteur te trouve par l'exploration » : aucune vente ne
+  // suit ce régime aujourd'hui (`partDuCreateur`, lu le 04/10).
+  const part = `${gains.partCreateur.directe} du prix de chaque vente te reviennent.`;
   if (gains.aDeduire > 0) {
     return `${part} Tu dois ${formatMoney(gains.aDeduire)} : des remboursements sont arrivés après ton dernier versement. Ils seront retenus sur tes prochaines ventes.`;
   }

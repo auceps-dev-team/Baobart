@@ -249,7 +249,8 @@ describe("ce que l'écran affiche", () => {
     // La maquette annonçait « 80 % » : un taux que la lecture du dépôt de
     // référence a fait abandonner. Puis l'écran a dit « 90 % », en oubliant
     // les frais d'opérateur (mesuré le 25/09 : 8 850 F pour 10 000 F).
-    expect(g.partCreateur).toEqual({ directe: "88,5\u00a0%", decouverte: "70\u00a0%" });
+    // Et plus de part \u00ab d\u00e9couverte \u00bb annonc\u00e9e : aucune vente ne la suit.
+    expect(g.partCreateur).toEqual({ directe: "88,5\u00a0%" });
   });
 
   it("annonce la part qu'une vente directe crédite vraiment", async () => {

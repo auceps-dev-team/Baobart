@@ -5,7 +5,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { inscrire } from "@/lib/auth/actions";
 import { listerFournisseurs } from "@/lib/auth/providers";
 import { sessionCourante } from "@/lib/auth/session";
-import { BAREME_XOF } from "@/lib/domain/fees";
+import { partDuCreateur } from "@/lib/domain/fees";
 
 export const metadata = { title: "Créer un compte — Baobart." };
 export const dynamic = "force-dynamic";
@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function InscriptionPage() {
   if (await sessionCourante()) redirect("/dashboard");
 
-  // Le même chiffre que l'accueil, dérivé du barème plutôt que recopié.
-  const partCreateur = `${100 - BAREME_XOF.directRateBp / 100} %`;
+  // Le même chiffre que l'accueil et l'écran des gains : `partDuCreateur`.
+  const partCreateur = partDuCreateur().directe;
 
   return (
     <AuthShell

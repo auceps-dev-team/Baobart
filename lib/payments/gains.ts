@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { soldeVersableJusqua } from "@/lib/domain/balances";
-import { BAREME_XOF } from "@/lib/domain/fees";
+import { partDuCreateur } from "@/lib/domain/fees";
 import type { RiskState } from "@/lib/domain/trust";
 import { peutEtrePaye, type DecisionVersement } from "@/lib/payments/eligibilite";
 import {
@@ -69,11 +69,10 @@ export interface Gains {
   /** Cumul versé depuis le 1er janvier. */
   cumulAnnee: number;
   /**
-   * Part du prix qui revient au créateur, dérivée du barème réel : en vente
-   * directe (commission et frais d'opérateur déduits), et en vente venue de
-   * l'exploration (taux tout compris).
+   * Part du prix qui revient au créateur, dérivée du barème réel :
+   * commission et frais d'opérateur déduits (`partDuCreateur`).
    */
-  partCreateur: { directe: string; decouverte: string };
+  partCreateur: { directe: string };
   /** Prochaine date de versement, ou `null` si rien ne part. */
   prochainVersement: Date | null;
   /** Pourquoi rien ne part, le cas échéant. */
@@ -221,7 +220,7 @@ export async function gainsDe(
     enAttente,
     aDeduire,
     cumulAnnee,
-    partCreateur: partCreateurLisible(),
+    partCreateur: partDuCreateur(),
     prochainVersement: prochain,
     blocage: decision,
     compte: compteActif
@@ -279,31 +278,4 @@ function parMois(
   }
 
   return resultat;
-}
-
-/**
- * Part du prix qui revient au créateur.
- *
- * Dérivée du barème, jamais écrite en dur. La maquette annonce « 80 % » — un
- * taux que la lecture du dépôt de référence a fait abandonner
- * (VERIFICATION_GUMROAD §2.1). Deux chiffres qui se contredisent entre le code
- * et l'écran finissent toujours par être découverts par un créateur.
- */
-/**
- * La part du créateur, telle que `computeFees` la calcule vraiment.
- *
- * Elle disait `100 − commission`, soit « 90 % ». Mesuré le 25/09 (Qualitytest
- * S-90pc) : une vente directe de 10 000 F a crédité 8 850 F — 88,5 %, parce
- * que les frais d'opérateur (1,5 %) restent aussi à la charge du vendeur. Et
- * une vente venue de l'exploration suit un autre taux, tout compris.
- */
-function pourcent(bp: number): string {
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(bp / 100)}\u00a0%`;
-}
-
-function partCreateurLisible(): { directe: string; decouverte: string } {
-  return {
-    directe: pourcent(10_000 - BAREME_XOF.directRateBp - BAREME_XOF.processorRateBp),
-    decouverte: pourcent(10_000 - BAREME_XOF.decouverteRateBp),
-  };
 }

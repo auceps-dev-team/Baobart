@@ -578,7 +578,14 @@ export function EspacesEquipe({
 
 // ─────────────────────────────────────────────────────────── Contribuer ─────
 
-export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
+/**
+ * L'appel aux créatifs. Ses deux boutons et sa zone de dépôt étaient des
+ * `<span>` : rien ne s'ouvrait (relevé le 04/10). Ils mènent désormais à la
+ * création d'une ressource — ou à l'inscription, qui y conduit — et à la page
+ * qui explique le fonctionnement.
+ */
+export function AppelAuxCreatifs({ partCreateur, connecte }: { partCreateur: string; connecte: boolean }) {
+  const deposer = (connecte ? "/dashboard/produits/nouveau" : "/inscription") as Route;
   return (
     <div id="contrib" style={CONTENEUR}>
       <div
@@ -636,7 +643,9 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
             {partCreateur} de chaque vente. On s&apos;occupe du reste.
           </p>
           <div style={{ display: "flex", gap: 14, marginTop: 24, flexWrap: "wrap" }}>
-            <span
+            <Link
+              href={deposer}
+              data-appel="deposer"
               style={{
                 padding: "15px 26px",
                 border: `2.5px solid ${BLANC}`,
@@ -645,30 +654,42 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
                 color: ENCRE,
                 fontSize: 14.5,
                 fontWeight: 800,
+                textDecoration: "none",
               }}
             >
               Déposer un fichier
-            </span>
-            <span
+            </Link>
+            <Link
+              href={"/fonctionnalites" as Route}
+              data-appel="comment"
               style={{
                 padding: "15px 26px",
                 border: `2.5px solid ${BLANC}`,
                 borderRadius: 16,
+                color: BLANC,
                 fontSize: 14.5,
                 fontWeight: 800,
+                textDecoration: "none",
               }}
             >
               Comment ça marche
-            </span>
+            </Link>
           </div>
         </div>
 
-        <div
+        {/* « glisse tes fichiers ici » promettait un glisser-déposer que
+            l'accueil ne reçoit pas : la zone mène au vrai formulaire. */}
+        <Link
+          href={deposer}
+          data-appel="zone"
           style={{
+            display: "block",
             border: `2.5px dashed ${BLANC}`,
             borderRadius: 20,
             padding: 26,
             textAlign: "center",
+            color: BLANC,
+            textDecoration: "none",
           }}
         >
           <div
@@ -678,7 +699,7 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
               opacity: 0.7,
             }}
           >
-            glisse tes fichiers ici
+            clique pour déposer tes fichiers
           </div>
           <div
             style={{
@@ -692,7 +713,7 @@ export function AppelAuxCreatifs({ partCreateur }: { partCreateur: string }) {
           <div style={{ fontSize: 13, fontWeight: 700, marginTop: 14 }}>
             PNG · JPG · AI · PSD · TTF · ZIP — 200 Mo max
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   );
