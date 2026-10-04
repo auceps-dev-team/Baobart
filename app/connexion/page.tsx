@@ -28,7 +28,8 @@ export default async function ConnexionPage({
           "Retrouve tes collections, tes achats et les espaces partagés avec ton équipe, exactement là où tu les as laissés.",
         points: [
           "Tes collections synchronisées",
-          "Tes licences et factures au même endroit",
+          // « et factures » : aucune facture n'est émise (relevé le 04/10).
+          "Tes achats et leurs clés de licence",
           "Les nouveautés des créateurs que tu suis",
         ],
       }}

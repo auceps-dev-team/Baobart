@@ -19,11 +19,22 @@ import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
 
 type RessourceLiee = { slug: string; name: string; coverUrl: string | null };
 
+/** Le titre du type COMMERCIAL (`prisma/seed.ts`), pour une ressource sans licence choisie. */
+const LICENCE_PAR_DEFAUT = "Licence commerciale";
+
 /** Tout ce qu'affiche la fiche d'une ressource. */
 export interface FicheProduit {
   id: string;
   slug: string;
   titre: string;
+  /**
+   * La licence de la ressource, telle que son créateur l'a choisie. La fiche
+   * écrivait « licence commerciale » en dur à côté de chaque prix — vrai par
+   * défaut, faux pour une ressource sous licence personnelle ou étendue
+   * (relevé le 04/10). Sans choix enregistré, c'est la commerciale : le même
+   * défaut que l'écran d'édition (`app/dashboard/produits/[id]`).
+   */
+  licence: string;
   description: string | null;
   famille: Filtre | null;
   prix: number;
@@ -54,7 +65,16 @@ export interface FicheProduit {
 
 /** Ce que le bouton doit proposer à la personne qui regarde la fiche. */
 export type DroitTelechargement =
-  | { etat: "TELECHARGEABLE"; fichiers: Array<{ id: string; nom: string }> }
+  | {
+      etat: "TELECHARGEABLE";
+      fichiers: Array<{ id: string; nom: string }>;
+      /**
+       * La licence de l'achat, quand l'accès vient d'un achat. Créée à chaque
+       * vente depuis longtemps (`tx.licenseKey.create`), elle n'était montrée
+       * nulle part — relevé le 04/10. Une ressource offerte n'en porte pas.
+       */
+      licence?: { cle: string; type: string };
+    }
   | {
       etat: "A_ACHETER";
       produitId: string;
@@ -90,6 +110,7 @@ export async function droitDeTelecharger(
       minPrice: true,
       currency: true,
       sellerId: true,
+      licenseType: { select: { title: true } },
       files: {
         where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
@@ -168,7 +189,13 @@ export async function droitDeTelecharger(
     return aAcheter(true);
   }
 
-  return { etat: "TELECHARGEABLE", fichiers };
+  const cle = await db.licenseKey.findUnique({ where: { orderItemId: achat.id }, select: { serial: true, status: true } });
+  return {
+    etat: "TELECHARGEABLE",
+    fichiers,
+    // Une clé désactivée ne se montre plus : elle ne vaut plus rien.
+    licence: cle && cle.status === "ACTIVE" ? { cle: cle.serial, type: produit.licenseType?.title ?? LICENCE_PAR_DEFAUT } : undefined,
+  };
 }
 
 function formatDeContenu(contentType: string, filename: string): string {
@@ -197,6 +224,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
       createdAt: true,
       status: true,
       sellerId: true,
+      licenseType: { select: { title: true } },
       seller: {
         select: {
           profile: {
@@ -245,6 +273,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
     id: p.id,
     slug: p.slug,
     titre: p.name,
+    licence: p.licenseType?.title ?? LICENCE_PAR_DEFAUT,
     description: p.description,
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
     prix: p.price,

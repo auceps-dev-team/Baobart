@@ -194,6 +194,15 @@ export const REGLES = {
    * faire monter un taux de clic, si.
    */
   "pub.clic": { quota: 30, fenetreMs: 60_000 },
+
+  /**
+   * Vérification de clé de licence. Soixante par minute et par adresse.
+   *
+   * Le programme d'un créateur vérifie la clé au démarrage : un poste, une
+   * vérification. Soixante couvre un bureau entier qui ouvre le logiciel le
+   * même matin, et rend inutile le tâtonnement — 31^32 clés possibles.
+   */
+  "licence.verification": { quota: 60, fenetreMs: 60_000 },
 } as const satisfies Record<string, Regle>;
 
 export type NomRegle = keyof typeof REGLES;

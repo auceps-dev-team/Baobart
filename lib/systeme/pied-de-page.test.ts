@@ -50,7 +50,10 @@ describe("le pied de page", () => {
     const publiques = pages(RACINE).filter((p) => !SANS_PIED.some((r) => r.test(p)));
     expect(publiques.length).toBeGreaterThan(20);
 
-    const sans = publiques.filter((p) => !readFileSync(join(RACINE, p), "utf8").includes("<Footer"));
+    // `PageDocument` (components/doc/page-document.tsx) pose le pied de page
+    // lui-même : les pages d'information passent par lui.
+    expect(readFileSync(join(RACINE, "..", "components", "doc", "page-document.tsx"), "utf8")).toMatch(/<Footer \/>/);
+    const sans = publiques.filter((p) => !/<Footer|<PageDocument/.test(readFileSync(join(RACINE, p), "utf8")));
     expect(sans, "pages publiques sans <Footer />").toEqual([]);
   });
 });

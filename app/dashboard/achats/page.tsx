@@ -78,7 +78,9 @@ export default async function HistoriqueDesAchatsPage({
 
       <EcranDashboard
         titre="Historique des achats"
-        intro="Toutes tes commandes, avec le détail des licences. Les fichiers restent accessibles depuis tes téléchargements."
+        // « avec le détail des licences » : la liste n'en montrait aucun. La
+        // clé est par ressource, pas par commande — elle vit sur la fiche.
+        intro="Toutes tes commandes. Les fichiers restent accessibles depuis tes téléchargements, et la clé de licence de chaque ressource sur sa fiche."
         action={{ label: "Explorer les ressources", href: "/explore" }}
         // Le bilan décrit le compte, pas la liste : il ne bouge pas avec le
         // filtre.

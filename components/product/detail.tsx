@@ -166,6 +166,21 @@ function BoutonTelechargement({
             {droit.fichiers.length === 1 ? "Télécharger" : `Télécharger ${f.nom}`}
           </a>
         ))}
+        {droit.licence ? (
+          // Où Gumroad la montre aussi : sur la fiche, pour qui possède la
+          // ressource. Recopiée à la main, d'où l'alphabet sans 0 ni O.
+          <div data-licence style={{ marginTop: 6, padding: "10px 12px", border: CADRE, borderRadius: 12, background: JAUNE, color: ENCRE }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: ".1em", opacity: 0.7 }}>
+              {droit.licence.type} · ta clé
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, marginTop: 4, overflowWrap: "anywhere", userSelect: "all" }}>
+              {droit.licence.cle}
+            </div>
+            <a href="/licences" style={{ display: "inline-block", marginTop: 6, fontSize: 11.5, fontWeight: 700, color: ENCRE, textDecoration: "underline" }}>
+              Ce que ta licence permet
+            </a>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -583,9 +598,9 @@ export function DetailProduit({
             <div style={{ fontFamily: "var(--font-display)", fontSize: 30 }}>
               {produit.prixAffiche}
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
-              licence commerciale
-            </div>
+            <a href="/licences" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE, textDecoration: "underline" }}>
+              {produit.licence.toLowerCase()}
+            </a>
           </div>
           <BoutonTelechargement droit={droit} slug={produit.slug} />
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
