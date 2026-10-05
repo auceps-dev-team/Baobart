@@ -10,6 +10,7 @@
 | 3 | [`03-CALENDRIER-CONTENU-4-MOIS.md`](03-CALENDRIER-CONTENU-4-MOIS.md) | 📱 **Expert marketing digital** | Le calendrier de contenu : 4 phases, 18 semaines, **alternance image / vidéo**, règles du teasing, brief créatif, plan par plateforme, tableau de bord KPI |
 | — | [`calendrier-contenu.csv`](calendrier-contenu.csv) | 📊 **Outil** | Le calendrier en 18 lignes × 16 colonnes, à importer dans un tableur ou un outil de planification |
 | — | [`CREAS/`](CREAS/) | 🎨 **Production** | Les posts, un par un, prêts à produire. Le premier est complet, maquette incluse : [`2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md) + [`2026-10-05-post-01-affiche.png`](CREAS/2026-10-05-post-01-affiche.png) |
+| 📐 | [`../DESIGN_SYSTEM_BAOBART.md`](../DESIGN_SYSTEM_BAOBART.md) | **Design system canonique** | Logo, couleurs, typographie, contours, ombres, composants, règles d'usage. **En cas de contradiction avec tout autre document, c'est celui-ci qui gagne** |
 
 ---
 
@@ -53,6 +54,7 @@ Ces conventions viennent de `CLAUDE.md` : *distinguer ce qui est mesuré de ce q
    code est décrit tel qu'écrit, pas tel qu'exécuté le 05/10/2026.
 2. **Les personas sont construits, pas interviewés.** Les chiffres de marché sont publics
    et datés — à revérifier avant toute communication externe.
-3. **Le branding « Halo system » n'a pas pu être lu** (le PDF joint n'est pas arrivé dans
-   l'environnement de travail). Les directions artistiques sont donc construites sur le
-   *Sticker System* du dépôt, en attendant le document de marque définitif.
+3. **Le design system officiel a été reçu le 5 octobre 2026** sous forme de planches
+   images et transcrit dans `Doc/DESIGN_SYSTEM_BAOBART.md`. Les créas produites avant
+   cette date (dont l'affiche du post n°1, version 1) ont été régénérées pour y être
+   conformes.

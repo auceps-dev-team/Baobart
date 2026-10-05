@@ -3,6 +3,13 @@
 **Analyse critique du fichier « Baobart Design System.dc.html »**
 **Document K — v1.0 — août 2026**
 
+> ⚠️ **Document d'analyse, pas document de référence.** Le design system officiel a été
+> reçu le 5 octobre 2026 (planches 00 à 05) et est transcrit dans
+> **[`DESIGN_SYSTEM_BAOBART.md`](DESIGN_SYSTEM_BAOBART.md)**. En cas de contradiction,
+> **c'est ce dernier qui gagne**. Ce document garde sa valeur pour ce qu'il ajoute :
+> les ratios de contraste WCAG calculés et la liste des points de vigilance
+> d'accessibilité, absents des planches officielles.
+
 ---
 
 ## 1. Vue d'ensemble

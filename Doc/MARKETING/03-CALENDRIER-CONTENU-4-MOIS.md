@@ -468,11 +468,11 @@ versements testés · support prêt (réponse sous 48 h, 📖 charte §5) · cha
 
 ## 7. Brief créatif — la base branding pour toutes les créas
 
-> **Note :** aucun fichier de branding n'était joint au message. Le brief ci-dessous est
-> donc construit à partir du branding **existant dans le dépôt** — le *Sticker System* et
-> la charte éditoriale (`Doc/ANALYSE_DESIGN_SYSTEM_BAOBART.md`, `Doc/CHARTE_EDITORIALE_BAOBART.md`,
-> maquettes `Baobart Design/`). Si un autre document de marque doit servir de référence,
-> ce brief se remplace en 10 minutes.
+> **📐 Source :** le design system officiel a été reçu le 5 octobre 2026 (planches 00 à 05)
+> et est transcrit dans le document canonique
+> **[`Doc/DESIGN_SYSTEM_BAOBART.md`](../../DESIGN_SYSTEM_BAOBART.md)**.
+> **En cas de contradiction avec tout autre document du dépôt, c'est celui-ci qui gagne.**
+> Le brief ci-dessous en est le résumé opérationnel.
 
 ### 7.1 La palette (à utiliser telle quelle)
 
@@ -497,7 +497,19 @@ versements testés · support prêt (réponse sous 48 h, 📖 charte §5) · cha
 | Texte courant | **Poppins** (500-800) | 15-16 px équivalent |
 | Méta, formats, compteurs, prix | **Space Mono** | Capitales, tracking +0,1 em |
 
-### 7.3 Les signatures visuelles (ce qui rend une créa « Baobart » en 1 seconde)
+### 7.3 Le logo et la baseline (📐 planche 00)
+
+| Élément | Règle |
+|---|---|
+| **Lockup principal** | Pastille orange `#E2622C` à **contour noir** contenant le baobab + `Baobart.` en **Archivo Black**, encre, **point final orange** |
+| **Baseline** | `CREATE. SHARE. INSPIRE.` en **Space Mono 700**, letter-spacing **+0,2 em**, **jamais sous 9 px** |
+| **Réductions** | Sous **34 px** de large : la **pastille seule** remplace le lockup. Minimum absolu : **24 px** |
+| **Fond sombre** | Contour **blanc**, point **jaune**. Le point orange n'est **jamais** utilisé sur fond noir |
+| **Zone de protection** | Une demi-largeur de pastille sur les quatre côtés, aucun élément ne s'y invite |
+| **Interdits** | Déformer · incliner · changer la couleur de l'arbre · poser la pastille sur une photo sans contour |
+| **Autres variantes** | Tampon carré `EST. 2026` (objets, stickers) · bloc contrasté (footer, campagnes) · écusson (créateur vérifié, lauréats, certificats) · badges plateforme `CRÉATEUR VÉRIFIÉ`, `LAURÉAT 2026` |
+
+### 7.4 Les signatures visuelles (ce qui rend une créa « Baobart » en 1 seconde)
 
 - **Tout est contouré** : trait encre 2,5 px (1,5 px pour le fin, 3 px pour les grands
   formats). Aucune surface flottante sans trait.
@@ -510,7 +522,7 @@ versements testés · support prêt (réponse sous 48 h, 📖 charte §5) · cha
   130 ms.
 - **Étiquettes** : GRATUIT · NOUVEAU · EN LIGNE · MODÉRATION · VERSÉE — en pilules.
 
-### 7.4 Les gabarits à produire (12 formats réutilisables)
+### 7.5 Les gabarits à produire (12 formats réutilisables)
 
 | # | Gabarit | Dimensions | Usage |
 |---|---|---|---|
@@ -531,7 +543,7 @@ versements testés · support prêt (réponse sous 48 h, 📖 charte §5) · cha
 gabarits. Un graphiste produit 12 gabarits en une semaine ; l'équipe produit ensuite le
 reste.
 
-### 7.5 Les assets déjà disponibles dans le dépôt 🔍
+### 7.6 Les assets déjà disponibles dans le dépôt 🔍
 
 - `Baobart Design/img/` — 14 visuels (mode, studio, néon, beauté afro, packshot, émeraude).
 - `Baobart Design/uploads/` — 16 visuels dont les concepts « terracotta / kinetic neon »
@@ -545,7 +557,7 @@ reste.
   d'écran du produit réel** (explorateur, tableau de bord, jobs, sponsoriser, profil
   vendeur, téléchargements). C'est la matière première des vidéos de démo (règle R3).
 
-### 7.6 Les règles du teasing (R1) appliquées aux créas
+### 7.7 Les règles du teasing (R1) appliquées aux créas
 
 Tant que la date de publication n'est pas passée, **aucune créa ne doit donner l'impression
 que le produit est ouvert**. Voici la frontière, ligne par ligne :
