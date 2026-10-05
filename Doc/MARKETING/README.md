@@ -9,7 +9,7 @@
 | 2 | [`02-BILAN-MARKETING.md`](02-BILAN-MARKETING.md) | 🎩 **Chef marketing d'agence** | Marché ouest-africain chiffré, concurrence, positionnement, **SWOT**, **4 personas**, les 5 avantages concurrentiels, objectifs/KPI, stratégie et budget de lancement |
 | 3 | [`03-CALENDRIER-CONTENU-4-MOIS.md`](03-CALENDRIER-CONTENU-4-MOIS.md) | 📱 **Expert marketing digital** | Le calendrier de contenu : 4 phases, 18 semaines, **alternance image / vidéo**, règles du teasing, brief créatif, plan par plateforme, tableau de bord KPI |
 | — | [`calendrier-contenu.csv`](calendrier-contenu.csv) | 📊 **Outil** | Le calendrier en 18 lignes × 16 colonnes, à importer dans un tableur ou un outil de planification |
-| — | [`CREAS/`](CREAS/) | 🎨 **Production** | Les posts, un par un, prêts à produire. Le premier : [`2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md) |
+| — | [`CREAS/`](CREAS/) | 🎨 **Production** | Les posts, un par un, prêts à produire. Le premier est complet, maquette incluse : [`2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md) + [`2026-10-05-post-01-affiche.png`](CREAS/2026-10-05-post-01-affiche.png) |
 
 ---
 
