@@ -403,7 +403,7 @@ local + protection) et **culturel** (voix, style, communauté). Il est donc imit
 mesures. Elles sont construites pour être ambitieuses mais atteignables avec une équipe
 réduite et un budget média modeste.
 
-### 7.1 Les 4 objectifs du lancement (au 5 février 2027)
+### 7.1 Les 4 objectifs de la publication (au jeudi 4 février 2027)
 
 | # | Objectif | Cible | Pourquoi ce chiffre |
 |---|---|---|---|
@@ -434,21 +434,27 @@ réduite et un budget média modeste.
 
 ---
 
-## 8. Stratégie de lancement (février 2027)
+## 8. Stratégie de publication (février 2027)
 
 ### 8.1 Le principe : un lancement de communauté, pas un lancement produit
 
 Baobart n'a pas le budget pour acheter de l'attention. Il doit **emprunter** celle des
-créatifs déjà en place. Trois leviers, dans cet ordre :
+créatifs déjà en place. Quatre leviers, dans cet ordre :
 
-1. **100 créateurs fondateurs** — recrutés en novembre/décembre, ils publient leurs
+1. **Les clients fermés de novembre** — agences de communication, écoles de design et
+   créateurs sélectionnés testent la plateforme **deux mois avant** l'ouverture publique.
+   Leurs retours corrigent le produit **et** alimentent la campagne : témoignages signés,
+   « vous l'avez demandé, on l'a corrigé », chiffres d'usage réels. C'est le levier le
+   moins cher et le plus crédible de tout le plan — une campagne de janvier bâtie sur des
+   vrais retours vaut mieux que n'importe quelle promesse.
+2. **100 créateurs fondateurs** — recrutés en novembre/décembre, ils publient leurs
    premières ressources **avant** l'ouverture et ouvrent le bal le jour J. Leur
    contrepartie : badge « Fondateur », visibilité permanente, commission préférentielle
    sur les 3 premiers mois.
-2. **Partenariats écoles & hubs** — 3 à 5 écoles de design (Dakar, Abidjan, Cotonou,
+3. **Partenariats écoles & hubs** — 3 à 5 écoles de design (Dakar, Abidjan, Cotonou,
    Lomé, Accra) : atelier gratuit en échange d'un accès aux étudiants. 💡 Coût : du temps,
    pas de l'argent.
-3. **Ambassadeurs** — 📖 le plan prévoit déjà un « programme d'ambassadeurs panafricain »
+4. **Ambassadeurs** — 📖 le plan prévoit déjà un « programme d'ambassadeurs panafricain »
    (blogueurs, créateurs de contenu, écoles → commission sur les ventes). C'est le levier
    d'acquisition organique le moins cher.
 
@@ -456,11 +462,12 @@ créatifs déjà en place. Trois leviers, dans cet ordre :
 
 | Moment | Action |
 |---|---|
+| **T-120 j** (oct.) | Campagne teasing lancée — **le produit n'est pas publié** : affiches et démos, aucune ouverture |
 | **T-90 j** (nov.) | Comptes sociaux ouverts, contenu éducatif, appel aux créateurs fondateurs |
-| **T-60 j** (déc.) | Bêta fermée (200 personnes), premier concours |
-| **T-30 j** (janv.) | Annonce de la date, pré-ouverture, teasing du catalogue |
+| **T-60 j** (déc.) | **Ouverture aux clients fermés** (agences de com, écoles de design, créateurs sélectionnés) + premier concours |
+| **T-30 j** (janv.) | Annonce de la date, pré-inscriptions, teasing du catalogue |
 | **T-7 j** | Compte à rebours, WhatsApp live, derniers créateurs fondateurs |
-| **J** (5 fév.) | Ouverture publique : e-mail à la liste, posts sur tous les canaux, démo en direct |
+| **J** (jeudi 4 fév. 2027) | **Publication** : ouverture publique, e-mail à la liste, posts sur tous les canaux, démo en direct |
 | **J+7** | Premiers chiffres publiés (« X F versés aux créateurs cette semaine ») |
 
 ### 8.3 Le budget indicatif (4 mois) 💡
@@ -508,8 +515,8 @@ impression.
 
 ## 10. Les 10 décisions à prendre maintenant
 
-1. **Fixer la date de lancement** (hypothèse retenue : 5 février 2027) et la version
-   « douce » associée.
+1. **Fixer la date de publication** — retenue : **jeudi 4 février 2027** — et la version
+   « douce » associée (ouverture par vagues si le compte marchand tarde).
 2. **Ouvrir le compte marchand Paystack** — c'est le chemin critique, pas le marketing.
    Délai à demander à l'opérateur, pas à estimer.
 3. **Créer les comptes sociaux** avec le nom, la bio, le lien et la charte dès la semaine 1.

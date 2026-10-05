@@ -1,14 +1,27 @@
 # Baobart — Dossier marketing
 
-> Trois documents, trois casquettes, produits le **5 octobre 2026** en vue du
-> **lancement du 5 février 2027**.
+> Trois documents, trois casquettes, produits le **5 octobre 2026** en vue de la
+> **publication du jeudi 4 février 2027**.
 
 | # | Document | Casquette | Ce qu'on y trouve |
 |---|---|---|---|
 | 1 | [`01-AUDIT-TECHNIQUE-PRODUIT.md`](01-AUDIT-TECHNIQUE-PRODUIT.md) | 🧑‍💻 **Développeur** | L'état réel du dépôt : architecture, ce qui est construit et éprouvé, ce qui bloque une ouverture publique, la dette assumée, les actifs marketing déjà disponibles |
 | 2 | [`02-BILAN-MARKETING.md`](02-BILAN-MARKETING.md) | 🎩 **Chef marketing d'agence** | Marché ouest-africain chiffré, concurrence, positionnement, **SWOT**, **4 personas**, les 5 avantages concurrentiels, objectifs/KPI, stratégie et budget de lancement |
-| 3 | [`03-CALENDRIER-CONTENU-4-MOIS.md`](03-CALENDRIER-CONTENU-4-MOIS.md) | 📱 **Expert marketing digital** | Le calendrier de contenu semaine par semaine, du 5 octobre au 5 février : 4 phases, 18 semaines, brief créatif complet basé sur le Sticker System, plan par plateforme, tableau de bord KPI |
-| — | [`calendrier-contenu.csv`](calendrier-contenu.csv) | 📊 **Outil** | Le même calendrier en 18 lignes × 16 colonnes, à importer dans un tableur ou un outil de planification |
+| 3 | [`03-CALENDRIER-CONTENU-4-MOIS.md`](03-CALENDRIER-CONTENU-4-MOIS.md) | 📱 **Expert marketing digital** | Le calendrier de contenu : 4 phases, 18 semaines, **alternance image / vidéo**, règles du teasing, brief créatif, plan par plateforme, tableau de bord KPI |
+| — | [`calendrier-contenu.csv`](calendrier-contenu.csv) | 📊 **Outil** | Le calendrier en 18 lignes × 16 colonnes, à importer dans un tableur ou un outil de planification |
+| — | [`CREAS/`](CREAS/) | 🎨 **Production** | Les posts, un par un, prêts à produire. Le premier : [`2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md) |
+
+---
+
+## Les 5 règles de la campagne (décidées le 05/10/2026)
+
+| # | Règle |
+|---|---|
+| **R1** | **On ne publie pas Baobart avant le 4 février 2027.** Aucun accès public, aucun lien vers la plateforme, aucune annonce d'ouverture. |
+| **R2** | **Les publications alternent image et vidéo.** Image (affiche, flyer) → vidéo (démo d'une fonctionnalité) → image. Jamais deux fois de suite le même format. |
+| **R3** | **Les vidéos sont des démos de fonctionnalités** : écran filmé, 15-45 s, sous-titrées. |
+| **R4** | **En novembre 2026, ouverture aux clients fermés** (agences de com, écoles de design, créateurs sélectionnés). Leurs retours deviennent du contenu de campagne. |
+| **R5** | **La date de publication est le jeudi 4 février 2027.** |
 
 ---
 
@@ -20,8 +33,8 @@ des 18 semaines du document 3 (§6).
 **Si tu dois décider** → les 10 décisions du document 2 (§10) et les 5 actions de la
 semaine 1 du document 3 (§11).
 
-**Si tu dois produire des créas** → le brief créatif du document 3 (§7) : palette,
-typographie, signatures visuelles, 12 gabarits, dimensions.
+**Si tu dois produire des créas** → le brief créatif du document 3 (§7) et le premier post
+déjà écrit dans [`CREAS/`](CREAS/).
 
 ## Les conventions d'écriture
 
@@ -40,3 +53,6 @@ Ces conventions viennent de `CLAUDE.md` : *distinguer ce qui est mesuré de ce q
    code est décrit tel qu'écrit, pas tel qu'exécuté le 05/10/2026.
 2. **Les personas sont construits, pas interviewés.** Les chiffres de marché sont publics
    et datés — à revérifier avant toute communication externe.
+3. **Le branding « Halo system » n'a pas pu être lu** (le PDF joint n'est pas arrivé dans
+   l'environnement de travail). Les directions artistiques sont donc construites sur le
+   *Sticker System* du dépôt, en attendant le document de marque définitif.

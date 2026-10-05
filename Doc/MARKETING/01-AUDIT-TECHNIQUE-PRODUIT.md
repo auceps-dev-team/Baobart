@@ -272,7 +272,6 @@ C'est le résultat le plus utile de cet audit pour la suite :
 
 **❓ Question clé restée ouverte**
 
-La date de lancement est-elle **le 5 février 2027** (4 mois jour pour jour après
-aujourd'hui) ou une autre date de février ? Le calendrier de contenu est bâti sur
-l'hypothèse **5 février 2027** ; si la vraie date est le 19 ou le 26, la phase 4 se
-décale sans changer sa structure.
+La date de publication est-elle bien **le jeudi 4 février 2027** ? Le calendrier de
+contenu est bâti sur cette hypothèse ; si la vraie date est le 11, le 18 ou le 25, la
+phase 4 se décale sans changer sa structure.

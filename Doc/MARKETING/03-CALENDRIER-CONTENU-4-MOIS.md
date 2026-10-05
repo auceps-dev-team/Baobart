@@ -1,12 +1,48 @@
-# Calendrier de contenu — 4 mois jusqu'au lancement
+# Calendrier de contenu — 4 mois jusqu'à la publication
 
 > **Casquette 3/3 — expert marketing digital.**
-> De **aujourd'hui (lundi 5 octobre 2026)** à la **date de lancement : vendredi 5 février 2027**.
+> De **aujourd'hui (lundi 5 octobre 2026)** à la **date de publication : jeudi 4 février 2027**.
 >
-> 💡 **Hypothèse de date** : 4 mois jour pour jour. Si le lancement est le 12, le 19 ou le
-> 26 février, la phase 4 se décale d'autant — sa structure ne change pas.
+> **Hypothèse de date** : la publication a lieu le **jeudi 4 février 2027** (dernier jour
+> de la 18ᵉ semaine). Si la date glisse, la phase 4 se décale d'autant — sa structure ne
+> change pas.
 >
 > **Base :** `01-AUDIT-TECHNIQUE-PRODUIT.md` + `02-BILAN-MARKETING.md`
+
+---
+
+## 0. Les 5 règles de cette campagne (mises à jour le 05/10/2026)
+
+Ces règles prévalent sur tout le reste du document.
+
+| # | Règle | Ce que ça change concrètement |
+|---|---|---|
+| **R1** | **On ne publie pas Baobart avant le 4 février 2027.** | Aucun accès public, aucun lien d'inscription à la plateforme, aucune annonce d'ouverture. Le produit reste **fermé** jusqu'au jour J. |
+| **R2** | **Les publications alternent image et vidéo.** | Une publication sur deux est une **image** (affiche, flyer), la suivante est une **vidéo** (démo d'une fonctionnalité). Jamais deux fois de suite le même format sur le canal principal. |
+| **R3** | **Les vidéos sont des démos de fonctionnalités.** | Écran filmé, 15-45 s, sous-titrées. Elles montrent le produit **en train de fonctionner**, sans le vendre. |
+| **R4** | **En novembre 2026, ouverture à des clients fermés.** | Agences de com, écoles de design, créateurs sélectionnés. Leurs retours **deviendront du contenu** de campagne (témoignages, « ce qu'on a corrigé », chiffres). |
+| **R5** | **La date de publication est le 4 février 2027.** | Tout le compte à rebours de janvier est calibré sur le jeudi 4 février, pas le 5. |
+
+### 0.1 L'alternance image / vidéo, en pratique
+
+Deux types de semaines, qui alternent :
+
+| | Semaine **A** | Semaine **B** |
+|---|---|---|
+| **Lundi** | 🖼️ **Image** (affiche) | 🎬 **Vidéo** (démo) |
+| **Mardi** | LinkedIn (article) | LinkedIn (article) |
+| **Mercredi** | 🎬 **Vidéo** (démo) | 🖼️ **Image** (flyer) |
+| **Jeudi** | WhatsApp (coulisses) | WhatsApp (coulisses) |
+| **Vendredi** | 🖼️ **Image** (chiffre / micro-moment) | 🎬 **Vidéo** (démo) |
+| **Samedi** | Republication du meilleur | Republication du meilleur |
+| **Dimanche** | Question ouverte | Question ouverte |
+
+**Pourquoi alterner :** l'image installe la marque (mémorisation, style), la vidéo prouve
+le produit (crédibilité). Un fil fait seulement d'images devient une galerie ; un fil fait
+seulement de vidéos devient une démo. L'alternance donne les deux sans fatiguer personne.
+
+**La contrainte R1 s'applique aux deux formats :** une affiche teasing ne nomme pas le
+produit ; une démo montre l'interface sans le logo ni le nom (voir §7.6).
 
 ---
 
@@ -25,9 +61,9 @@ ont déjà envie d'entrer.
 | Phase | Dates | Durée | Nom | Objectif | Indicateur de succès |
 |---|---|---|---|---|---|
 | **P1** | 5 oct → 1 nov | 4 sem. | **Le studio s'installe** | Exister. Poser la voix, le style, les comptes | 1 500 abonnés, 400 inscriptions liste d'attente |
-| **P2** | 2 nov → 6 déc | 5 sem. | **Le vrai matériel** | Éduquer + recruter les 100 créateurs fondateurs | 5 000 abonnés, 2 000 inscriptions, 100 fondateurs |
-| **P3** | 7 déc → 3 jan | 4 sem. | **La communauté s'échauffe** | Engagement, UGC, concours (en absorbant le creux de décembre) | 1 500 contenus générés, 200 participants concours |
-| **P4** | 4 jan → 5 fév | 5 sem. | **Le compte à rebours** | Convertir. Inscriptions, abonnés, ouverture | 6 000 inscriptions, 400 créateurs, 150 abonnés payants |
+| **P2** | 2 nov → 6 déc | 5 sem. | **Le vrai matériel** | Éduquer + recruter les 100 créateurs fondateurs + **ouvrir aux clients fermés (nov.)** | 5 000 abonnés, 2 000 inscriptions, 100 fondateurs, 20 clients fermés actifs |
+| **P3** | 7 déc → 3 jan | 4 sem. | **La communauté s'échauffe** | Engagement, UGC, concours, **transformer les retours bêta en contenu** | 1 500 contenus générés, 200 participants concours |
+| **P4** | 4 jan → 4 fév | 5 sem. | **Le compte à rebours** | Convertir. Inscriptions, abonnés, **publication le jeudi 4 février** | 6 000 inscriptions, 400 créateurs, 150 abonnés payants |
 
 ### 1.3 Les règles d'or du calendrier
 
@@ -46,15 +82,10 @@ ont déjà envie d'entrer.
 
 ### 1.4 Le rythme hebdomadaire type
 
-| Jour | TikTok / Reels | Instagram (feed) | LinkedIn | WhatsApp / communauté |
-|---|---|---|---|---|
-| **Lundi** | Éducation (30-45 s) | Carrousel éducation | — | Rappel concours / actu |
-| **Mardi** | — | — | Article / data | — |
-| **Mercredi** | Portrait créatif (15-20 s) | Post portrait / avant-après | — | Témoignage |
-| **Jeudi** | — | — | — | Coulisses / coulisse du studio |
-| **Vendredi** | Tendance / humour créatif | Post chiffre ou micro-moment | Post B2B | Récap de la semaine |
-| **Samedi** | Republication du meilleur | Story : pack gratuit | — | — |
-| **Dimanche** | — | — | — | Question ouverte |
+Le détail jour par jour est en **§0.1** (alternance image / vidéo). En résumé : trois
+publications principales par semaine sur Instagram et TikTok (lundi, mercredi, vendredi),
+une publication LinkedIn le mardi, un message WhatsApp le jeudi, une question ouverte le
+dimanche.
 
 ---
 
@@ -69,19 +100,21 @@ sait encore que Baobart existe ; dans 4 semaines, 1 500 personnes doivent savoir
 | | |
 |---|---|
 | **Objectif** | Exister. Premiers 300 abonnés, 100 inscriptions liste d'attente |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « Pourquoi on construit Baobart » |
 
 | Jour | Canal | Contenu | Format / créa | CTA |
 |---|---|---|---|---|
-| Lun | Tous | **Post fondateur** : le manifeste, en 6 lignes, signé par l'équipe | Carrousel 6 slides, lavande + encre, Archivo Black | « Suis-nous, on ouvre en février » |
+| Lun | Tous | **Post n°1 — l'affiche-manifeste.** *« Et si tu pouvais vendre tes créations depuis ton téléphone ? »* + date 04.02.2027. **Produit non ouvert, aucun lien vers la plateforme.** | Affiche 1080×1350, Archivo Black, lavande/encre, pastille blanche. Brief complet : [`CREAS/2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md) | « Suis-nous, on publie le 4 février » |
 | Mar | LinkedIn | « Le marché des ressources créatives en Afrique de l'Ouest, en 4 chiffres » | Article 600 mots + 1 visuel data (Space Mono) | S'abonner à la page |
-| Mer | TikTok / Reels | « 3 problèmes d'un créatif à Dakar » (30 s, texte à l'écran) | Vidéo verticale, stickers animés | Commenter « moi aussi » |
+| Mer | TikTok / Reels | **Vidéo de démo n°1** : une ressource est déposée, publiée, apparaît dans le flux, reçoit un like. 30-40 s, sous-titrée, sans voix off, sans URL visible. | Écran filmé (captions réelles du produit), stickers animés | Commenter « moi aussi » |
 | Jeu | WhatsApp | Message de bienvenue dans la chaîne + lien liste d'attente | Texte court + image pastille | Rejoindre la liste |
-| Ven | Instagram | Le logo, la palette, la typo : « à quoi ressemble un studio » | Post unique + carrousel design system | Enregistrer |
-| Sam | Story | Sondage : « Tu vends déjà tes créations ? » | Story sticker sondage | Répondre |
+| Ven | Instagram | **Post n°3 — image** : « à quoi ressemble un studio » — la palette, la typo, le style, en 1 carrousel | Carrousel design system, lavande + encre | Enregistrer |
+| Sam | Story | Sondage : « Tu vends déjà tes créations en ligne ? » | Story sticker sondage | Répondre |
 | Dim | Communauté | Question ouverte : « C'est quoi ton plus gros frein pour vendre en ligne ? » | Texte | Répondre |
 
-**Créas à produire :** manifeste (1 carrousel), 3 Reels, 1 visuel data, 1 post design.
+**Créas à produire :** 1 affiche-manifeste, 1 vidéo de démo, 1 carrousel design system,
+1 visuel data LinkedIn.
 **KPI de la semaine :** 300 abonnés · 100 inscriptions · 1 commentaire pour 10 vues minimum.
 
 ### Semaine 2 — 12-18 octobre · Le paiement, premier argument
@@ -89,6 +122,7 @@ sait encore que Baobart existe ; dans 4 semaines, 1 500 personnes doivent savoir
 | | |
 |---|---|
 | **Objectif** | Installer le différenciateur n°1. 500 abonnés cumulés |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | « Vendre en FCFA, sans compte à l'étranger » |
 
 - **Lundi — éducation :** « Pourquoi tu ne peux pas encaisser depuis l'étranger (et
@@ -106,6 +140,7 @@ sait encore que Baobart existe ; dans 4 semaines, 1 500 personnes doivent savoir
 | | |
 |---|---|
 | **Objectif** | Faire désirer le produit. 800 abonnés, 250 inscriptions |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « Voici à quoi ressemble le studio » |
 
 - **Lundi :** carrousel « Le feed en 6 écrans » (captures du produit réel).
@@ -122,6 +157,7 @@ sait encore que Baobart existe ; dans 4 semaines, 1 500 personnes doivent savoir
 | | |
 |---|---|
 | **Objectif** | 1 500 abonnés, 400 inscriptions, 30 candidatures « fondateurs » |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | « Les 100 premiers » |
 
 - **Lundi :** carrousel « Ce que ça change d'être dans les 100 premiers » (badge Fondateur,
@@ -138,14 +174,30 @@ nettoyé (3 visuels filigranés).
 
 ## 3. Phase 2 — « Le vrai matériel » (2 novembre → 6 décembre)
 
-**Mission :** éduquer le marché et remplir le catalogue. C'est la phase la plus dense :
-5 semaines, dont la dernière prépare la bêta.
+**Mission :** éduquer le marché, remplir le catalogue, et **ouvrir aux clients fermés**
+(règle R4). C'est la phase la plus dense : 5 semaines, dont la dernière prépare la bêta.
+
+> ### 🔒 Le jalon de novembre : les clients fermés
+>
+> **Semaine 9 (30 nov. → 6 déc.)**, la plateforme s'ouvre à un premier cercle :
+>
+> | Cercle | Qui | Combien | Ce qu'on en tire |
+> |---|---|---|---|
+> | **Agences de communication** | 5-8 agences (Dakar, Abidjan) | 3-5 comptes Studio chacune | Tests en conditions réelles, briefs vrais, retours sur les licences et les espaces d'équipe |
+> | **Écoles de design** | 3-5 établissements | 1 compte école + accès étudiants | Volume d'usage, retours pédagogiques, futurs ambassadeurs |
+> | **Créateurs sélectionnés** | Les 100 fondateurs + 50 autres | ~150 comptes | Dépôts de ressources, retours sur le parcours vendeur |
+>
+> **La règle d'or de ce jalon : chaque retour devient du contenu.** Un correctif issu d'un
+> retour se transforme en publication (« Vous l'avez dit, on l'a corrigé »), un chiffre
+> d'usage se transforme en visuel data, un témoignage signé se transforme en post. Sans
+> ça, la bêta fermée ne sert qu'au produit — pas à la campagne.
 
 ### Semaine 5 — 2-8 novembre · Le comparatif
 
 | | |
 |---|---|
 | **Objectif** | 2 200 abonnés, 700 inscriptions, 50 fondateurs |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « Image générique vs matériel local » |
 
 - **Lundi :** carrousel avant/après — la même publicité avec un stock générique, puis
@@ -161,6 +213,7 @@ nettoyé (3 visuels filigranés).
 | | |
 |---|---|
 | **Objectif** | 2 800 abonnés, 1 000 inscriptions |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | « Comment fixer le prix d'un pack » |
 
 - **Lundi :** carrousel éducation « Comment fixer le prix d'un pack (testé par nos
@@ -175,6 +228,7 @@ nettoyé (3 visuels filigranés).
 | | |
 |---|---|
 | **Objectif** | 3 500 abonnés, 1 300 inscriptions, 80 fondateurs |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | Portraits de créatifs (série récurrente) |
 
 - **Série « Dans l'atelier de… »** : 2 Reels cette semaine (un illustrateur, un
@@ -190,6 +244,7 @@ nettoyé (3 visuels filigranés).
 | | |
 |---|---|
 | **Objectif** | 4 200 abonnés, 1 600 inscriptions, 100 fondateurs atteints |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | « Ton travail reste ton travail » (protection anti-IA) |
 
 - **Lundi :** carrousel « Ce que l'IA fait à ton travail — et ce qu'on fait contre ».
@@ -201,22 +256,29 @@ nettoyé (3 visuels filigranés).
 - **Dimanche :** clôture des candidatures « Créateurs fondateurs » + annonce des
   sélectionnés.
 
-### Semaine 9 — 30 novembre → 6 décembre · Bêta fermée
+### Semaine 9 — 30 novembre → 6 décembre · Les clients fermés entrent
 
 | | |
 |---|---|
-| **Objectif** | 5 000 abonnés, 2 000 inscriptions, 200 bêta-testeurs |
-| **Thème** | « Les 200 premiers entrent » |
+| **Objectif** | 5 000 abonnés, 2 000 inscriptions, **20 clients fermés actifs** (agences + écoles + créateurs) |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
+| **Thème** | « Les premiers vrais clients sont dedans » |
 
-- **Lundi :** carrousel « La bêta est ouverte : ce que les 200 premiers peuvent faire ».
-- **Mercredi :** Reel de la bêta en action (flouté si nécessaire) — « premières
-  ressources déposées ».
-- **Vendredi :** bilan mois 2, chiffres réels + remerciements nominaux aux fondateurs.
-- **Newsletter n°2** (mardi) : « La bêta, les premiers retours, ce qu'on corrige ».
+- **Lundi (🖼️ image) :** affiche « On a ouvert à nos premiers clients fermés » — le
+  nombre, pas les noms (sauf accord).
+- **Mercredi (🎬 vidéo) :** démo d'une fonctionnalité **issue d'un retour client** —
+  « Vous l'avez demandé, on l'a fait. »
+- **Vendredi (🖼️ image) :** bilan mois 2, chiffres réels + remerciements nominaux aux
+  fondateurs et aux premiers clients fermés.
+- **Newsletter n°2** (mardi) : « Ce que nos premiers clients nous ont appris » — la
+  newsletter la plus importante de la campagne, elle prépare tout le contenu de janvier.
+- **Toute la semaine :** collecte structurée des retours (formulaire de 5 questions +
+  un appel de 20 min par agence).
 
 **Prérequis produit de la P2 :** 🔴 **compte marchand Paystack demandé** (chemin critique)
 · environnement de bêta stable · flux de candidature fondateurs · formulaire de liste
-d'attente avec collecte e-mail **et** WhatsApp.
+d'attente avec collecte e-mail **et** WhatsApp · **accès fermés provisionnés** (rôles,
+licences, quotas adaptés aux écoles et aux agences).
 
 ---
 
@@ -231,6 +293,7 @@ avec **plus** de contenu généré par les utilisateurs que les 2 mois précéde
 | | |
 |---|---|
 | **Objectif** | 6 000 abonnés, 500 participations au concours |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | **Défi #1 — « Un motif, une histoire »** |
 
 - **Lundi :** annonce du concours : « Dessine un motif inspiré de ta ville. Prix :
@@ -245,6 +308,7 @@ avec **plus** de contenu généré par les utilisateurs que les 2 mois précéde
 | | |
 |---|---|
 | **Objectif** | 7 000 abonnés, 2 500 inscriptions (pic de trafic de fin d'année) |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « Le cadeau qui sert toute l'année » |
 
 - **Lundi :** carrousel « 10 packs gratuits à récupérer avant janvier » — le gratuit
@@ -258,6 +322,7 @@ avec **plus** de contenu généré par les utilisateurs que les 2 mois précéde
 | | |
 |---|---|
 | **Objectif** | Maintenir. Pas de pression commerciale |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | « L'année des créatifs africains, en 10 images » |
 
 - **Lundi :** carrousel best-of — les 10 meilleures ressources vues cette année
@@ -271,6 +336,7 @@ avec **plus** de contenu généré par les utilisateurs que les 2 mois précéde
 | | |
 |---|---|
 | **Objectif** | 8 000 abonnés, 3 000 inscriptions |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « Ton 2027 de créateur » |
 
 - **Lundi :** carrousel « 3 résolutions de créatif pour 2027 » (publier, fixer un prix,
@@ -286,7 +352,7 @@ démo définitif.
 
 ---
 
-## 5. Phase 4 — « Le compte à rebours » (4 janvier → 5 février)
+## 5. Phase 4 — « Le compte à rebours » (4 janvier → 4 février)
 
 **Mission :** convertir. Chaque semaine a un objectif chiffré et un seul message. C'est
 ici que la publicité payante est autorisée (💡 budget le plus élevé de la campagne).
@@ -296,10 +362,11 @@ ici que la publicité payante est autorisée (💡 budget le plus élevé de la 
 | | |
 |---|---|
 | **Objectif** | 9 000 abonnés, 3 500 inscriptions |
-| **Thème** | « Le 5 février, on ouvre » |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
+| **Thème** | « Le jeudi 4 février, on publie » |
 
 - **Lundi :** **annonce officielle de la date** — carrousel + Reel + post LinkedIn.
-  Une seule idée : la date. *« Le 5 février 2027, Baobart ouvre. Inscris-toi, tu entres
+  Une seule idée : la date. *« Jeudi 4 février 2027, on publie. Inscris-toi, tu entres
   dans les premiers. »*
 - **Mardi (LinkedIn) :** « Pourquoi une marketplace ouest-africaine, et pourquoi
   maintenant » — l'article fondateur B2B, à faire circuler auprès des agences.
@@ -314,6 +381,7 @@ ici que la publicité payante est autorisée (💡 budget le plus élevé de la 
 | | |
 |---|---|
 | **Objectif** | 10 500 abonnés, 4 200 inscriptions, 200 créateurs actifs |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « Ce que tu trouves à l'intérieur » |
 
 - **Série quotidienne « Une fonctionnalité, un jour »** (5 jours) : le feed · les
@@ -321,13 +389,14 @@ ici que la publicité payante est autorisée (💡 budget le plus élevé de la 
   5 slides maximum.
 - **Mercredi :** Reel « 60 secondes pour comprendre Baobart » — la vidéo à repartager.
 - **Vendredi (LinkedIn) :** « Les licences, expliquées à un client » — pour les agences.
-- **WhatsApp :** « Il reste 3 semaines ».
+- **WhatsApp :** « Il reste 3 semaines » (publication le jeudi 4 février).
 
 ### Semaine 16 — 18-24 janvier · Le catalogue
 
 | | |
 |---|---|
 | **Objectif** | 12 000 abonnés, 5 000 inscriptions, 300 créateurs |
+| **Alternance** | Semaine **B** — 🎬 vidéo lundi · 🖼️ image mercredi · 🎬 vidéo vendredi |
 | **Thème** | « Les premiers packs sont là » |
 
 - **Lundi :** « Les 100 premiers packs de Baobart » — galerie des ressources des
@@ -343,29 +412,32 @@ ici que la publicité payante est autorisée (💡 budget le plus élevé de la 
 | | |
 |---|---|
 | **Objectif** | 14 000 abonnés, 5 500 inscriptions |
+| **Alternance** | Semaine **A** — 🖼️ image lundi · 🎬 vidéo mercredi · 🖼️ image vendredi |
 | **Thème** | « J-10 » |
 
-- **Lundi :** carrousel « Dans 10 jours » — les 10 raisons d'être là le 5 février.
+- **Lundi :** carrousel « Dans 10 jours » — les 10 raisons d'être là le jeudi 4 février.
 - **Mercredi :** **WhatsApp live / Instagram live** — « Comment vendre ton premier
   pack », 30 min, avec 2 créateurs fondateurs. rediffusion en Reel.
-- **Vendredi :** « J-4 » — rappel + lien de pré-inscription mis en avant partout.
+- **Vendredi :** « J-6 » — rappel + lien de pré-inscription mis en avant partout.
 - **Dimanche :** teasing de l'événement de lancement (lieu, heure, lien du direct).
 
-### Semaine 18 — 1-5 février · LANCEMENT 🎉
+### Semaine 18 — 1-4 février · PUBLICATION 🎉 (jeudi 4 février)
 
-| Jour | Contenu | Canal |
-|---|---|---|
-| **Lun 1ᵉʳ** | « J-4 » — le dernier rappel. *« Ce vendredi, on ouvre. »* | Tous |
-| **Mar 2** | Coulisses : l'équipe prépare l'ouverture (story + Reel) | Instagram, TikTok |
-| **Mer 3** | « J-2 » — 3 créateurs fondateurs expliquent pourquoi ils seront là | Reels + LinkedIn |
-| **Jeu 4** | « Demain. » — un seul mot, une seule image, le logo sur jaune | Tous |
-| **Ven 5 — J** | **Ouverture.** E-mail à toute la liste · post sur tous les canaux · démo en direct à 18 h · événement physique (Abidjan ou Dakar) · remerciements nominaux aux 100 fondateurs | Tous |
-| **Sam 6** | « Les premières heures, en chiffres » (même petits) | Story + LinkedIn |
-| **Dim 7** | « 🎉 Encaissé ! » — le premier micro-moment réel (📖 §2.5 de la charte) | Tous |
+> Le produit n'est toujours pas ouvert au public avant le jeudi 4 février à 18 h (règle R1).
+
+| Jour | Contenu | Format | Canal |
+|---|---|---|---|
+| **Lun 1ᵉʳ** | « J-3 » — le dernier rappel. *« Jeudi, on publie. »* | 🖼️ Image | Tous |
+| **Mar 2** | Coulisses : l'équipe prépare la publication (story + Reel) | 🎬 Vidéo | Instagram, TikTok |
+| **Mer 3** | « J-1 » — 3 créateurs fondateurs expliquent pourquoi ils seront là jeudi | 🎬 Vidéo | Reels + LinkedIn |
+| **Jeu 4 — JOUR J** | **Publication.** E-mail à toute la liste · post sur tous les canaux · démo en direct à 18 h · événement physique (Abidjan ou Dakar) · remerciements nominaux aux 100 fondateurs et aux clients fermés | 🖼️ Image + 🎬 Vidéo | Tous |
+| **Ven 5** | « Les premières heures, en chiffres » (même petits) | 🖼️ Image | Story + LinkedIn |
+| **Sam 6** | « 🎉 Encaissé ! » — le premier micro-moment réel (📖 §2.5 de la charte) | 🖼️ Image | Tous |
 
 **Prérequis produit de la P4 :** 🔴 **paiement en production** (compte marchand actif) ·
 versements testés · support prêt (réponse sous 48 h, 📖 charte §5) · charge et monitoring ·
-équipe de modération mobilisée le jour J.
+équipe de modération mobilisée le jour J · **les clients fermés prévenus 48 h avant**
+(ils doivent être les premiers servis, pas les derniers surpris).
 
 ---
 
@@ -381,16 +453,16 @@ versements testés · support prêt (réponse sous 48 h, 📖 charte §5) · cha
 | S6 | 9-15 nov. | P2 | Le prix | Éducation, pilier SEO |
 | S7 | 16-22 nov. | P2 | Dans l'atelier | Portraits, preuve sociale |
 | S8 | 23-29 nov. | P2 | Shield | Sujet à partages |
-| S9 | 30 nov.-6 déc. | P2 | Bêta fermée | 200 testeurs |
+| S9 | 30 nov.-6 déc. | P2 | Clients fermés | Agences, écoles, créateurs |
 | S10 | 7-13 déc. | P3 | Défi #1 | 500 participations |
 | S11 | 14-20 déc. | P3 | Le cadeau utile | Pic d'inscriptions |
 | S12 | 21-27 déc. | P3 | Best-of | Respiration, production de janvier |
 | S13 | 28 déc.-3 jan. | P3 | Ton 2027 | Relance |
-| S14 | 4-10 jan. | P4 | La date | Annonce + paid |
+| S14 | 4-10 jan. | P4 | La date | Annonce de la date du 4 février + paid |
 | S15 | 11-17 jan. | P4 | Une fonction par jour | Compréhension |
 | S16 | 18-24 jan. | P4 | Les premiers packs | Catalogue réel |
 | S17 | 25-31 jan. | P4 | J-10 | Live, conversion |
-| S18 | 1-5 fév. | P4 | **Lancement** | Ouverture |
+| S18 | 1-4 fév. | P4 | **Publication** (jeudi 4 fév.) | Ouverture publique |
 
 ---
 
@@ -469,6 +541,34 @@ reste.
   — les références de composition.
 - Logo : `Baobart Design/uploads/Baobart logo refonte.svg` + variantes
   `public/img/baobab-{orange,yellow,white,ink}.svg`.
+- `Baobart Design/uploads/screencapture-baobart-auceps-digital-agency-*.png` — **26 captures
+  d'écran du produit réel** (explorateur, tableau de bord, jobs, sponsoriser, profil
+  vendeur, téléchargements). C'est la matière première des vidéos de démo (règle R3).
+
+### 7.6 Les règles du teasing (R1) appliquées aux créas
+
+Tant que la date de publication n'est pas passée, **aucune créa ne doit donner l'impression
+que le produit est ouvert**. Voici la frontière, ligne par ligne :
+
+| Élément | ✅ Autorisé avant le 4 février | ❌ Interdit avant le 4 février |
+|---|---|---|
+| **Le nom de la marque** | Peut apparaître (le compte existe, on le suit) | Ne pas écrire « disponible », « en ligne », « essaye maintenant » |
+| **Le produit à l'écran** | Interface filmée, fonctionnalités réelles, souris qui bouge | Aucun lien cliquable vers la plateforme, aucun bouton « S'inscrire » |
+| **Les chiffres** | Ceux de la communauté (abonnés, retours, participations) | Aucun chiffre de vente, aucun revenu créateur tant qu'il n'est pas réel |
+| **Le vocabulaire** | « On construit », « on prépare », « ce qu'on est en train de faire » | « Nouveau », « lancé », « enfin disponible » |
+| **Les captures d'écran** | Produit réel, y compris les écrans finis | URL visible dans la barre d'adresse, vrais noms de clients |
+| **L'appel à l'action** | « Suis-nous », « Dis-nous ce que tu en penses », « Inscris-toi à la liste » | « Ouvre un compte », « Dépose ton premier fichier » |
+
+**Le test en trois questions** avant de publier une créa :
+1. Est-ce que quelqu'un qui la voit croit qu'il peut utiliser le produit aujourd'hui ?
+2. Est-ce que la créa promet quelque chose qui n'existe pas encore ?
+3. Est-ce que le CTA mène à un endroit qui existe vraiment ?
+
+Si la réponse à l'une des trois est oui, la créa ne passe pas.
+
+**Exception utile :** les **vidéos de démo** peuvent montrer le produit en train de
+fonctionner sans rien vendre. C'est même le format le plus efficace du teasing : il prouve
+que quelque chose de réel existe, sans ouvrir la porte.
 
 ---
 
@@ -510,15 +610,17 @@ dont 1 M FCFA de publicité payante concentrée en phase 4).
 
 ## 10. Le tableau de bord à regarder chaque lundi
 
-| Indicateur | Source | Cible S4 | Cible S9 | Cible S13 | Cible S18 |
+| Indicateur | Source | Cible S4 | Cible S9 | Cible S13 | Cible S18 (4 fév.) |
 |---|---|---|---|---|---|
 | Abonnés cumulés (tous canaux) | Plateformes | 1 500 | 5 000 | 8 000 | 14 000+ |
 | Inscriptions liste d'attente | Page d'attente | 400 | 2 000 | 3 000 | 6 000 |
 | Créateurs fondateurs | Formulaire | 30 | 100 | 120 | 100 (actifs) |
-| Ressources publiées (bêta) | Back-office | — | 50 | 200 | 400 |
+| Clients fermés actifs (agences + écoles) | Back-office | — | 20 | 25 | 30 |
+| Ressources publiées (accès fermé) | Back-office | — | 50 | 200 | 400 |
 | Taux d'engagement | Plateformes | > 3 % | > 3 % | > 2 % | > 3 % |
 | Participants au concours | Back-office | — | — | 500 | — |
 | Abonnés payants | Back-office | — | — | — | 150 |
+| Retours bêta transformés en contenu | Suivi campagne | — | 3 | 10 | 15 |
 
 **La règle de décision :** si un indicateur est **à moins de 70 % de sa cible deux semaines
 de suite**, on change le **format**, pas le message. Le message a été validé par la charte ;
@@ -530,8 +632,9 @@ le format, lui, s'apprend.
 
 1. **Créer les comptes** TikTok, Instagram, LinkedIn, la chaîne WhatsApp — même nom,
    même bio, même lien, photo de profil = le logo sur lavande.
-2. **Publier le manifeste** (lundi) avec le gabarit 1 et le gabarit 2.
+2. **Publier le post n°1 de lundi** — concept, texte et direction artistique complets dans
+   [`CREAS/2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md).
 3. **Ouvrir la page d'attente** et brancher la collecte e-mail + WhatsApp.
-4. **Écrire les 3 premiers Reels** et les tourner au téléphone — pas de production
-   audiovisuelle en phase 1.
+4. **Préparer la vidéo de mercredi** (première démo, 30 s) à partir des captures d'écran
+   réelles du produit.
 5. **Installer le tableau de bord KPI** (§10) et noter la ligne de départ à zéro.
