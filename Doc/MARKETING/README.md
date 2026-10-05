@@ -11,6 +11,7 @@
 | — | [`calendrier-contenu.csv`](calendrier-contenu.csv) | 📊 **Outil** | Le calendrier en 18 lignes × 16 colonnes, à importer dans un tableur ou un outil de planification |
 | — | [`CREAS/`](CREAS/) | 🎨 **Production** | Les posts, un par un, prêts à produire. Le premier est complet, maquette incluse : [`2026-10-05-post-01.md`](CREAS/2026-10-05-post-01.md) + [`2026-10-05-post-01-affiche.png`](CREAS/2026-10-05-post-01-affiche.png) |
 | 📐 | [`../DESIGN_SYSTEM_BAOBART.md`](../DESIGN_SYSTEM_BAOBART.md) | **Design system canonique** | Logo, couleurs, typographie, contours, ombres, composants, règles d'usage. **En cas de contradiction avec tout autre document, c'est celui-ci qui gagne** |
+| 🛠️ | [`CREAS/composer-logo.py`](CREAS/composer-logo.py) | **Outil** | Pose le logo officiel (rendu depuis `Baobart Design/img/baobab-ink.svg`) sur n'importe quelle affiche, et normalise en 1080 × 1350. **À passer avant chaque publication.** |
 
 ---
 

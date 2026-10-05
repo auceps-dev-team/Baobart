@@ -4,10 +4,14 @@
 > avant le 4 février 2027 — aucun accès, aucun lien vers la plateforme, aucune annonce
 > d'ouverture. La marque peut être nommée.
 >
-> **Quatre accroches, quatre directions.** La variante **A** est validée et déjà maquettée.
-> Les variantes **B**, **C** et **D** sont proposées ci-dessous, affiches en cours de
-> production. On en retient une pour lundi, les autres servent aux semaines suivantes —
-> et le test dit laquelle fonctionne.
+> **Quatre accroches, quatre directions.** Les quatre affiches sont produites et
+> conformes au design system — même logo officiel sur les quatre (voir §6). On retient
+> **A** pour lundi ; B, C et D servent aux semaines suivantes, et le test dit laquelle
+> fonctionne.
+>
+> **Les hashtags sont dans chaque texte**, et les règles qui les gouvernent au §5.
+> Une règle les domine toutes : aucun hashtag ne peut promettre l'ouverture de la
+> plateforme (📖 règle R1 de campagne).
 
 | Var. | Direction | Accroche | Affiche |
 |---|---|---|---|
@@ -26,6 +30,8 @@ chacun, **zéro émoji** dans les textes longs.
 
 ### Variante A — bénéfice
 
+**Hashtags** : #Baobart #CreateShareInspire #CreateursAfricains
+
 > Tu passes combien de temps à chercher le bon fichier pour un brief ?
 >
 > Combien de messages WhatsApp pour livrer un client ?
@@ -43,6 +49,8 @@ chacun, **zéro émoji** dans les textes longs.
 
 ### Variante B — frustration
 
+**Hashtags** : #Baobart #CreateShareInspire #ArtisansNumeriques
+
 > Trois semaines d'attente. Deux relances. Un virement qui n'est jamais arrivé.
 >
 > Si tu vends ton travail en Afrique de l'Ouest, tu connais cette histoire par cœur.
@@ -57,6 +65,8 @@ chacun, **zéro émoji** dans les textes longs.
 
 ### Variante C — chiffre
 
+**Hashtags** : #Baobart #CreateShareInspire #MobileMoney
+
 > 485 millions de comptes mobile money en Afrique de l'Ouest.
 >
 > Et toujours aucun endroit où un créatif peut publier son travail, le faire découvrir,
@@ -70,6 +80,8 @@ chacun, **zéro émoji** dans les textes longs.
 > Si tu crées, ou si tu achètes des créations : suis-nous. Tu seras là le premier jour.
 
 ### Variante D — manifeste
+
+**Hashtags** : #Baobart #CreateShareInspire #AfriqueCreative
 
 > Le studio partagé de l'Afrique créative.
 >
@@ -94,6 +106,8 @@ d'accroche courte, et une **question ouverte** plutôt qu'un appel à l'action m
 
 ### Variante A — bénéfice
 
+**Hashtags** : #Baobart #CreativeEconomy #AfricanCreatives
+
 > En Afrique de l'Ouest, un créatif sur deux vend déjà en ligne.
 > Presque aucun ne se fait payer dans sa monnaie.
 >
@@ -106,6 +120,8 @@ d'accroche courte, et une **question ouverte** plutôt qu'un appel à l'action m
 > concerne : on veut vous parler.
 
 ### Variante B — frustration
+
+**Hashtags** : #Baobart #CreativeEconomy #CreativeIndustries
 
 > « Je te fais le virement demain. »
 >
@@ -120,6 +136,8 @@ d'accroche courte, et une **question ouverte** plutôt qu'un appel à l'action m
 
 ### Variante C — chiffre
 
+**Hashtags** : #Baobart #CreativeEconomy #FinTech #MobileMoney
+
 > 485 millions de comptes mobile money en Afrique de l'Ouest.
 > Zéro marketplace où un créatif vend son travail en FCFA.
 >
@@ -131,6 +149,8 @@ d'accroche courte, et une **question ouverte** plutôt qu'un appel à l'action m
 > l'Ouest, on aimerait avoir votre lecture de cet écart.
 
 ### Variante D — manifeste
+
+**Hashtags** : #Baobart #CreativeEconomy #WestAfrica
 
 > Le studio partagé de l'Afrique créative.
 >
@@ -159,6 +179,7 @@ d'accroche courte, et une **question ouverte** plutôt qu'un appel à l'action m
 | Chiffres vrais uniquement | 485 M (source GSMA), date du 4 février 2027 |
 | **Aucune promesse de disponibilité** | Aucun « disponible », « essaye », « inscris-toi » |
 | Un seul appel à l'action | « Suis-nous » / « Suivez la page » / « on veut vous parler » |
+| **Trois hashtags, jamais plus** | 3 sur Facebook · 3 ou 4 sur LinkedIn, à la fin |
 
 ## 4. Le test à mener
 
@@ -177,13 +198,89 @@ direction de toute la campagne de novembre. Ce n'est pas celle qui fait le plus 
 
 ---
 
-## 5. Les deux corrections à porter sur la maquette B
+## 5. Les hashtags
 
-Relevées à la relecture du 05/10/2026 :
+### Le socle, commun aux deux canaux
 
-1. **Le titre s'écrit `TŌN`** — accent circonflexe parasite sur le O. Écrire **TON**.
-2. **L'écran du smartphone affiche un `€`** — à remplacer par un montant en FCFA
-   (`12 000 F`). Un symbole euro sur une affiche qui parle de francs CFA contredit le
-   message central de la campagne.
+| | |
+|---|---|
+| **#Baobart** | Le nom de la marque. Il est sur chaque publication, sans exception. |
+| **#CreateShareInspire** | La baseline officielle, en hashtag. Ancre la marque. |
 
-Tout le reste de la variante B est conforme au design system.
+### Les hashtags de direction, un par variante
+
+| Var. | Facebook / Instagram | LinkedIn |
+|---|---|---|
+| **A** bénéfice | #CreateursAfricains | #AfricanCreatives |
+| **B** frustration | #ArtisansNumeriques | #CreativeIndustries |
+| **C** chiffre | #MobileMoney | #FinTech + #MobileMoney |
+| **D** manifeste | #AfriqueCreative | #WestAfrica |
+
+### Les cinq règles
+
+1. **Trois hashtags sur Facebook, quatre au maximum sur LinkedIn.** Au-delà, la portée
+   organique baisse sur les deux réseaux. LinkedIn est un peu plus tolérant parce que ses
+   hashtags sont suivables comme des fils d'actualité.
+2. **Aucun hashtag ne peut promettre l'ouverture** (📖 règle **R1**). Sont donc interdits :
+   `#Disponible`, `#Nouveau`, `#EnLigne`, `#Maintenant`, `#Essayez`, `#OuvronsEnsemble`.
+   `#MobileMoney` et `#CreateursAfricains` parlent du marché, pas de notre disponibilité —
+   ils passent. `#VenteEnLigne` non : « en ligne » est un mot interdit.
+3. **Jamais de hashtag de concurrence.** Ni `#Gumroad`, ni `#Envato`, ni `#Selar`. On ne
+   prête pas notre audience aux autres.
+4. **Le hashtag ne remplace jamais l'appel à l'action.** « Suis-nous » reste la seule
+   demande ; les hashtags décrivent le sujet, ils n'ordonnent rien.
+5. **Sur LinkedIn, les hashtags vont à la fin**, sur leur propre ligne. Sur Facebook, ils
+   terminent la dernière ligne de texte. Sur Instagram et WhatsApp, trois maximum aussi
+   (📖 calendrier §7.3).
+
+### Pourquoi ces hashtags-là
+
+Ils visent les trois communautés que la campagne doit rassembler d'ici février : les
+**créatifs** qui produisent, les **artisans** de l'économie numérique qui les entourent,
+et le **mobile money** qui est la colonne vertébrale du paiement en Afrique de l'Ouest.
+Aucun hashtag « gros volume » du type `#Art` ou `#Design` : noyés dans des millions de
+publications, ils ne ramènent personne.
+
+---
+
+## 6. Le logo, et pourquoi il est désormais posé par un script
+
+Relevé à la relecture des maquettes du 05/10/2026 : **l'arbre n'était pas le même d'une
+affiche à l'autre.** La génération automatique redessine le baobab à chaque image, et la
+silhouette dérive — celui de la variante D était carrément un autre arbre.
+
+C'est réglé. Le script [`composer-logo.py`](composer-logo.py) pose maintenant le **vrai**
+logo sur chaque affiche, en le rendant directement depuis le fichier vectoriel du dépôt :
+
+    Baobart Design/img/baobab-ink.svg
+
+Ce qu'il garantit, sur les quatre affiches et sur toutes les suivantes :
+
+- **le même arbre** — le tracé officiel, pas un redessin ;
+- **les mêmes proportions** — anneau noir de 2,5 px pour 38 px de diamètre, arbre de
+  26 px dans 33 px de diamètre intérieur (📖 `Doc/DESIGN_SYSTEM_BAOBART.md` §Logo) ;
+- **le même format** — 1080 × 1350, le 4:5 des réseaux sociaux. Les quatre affiches
+  avaient des tailles différentes à la génération ; elles sont maintenant homogènes.
+
+```
+$ python3 composer-logo.py 2026-10-05-post-01-affiche*.png
+2026-10-05-post-01-affiche.png      pastille Ø130 px  ->  1080x1350
+2026-10-05-post-01-affiche-B.png    pastille Ø120 px  ->  1080x1350
+2026-10-05-post-01-affiche-C.png    pastille Ø214 px  ->  1080x1350
+2026-10-05-post-01-affiche-D.png    pastille Ø161 px  ->  1080x1350
+```
+
+**Pour la production :** toute nouvelle affiche de la campagne passe par ce script avant
+d'être publiée. C'est la seule façon d'avoir un logo identique sur les dix-huit semaines.
+
+### Les deux corrections faites sur la variante B
+
+Relevées au tour précédent, désormais portées :
+
+1. **Le titre s'écrivait `TŌN`** — accent circonflexe parasite. L'affiche est régénérée :
+   c'est maintenant **TON**.
+2. **L'écran du smartphone affichait un `€`** — remplacé par **`12 000 F`**, en francs
+   CFA. Un symbole euro sur une affiche qui parle de francs CFA contredisait le message
+   central de la campagne.
+
+Les variantes A, C et D n'avaient aucune erreur de texte.

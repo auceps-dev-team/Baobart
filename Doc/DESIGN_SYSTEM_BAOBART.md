@@ -22,6 +22,8 @@
 | Élément | Spécification |
 |---|---|
 | **Pastille** | Cercle orange `#E2622C`, **contour noir** `#121212`, contenant la silhouette du baobab |
+| **Proportions** | Contour = **2,5 px** pour **38 px** de diamètre · baobab = **26 px** de large dans **33 px** de diamètre intérieur |
+| **Source du tracé** | `Baobart Design/img/baobab-ink.svg` — le vrai fichier, jamais un redessin |
 | **Mot** | `Baobart.` en **Archivo Black**, encre `#121212` |
 | **Point** | Le point final est **orange** `#E2622C` (c'est la signature : un point orange après le mot) |
 | **Baseline** | `CREATE. SHARE. INSPIRE.` en **Space Mono 700**, letter-spacing **+0,2 em**, **jamais sous 9 px** |
@@ -52,6 +54,21 @@
 ### Zone de protection
 
 **Une demi-largeur de pastille sur les quatre côtés.** Aucun élément ne s'y invite.
+
+### Poser le logo sur une maquette — l'outil officiel
+
+Toute affiche de la campagne reçoit son logo par le script
+[`Doc/MARKETING/CREAS/composer-logo.py`](../MARKETING/CREAS/composer-logo.py). Il rend le
+SVG officiel et pose la pastille aux proportions exactes ci-dessus, puis normalise
+l'image en 1080 × 1350.
+
+```
+python3 Doc/MARKETING/CREAS/composer-logo.py mon-affiche.png
+```
+
+**Pourquoi :** les images générées redessinent le baobab à chaque fois et la silhouette
+dérive d'une affiche à l'autre. C'est le seul interdit de logo qu'on ne peut pas
+rattraper à la main sur un visuel déjà composé.
 
 ### Interdits
 
