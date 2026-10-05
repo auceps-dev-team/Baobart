@@ -17,7 +17,7 @@ Ces règles prévalent sur tout le reste du document.
 
 | # | Règle | Ce que ça change concrètement |
 |---|---|---|
-| **R1** | **On ne publie pas Baobart avant le 4 février 2027.** | Aucun accès public, aucun lien d'inscription à la plateforme, aucune annonce d'ouverture. Le produit reste **fermé** jusqu'au jour J. |
+| **R1** | **On ne publie pas Baobart avant le 4 février 2027.** | Aucun accès public, aucun lien d'inscription à la plateforme, aucune annonce d'ouverture. Le produit reste **fermé** jusqu'au jour J. **En revanche la marque peut être nommée** : les posts sont signés par le compte et parlent de ce qu'on construit. |
 | **R2** | **Les publications alternent image et vidéo.** | Une publication sur deux est une **image** (affiche, flyer), la suivante est une **vidéo** (démo d'une fonctionnalité). Jamais deux fois de suite le même format sur le canal principal. |
 | **R3** | **Les vidéos sont des démos de fonctionnalités.** | Écran filmé, 15-45 s, sous-titrées. Elles montrent le produit **en train de fonctionner**, sans le vendre. |
 | **R4** | **En novembre 2026, ouverture à des clients fermés.** | Agences de com, écoles de design, créateurs sélectionnés. Leurs retours **deviendront du contenu** de campagne (témoignages, « ce qu'on a corrigé », chiffres). |
