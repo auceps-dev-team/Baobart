@@ -168,6 +168,7 @@ Le projet est entièrement documenté dans `docs/` (voir aussi les specs à la r
 | [`SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md`](SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md) | Docker, Vercel, VPS, coûts |
 | [`ANALYSE_DESIGN_SYSTEM_BAOBART.md`](ANALYSE_DESIGN_SYSTEM_BAOBART.md) | Analyse du design system « Sticker » + contrastes |
 | [`CHARTE_EDITORIALE_BAOBART.md`](CHARTE_EDITORIALE_BAOBART.md) | Charte éditoriale (ton inspiré de Gumroad) |
+| [`MARKETING/`](MARKETING/README.md) | **Dossier marketing** : audit technique, bilan marketing (SWOT, personas, avantages), calendrier de contenu 4 mois jusqu'au lancement |
 | [`MODELE_ECONOMIQUE_BAOBART.xlsx`](MODELE_ECONOMIQUE_BAOBART.xlsx) | Modèle économique chiffré (hypothèses, projection 24 mois) |
 | [`MAQUETTES_BAOBART.html`](MAQUETTES_BAOBART.html) | Maquettes fonctionnelles (tarifs, badges, profil, jobs, bibliothèque, admin) |
 
