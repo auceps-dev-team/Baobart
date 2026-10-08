@@ -218,7 +218,8 @@ export function Header({
           display: "flex",
           flexWrap: "wrap",
           alignItems: "center",
-          gap: "14px 20px",
+          // 16 et non 20 entre les blocs : voir la base du champ de recherche.
+          gap: "14px 16px",
           background: BLANC,
           border: `2.5px solid ${ENCRE}`,
           borderRadius: 22,
@@ -268,9 +269,17 @@ export function Header({
           </span>
         </Link>
 
+        {/*
+          Base de 110 px, et non 190 : dans un conteneur qui passe à la ligne,
+          la coupure se décide sur la base, avant tout rétrécissement. Avec 190,
+          un compte connecté (« Kofi Mensah » au lieu de « Invité ») renvoyait
+          panier et compte sur une seconde ligne à 1440 px (relevé le 04/10).
+          Mesuré le 08/10 à 1366 px : 1 301 px demandés pour 1 266 disponibles —
+          d'où aussi les écarts resserrés (16 entre blocs, 12 entre menus).
+        */}
         <div
           style={{
-            flex: "1 1 190px",
+            flex: "1 1 110px",
             maxWidth: 300,
             position: "relative",
             minWidth: 0,
@@ -374,7 +383,7 @@ export function Header({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: 12,
             fontSize: 11.5,
             fontWeight: 700,
             letterSpacing: ".03em",
@@ -608,7 +617,18 @@ export function Header({
                   background: `repeating-linear-gradient(135deg,${JAUNE} 0 5px,${BLANC} 5px 11px)`,
                 }}
               />
-              <span style={{ fontSize: 12.5, fontWeight: 800 }}>
+              <span
+                title={utilisateur?.nom}
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  // Un nom long ne repousse pas l'en-tête sur deux lignes.
+                  maxWidth: 120,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {utilisateur ? utilisateur.nom : "Invité"}
               </span>
             </div>
