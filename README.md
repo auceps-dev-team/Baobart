@@ -34,20 +34,23 @@ resterait pour toujours.
 | `pnpm test` | Vitest — décideurs purs **et** câblage réel |
 | `pnpm test:unite` | Décideurs purs seuls : ni base, ni réseau |
 | `pnpm db:test:setup` | (Re)crée la base de test et y applique les migrations |
+| `pnpm test:e2e` | Parcours Playwright contre un build, base `baobart_e2e`, port 3200 (`CRON_SECRET` requis) |
 | `pnpm db:migrate` / `db:deploy` / `db:studio` / `db:seed` | Prisma |
 | `pnpm stack:up` / `stack:down` | Postgres + Redis + MinIO |
 
 ## Structure
 
 ```
-app/          pages App Router (+ globals.css : les tokens du Sticker System)
-components/   composants d'interface
-lib/
-  cn.ts       concaténation de classes
-  db.ts       client Prisma singleton + log des requêtes lentes
-  i18n/       formatage monétaire fr-FR (FCFA entiers)
-prisma/       schema.prisma + seed.ts
-Doc/          spécifications produit
+app/          pages et routes App Router (+ globals.css : les tokens du Sticker System)
+components/   composants d'interface, rangés par domaine
+lib/          la logique métier, un dossier par domaine (payments/, auth/,
+              securite/, products/, upload/…) ; db.ts : client Prisma + log
+              des requêtes lentes ; i18n/ : formatage monétaire fr-FR
+prisma/       schema.prisma, migrations/, seeds, tests/ (garde-fous SQL)
+e2e/          parcours Playwright
+scripts/      base de test, démo, comptes de test
+Doc/          spécifications produit — la vision ; l'état réel est dans
+              Doc/MATRICE_IMPLEMENTATION.md
 Baobart Design/  maquettes .dc.html de référence (non buildées)
 ```
 
@@ -57,7 +60,9 @@ Baobart Design/  maquettes .dc.html de référence (non buildées)
    Le XOF n'ayant pas de décimale, « FCFA entiers » et « unité mineure » sont la
    même chose. Aucun flottant ne circule. → `lib/i18n/money.ts`
 2. **Pagination par curseur, jamais d'OFFSET** sur les tables du feed, et
-   compteurs dénormalisés mis à jour par jobs asynchrones. → `PLAN §8.2`
+   compteurs dénormalisés. → `PLAN §8.2`. Le plan les veut tenus par des
+   tâches asynchrones ; aucune file n'existe encore (relu le 08/10/2026) : ils
+   sont recomptés puis écrits dans la requête même (`lib/social/service.ts`).
 3. **Le Sticker System est un système, pas une palette** : tout est contouré,
    les ombres sont dures à 45°, deux accents maximum par écran, le jaune n'est
    jamais du texte et le texte orange est toujours `#B34A1F`.
@@ -73,6 +78,9 @@ Baobart Design/  maquettes .dc.html de référence (non buildées)
 Le même code tourne sur Vercel et sur un VPS (12-factor). L'image Docker utilise
 la sortie `standalone` de Next.js, activée par `BUILD_STANDALONE=1` — elle reste
 désactivée en local parce que Windows refuse les symlinks hors mode développeur.
+`S3_PUBLIC_URL` et `S3_ENDPOINT` se passent en `--build-arg` : `next.config.ts`
+les lit au build. Les migrations ne s'appliquent ni au build Vercel ni au
+démarrage de l'image : `pnpm db:deploy`, avant chaque déploiement.
 Détails : [`Doc/SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md`](Doc/SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md).
 
 ## Mentions

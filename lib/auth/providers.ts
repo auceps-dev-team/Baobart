@@ -4,8 +4,14 @@ import "server-only";
  * Registre des moyens de connexion secondaires.
  *
  * Chaque fournisseur déclare les variables d'environnement dont il a besoin.
- * Un fournisseur est **actif** quand toutes ses variables sont renseignées —
- * rien d'autre à faire pour l'allumer en production que remplir le `.env`.
+ * Un fournisseur est **actif** quand toutes ses variables sont renseignées.
+ *
+ * ⚠️ « Actif » ne veut pas dire « branché ». Ce commentaire disait qu'il
+ * suffisait de remplir le `.env` pour l'allumer en production. Relevé le
+ * 08/10/2026 : le bouton actif mène à `/api/auth/<id>`
+ * (`components/auth/auth-form.tsx`), et aucune route de ce nom n'existe dans
+ * `app/`. Le flux OAuth et l'envoi d'OTP restent à écrire ; d'ici là, poser
+ * ces variables produit un bouton qui mène à une 404.
  *
  * ⚠️ Ce module est `server-only` : il lit des secrets. Vers le navigateur, on
  * n'envoie que `FournisseurPublic`, qui ne contient qu'un libellé et un
