@@ -9,7 +9,14 @@ import { Compteur, enFrancs } from "@/components/anime/compteur";
 import { Defile } from "@/components/anime/defile";
 import { SqueletteExplore } from "@/components/feed/squelette-explore";
 import { LogoAnime } from "@/components/labo/animata/logo-anime";
+import {
+  Apparition,
+  BarreLecture,
+  Parallaxe,
+  TexteQuiSAllume,
+} from "@/components/labo/animata/defilement";
 import { Rejouer } from "@/components/labo/animata/rejouer";
+import { SectionsEmpilees } from "@/components/labo/animata/sections-empilees";
 import { Rouleau } from "@/components/labo/animata/rouleau";
 import { Soulignement } from "@/components/labo/animata/soulignement";
 import { Squelette } from "@/components/labo/animata/squelette";
@@ -44,7 +51,10 @@ function Bloc({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-sticker-lg border-[2.5px] border-encre bg-blanc shadow-sticker-md">
+    // `overflow-clip` et non `overflow-hidden` : un ancêtre en `hidden` est un
+    // conteneur de défilement, et `position: sticky` ne colle plus dedans
+    // (les cartes empilées du bloc « Au défilement »).
+    <section className="overflow-clip rounded-sticker-lg border-[2.5px] border-encre bg-blanc shadow-sticker-md">
       <header className="flex flex-wrap items-baseline gap-3 border-b-[2.5px] border-encre bg-lavande-clair px-5 py-3">
         <h2 className="font-display text-lg uppercase tracking-tight">{titre}</h2>
         <code className="font-mono text-[11px] opacity-60">{source}</code>
@@ -65,6 +75,7 @@ export default function LaboAnimata() {
 
   return (
     <main className="min-h-screen bg-lavande-fond px-4 py-10 text-encre sm:px-8">
+      <BarreLecture />
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <div className="rounded-sticker-lg border-[2.5px] border-encre bg-blanc p-7 shadow-sticker-md">
           <div className="inline-block rounded-pastille border-[2.5px] border-encre bg-jaune px-4 py-1.5 font-mono text-[11px] uppercase tracking-[.14em]">
@@ -224,6 +235,91 @@ export default function LaboAnimata() {
           />
           <Squelette />
           <Squelette balaye />
+        </Bloc>
+
+        <Bloc
+          titre="Au défilement"
+          source="text/scroll-reveal · scroll/stacked-sections · animation-timeline"
+          note={
+            <>
+              Tout est en CSS (<code>animation-timeline</code>) sauf les cartes empilées. Sans
+              prise en charge ou sous mouvement réduit, rien ne bouge et tout reste visible. La
+              barre orange en haut de l&apos;écran suit la lecture de la page.
+            </>
+          }
+        >
+          <div className="flex w-full flex-col gap-14">
+            <div>
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-widest opacity-60">
+                Apparition — chaque carte se pose en entrant à l&apos;écran
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {["Illustration", "Mockup", "Police", "Photo", "Icône", "Audio"].map((f, i) => (
+                  <Apparition key={f}>
+                    <div
+                      className={`flex h-28 items-end rounded-sticker-md border-[2.5px] border-encre p-4 shadow-sticker ${
+                        ["bg-lavande-profond", "bg-jaune", "bg-blanc"][i % 3]
+                      }`}
+                    >
+                      <span className="font-display text-xl uppercase">{f}</span>
+                    </div>
+                  </Apparition>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-widest opacity-60">
+                Parallaxe — trois vitesses
+              </p>
+              <div className="flex h-56 items-center justify-center gap-6 overflow-clip rounded-sticker-md border-[2.5px] border-encre bg-lavande-clair">
+                <Parallaxe amplitude={-60}>
+                  <div className="h-24 w-24 rounded-pastille border-[2.5px] border-encre bg-orange shadow-sticker" />
+                </Parallaxe>
+                <Parallaxe amplitude={0}>
+                  <div className="h-24 w-24 rounded-sticker-md border-[2.5px] border-encre bg-blanc shadow-sticker" />
+                </Parallaxe>
+                <Parallaxe amplitude={120}>
+                  <div className="h-24 w-24 rotate-6 rounded-sticker-md border-[2.5px] border-encre bg-jaune shadow-sticker" />
+                </Parallaxe>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-widest opacity-60">
+                Texte qui s&apos;allume — mot à mot, pendant qu&apos;il traverse l&apos;écran
+              </p>
+              <TexteQuiSAllume
+                className="max-w-3xl font-display text-3xl uppercase leading-tight tracking-tight sm:text-4xl"
+                texte="Dépose tes fichiers, fixe ton prix ou offre-les, et garde l'essentiel de chaque vente. On s'occupe du reste."
+              />
+            </div>
+
+            <div>
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-widest opacity-60">
+                Cartes empilées — chacune recouvre la précédente
+              </p>
+              <SectionsEmpilees>
+                {[
+                  ["1", "Dépose", "Tes fichiers, ta description, ton prix.", "bg-lavande-profond"],
+                  ["2", "Publie", "Relue par l'équipe, ta ressource entre au catalogue.", "bg-jaune"],
+                  ["3", "Vends", "Mobile money ou carte, chaque achat t'est notifié.", "bg-blanc"],
+                  ["4", "Encaisse", "Ta part est versée à chaque cycle.", "bg-orange"],
+                ].map(([n, titre, texte, fond]) => (
+                  <div
+                    key={n}
+                    className={`flex h-64 flex-col justify-between rounded-sticker-lg border-[2.5px] border-encre p-7 shadow-sticker-md ${fond}`}
+                  >
+                    <span className="font-mono text-[11px] uppercase tracking-widest">Étape {n}</span>
+                    <div>
+                      <div className="font-display text-4xl uppercase leading-none">{titre}</div>
+                      <p className="mt-2 max-w-md font-semibold">{texte}</p>
+                    </div>
+                  </div>
+                ))}
+              </SectionsEmpilees>
+            </div>
+          </div>
         </Bloc>
 
         <Bloc

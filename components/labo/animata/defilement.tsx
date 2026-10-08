@@ -1,0 +1,99 @@
+import type { CSSProperties, ReactNode } from "react";
+
+import { cn } from "@/lib/cn";
+
+/**
+ * Effets au défilement, explorés le 08/10/2026.
+ *
+ * Tous en CSS, par `animation-timeline` (classes `defil-*` de `animata.css`) :
+ * pas de JavaScript, pas d'écouteur de défilement, rien à envoyer au
+ * navigateur. Sans prise en charge, ou sous mouvement réduit, l'élément est
+ * simplement là, immobile — voir la note en tête de `animata.css`.
+ *
+ * Les cartes empilées, elles, demandent du JavaScript : voir
+ * `sections-empilees.tsx`.
+ */
+
+/** L'élément se pose comme un sticker en entrant à l'écran (`popin`). */
+export function Apparition({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("defil-apparait", className)}>{children}</div>;
+}
+
+/**
+ * L'élément glisse moins vite que la page.
+ *
+ * `amplitude` : l'écart total, en pixels, sur toute la traversée de l'écran.
+ * Positif, l'élément traîne ; négatif, il devance.
+ */
+export function Parallaxe({
+  children,
+  amplitude = 80,
+  className,
+}: {
+  children: ReactNode;
+  amplitude?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn("defil-parallaxe", className)}
+      style={{ "--amplitude": `${amplitude}px` } as CSSProperties}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Une barre en haut de l'écran, remplie à proportion de la page parcourue.
+ *
+ * Vide par défaut (`scaleX(0)` en ligne) : sans prise en charge, elle reste
+ * invisible plutôt que pleine — une barre pleine dirait « tout lu » à qui
+ * arrive. L'animation, elle, l'emporte sur le style en ligne.
+ */
+export function BarreLecture() {
+  return (
+    <div
+      aria-hidden
+      className="defil-barre fixed inset-x-0 top-0 z-[60] h-1.5 border-b-2 border-encre bg-orange"
+      style={{ transform: "scaleX(0)" }}
+    />
+  );
+}
+
+/**
+ * Un paragraphe dont les mots s'allument un à un pendant qu'il traverse
+ * l'écran.
+ *
+ * Adapté d'Animata, `animata/text/scroll-reveal.tsx` (MIT). L'original
+ * n'écoutait que SA PROPRE boîte à défilement (`h-96 overflow-y-scroll`) :
+ * un défilement dans le défilement, qu'on ne croise sur aucun site. Il
+ * suivait le pointeur avec `motion.span` — la partie de `motion` qui pèse
+ * 41 Kio. Ici, le paragraphe nomme sa traversée de la page (`view-timeline`)
+ * et chaque mot y prend sa tranche, en CSS seul.
+ *
+ * Sans prise en charge, le texte est entièrement allumé : la garde
+ * `@supports` empêche l'état « éteint » de s'appliquer.
+ */
+export function TexteQuiSAllume({ texte, className }: { texte: string; className?: string }) {
+  const mots = texte.trim().split(/\s+/);
+  const n = mots.length;
+  return (
+    <p className={cn("defil-allume", className)}>
+      {mots.map((mot, i) => (
+        <span
+          key={i}
+          style={
+            {
+              "--debut": `${(i / n) * 100}%`,
+              "--fin": `${((i + 1) / n) * 100}%`,
+            } as CSSProperties
+          }
+        >
+          {mot}
+          {i < n - 1 ? " " : null}
+        </span>
+      ))}
+    </p>
+  );
+}
