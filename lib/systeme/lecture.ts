@@ -17,6 +17,7 @@ import {
   constatBase,
   constatAntiBot,
   constatLimitation,
+  constatPlafondPub,
   constatPush,
   constatSms,
   constatConnexion,
@@ -29,6 +30,7 @@ import {
 } from "@/lib/systeme/diagnostic";
 import { stockageConfigure } from "@/lib/upload/storage";
 import { etatAntiBot } from "@/lib/securite/antibot";
+import { secretDuPlafond } from "@/lib/publicites/plafond";
 
 /**
  * Collecte les faits que `diagnostic.ts` interprète.
@@ -147,6 +149,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
     constatAdressePublique({ origine: urlDuSite(), production }),
     constatLimitation({ pilote: piloteLimite().nom, production }),
     constatAntiBot({ tiers: etatAntiBot().tiers, production }),
+    constatPlafondPub({ secret: secretDuPlafond() !== null, production }),
     constatSms({ pilote: piloteSms().nom, production }),
     constatPush({ pilote: pilotePush(), appareils: appareilsPush, production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),
