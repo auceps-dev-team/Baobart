@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 // La route du téléchargement lit la session avant tout : sans compte, elle
@@ -38,5 +41,29 @@ describe("le téléchargement sans session", () => {
     const r = await telecharger(new Request("https://baobart.ci/api/telechargement/x"), { params: Promise.resolve({ fichierId: "x" }) });
     expect(r.status).toBe(307);
     expect(r.headers.get("location")).toBe("/connexion");
+  });
+});
+
+function routes(dossier: string): string[] {
+  return readdirSync(dossier).flatMap((nom) => {
+    const chemin = join(dossier, nom);
+    if (statSync(chemin).isDirectory()) return routes(chemin);
+    return nom === "route.ts" ? [chemin] : [];
+  });
+}
+
+describe("aucune route ne redirige vers `requete.url`", () => {
+  it("ni `new URL(…, requete.url)` dans un `redirect`", () => {
+    // Le garde-fou contre le retour du défaut : c'est la forme de la
+    // documentation de Next, et la prochaine route l'écrira naturellement.
+    // Contre-épreuve faite le 08/10 : les deux routes d'avant 1fe88b9 y
+    // tombent toutes les deux.
+    const racine = join(process.cwd(), "app");
+    const fautives = routes(racine).filter((fichier) =>
+      /redirect\(\s*new URL\([^)]*\b(?:requete|request|req)\.url/.test(
+        readFileSync(fichier, "utf8"),
+      ),
+    );
+    expect(fautives.map((f) => relative(process.cwd(), f))).toEqual([]);
   });
 });
