@@ -25,6 +25,9 @@ beforeEach(() => {
     for (const v of f.variables) delete process.env[v];
   }
   delete process.env.TEXTBEE_API_KEY;
+  delete process.env.SMSGATE_USERNAME;
+  delete process.env.SMSGATE_PASSWORD;
+  delete process.env.SMSGATE_URL;
 });
 
 afterEach(() => {
@@ -61,6 +64,18 @@ describe("le téléphone", () => {
     process.env.SMS_DRIVER = "textbee";
     process.env.TEXTBEE_API_KEY = "cle-textbee-de-test-assez-longue";
     expect(bouton()?.actif).toBe(true);
+  });
+
+  it("s'allume avec le serveur local d'un téléphone (SMS Gateway)", () => {
+    process.env.SMS_DRIVER = "smsgate";
+    process.env.SMSGATE_URL = "http://192.168.1.20:8080";
+    process.env.SMSGATE_USERNAME = "sms";
+    process.env.SMSGATE_PASSWORD = "Ab3dE6gH";
+    expect(bouton()?.actif).toBe(true);
+
+    // Le même serveur, mais joint en clair hors du réseau local : refusé.
+    process.env.SMSGATE_URL = "http://sms.exemple.com:8080";
+    expect(bouton()?.actif).toBe(false);
   });
 
   it("reste éteint avec le pilote console en production", () => {

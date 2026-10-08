@@ -162,7 +162,7 @@ tableau mélangeait les deux, et un audit s'y est trompé.
 | Médias | Stockage S3-compatible (MinIO en local), envoi direct par URL signée, **sharp** pour les aperçus | CDN (R2) en production |
 | Tâches planifiées | Pas de file : **8 passages** déclenchés par les crons Vercel vers `app/api/cron/*` (`vercel.json`) | Inngest / BullMQ ; aperçus produits hors requête |
 | Courriels | File `EmailOutbox` + pilotes `console` / Resend / SMTP (nodemailer) | — |
-| Notifications | In-app, Web Push (VAPID), SMS par pilote (`console`, Twilio, textbee) | — |
+| Notifications | In-app, Web Push (VAPID), SMS par pilote (`console`, Twilio, textbee, SMS Gateway for Android) | — |
 | Recherche | `contains` insensible à la casse sur le nom des ressources (`lib/feed/queries.ts`) | full-text Postgres, puis Meilisearch |
 | IA | Aucune | Assistant, fiches produit, résumés |
 | Observabilité | Journal structuré maison (`lib/observabilite/journal.ts`), requêtes lentes (`SLOW_QUERY_MS`), sonde `/api/health` | Sentry, OpenTelemetry |
@@ -178,8 +178,9 @@ déclaration au dossier `app/api/auth/`, dans les deux sens.
 Au 08/10/2026, un seul est branché : le **téléphone**. On se connecte avec un
 code SMS sur un numéro préalablement vérifié dans le profil ; la 2FA reste
 exigée si elle est active. Il est configuré dès qu'un pilote SMS peut émettre
-(`SMS_DRIVER`, par exemple `textbee` pour un téléphone Android servant de
-passerelle). Google, Apple et les autres répondent « Bientôt disponible »,
+(`SMS_DRIVER`, par exemple `textbee` ou `smsgate` pour un téléphone Android
+servant de passerelle — le second peut fonctionner sans aucun service tiers,
+sur le réseau local). Google, Apple et les autres répondent « Bientôt disponible »,
 quelles que soient leurs variables.
 
 ---

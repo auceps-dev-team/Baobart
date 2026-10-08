@@ -34,7 +34,7 @@ import { masquer, versE164 } from "@/lib/sms/numero";
  * vrai échec et rend `false`.
  */
 
-export type NomPiloteSms = "console" | "twilio" | "textbee" | "aucun";
+export type NomPiloteSms = "console" | "twilio" | "textbee" | "smsgate" | "aucun";
 
 export interface Verdict {
   ok: boolean;
@@ -45,10 +45,25 @@ export interface Verdict {
   segments?: number;
 }
 
+export interface OptionsEnvoi {
+  /**
+   * Au-delà, le message ne doit plus partir.
+   *
+   * Un code de connexion expire en dix minutes : arrivé une heure plus tard,
+   * il ne sert à rien et fait croire à une tentative d'intrusion. Seul le
+   * pilote `smsgate` le transmet aujourd'hui (`ttl`) : sa passerelle garde
+   * une file — le relais en nuage pendant que le téléphone est éteint, le
+   * téléphone lui-même quand il n'a pas de réseau — et l'application jette à
+   * l'envoi un message périmé (`MessagesService.kt`, « TTL expired »). Les
+   * autres pilotes l'ignorent.
+   */
+  validiteS?: number;
+}
+
 export interface PiloteSms {
   nom: NomPiloteSms;
   configure(): boolean;
-  envoyer(numeroE164: string, texte: string): Promise<Verdict>;
+  envoyer(numeroE164: string, texte: string, options?: OptionsEnvoi): Promise<Verdict>;
 }
 
 /**
@@ -309,6 +324,151 @@ const TEXTBEE: PiloteSms = {
   },
 };
 
+// ────────────────────────────────────────────────────────────────── smsgate ──
+
+/**
+ * SMS Gateway for Android (sms-gate.app, github.com/capcom6/android-sms-gateway,
+ * licence Apache 2.0) : comme textbee, un téléphone Android sert de passerelle.
+ * La différence qui compte : il peut fonctionner SANS AUCUN SERVICE TIERS.
+ *
+ *   — mode local : le téléphone ouvre lui-même un serveur HTTP sur le réseau
+ *     local, et Baobart lui parle directement. Rien ne sort du réseau ;
+ *   — mode nuage : le téléphone se connecte à api.sms-gate.app, qui relaie.
+ *     Pratique quand l'adresse du téléphone change ;
+ *   — serveur privé : le relais du mode nuage, hébergé chez soi.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * L'API, LUE DANS LE CODE DE L'APPLICATION LE 08/10/2026 (commit bdfd691)
+ *
+ * `POST {base}/message`, authentification Basic, corps
+ * `{ textMessage: { text }, phoneNumbers: [e164], ttl?, deviceId? }`
+ * (`modules/localserver/routes/MessagesRoutes.kt`, `domain/messages/
+ * PostMessageRequest.kt`). Réponse 202 : le message est MIS EN FILE, avec
+ * `{ id, state, recipients: [{ phoneNumber, state, error }] }` ; `state`
+ * vaut `Pending` à la soumission, `Failed` en cas d'échec (`domain/
+ * ProcessingState.kt`). 400 `{ message }` pour une requête refusée — dont un
+ * `deviceId` qui n'est pas celui du téléphone —, 401 pour des identifiants
+ * refusés.
+ *
+ * Le mode local a été lu dans l'application. Le mode nuage, d'après le
+ * README du même dépôt (« the basic API is the same for both modes »), répond
+ * à `https://api.sms-gate.app/3rdparty/v1/message` ; le code de ce serveur
+ * (un autre dépôt, android-sms-gateway/server) n'a PAS été lu.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LE MODE LOCAL PARLE EN HTTP
+ *
+ * Aucune configuration TLS dans `modules/localserver` (cherché : sslConnector,
+ * https, keyStore, TLS) : le serveur du téléphone écoute en clair, port 8080
+ * par défaut. On accepte donc `http://` — mais seulement vers une adresse
+ * privée (10/8, 172.16/12, 192.168/16, la machine même). Les identifiants
+ * Basic y circulent en clair sur le réseau local : acceptable pour un essai
+ * sur son propre réseau, pas pour une production, qui passera par le mode
+ * nuage ou un serveur privé en https.
+ */
+const SMSGATE_BASE_PAR_DEFAUT = "https://api.sms-gate.app/3rdparty/v1";
+
+const SMSGATE_DELAI_MS = 10_000;
+
+/** Une adresse qui ne quitte pas le réseau local. */
+function adressePrivee(hote: string): boolean {
+  if (hote === "localhost") return true;
+  const octets = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hote)?.slice(1).map(Number);
+  if (!octets || octets.some((o) => o > 255)) return false;
+  const [a, b] = octets as [number, number];
+  return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
+function baseSmsgate(): string | null {
+  const brut = (process.env.SMSGATE_URL ?? "").trim() || SMSGATE_BASE_PAR_DEFAUT;
+  try {
+    const url = new URL(brut);
+    if (url.username || url.password) return null;
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && adressePrivee(url.hostname))) {
+      return null;
+    }
+    return url.origin + url.pathname.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+const SMSGATE: PiloteSms = {
+  nom: "smsgate",
+
+  configure() {
+    // Huit caractères : la longueur du mot de passe que l'application tire
+    // elle-même au premier lancement (`LocalServerSettings.kt`).
+    return (
+      (process.env.SMSGATE_USERNAME ?? "").trim().length > 0 &&
+      (process.env.SMSGATE_PASSWORD ?? "").trim().length >= 8 &&
+      baseSmsgate() !== null
+    );
+  },
+
+  async envoyer(numero, texte, options) {
+    const base = baseSmsgate();
+    const utilisateur = (process.env.SMSGATE_USERNAME ?? "").trim();
+    const motDePasse = (process.env.SMSGATE_PASSWORD ?? "").trim();
+    const appareil = (process.env.SMSGATE_DEVICE_ID ?? "").trim();
+    if (!base) return { ok: false, motif: "adresse SMS Gateway invalide" };
+
+    const ttl =
+      options?.validiteS && options.validiteS > 0 ? Math.floor(options.validiteS) : undefined;
+
+    let reponse: Response;
+    try {
+      reponse = await fetch(`${base}/message`, {
+        method: "POST",
+        headers: {
+          authorization: `Basic ${Buffer.from(`${utilisateur}:${motDePasse}`).toString("base64")}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          textMessage: { text: texte },
+          phoneNumbers: [numero],
+          ...(ttl ? { ttl } : {}),
+          ...(appareil ? { deviceId: appareil } : {}),
+        }),
+        signal: AbortSignal.timeout(SMSGATE_DELAI_MS),
+      });
+    } catch (cause) {
+      journal.erreur("passerelle SMS Gateway injoignable", {
+        vers: masquer(numero),
+        cause: cause instanceof Error ? cause.message : String(cause),
+      });
+      return { ok: false, motif: "injoignable" };
+    }
+
+    const lu = (await reponse.json().catch(() => null)) as {
+      id?: string;
+      state?: string;
+      recipients?: { phoneNumber?: string; state?: string; error?: string | null }[];
+      message?: string;
+    } | null;
+
+    // Un 202 dont l'état dit déjà « Failed » est un refus : le traiter comme
+    // un envoi serait le succès silencieux que ce module cherche à éviter.
+    const echec = lu?.state === "Failed" || lu?.recipients?.some((r) => r.state === "Failed");
+
+    if (!reponse.ok || echec) {
+      const detail =
+        lu?.message ?? lu?.recipients?.find((r) => r.error)?.error ?? lu?.state ?? "";
+      journal.erreur("SMS refusé par SMS Gateway", {
+        vers: masquer(numero),
+        code: reponse.status,
+        detail,
+      });
+      const motifs: Record<number, string> = {
+        401: "identifiants SMS Gateway refusés",
+      };
+      return { ok: false, motif: motifs[reponse.status] ?? (detail || "refusé") };
+    }
+
+    return { ok: true, reference: lu?.id };
+  },
+};
+
 // ──────────────────────────────────────────────────────────────────── aucun ──
 
 /** N'envoie rien, et le dit. */
@@ -324,6 +484,7 @@ const PILOTES: Record<NomPiloteSms, PiloteSms> = {
   console: CONSOLE,
   twilio: TWILIO,
   textbee: TEXTBEE,
+  smsgate: SMSGATE,
   aucun: AUCUN,
 };
 
@@ -352,6 +513,8 @@ export async function envoyerSms(input: {
   numero: string;
   pays: string;
   texte: string;
+  /** Voir `OptionsEnvoi`. */
+  validiteS?: number;
 }): Promise<Verdict> {
   const pilote = piloteSms();
   if (pilote.nom === "aucun") {
@@ -383,7 +546,7 @@ export async function envoyerSms(input: {
   const texte = replier(input.texte);
   const cout = segments(texte);
 
-  const verdict = await pilote.envoyer(e164, texte);
+  const verdict = await pilote.envoyer(e164, texte, { validiteS: input.validiteS });
   if (verdict.ok) {
     compter();
     // Le coût est journalisé à chaque envoi : c'est la seule façon de voir une
@@ -398,4 +561,4 @@ export async function envoyerSms(input: {
   return { ...verdict, segments: cout };
 }
 
-export const POUR_TESTS = { CONSOLE, TWILIO, TEXTBEE, AUCUN, plafondDuJour };
+export const POUR_TESTS = { CONSOLE, TWILIO, TEXTBEE, SMSGATE, AUCUN, plafondDuJour };

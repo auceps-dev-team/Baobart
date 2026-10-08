@@ -8,13 +8,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const envoyes: { numero: string; texte: string }[] = [];
+const envoyes: { numero: string; texte: string; validiteS?: number }[] = [];
 let envoiReussit = true;
 
 vi.mock("@/lib/sms/pilotes", async (original) => ({
   ...(await original<typeof import("@/lib/sms/pilotes")>()),
-  envoyerSms: vi.fn(async (input: { numero: string; texte: string }) => {
-    envoyes.push({ numero: input.numero, texte: input.texte });
+  envoyerSms: vi.fn(async (input: { numero: string; texte: string; validiteS?: number }) => {
+    envoyes.push({ numero: input.numero, texte: input.texte, validiteS: input.validiteS });
     return envoiReussit ? { ok: true } : { ok: false, motif: "refusé" };
   }),
 }));
@@ -94,6 +94,14 @@ describe("émettre puis vérifier", () => {
       ok: false,
       motif: "INVALIDE",
     });
+  });
+
+  it("donne au SMS la durée de vie du code", async () => {
+    // Une passerelle qui garde une file (téléphone éteint) jette le message au
+    // lieu de livrer, une heure plus tard, un code déjà mort.
+    const { id } = await compte();
+    await emettreCode({ userId: id, telephone: numero(), but: "LOGIN" });
+    expect(envoyes.at(-1)?.validiteS).toBe(DUREE_CODE_MS / 1000);
   });
 
   it("n'écrit jamais le code en base, seulement son empreinte", async () => {

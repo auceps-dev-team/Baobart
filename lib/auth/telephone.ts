@@ -165,6 +165,9 @@ export async function emettreCode(input: {
     // veut pour les numéros locaux.
     pays: "CI",
     texte: texteDuCode(code, input.but),
+    // Un code arrivé après son expiration ne sert à rien : la passerelle qui
+    // sait garder une file (`smsgate`) le jette au lieu de l'envoyer en retard.
+    validiteS: DUREE_CODE_MS / 1000,
   });
 
   if (!verdict.ok) {
