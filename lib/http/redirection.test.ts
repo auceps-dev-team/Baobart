@@ -44,26 +44,51 @@ describe("le téléchargement sans session", () => {
   });
 });
 
-function routes(dossier: string): string[] {
+function sources(dossier: string): string[] {
   return readdirSync(dossier).flatMap((nom) => {
     const chemin = join(dossier, nom);
-    if (statSync(chemin).isDirectory()) return routes(chemin);
-    return nom === "route.ts" ? [chemin] : [];
+    if (statSync(chemin).isDirectory()) return sources(chemin);
+    return /\.tsx?$/.test(nom) ? [chemin] : [];
   });
 }
 
-describe("aucune route ne redirige vers `requete.url`", () => {
-  it("ni `new URL(…, requete.url)` dans un `redirect`", () => {
-    // Le garde-fou contre le retour du défaut : c'est la forme de la
-    // documentation de Next, et la prochaine route l'écrira naturellement.
-    // Contre-épreuve faite le 08/10 : les deux routes d'avant 1fe88b9 y
-    // tombent toutes les deux.
+describe("aucune adresse n'est bâtie sur `requete.url`", () => {
+  // `new URL(chemin, requete.url)` porte l'hôte où le serveur ÉCOUTE (voir
+  // l'en-tête de `redirection.ts`). C'est la forme de la documentation de
+  // Next : la prochaine route l'écrira naturellement. On cherche donc la
+  // construction elle-même, à deux arguments, et non le seul
+  // `redirect(new URL(…))` — la forme en deux temps (`const u = new URL(…,
+  // requete.url); return NextResponse.redirect(u)`) passait la première
+  // version de ce test (relecture du 08/10/2026).
+  //
+  // `new URL(requete.url)`, à UN argument, reste permis : c'est la lecture
+  // des paramètres de la requête, sans adresse à fabriquer.
+  const MOTIF = /new URL\([^;]*?,\s*(?:requete|request|req)\.url\s*\)/;
+
+  /** Le code sans ses commentaires : un commentaire peut citer le motif pour l'expliquer. */
+  function sansCommentaires(texte: string): string {
+    return texte
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((ligne) => !/^\s*\/\//.test(ligne))
+      .join("\n");
+  }
+
+  it("dans aucun fichier de app/", () => {
     const racine = join(process.cwd(), "app");
-    const fautives = routes(racine).filter((fichier) =>
-      /redirect\(\s*new URL\([^)]*\b(?:requete|request|req)\.url/.test(
-        readFileSync(fichier, "utf8"),
-      ),
+    const fautifs = sources(racine).filter((fichier) =>
+      MOTIF.test(sansCommentaires(readFileSync(fichier, "utf8"))),
     );
-    expect(fautives.map((f) => relative(process.cwd(), f))).toEqual([]);
+    expect(fautifs.map((f) => relative(process.cwd(), f))).toEqual([]);
+  });
+
+  it.each([
+    ['NextResponse.redirect(new URL("/connexion", requete.url))', true],
+    ['const u = new URL("/connexion", request.url);', true],
+    ["new URL(chemin(), req.url)", true],
+    ['new URL(requete.url).searchParams.get("q")', false],
+    ['new URL("/x", urlDuSite())', false],
+  ])("le motif reconnaît « %s » : %s", (code, attendu) => {
+    expect(MOTIF.test(code)).toBe(attendu);
   });
 });
