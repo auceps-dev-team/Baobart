@@ -287,7 +287,7 @@ jobs:
       # comprendre un parcours rouge sans le rejouer.
       - name: Garder les traces d'échec
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: traces-e2e
           path: test-results/
