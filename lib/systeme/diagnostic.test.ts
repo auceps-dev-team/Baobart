@@ -225,11 +225,13 @@ describe("l'anti-bot", () => {
 
 describe("le plafond des bannières", () => {
   it("avertit en production quand AUTH_SECRET manque", () => {
-    // Rien d'autre ne le dirait : la connexion n'a pas besoin de cette
-    // variable, et les compteurs tournent comme si de rien n'était.
+    // La connexion n'a pas besoin de cette variable, et les compteurs tournent
+    // comme si de rien n'était. Seule la lettre d'information s'en plaint, au
+    // moment d'envoyer : le remède le dit, pour qu'on ne cherche pas ailleurs.
     const c = constatPlafondPub({ secret: false, production: true });
     expect(c.gravite).toBe("attention");
     expect(c.remede).toContain("AUTH_SECRET");
+    expect(c.remede).toContain("lettre d'information");
   });
 
   it("ne dit rien en développement", () => {

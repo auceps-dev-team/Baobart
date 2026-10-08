@@ -35,11 +35,19 @@ export const LONGUEUR_MIN_SECRET = 16;
  * Une IPv4 n'a que quatre milliards de valeurs : avec une clé vide, on retrouve
  * l'adresse derrière une empreinte en les essayant toutes, en quelques minutes.
  *
- * Constaté le 08/10/2026 : `AUTH_SECRET` n'est lu qu'ici. La connexion ne
- * l'exige pas — les sessions sont maison, sans NextAuth — et rien d'autre ne
- * garantit sa présence en production. L'ancien repli sur `""` réussissait donc
- * en silence : le plafond tenait, et les clés rangées dans Redis étaient des
- * adresses à peine déguisées.
+ * Constaté le 08/10/2026, sur une base antérieure à v1.80.0 : `AUTH_SECRET`
+ * n'était lu qu'ici. La connexion ne l'exige pas — les sessions sont maison,
+ * sans NextAuth — et rien ne garantissait sa présence en production. L'ancien
+ * repli sur `""` réussissait donc en silence : le plafond tenait, et les clés
+ * rangées dans Redis étaient des adresses à peine déguisées.
+ *
+ * Depuis v1.80.0, la lettre d'information le lit aussi
+ * (`jetonDeDesinscription`, lib/infolettre/service.ts) et refuse de partir
+ * sans lui — testé dans lib/infolettre/envoi.integration.test.ts. Vérifié le
+ * 08/10 par un `git grep AUTH_SECRET` de tous les fichiers suivis : ce sont
+ * les deux seuls lecteurs (un nom de variable construit à l'exécution y
+ * échapperait). Elle se contente d'un secret non vide ; le plafond en veut
+ * seize caractères.
  */
 export function secretDuPlafond(
   env: Record<string, string | undefined> = process.env,

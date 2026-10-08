@@ -352,9 +352,12 @@ export interface FaitsPlafondPub {
  * ce qui saute, c'est la limite par jour — une même adresse peut faire compter
  * quinze mille clics en une nuit.
  *
- * Attention et non panne : rien ne casse pour le visiteur. Mais rien d'autre
- * ne le signale — la connexion n'a pas besoin de cette variable, et les
- * compteurs continuent de tourner comme si de rien n'était.
+ * Attention et non panne : rien ne casse pour le visiteur. La connexion n'a
+ * pas besoin de cette variable, et les compteurs tournent comme si de rien
+ * n'était. Le seul autre signal vient de la lettre d'information, qui refuse
+ * de partir sans `AUTH_SECRET` (lib/infolettre/envoi.ts) — mais seulement au
+ * moment où quelqu'un clique « Envoyer », et seulement s'il manque : un secret
+ * trop court pour le plafond lui suffit. D'où la mention dans le remède.
  */
 export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
   if (faits.secret) {
@@ -374,7 +377,7 @@ export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
       ? "AUTH_SECRET absent ou trop court : seul le débit à la minute s'applique."
       : "Non appliqué sans AUTH_SECRET (développement).",
     remede: faits.production
-      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour."
+      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour ; absent, il bloque aussi l'envoi de la lettre d'information."
       : undefined,
   };
 }
