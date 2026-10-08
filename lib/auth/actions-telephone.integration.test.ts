@@ -174,6 +174,22 @@ describe("demander un code de connexion", () => {
     expect(suite.erreur).toMatch(/ne peut pas être utilisé/);
   });
 
+  it("n'envoie rien au compte dont le courriel est bloqué, sans le dire", async () => {
+    // Relecture du 08/10 : le mot de passe regardait le courriel, le téléphone
+    // non — un compte bloqué par son adresse entrait par son numéro.
+    const tel = numeroLocal();
+    const { id } = await compte({ e164: tel.e164, prouve: true });
+    const { email } = await db.user.findUniqueOrThrow({ where: { id }, select: { email: true } });
+    await bloquer({ type: "EMAIL", valeur: email });
+
+    const suite = await demanderCodeConnexion(null, formulaire({ numero: tel.saisi, pays: "CI" }));
+    // La même réponse qu'à un numéro inconnu : refuser dirait que ce numéro a un compte.
+    expect(suite).toMatchObject({ etape: "code" });
+    expect(suite.erreur).toBeUndefined();
+    await laisserPartir();
+    expect(envoyes).toHaveLength(0);
+  });
+
   it("borne les demandes vers un même numéro, même depuis des adresses différentes", async () => {
     // Sans la borne par numéro, changer d'adresse à chaque essai suffirait à
     // arroser de SMS le téléphone d'un tiers.
@@ -235,6 +251,20 @@ describe("se connecter avec le code", () => {
     expect(await db.session.count({ where: { userId: id } })).toBe(0);
   });
 
+  it("n'ouvre rien si le courriel du compte est bloqué entre l'envoi et la saisie", async () => {
+    const tel = numeroLocal();
+    const { id } = await compte({ e164: tel.e164, prouve: true });
+
+    await demanderCodeConnexion(null, formulaire({ numero: tel.saisi, pays: "CI" }));
+    await laisserPartir();
+    const { email } = await db.user.findUniqueOrThrow({ where: { id }, select: { email: true } });
+    await bloquer({ type: "EMAIL", valeur: email });
+
+    const suite = await verifierCodeConnexion(null, formulaire({ code: dernierCode() }));
+    expect(suite.erreur).toMatch(/ne peut pas être utilisé/);
+    expect(await db.session.count({ where: { userId: id } })).toBe(0);
+  });
+
   it("n'ouvre rien si le numéro a quitté le compte entre-temps", async () => {
     const tel = numeroLocal();
     const { id } = await compte({ e164: tel.e164, prouve: true });
@@ -271,14 +301,37 @@ describe("prouver son numéro depuis son compte", () => {
     expect(relu.phoneVerifiedAt).not.toBeNull();
   });
 
-  it("exige une double authentification récente de qui en a une", async () => {
+  it("exige une double authentification récente AVANT d'envoyer le SMS", async () => {
+    // Relecture du 08/10 : vérifiée seulement à la confirmation, elle laissait
+    // partir un SMS payé, inutilisable.
     const { id } = await compte();
     await db.user.update({ where: { id }, data: { totpActiveLe: new Date() } });
     // Session sans passage de 2FA : `totpValideLe` absent.
     await ouvrirSession(id);
     const tel = numeroLocal();
 
+    const demande = await demanderCodeVerification(
+      null,
+      formulaire({ numero: tel.saisi, pays: "CI" }),
+    );
+
+    expect(demande.erreur).toMatch(/double authentification/);
+    expect(envoyes).toHaveLength(0);
+  });
+
+  it("la redemande à la confirmation, si elle a vieilli entre-temps", async () => {
+    const { id } = await compte();
+    await db.user.update({ where: { id }, data: { totpActiveLe: new Date() } });
+    await ouvrirSession(id);
+    await db.session.updateMany({ where: { userId: id }, data: { totpValideLe: new Date() } });
+    const tel = numeroLocal();
+
     await demanderCodeVerification(null, formulaire({ numero: tel.saisi, pays: "CI" }));
+    // Seize minutes plus tard, le passage de 2FA ne couvre plus l'action.
+    await db.session.updateMany({
+      where: { userId: id },
+      data: { totpValideLe: new Date(Date.now() - 16 * 60_000) },
+    });
     const suite = await confirmerTelephone(null, formulaire({ code: dernierCode() }));
 
     expect(suite.erreur).toMatch(/double authentification/);

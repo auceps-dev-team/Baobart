@@ -95,6 +95,10 @@ export function EtapesTelephone({
 }) {
   const [etape, setEtape] = useState<"numero" | "code">("numero");
   const [masque, setMasque] = useState<string | undefined>(undefined);
+  // Le message de la DERNIÈRE réponse, quelle que soit l'action qui l'a
+  // rendue. « etatCode ?? etatDemande » donnait la priorité à une vieille
+  // erreur de code sur l'annonce d'un code tout neuf (relecture du 08/10).
+  const [message, setMessage] = useState<EtatTelephone | null>(null);
 
   // Les actions rendent l'étape suivante : c'est le serveur qui sait si un
   // code est en attente, l'écran ne fait que suivre.
@@ -106,18 +110,22 @@ export function EtapesTelephone({
   const [etatCode, envoyerCode, codeEnCours] = useActionState(verifier, null);
 
   useEffect(() => {
-    if (etatDemande?.etape) setEtape(etatDemande.etape);
-    if (etatDemande?.numeroMasque) setMasque(etatDemande.numeroMasque);
+    if (!etatDemande) return;
+    setMessage(etatDemande);
+    if (etatDemande.etape) setEtape(etatDemande.etape);
+    if (etatDemande.numeroMasque) setMasque(etatDemande.numeroMasque);
   }, [etatDemande]);
 
   useEffect(() => {
-    if (etatCode?.etape) setEtape(etatCode.etape);
+    if (!etatCode) return;
+    setMessage(etatCode);
+    if (etatCode.etape) setEtape(etatCode.etape);
   }, [etatCode]);
 
   if (etape === "code") {
     return (
       <form action={envoyerCode}>
-        <Message etat={etatCode ?? etatDemande} />
+        <Message etat={message} />
         <p style={{ fontSize: 13.5, lineHeight: 1.5, margin: "12px 0 16px" }}>
           {masque
             ? `Recopie les six chiffres reçus au ${masque}. Le code expire dans dix minutes.`
@@ -144,7 +152,10 @@ export function EtapesTelephone({
 
         <button
           type="button"
-          onClick={() => setEtape("numero")}
+          onClick={() => {
+            setEtape("numero");
+            setMessage(null);
+          }}
           style={{
             marginTop: 12,
             background: "none",
@@ -197,7 +208,7 @@ export function EtapesTelephone({
         </div>
       </div>
 
-      <Message etat={etatCode?.etape === "numero" ? etatCode : etatDemande} />
+      <Message etat={message} />
 
       <button type="submit" disabled={demandeEnCours} style={boutonPlein(demandeEnCours)}>
         {demandeEnCours ? "Un instant…" : libelleEnvoi}

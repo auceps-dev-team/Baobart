@@ -126,8 +126,14 @@ export async function emettreCode(input: {
 
   const maintenant = input.maintenant ?? new Date();
 
+  // Le dernier code DE CE COMPTE pour ce numéro, et non celui de quiconque :
+  // sinon un autre compte connecté, en demandant un code pour le même numéro,
+  // périmerait le code en cours et bloquerait le renvoi de son titulaire
+  // (relevé à la relecture du 08/10/2026). Le quota par numéro (`bornes`,
+  // `actions-telephone.ts`) borne, lui, les SMS reçus par la ligne, tous
+  // comptes confondus.
   const dernier = await db.phoneCode.findFirst({
-    where: { phone: input.telephone, purpose: input.but },
+    where: { phone: input.telephone, purpose: input.but, userId: input.userId },
     orderBy: { createdAt: "desc" },
     select: { createdAt: true },
   });
@@ -139,10 +145,10 @@ export async function emettreCode(input: {
   const sel = randomBytes(16).toString("hex");
 
   const ligne = await db.$transaction(async (tx) => {
-    // Un seul code vivant par numéro et par but : le précédent ne doit pas
-    // rester valable dans une boîte de SMS qu'on a cessé de surveiller.
+    // Un seul code vivant par numéro, par but et par compte : le précédent ne
+    // doit pas rester valable dans une boîte de SMS qu'on a cessé de surveiller.
     await tx.phoneCode.updateMany({
-      where: { phone: input.telephone, purpose: input.but, usedAt: null },
+      where: { phone: input.telephone, purpose: input.but, userId: input.userId, usedAt: null },
       data: { usedAt: maintenant },
     });
     return tx.phoneCode.create({
@@ -172,8 +178,12 @@ export async function emettreCode(input: {
 
   if (!verdict.ok) {
     // Un code qu'on n'a pas pu envoyer ne doit pas rester valable : personne
-    // ne le connaît, sauf le journal d'un pilote de développement.
-    await db.phoneCode.update({ where: { id: ligne.id }, data: { usedAt: maintenant } });
+    // ne le connaît, sauf le journal d'un pilote de développement. Il est
+    // SUPPRIMÉ, et non marqué utilisé : resté en base, il comptait comme
+    // « dernier code » pour l'attente du renvoi, et la personne invitée à
+    // « réessayer dans un instant » s'entendait répondre qu'un code venait de
+    // partir — alors que rien n'était parti.
+    await db.phoneCode.delete({ where: { id: ligne.id } });
     journal.erreur("code SMS non envoyé", {
       vers: masquer(input.telephone),
       but: input.but,
@@ -270,6 +280,7 @@ export async function compteDuTelephone(telephone: string) {
     where: { phone: telephone, phoneVerifiedAt: { not: null } },
     select: {
       id: true,
+      email: true,
       suspendedAt: true,
       totpActiveLe: true,
       _count: { select: { passkeys: true } },

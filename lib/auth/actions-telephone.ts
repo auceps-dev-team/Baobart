@@ -8,8 +8,14 @@ import { after } from "next/server";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import { paysValide } from "@/lib/payments/rails";
-import { COOKIE_DEFI, deuxFacteursRecent, ouvrirDefi } from "@/lib/auth/deux-facteurs";
-import { MESSAGE_BLOQUE, tropDEssais, verdictAntiBot } from "@/lib/auth/gestes";
+import { deuxFacteursRecent } from "@/lib/auth/deux-facteurs";
+import {
+  identitesDe,
+  MESSAGE_BLOQUE,
+  poserDefi,
+  tropDEssais,
+  verdictAntiBot,
+} from "@/lib/auth/gestes";
 import { ouvrirSession, sessionCourante } from "@/lib/auth/session";
 import {
   codesParSmsPossibles,
@@ -99,6 +105,12 @@ const INDISPONIBLE: EtatTelephone = {
   erreur: "La connexion par téléphone n'est pas disponible pour le moment.",
 };
 
+const DEUX_FACTEURS_A_REFAIRE: EtatTelephone = {
+  erreur:
+    "Par sécurité, reconnecte-toi avec ta double authentification, puis rattache ton numéro dans le quart d'heure.",
+  etape: "numero",
+};
+
 const NUMERO_ILLISIBLE: EtatTelephone = {
   erreur: "Ce numéro ne ressemble pas à un numéro de téléphone. Vérifie l'indicatif.",
 };
@@ -119,18 +131,24 @@ export async function demanderCodeConnexion(
 
   if (!codesParSmsPossibles()) return INDISPONIBLE;
 
-  const adresse = await adresseCourante();
-  const bloque = await premierBlocage([
-    { type: "PHONE", valeur: e164 },
-    ...(adresse ? [{ type: "IP" as const, valeur: adresse }] : []),
-  ]);
+  const bloque = await premierBlocage(await identitesDe({ telephone: e164 }));
   if (bloque) {
     journal.info("connexion par téléphone refusée : identité bloquée", { type: bloque });
     return { erreur: MESSAGE_BLOQUE };
   }
 
   const compte = await compteDuTelephone(e164);
-  if (compte && !compte.suspendedAt) {
+  // Le courriel du compte trouvé, lui, se vérifie en silence : le refuser à
+  // l'écran dirait que ce numéro a un compte — celui d'une adresse bloquée.
+  const courrielBloque =
+    compte !== null && (await premierBlocage([{ type: "EMAIL", valeur: compte.email }])) !== null;
+  if (courrielBloque) {
+    journal.info("code de connexion non envoyé : courriel du compte bloqué", {
+      vers: masquer(e164),
+    });
+  }
+
+  if (compte && !compte.suspendedAt && !courrielBloque) {
     // Après la réponse : voir l'en-tête.
     after(async () => {
       await emettreCode({ userId: compte.id, telephone: e164, but: "LOGIN" });
@@ -186,6 +204,7 @@ export async function verifierCodeConnexion(
     where: { id: suite.userId },
     select: {
       id: true,
+      email: true,
       phone: true,
       phoneVerifiedAt: true,
       suspendedAt: true,
@@ -202,16 +221,18 @@ export async function verifierCodeConnexion(
     return { erreur: "Ce compte est suspendu. Écris-nous pour en savoir plus.", etape: "numero" };
   }
 
+  // Les mêmes identités que la connexion par mot de passe — le courriel du
+  // compte compris —, plus le numéro. Un blocage posé entre l'envoi du code
+  // et sa saisie joue aussi.
+  const bloque = await premierBlocage(await identitesDe({ email: compte.email, telephone: e164 }));
+  if (bloque) {
+    journal.info("connexion par téléphone refusée : identité bloquée", { type: bloque });
+    return { erreur: MESSAGE_BLOQUE, etape: "numero" };
+  }
+
   // Voir l'en-tête : le code SMS ne remplace pas un second facteur.
   if (compte.totpActiveLe || compte._count.passkeys > 0) {
-    const jeton = await ouvrirDefi(compte.id);
-    magasin.set(COOKIE_DEFI, jeton, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 300,
-    });
+    await poserDefi(compte.id);
     redirect("/connexion/verification");
   }
 
@@ -227,6 +248,10 @@ export async function demanderCodeVerification(
 ): Promise<EtatTelephone> {
   const moi = await sessionCourante();
   if (!moi) return { erreur: "Reconnecte-toi pour continuer." };
+
+  // Vérifiée ici AUSSI, avant d'envoyer : sans 2FA récente, la confirmation
+  // refusera, et le SMS serait payé et décompté du quota pour rien.
+  if (!(await deuxFacteursRecent(moi.sessionId))) return DEUX_FACTEURS_A_REFAIRE;
 
   const e164 = lireNumero(donnees);
   const borne = await bornes(e164);
@@ -278,13 +303,7 @@ export async function confirmerTelephone(
   // Rattacher un numéro, c'est ajouter une porte d'entrée au compte. Une
   // session volée ne doit pas pouvoir s'en poser une : avec une 2FA, il faut
   // l'avoir franchie récemment.
-  if (!(await deuxFacteursRecent(moi.sessionId))) {
-    return {
-      erreur:
-        "Par sécurité, reconnecte-toi avec ta double authentification, puis rattache ton numéro dans le quart d'heure.",
-      etape: "numero",
-    };
-  }
+  if (!(await deuxFacteursRecent(moi.sessionId))) return DEUX_FACTEURS_A_REFAIRE;
 
   const magasin = await cookies();
   const e164 = magasin.get(COOKIE_VERIFICATION)?.value;

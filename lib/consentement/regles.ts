@@ -105,7 +105,9 @@ export const REGISTRE: readonly EntreeRegistre[] = [
     finalite: "Finir une connexion en deux étapes, quand la double authentification est activée.",
     duree: "5 minutes",
     contenu: "Un jeton de défi, illisible par la page (HttpOnly).",
-    sources: ["lib/auth/actions.ts", "lib/auth/actions-telephone.ts"],
+    // Posé en un seul endroit depuis la relecture du 08/10 (`poserDefi`), pour
+    // la connexion par mot de passe comme par code SMS.
+    sources: ["lib/auth/gestes.ts"],
   },
   {
     nom: "baobart_tel_connexion",

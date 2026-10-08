@@ -235,6 +235,37 @@ describe("ce qui borne une attaque", () => {
     expect(envoyes.length).toBe(avant);
   });
 
+  it("un envoi raté ne fait pas attendre le renvoi", async () => {
+    // Relecture du 08/10 : le code raté restait « dernier code », et la
+    // personne invitée à réessayer s'entendait dire qu'un code venait de partir.
+    const { id } = await compte();
+    const tel = numero();
+    envoiReussit = false;
+    expect(await emettreCode({ userId: id, telephone: tel, but: "LOGIN" })).toEqual({
+      ok: false,
+      motif: "ENVOI_ECHOUE",
+    });
+
+    envoiReussit = true;
+    expect(await emettreCode({ userId: id, telephone: tel, but: "LOGIN" })).toEqual({ ok: true });
+  });
+
+  it("un autre compte qui demande un code pour le même numéro ne périme pas le sien", async () => {
+    // Relecture du 08/10 : B, connecté, tape le numéro de A ; le code en cours
+    // de A était périmé, et son renvoi bloqué une minute.
+    const a = await compte();
+    const b = await compte();
+    const tel = numero();
+
+    await emettreCode({ userId: a.id, telephone: tel, but: "VERIFY" });
+    const codeDeA = dernierCode();
+    expect(await emettreCode({ userId: b.id, telephone: tel, but: "VERIFY" })).toEqual({ ok: true });
+
+    expect(
+      await verifierCode({ telephone: tel, but: "VERIFY", saisie: codeDeA, userId: a.id }),
+    ).toEqual({ ok: true, userId: a.id });
+  });
+
   it("ne garde pas valable un code dont le SMS n'est pas parti", async () => {
     const { id } = await compte();
     const tel = numero();

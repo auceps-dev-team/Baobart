@@ -1,15 +1,20 @@
 import "server-only";
 
+import { cookies } from "next/headers";
+
+import { COOKIE_DEFI, ouvrirDefi } from "@/lib/auth/deux-facteurs";
 import { journal } from "@/lib/observabilite/journal";
 import {
   CHAMP_LEURRE,
   CHAMP_OUVERTURE,
   evaluerUnGeste,
 } from "@/lib/securite/antibot";
+import { adresseCourante } from "@/lib/securite/blocklist";
 
 /**
- * Ce que les formulaires d'authentification partagent : les messages de refus
- * et le verdict anti-bot.
+ * Ce que les formulaires d'authentification partagent : les messages de refus,
+ * le verdict anti-bot, les identités confrontées à la liste de blocage et le
+ * cookie du défi de 2FA.
  *
  * Ils vivaient dans `lib/auth/actions.ts`, qui est un module « use server » :
  * il ne peut exporter que des actions asynchrones, et la connexion par
@@ -105,4 +110,44 @@ export function tropDEssais(secondes: number): EtatGeste {
   return {
     erreur: `Trop de tentatives. Réessaie dans ${minutes} minute${minutes > 1 ? "s" : ""}.`,
   };
+}
+
+/**
+ * Les identités de cette tentative qui pourraient être bloquées.
+ *
+ * L'adresse n'entre dans la liste que si on en a une : sans ce filtre, on
+ * appellerait `estBloque("IP", "")`, et une ligne vide posée par accident dans
+ * la table bloquerait alors **tout le monde**.
+ *
+ * Partagée par le mot de passe et le téléphone : la connexion par SMS ne
+ * regardait que le numéro et l'adresse, et un compte dont le COURRIEL était
+ * bloqué entrait par son téléphone (relevé à la relecture du 08/10/2026).
+ */
+export async function identitesDe(qui: { email?: string | null; telephone?: string | null }) {
+  const adresse = await adresseCourante();
+
+  return [
+    ...(qui.email ? [{ type: "EMAIL" as const, valeur: qui.email }] : []),
+    ...(qui.telephone ? [{ type: "PHONE" as const, valeur: qui.telephone }] : []),
+    ...(adresse ? [{ type: "IP" as const, valeur: adresse }] : []),
+  ];
+}
+
+/**
+ * Ouvre le défi de 2FA et pose son cookie — le même, quel que soit le premier
+ * facteur (mot de passe ou code SMS).
+ */
+export async function poserDefi(compteId: string): Promise<void> {
+  const jeton = await ouvrirDefi(compteId);
+  const magasin = await cookies();
+
+  magasin.set(COOKIE_DEFI, jeton, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    // Cinq minutes, comme le défi. Un cookie qui survivrait au défi ne
+    // donnerait rien, mais laisserait croire à une session en cours.
+    maxAge: 300,
+  });
 }

@@ -14,13 +14,15 @@ import {
   changerMotDePasse,
   demanderReinitialisation as demanderLienDeReinitialisation,
 } from "@/lib/auth/reinitialisation";
-import {
-  COOKIE_DEFI,
-  ouvrirDefi,
-  releverDefi,
-} from "@/lib/auth/deux-facteurs";
+import { COOKIE_DEFI, releverDefi } from "@/lib/auth/deux-facteurs";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
-import { MESSAGE_BLOQUE, tropDEssais, verdictAntiBot } from "@/lib/auth/gestes";
+import {
+  identitesDe,
+  MESSAGE_BLOQUE,
+  poserDefi,
+  tropDEssais,
+  verdictAntiBot,
+} from "@/lib/auth/gestes";
 import {
   adresseCourante,
   premierBlocage,
@@ -35,22 +37,6 @@ import { deposer } from "@/lib/email/outbox";
  * l'adresse ou le mot de passe qui est faux. Le dire transformerait le
  * formulaire de connexion en outil pour savoir qui a un compte ici.
  */
-
-/**
- * Les identités de cette tentative qui pourraient être bloquées.
- *
- * L'adresse n'entre dans la liste que si on en a une : sans ce filtre, on
- * appellerait `estBloque("IP", "")`, et une ligne vide posée par accident dans
- * la table bloquerait alors **tout le monde**.
- */
-async function identitesDe(email: string) {
-  const adresse = await adresseCourante();
-
-  return [
-    { type: "EMAIL" as const, valeur: email },
-    ...(adresse ? [{ type: "IP" as const, valeur: adresse }] : []),
-  ];
-}
 
 export interface EtatFormulaire {
   erreur?: string;
@@ -100,7 +86,7 @@ export async function connecter(
 
   // La liste de blocage AVANT le hachage, pour la même raison que la borne :
   // une identité déjà jugée ne doit pas nous coûter un scrypt à chaque essai.
-  const bloque = await premierBlocage(await identitesDe(email));
+  const bloque = await premierBlocage(await identitesDe({ email }));
   if (bloque) {
     journal.info("connexion refusée : identité bloquée", { type: bloque });
     return { erreur: MESSAGE_BLOQUE };
@@ -155,19 +141,7 @@ export async function connecter(
   // secours — voir `lib/auth/actions-webauthn.ts`. Poser un verrou sans
   // fabriquer de double fermerait le compte de qui perd l'appareil.
   if (compte.totpActiveLe || compte._count.passkeys > 0) {
-    const jeton = await ouvrirDefi(compte.id);
-    const magasin = await cookies();
-
-    magasin.set(COOKIE_DEFI, jeton, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      // Cinq minutes, comme le défi. Un cookie qui survivrait au défi ne
-      // donnerait rien, mais laisserait croire à une session en cours.
-      maxAge: 300,
-    });
-
+    await poserDefi(compte.id);
     redirect("/connexion/verification");
   }
 
@@ -294,7 +268,7 @@ export async function inscrire(
 
   // Après les validations de forme, avant la moindre écriture : une identité
   // bloquée ne doit pas pouvoir se réinscrire sous un autre pseudo.
-  const bloqueInscription = await premierBlocage(await identitesDe(email));
+  const bloqueInscription = await premierBlocage(await identitesDe({ email }));
   if (bloqueInscription) {
     journal.info("inscription refusée : identité bloquée", {
       type: bloqueInscription,
