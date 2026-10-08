@@ -27,6 +27,7 @@ export interface EntreeChangelog {
 }
 
 export const CHANGELOG: readonly EntreeChangelog[] = [
+  { date: "2026-10-08", version: "1.80.0", titre: "La lettre d'information part", texte: "L'équipe écrit et envoie ses numéros aux adresses confirmées. Chacun porte son lien de désinscription, et aucune image de suivi." },
   { date: "2026-10-08", version: "1.79.0", titre: "Demander un remboursement", texte: "Chaque créateur affiche son délai de remboursement sur ses fiches. Dans ce délai, l'acheteur demande depuis son espace ; le créateur accepte ou refuse avec un motif, et sans réponse sous sept jours l'équipe tranche." },
   { date: "2026-10-08", version: "1.78.0", titre: "Accès libre", texte: "Un forfait gratuit pour tous, activé d'un clic : toutes les ressources offertes sans limite, les collections, les communautés. Les forfaits payants sont annoncés, grisés, en attendant l'ouverture de leur paiement." },
   { date: "2026-10-08", version: "1.77.2", titre: "La recherche lit les mots-clés", texte: "Après le titre, la recherche de l'en-tête lit les mots-clés des ressources, accents et majuscules ignorés." },

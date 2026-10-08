@@ -243,6 +243,15 @@ const ADMINISTRATION: EntreeAdmin[] = [
     pouvoir: "promouvoir_du_contenu",
   },
   {
+    // L'envoi des numéros (08/10). « Infolettres » est écrit dans la
+    // définition de ce pouvoir.
+    cle: "a_infolettre",
+    label: "Lettre d'information",
+    glyph: "✉",
+    href: "/dashboard/infolettre",
+    pouvoir: "promouvoir_du_contenu",
+  },
+  {
     // Les demandes laissées sans réponse par le créateur plus de sept jours
     // (08/10). « Rembourser, trancher un litige » : le pouvoir du support.
     cle: "a_remboursements",

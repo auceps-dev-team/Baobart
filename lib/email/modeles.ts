@@ -78,6 +78,12 @@ export const MODELES = [
   // ── Ajoutés le 08/10 avec les demandes de remboursement ─────────────────
   "DEMANDE_REMBOURSEMENT",
   "REMBOURSEMENT_REFUSE",
+
+  // ── Ajouté le 08/10 : un numéro de la lettre d'information ──────────────
+  //
+  // Le seul modèle dont le texte n'est pas écrit ici : l'équipe l'écrit. Le
+  // pied, lui, l'est — et il porte toujours le lien de désinscription.
+  "INFOLETTRE",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -256,6 +262,11 @@ const SCHEMAS = {
     ressource: z.string().min(1).max(200),
     motif: z.string().min(1).max(2000),
     par: z.string().min(1).max(40),
+  }),
+  INFOLETTRE: z.object({
+    sujet: z.string().min(1).max(160),
+    corps: z.string().min(1).max(20_000),
+    desinscrire: lien,
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
@@ -498,6 +509,16 @@ ${c.raison}
       `Ta demande de remboursement pour « ${c.ressource} » a été refusée par ${c.par}. Le motif donné :\n\n` +
       `  « ${c.motif} »\n\n` +
       `Ton achat reste accessible dans tes téléchargements.` +
+      SIGNATURE,
+  }),
+
+  INFOLETTRE: (c) => ({
+    sujet: c.sujet,
+    texte:
+      `${c.corps}\n\n` +
+      "—\n" +
+      "Tu reçois cette lettre parce que ton adresse est inscrite à la lettre de Baobart, et que tu l'as confirmée.\n" +
+      `Te désinscrire, en un clic : ${c.desinscrire}` +
       SIGNATURE,
   }),
 

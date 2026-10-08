@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
@@ -129,11 +129,44 @@ export async function confirmer(jetonClair: string, now: Date = new Date()): Pro
 
 export type Desinscription = { ok: true } | { ok: false; motif: "INCONNU" };
 
+/**
+ * Le lien de désinscription d'un numéro de la lettre.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * SIGNÉ, PARCE QUE LE JETON D'ORIGINE N'EXISTE PLUS
+ *
+ * Le courriel de confirmation porte un jeton tiré au sort, dont la base ne
+ * garde que l'empreinte : on ne peut pas le remettre dans un numéro envoyé
+ * des semaines plus tard. Chaque numéro porte donc un jeton signé —
+ * l'identifiant de l'abonné et une signature HMAC avec `AUTH_SECRET` —, qui se
+ * vérifie sans rien stocker. Le jeton du courriel de confirmation continue de
+ * valoir.
+ *
+ * Sans `AUTH_SECRET`, rien ne se signe : `null`, et l'envoi refuse de partir
+ * plutôt que d'envoyer une lettre sans moyen d'en sortir.
+ */
+export function jetonDeDesinscription(abonneId: string): string | null {
+  const secret = process.env.AUTH_SECRET ?? "";
+  if (secret.length === 0) return null;
+  const signature = createHmac("sha256", secret).update(`infolettre:${abonneId}`, "utf8").digest("base64url");
+  return `${abonneId}.${signature}`;
+}
+
+function abonneDuJetonSigne(jeton: string): string | null {
+  const point = jeton.indexOf(".");
+  if (point <= 0) return null;
+  const id = jeton.slice(0, point);
+  const attendu = jetonDeDesinscription(id);
+  if (!attendu || attendu.length !== jeton.length) return null;
+  return timingSafeEqual(Buffer.from(attendu), Buffer.from(jeton)) ? id : null;
+}
+
 export async function desinscrire(jetonClair: string, now: Date = new Date()): Promise<Desinscription> {
   if (jetonClair.length < 16 || jetonClair.length > 256) return { ok: false, motif: "INCONNU" };
 
+  const signe = abonneDuJetonSigne(jetonClair);
   const { count } = await db.newsletterSubscriber.updateMany({
-    where: { unsubscribeTokenHash: empreinte(jetonClair) },
+    where: signe ? { id: signe } : { unsubscribeTokenHash: empreinte(jetonClair) },
     data: { status: "UNSUBSCRIBED", unsubscribedAt: now },
   });
   return count === 1 ? { ok: true } : { ok: false, motif: "INCONNU" };

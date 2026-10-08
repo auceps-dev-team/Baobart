@@ -93,7 +93,9 @@ export type ActionAdmin =
   // Demandes de remboursement tranchées par le support (08/10). Celles du
   // créateur ne sont pas des gestes d'administration.
   | "remboursement.accepter"
-  | "remboursement.refuser";
+  | "remboursement.refuser"
+  // Un numéro de la lettre envoyé (08/10) : à qui, combien, par qui.
+  | "infolettre.envoyer";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

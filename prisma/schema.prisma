@@ -1617,6 +1617,32 @@ enum NewsletterStatus {
   UNSUBSCRIBED
 }
 
+/// Un numéro de la lettre. Décidé le 05/10 : l'équipe l'écrit et l'envoie aux
+/// adresses confirmées ; chaque courriel porte son lien de désinscription.
+enum NewsletterIssueStatus {
+  DRAFT
+  SENT
+}
+
+model NewsletterIssue {
+  id      String @id @default(cuid())
+  subject String
+  /// Texte brut : les courriels de Baobart n'ont pas de HTML.
+  body    String @db.Text
+  status  NewsletterIssueStatus @default(DRAFT)
+  /// Sans relation, comme `Ad.createdById` : un numéro reste quand son auteur
+  /// quitte l'équipe.
+  createdById String
+  sentById    String?
+  sentAt      DateTime?
+  /// Combien de courriels ont été déposés pour ce numéro.
+  recipients  Int @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
 model NewsletterSubscriber {
   id     String @id @default(cuid())
   /// En minuscules.
@@ -3333,6 +3359,10 @@ enum EmailTemplate {
   /// une demande arrive (un délai court), à l'acheteur quand elle est refusée.
   DEMANDE_REMBOURSEMENT
   REMBOURSEMENT_REFUSE
+
+  /// Ajouté le 08/10 : un numéro de la lettre d'information, avec son lien
+  /// de désinscription.
+  INFOLETTRE
 }
 
 /// File d'attente des messages transactionnels.

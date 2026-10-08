@@ -127,7 +127,7 @@ export default async function ConfidentialitePage() {
         <DocListe
           elements={[
             "Les formulaires Contact et Sponsoriser : ton nom, ton adresse, ton message, et le budget indicatif s'il s'agit de sponsoring — lus par l'équipe qui te répond, et rattachés à ton compte si tu étais connecté.",
-            "La lettre d'information : ton adresse, l'état de ton inscription, et la date à laquelle tu l'as confirmée. Sans clic sur le lien de confirmation, l'adresse n'est pas inscrite ; le même courriel porte déjà le lien pour te désinscrire.",
+            "La lettre d'information : ton adresse, l'état de ton inscription, et la date à laquelle tu l'as confirmée. Sans clic sur le lien de confirmation, l'adresse n'est pas inscrite. Chaque courriel porte le lien pour te désinscrire, et la lettre est un texte sans image de suivi : on ne sait pas si tu l'ouvres.",
             "Les deux partent avec l'effacement de ton compte, retrouvés par ton adresse. Sans compte, écris-nous pour qu'on les retire.",
           ]}
         />

@@ -200,7 +200,7 @@ describe("la section Plateforme", () => {
   it("donne les publicités au marketing et à l'administration, à eux seuls", () => {
     // Décidé le 03/10. L'entrée vit hors de `/dashboard/systeme`, dont le
     // layout aurait fermé la porte au marketing avec un 404.
-    expect(plateforme("MARKETING")?.entrees.map((e) => e.cle)).toEqual(["a_publicites", "a_temoignages", "a_messages"]);
+    expect(plateforme("MARKETING")?.entrees.map((e) => e.cle)).toEqual(["a_publicites", "a_temoignages", "a_infolettre", "a_messages"]);
     expect(plateforme("ADMIN")?.entrees.map((e) => e.cle)).toContain("a_publicites");
     for (const role of ["CONTENT_MANAGER", "MODERATOR", "ACCOUNTANT"] as const) {
       expect(plateforme(role)?.entrees.map((e) => e.cle) ?? []).not.toContain("a_publicites");

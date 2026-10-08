@@ -81,6 +81,7 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
   },
   DEMANDE_REMBOURSEMENT: { nom: "Awa", ressource: "Pack textures", montant: "4 500 F", motif: "Le fichier ne s'ouvre pas.", jours: 7 },
   REMBOURSEMENT_REFUSE: { nom: "Kofi", ressource: "Pack textures", motif: "Le fichier s'ouvre avec Illustrator 2024.", par: "le créateur" },
+  INFOLETTRE: { sujet: "Les nouveautés d'octobre", corps: "Trois nouvelles familles de ressources arrivent.", desinscrire: "https://baobart.test/infolettre/desinscription?jeton=abc.def" },
 };
 
 describe("modèles de courriel", () => {
