@@ -149,8 +149,14 @@ export function constatStockage(faits: FaitsStockage): Constat {
 }
 
 export interface FaitsConnexion {
-  /** Identifiants des fournisseurs dont toutes les variables sont posées. */
+  /** Fournisseurs configurés ET branchés : leur bouton mène quelque part. */
   actifs: readonly string[];
+  /**
+   * Fournisseurs dont les variables sont posées, mais qu'aucune route ne
+   * reçoit. Leur bouton reste « Bientôt disponible » : quelqu'un a cru les
+   * allumer.
+   */
+  configuresNonBranches?: readonly string[];
   /** Le mot de passe reste-t-il une voie d'entrée ? */
   motDePasse: boolean;
 }
@@ -166,13 +172,37 @@ export function constatConnexion(faits: FaitsConnexion): Constat {
     };
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // CONFIGURÉ N'EST PAS BRANCHÉ
+  //
+  // Avant le 08/10/2026, cet écran disait « 1 fournisseur(s) actif(s) :
+  // Google » dès que ses variables étaient posées — alors qu'aucune route ne
+  // recevait la connexion et que le bouton menait à une 404. Un réglage posé
+  // pour rien se signale : la personne qui l'a posé attend un effet qui ne
+  // viendra pas.
+  const enAttente = faits.configuresNonBranches ?? [];
+  if (enAttente.length > 0) {
+    return {
+      cle: "connexion",
+      libelle: "Connexion",
+      gravite: "attention",
+      detail:
+        `Configuré mais non branché : ${enAttente.join(", ")}. ` +
+        "Le bouton reste « Bientôt disponible » : aucune route ne reçoit cette connexion." +
+        (faits.actifs.length > 0 ? ` Actif(s) : ${faits.actifs.join(", ")}.` : ""),
+      remede:
+        "Retire ces variables, ou écris la route `app/api/auth/<id>` et passe le fournisseur à branché.",
+    };
+  }
+
   if (faits.actifs.length === 0) {
     return {
       cle: "connexion",
       libelle: "Connexion",
       gravite: "attention",
-      detail: "Mot de passe seul — aucun fournisseur tiers configuré.",
-      remede: "Renseigne toutes les variables d'un fournisseur pour l'activer.",
+      detail: "Mot de passe seul — aucun fournisseur tiers branché.",
+      remede:
+        "Un fournisseur s'active quand ses variables sont posées ET qu'une route le reçoit (`lib/auth/providers.ts`).",
     };
   }
 

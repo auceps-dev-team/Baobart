@@ -7,7 +7,7 @@ import { pilotePush } from "@/lib/push/pilotes";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { listerFournisseurs } from "@/lib/auth/providers";
+import { etatDesFournisseurs } from "@/lib/auth/providers";
 import { simulationOuverte } from "@/lib/checkout/achat";
 import { etatDes } from "@/lib/config/fonctionnalites";
 import { db } from "@/lib/db";
@@ -124,6 +124,8 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       ? duDepot.filter((m) => !etatMigrations.appliquees.has(m)).length
       : 0;
 
+  const fournisseurs = etatDesFournisseurs();
+
   const constats: Constat[] = [
     constatBase({ joignable, enAttente }),
     constatStockage({
@@ -132,8 +134,11 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       production,
     }),
     constatConnexion({
-      actifs: listerFournisseurs()
-        .filter((f) => f.actif)
+      actifs: fournisseurs
+        .filter((f) => f.configure && f.branche)
+        .map((f) => f.label),
+      configuresNonBranches: fournisseurs
+        .filter((f) => f.configure && !f.branche)
         .map((f) => f.label),
       // Le mot de passe est toujours une voie d'entrée : `lib/auth/actions.ts`
       // l'implémente sans condition d'environnement.
