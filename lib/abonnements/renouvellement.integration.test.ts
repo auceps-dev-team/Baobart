@@ -387,6 +387,21 @@ describe("le rappel de l'opérateur", () => {
     expect(apres.cycleEnd.getTime()).toBe(echeance.getTime());
   });
 
+  it("refuse un succès sans montant, que rien ne peut confirmer", async () => {
+    const echeance = ajouterJours(new Date(), 2);
+    const { abonnement, paiementId } = await ouvert(echeance);
+
+    const suite = await recevoir(
+      "bac-a-sable",
+      fait(referenceDe(paiementId), { montant: null }),
+      {},
+    );
+
+    expect(suite.recu === false && suite.motif).toBe("MONTANT_ABSENT");
+    const apres = await lire(abonnement.id);
+    expect(apres.cycleEnd.getTime()).toBe(echeance.getTime());
+  });
+
   it("accepte un montant supérieur plutôt que de couper un accès payé", async () => {
     const echeance = ajouterJours(new Date(), 2);
     const { abonnement, paiementId } = await ouvert(echeance);

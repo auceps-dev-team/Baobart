@@ -5,6 +5,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { autoriserTelechargement } from "@/lib/domain/downloads";
 import { rediriger } from "@/lib/http/redirection";
+import { adresseDe } from "@/lib/securite/adresse";
 import { signerTelechargement, stockageConfigure } from "@/lib/upload/storage";
 
 /**
@@ -79,8 +80,10 @@ export async function GET(
     userAgent: requete.headers.get("user-agent"),
     // L'en-tête vient du proxy et n'est pas une preuve d'identité — elle sert
     // au journal d'accès, jamais à décider.
-    ipAddress:
-      requete.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    // `adresseDe`, pas le premier élément de `x-forwarded-for` : celui-là, le
+    // client l'écrit lui-même, et le journal de consommation garderait
+    // l'adresse qu'il a choisie. Voir `lib/securite/adresse.ts`.
+    ipAddress: adresseDe(requete),
   });
 
   if (!resultat.decision.autorise || !resultat.fichier) {

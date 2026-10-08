@@ -6,6 +6,7 @@ import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { PanneauDeuxFacteurs } from "@/components/dashboard/deux-facteurs";
 import { PanneauClesAcces } from "@/components/dashboard/cles-acces";
 import { PanneauEffacement } from "@/components/dashboard/effacement";
+import { PanneauTelephone } from "@/components/dashboard/telephone";
 import { FormulaireProfil } from "@/components/dashboard/profil-form";
 import {
   confirmerDeuxFacteurs,
@@ -17,7 +18,13 @@ import {
   demarrerEnrolementCle,
   retirerLaCle,
 } from "@/lib/auth/actions-webauthn";
+import {
+  confirmerTelephone,
+  demanderCodeVerification,
+  retirerMonTelephone,
+} from "@/lib/auth/actions-telephone";
 import { etatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
+import { codesParSmsPossibles } from "@/lib/auth/telephone";
 import { listerLesCles } from "@/lib/auth/webauthn";
 import { sessionCourante } from "@/lib/auth/session";
 import {
@@ -129,6 +136,19 @@ export default async function ProfilPage() {
             confirmer={confirmerDeuxFacteurs}
             couper={couperDeuxFacteurs}
             renouveler={renouvelerCodesSecours}
+          />
+        </DashboardPanel>
+      </div>
+
+      <div style={{ marginTop: 20, maxWidth: 900 }}>
+        <DashboardPanel titre="Numéro de téléphone">
+          <PanneauTelephone
+            telephone={profil?.phone ?? null}
+            verifieLe={profil?.phoneVerifiedAt ?? null}
+            disponible={codesParSmsPossibles()}
+            demander={demanderCodeVerification}
+            confirmer={confirmerTelephone}
+            retirer={retirerMonTelephone}
           />
         </DashboardPanel>
       </div>

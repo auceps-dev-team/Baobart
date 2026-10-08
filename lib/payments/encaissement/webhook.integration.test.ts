@@ -179,6 +179,19 @@ describe("ce que la route refuse avant même de lire", () => {
     expect(r.status).toBe(503);
   });
 
+  it("répond 404 au bac à sable quand un autre pilote est choisi", async () => {
+    // Le cas d'un secret de bac à sable oublié sur un serveur réel : la
+    // signature est valide, le corps aussi, et rien ne doit être crédité.
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+    process.env.PAYMENTS_DRIVER = "paystack";
+
+    const r = await appeler("bac-a-sable", corpsPour(orderId));
+
+    expect(r.status).toBe(404);
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+    expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
   it("répond 413 sur un corps annoncé trop long", async () => {
     const r = await appeler("bac-a-sable", "{}", { taille: String(200 * 1024) });
     expect(r.status).toBe(413);
@@ -294,6 +307,22 @@ describe("un rappel authentique", () => {
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ effet: "MONTANT_DISCORDANT" });
 
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+    expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
+  it("ne crédite pas un succès qui omet le montant", async () => {
+    // Sans montant, la confrontation « annoncé < total » ne se déclenchait
+    // jamais : la commande était livrée sans qu'aucune garde n'ait regardé.
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+
+    const r = await appeler(
+      "bac-a-sable",
+      corpsPour(orderId, { amount: undefined }),
+    );
+
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ effet: "MONTANT_ABSENT" });
     expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
     expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
   });

@@ -14,17 +14,15 @@ import {
   changerMotDePasse,
   demanderReinitialisation as demanderLienDeReinitialisation,
 } from "@/lib/auth/reinitialisation";
-import {
-  COOKIE_DEFI,
-  ouvrirDefi,
-  releverDefi,
-} from "@/lib/auth/deux-facteurs";
+import { COOKIE_DEFI, releverDefi } from "@/lib/auth/deux-facteurs";
 import { fermerSession, ouvrirSession } from "@/lib/auth/session";
 import {
-  CHAMP_LEURRE,
-  CHAMP_OUVERTURE,
-  evaluerUnGeste,
-} from "@/lib/securite/antibot";
+  identitesDe,
+  MESSAGE_BLOQUE,
+  poserDefi,
+  tropDEssais,
+  verdictAntiBot,
+} from "@/lib/auth/gestes";
 import {
   adresseCourante,
   premierBlocage,
@@ -40,91 +38,6 @@ import { deposer } from "@/lib/email/outbox";
  * formulaire de connexion en outil pour savoir qui a un compte ici.
  */
 
-/**
- * Le refus opposé à une identité bloquée.
- *
- * ────────────────────────────────────────────────────────────────────────────
- * IL NE DIT PAS CE QUI A BLOQUÉ, ET C'EST VOULU
- *
- * « Votre adresse IP est bloquée » apprend à la personne qu'il suffit de
- * changer de réseau ; « votre courriel est bloqué » qu'il suffit d'en prendre
- * un autre. Le blocage a une valeur exactement tant qu'on ignore lequel des
- * deux a joué.
- *
- * Le journal, lui, le dit — c'est à l'écran d'administration qu'on a besoin de
- * le savoir, pas dans le formulaire.
- *
- * Message distinct de `MESSAGE_IDENTIFIANTS` : refuser un compte bloqué avec
- * « adresse ou mot de passe incorrect » enverrait la personne réinitialiser un
- * mot de passe qui fonctionne très bien, et le support chercherait un défaut
- * de connexion là où il y a une décision.
- */
-const MESSAGE_BLOQUE =
-  "Ce compte ne peut pas être utilisé. Écris-nous si tu penses que c'est une erreur.";
-
-/**
- * Les identités de cette tentative qui pourraient être bloquées.
- *
- * L'adresse n'entre dans la liste que si on en a une : sans ce filtre, on
- * appellerait `estBloque("IP", "")`, et une ligne vide posée par accident dans
- * la table bloquerait alors **tout le monde**.
- */
-/**
- * Le verdict anti-bot pour ce formulaire.
- *
- * ────────────────────────────────────────────────────────────────────────────
- * LE MESSAGE EST CELUI D'UNE LIMITE, PAS D'UNE ACCUSATION
- *
- * Aucun des trois signaux n'est certain. Un remplisseur automatique un peu
- * zélé, un navigateur exotique, un score mal calibré : il y aura des refus
- * injustes, et la personne en face n'a alors rien fait de mal.
- *
- * « Réessaie dans un instant » est vrai pour elle et sans intérêt pour un
- * robot. « Nous pensons que vous êtes un robot » serait faux une fois sur dix
- * et vexant les dix fois.
- *
- * Le motif, lui, part au journal : c'est là qu'on a besoin de savoir lequel
- * des trois a joué.
- */
-async function verdictAntiBot(
-  donnees: FormData,
-  action: string,
-  /**
-   * Le délai minimum ne vaut que là où quelqu'un tape vraiment.
-   *
-   * À l'inscription, on remplit six champs : deux secondes sont impossibles.
-   * À la connexion, un gestionnaire de mots de passe remplit et valide en un
-   * clin d'œil — appliquer le même plancher refuserait des connexions
-   * parfaitement réelles, tous les jours, sans que personne ne fasse le lien.
-   */
-  avecDelai: boolean,
-): Promise<EtatFormulaire | null> {
-  const verdict = await evaluerUnGeste({
-    action,
-    leurre: String(donnees.get(CHAMP_LEURRE) ?? ""),
-    ouvertLe: avecDelai ? String(donnees.get(CHAMP_OUVERTURE) ?? "") : null,
-  });
-
-  if (verdict.laisserPasser) return null;
-
-  journal.info("geste refusé par l'anti-bot", {
-    action,
-    motif: verdict.motif,
-    score: verdict.score,
-  });
-
-  return { erreur: "Quelque chose a coincé. Réessaie dans un instant." };
-}
-
-async function identitesDe(email: string) {
-  const adresse = await adresseCourante();
-
-  return [
-    { type: "EMAIL" as const, valeur: email },
-    ...(adresse ? [{ type: "IP" as const, valeur: adresse }] : []),
-  ];
-}
-
 export interface EtatFormulaire {
   erreur?: string;
   champ?: "email" | "motDePasse" | "username" | "nom" | "conditions";
@@ -133,21 +46,6 @@ export interface EtatFormulaire {
 }
 
 const MESSAGE_IDENTIFIANTS = "Adresse ou mot de passe incorrect.";
-
-/**
- * Ce qu'on répond quand la limite est atteinte.
- *
- * Le même texte partout, et il ne dit **rien** de ce qui a été tenté : ni si
- * l'adresse existe, ni combien d'essais restent. Annoncer « il vous reste deux
- * essais » indiquerait à un attaquant qu'il est sur la bonne piste, et lui
- * donnerait le rythme exact auquel repartir.
- */
-function tropDEssais(secondes: number): EtatFormulaire {
-  const minutes = Math.max(1, Math.ceil(secondes / 60));
-  return {
-    erreur: `Trop de tentatives. Réessaie dans ${minutes} minute${minutes > 1 ? "s" : ""}.`,
-  };
-}
 
 function normaliserEmail(valeur: string): string {
   return valeur.trim().toLowerCase();
@@ -188,7 +86,7 @@ export async function connecter(
 
   // La liste de blocage AVANT le hachage, pour la même raison que la borne :
   // une identité déjà jugée ne doit pas nous coûter un scrypt à chaque essai.
-  const bloque = await premierBlocage(await identitesDe(email));
+  const bloque = await premierBlocage(await identitesDe({ email }));
   if (bloque) {
     journal.info("connexion refusée : identité bloquée", { type: bloque });
     return { erreur: MESSAGE_BLOQUE };
@@ -243,19 +141,7 @@ export async function connecter(
   // secours — voir `lib/auth/actions-webauthn.ts`. Poser un verrou sans
   // fabriquer de double fermerait le compte de qui perd l'appareil.
   if (compte.totpActiveLe || compte._count.passkeys > 0) {
-    const jeton = await ouvrirDefi(compte.id);
-    const magasin = await cookies();
-
-    magasin.set(COOKIE_DEFI, jeton, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      // Cinq minutes, comme le défi. Un cookie qui survivrait au défi ne
-      // donnerait rien, mais laisserait croire à une session en cours.
-      maxAge: 300,
-    });
-
+    await poserDefi(compte.id);
     redirect("/connexion/verification");
   }
 
@@ -382,7 +268,7 @@ export async function inscrire(
 
   // Après les validations de forme, avant la moindre écriture : une identité
   // bloquée ne doit pas pouvoir se réinscrire sous un autre pseudo.
-  const bloqueInscription = await premierBlocage(await identitesDe(email));
+  const bloqueInscription = await premierBlocage(await identitesDe({ email }));
   if (bloqueInscription) {
     journal.info("inscription refusée : identité bloquée", {
       type: bloqueInscription,

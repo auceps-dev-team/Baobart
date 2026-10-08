@@ -6,6 +6,16 @@
   <em>Dribbble × Pinterest × monétisation · pensé pour l'Afrique · « du vrai matériel local »</em>
 </p>
 
+> **Ce document décrit la vision du produit, pas l'état du code.**
+> Relu contre le dépôt le 08/10/2026 : la pile technique, l'arborescence,
+> l'installation et les liens ci-dessous ont été corrigés pour dire ce qui
+> existe. Les fonctionnalités, le modèle économique et la feuille de route
+> restent ceux **visés**.
+>
+> - État réel, fonctionnalité par fonctionnalité : [`MATRICE_IMPLEMENTATION.md`](MATRICE_IMPLEMENTATION.md)
+> - Installer et lancer le projet : le [`README.md`](../README.md) à la racine
+> - Les variables d'environnement, lues ou non par le code : [`.env.example`](../.env.example)
+
 ---
 
 ## 📌 Sommaire
@@ -76,6 +86,13 @@ Une **place de marché communautaire** qui combine :
 
 ## ✨ Fonctionnalités
 
+> **Visées, pas toutes construites.** Relevé le 08/10/2026 dans le code, sans
+> prétendre à l'exhaustivité : aucune dépendance d'IA dans `package.json`
+> (pas d'Assistant), aucune intégration Figma / Canva / Framer, aucun module
+> Shield (filigrane, C2PA) au-delà d'un champ `shieldLevel` lu par le tableau
+> de bord, pas d'escrow ni de produits physiques. La matrice dit ce qui
+> fonctionne ; cette liste dit où l'on va.
+
 ### Découverte (Pinterest)
 - Feed visuel masonry infini, **pagination curseur** (rapide à grande échelle)
 - Filtres par familles : Mockups, Logos, Modèles, Images, Illustrations, Vidéos, Fonts, Icônes, Arts, Packs
@@ -130,31 +147,52 @@ Chaque shot peut être monétisé : c'est l'hybride unique — *« Pinterest/Dri
 
 ## 🛠 Stack technique
 
-| Couche | Techno |
-|---|---|
-| Framework | **Next.js 15 (App Router)** + TypeScript strict |
-| UI | **Tailwind CSS** — design system « Sticker » (lavande/ambre, contours encre) |
-| Base de données | **PostgreSQL 16 + Prisma ORM** (curseur, compteurs dénormalisés) |
-| Cache | **Redis** (feed, compteurs, sessions) |
-| Auth | NextAuth — email + OTP téléphone + social + **passkeys** |
-| Paiements | **Flutterwave / Paystack / CinetPay** (mobile money) + Stripe |
-| Médias | S3-compatible (R2 / MinIO) + CDN, upload direct presign |
-| Jobs | **Inngest** (cloud) / **BullMQ** (self-host) via abstraction |
-| Emails | Resend / SMTP via abstraction |
-| Recherche | Postgres full-text (v1) → Meilisearch (v2) |
-| IA | LLM API (Claude/GPT/Gemini) — Assistant, fiches produit, résumés |
-| Observabilité | Sentry + OpenTelemetry + slow-query logs |
+Relevée dans le code le 08/10/2026. La colonne de droite dit ce que la vision
+prévoit et qui n'est **pas** branché aujourd'hui — l'ancienne version de ce
+tableau mélangeait les deux, et un audit s'y est trompé.
+
+| Couche | En place | Visé, non branché |
+|---|---|---|
+| Framework | **Next.js 15.5 (App Router)**, React 19, TypeScript strict (`noUncheckedIndexedAccess`) | — |
+| UI | **Tailwind CSS v4** — design system « Sticker » (`app/globals.css`) | — |
+| Base de données | **PostgreSQL 16 + Prisma 6** — 94 modèles, 64 migrations ; le grand livre est tenu par des triggers SQL, pas par du code applicatif | — |
+| Redis | Limitation de débit uniquement (`lib/securite/pilotes.ts`, préfixe `baobart:`) | cache du feed, compteurs, sessions |
+| Authentification | **Maison** : sessions en base (jeton haché SHA-256), mots de passe scrypt, 2FA TOTP, passkeys WebAuthn (`@simplewebauthn`) | NextAuth n'est **pas** utilisé. Connexion par téléphone (code SMS) branchée ; Google, Apple et les autres : boutons présents, non branchés (voir plus bas) |
+| Paiements | **Paystack**, **Flutterwave** (API v4) et un **bac à sable**, écrits à la main contre les API, sans SDK (`lib/payments/encaissement/`). Aucun compte marchand branché | CinetPay, Stripe |
+| Médias | Stockage S3-compatible (MinIO en local), envoi direct par URL signée, **sharp** pour les aperçus | CDN (R2) en production |
+| Tâches planifiées | Pas de file : **8 passages** déclenchés par les crons Vercel vers `app/api/cron/*` (`vercel.json`) | Inngest / BullMQ ; aperçus produits hors requête |
+| Courriels | File `EmailOutbox` + pilotes `console` / Resend / SMTP (nodemailer) | — |
+| Notifications | In-app, Web Push (VAPID), SMS par pilote (`console`, Twilio, textbee, SMS Gateway for Android) | — |
+| Recherche | `contains` insensible à la casse sur le nom des ressources (`lib/feed/queries.ts`) | full-text Postgres, puis Meilisearch |
+| IA | Aucune | Assistant, fiches produit, résumés |
+| Observabilité | Journal structuré maison (`lib/observabilite/journal.ts`), requêtes lentes (`SLOW_QUERY_MS`), sonde `/api/health` | Sentry, OpenTelemetry |
+| Tests | Vitest (unitaires, et intégration contre une vraie base `baobart_test`), Playwright (parcours contre un build) | — |
+| CI | GitHub Actions : types/lint/unitaires/build, intégration, migrations rejouées à neuf, audit des dépendances, parcours e2e ; Dependabot | — |
+
+**La connexion par un tiers, précisément.** `lib/auth/providers.ts` distingue
+un fournisseur **configuré** d'un fournisseur **branché** (une route
+`app/api/auth/<id>/route.ts` le reçoit). Seul un fournisseur à la fois
+configuré et branché rend son bouton cliquable, et un test confronte la
+déclaration au dossier `app/api/auth/`, dans les deux sens.
+
+Au 08/10/2026, un seul est branché : le **téléphone**. On se connecte avec un
+code SMS sur un numéro préalablement vérifié dans le profil ; la 2FA reste
+exigée si elle est active. Il est configuré dès qu'un pilote SMS peut émettre
+(`SMS_DRIVER`, par exemple `textbee` ou `smsgate` pour un téléphone Android
+servant de passerelle — le second peut fonctionner sans aucun service tiers,
+sur le réseau local). Google, Apple et les autres répondent « Bientôt disponible »,
+quelles que soient leurs variables.
 
 ---
 
 ## 📚 Architecture & documentation
 
-Le projet est entièrement documenté dans `docs/` (voir aussi les specs à la racine) :
+La documentation vit dans `Doc/`. Les maquettes de référence sont dans `Baobart Design/` (8 fichiers `.dc.html`, non servis par l'application) :
 
 | Document | Contenu |
 |---|---|
 | [`PLAN_REFONTE_BAOBART_GUMROAD.md`](PLAN_REFONTE_BAOBART_GUMROAD.md) | Plan directeur v11 : concept, modèle économique, catalogue des découvertes Gumroad (MIT), roadmap M0→M8. Le §0-bis est le journal d'avancement réel |
-| [`AUDIT_GUMROAD_2026-08-28.md`](AUDIT_GUMROAD_2026-08-28.md) | **Audit le plus récent** : écart plan/code, statut des points bloquants, catalogue Gumroad croisé avec le code réel |
+| [`AUDIT_GUMROAD_2026-08-28.md`](AUDIT_GUMROAD_2026-08-28.md) | Audit du 28/08/2026 : écart plan/code, statut des points bloquants, catalogue Gumroad croisé avec le code réel |
 | [`MATRICE_IMPLEMENTATION.md`](MATRICE_IMPLEMENTATION.md) | **Inventaire vivant** spec → module → statut → tests → dette, mis à jour à chaque commit qui fait avancer une fonctionnalité |
 | [`VERIFICATION_GUMROAD.md`](VERIFICATION_GUMROAD.md) | **Relevé des écarts** entre le plan et le code réel de Gumroad (le référent) — ce qui est vérifié, ce qui est faux, ce qui manquait |
 | [`BLUEPRINT_NEXTJS_BAOBART.md`](BLUEPRINT_NEXTJS_BAOBART.md) | Architecture Next.js, mapping Gumroad → TypeScript. ⚠️ Son schéma est un brouillon : la source de vérité est `prisma/schema.prisma` |
@@ -169,7 +207,7 @@ Le projet est entièrement documenté dans `docs/` (voir aussi les specs à la r
 | [`ANALYSE_DESIGN_SYSTEM_BAOBART.md`](ANALYSE_DESIGN_SYSTEM_BAOBART.md) | Analyse du design system « Sticker » + contrastes |
 | [`CHARTE_EDITORIALE_BAOBART.md`](CHARTE_EDITORIALE_BAOBART.md) | Charte éditoriale (ton inspiré de Gumroad) |
 | [`MODELE_ECONOMIQUE_BAOBART.xlsx`](MODELE_ECONOMIQUE_BAOBART.xlsx) | Modèle économique chiffré (hypothèses, projection 24 mois) |
-| [`MAQUETTES_BAOBART.html`](MAQUETTES_BAOBART.html) | Maquettes fonctionnelles (tarifs, badges, profil, jobs, bibliothèque, admin) |
+| [`Baobart Design/`](../Baobart%20Design/) | Maquettes de référence (accueil, auth, tableau de bord, parcours d'achat, badges, design system…). Le `MAQUETTES_BAOBART.html` qu'annonçait cette ligne n'est pas dans le dépôt |
 
 ---
 
@@ -207,50 +245,73 @@ Le projet est entièrement documenté dans `docs/` (voir aussi les specs à la r
 
 ## 🐳 Installation & déploiement
 
-### Déploiement « deploy anywhere » (Vercel OU VPS)
-
-Le projet est **indépendant du fournisseur** (12-factor app) : le même code tourne sur Vercel (managé) ou sur un VPS via Docker (self-hosting — contrôle des coûts). Détails complets : [`SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md`](SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md).
+Le pas-à-pas à jour vit dans le [`README.md`](../README.md) racine. En bref :
 
 ```bash
-# 1) Cloner et configurer
-git clone https://github.com/votre-org/baobart.git && cd baobart
-cp .env.example .env && vi .env
-
-# 2) Self-host : lancer la stack complète (Docker)
-docker compose up -d --build
-docker compose exec app npx prisma migrate deploy
-
-# 3) Ou déployer sur Vercel
-vercel --prod        # (pooling DB + Inngest pour les jobs)
+pnpm install
+cp .env.example .env          # puis remplir — chaque variable dit si le code la lit
+docker compose up -d          # PostgreSQL (port 5433), Redis, MinIO — pas l'application
+pnpm db:migrate && pnpm db:seed
+pnpm dev                      # http://localhost:3100
 ```
 
-**Coûts indicatifs** : Vercel ~50-100 $/mois · VPS Hostinger ~10-35 $/mois.
+`docker-compose.yml` ne monte que les **services de développement**. Il n'y a
+ni conteneur `app`, ni `worker`, ni Caddy : la version précédente de cette page
+en annonçait trois, et la commande `docker compose exec app …` échouait. Voir
+aussi, dans ce fichier, la note sur l'image MinIO (mesuré le 08/10/2026 : elle
+ne se télécharge plus anonymement depuis Docker Hub).
+
+**En production**, deux chemins, le même code :
+
+- **Vercel** — `vercel.json` porte la commande de build et les 8 passages
+  planifiés. Les migrations s'appliquent à part : `pnpm db:deploy`.
+- **Image Docker** — `Dockerfile` (Next « standalone », sonde `HEALTHCHECK` sur
+  `/api/health`). `S3_PUBLIC_URL` et `S3_ENDPOINT` se passent en arguments de
+  build : `next.config.ts` les lit à ce moment-là. L'image n'embarque pas la
+  CLI Prisma : les migrations s'appliquent depuis un poste ou la CI, avant le
+  déploiement.
+
+Détails et coûts estimés (non mesurés) : [`SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md`](SPEC_DEPLOIEMENT_SELFHOSTING_BAOBART.md),
+[`DEPLOIEMENT_VERCEL.md`](DEPLOIEMENT_VERCEL.md).
 
 ---
 
 ## 📁 Structure du projet
 
+Relevée le 08/10/2026.
+
 ```
 baobart/
-├── app/                    # Pages Next.js (App Router)
-│   ├── (marketing)/        # Accueil, Explorer, Créateurs, Tarifs
-│   ├── explore/  shots/  boards/  creatifs/
-│   ├── products/  services/  jobs/  events/
-│   ├── communaute/  forum/  library/
-│   ├── dashboard/          # Portail vendeur
-│   └── admin/              # Super Admin + CMS
-├── prisma/schema.prisma    # Schéma de données
-├── lib/
-│   ├── domain/             # Logique métier portée de Gumroad (MIT)
-│   ├── payments/           # ChargeProcessors (Flutterwave, Paystack…)
-│   ├── shield/             # Protection des œuvres
-│   ├── ai-assistant/  growth/  gamification/
-│   └── i18n/               # fr-FR, formats 180 000 F
-├── jobs/                   # Inngest / BullMQ
-├── components/  hooks/  types/
-├── docker-compose.yml      # app + worker + postgres + redis + minio + caddy
+├── app/                    # Pages et routes (App Router)
+│   ├── page.tsx            # Accueil
+│   ├── explore/  createurs/  products/  tarifs/  blog/
+│   ├── communautes/  evenements/  jobs/  services/
+│   ├── achat/  acheter/  abonnement/       # tunnels d'achat et de renouvellement
+│   ├── connexion/  inscription/  …         # compte
+│   ├── dashboard/          # espace connecté : créateur, acheteur, et
+│   │   └── systeme/        #   exploitation (réservée aux rôles d'administration)
+│   ├── api/                # cron/*, paiements/[fournisseur]/webhook,
+│   │                       #   telechargement, feed, recherche, health…
+│   ├── sitemap.ts  robots.ts  opengraph-image.tsx  manifest.ts
+├── lib/                    # La logique métier, un dossier par domaine :
+│   ├── domain/             #   frais, soldes, risque, livraison (porté de Gumroad, MIT)
+│   ├── payments/           #   encaissement (pilotes), versements, grand livre
+│   ├── auth/  securite/    #   sessions, 2FA, passkeys ; limites, anti-bot, en-têtes
+│   ├── products/  upload/  medias/  feed/  social/  collections/
+│   ├── abonnements/  commerce/  ventes/  licences/
+│   ├── blog/  cms/  forum/  evenements/  jobs/  services/  juridique/
+│   ├── email/  notifications/  push/  sms/  ndank/
+│   └── observabilite/  systeme/  rgpd/  seo/  config/  i18n/
+├── components/             # Composants React, rangés par domaine
+├── prisma/                 # schema.prisma, migrations/, seeds
+├── e2e/                    # Parcours Playwright
+├── scripts/                # Base de test, démo, comptes de test
+├── docker-compose.yml      # PostgreSQL + Redis + MinIO (développement)
 └── Dockerfile              # Next.js standalone
 ```
+
+Ni `app/admin`, ni `lib/shield`, ni `jobs/` : la version précédente de cet
+arbre les annonçait, aucun n'existe.
 
 ---
 

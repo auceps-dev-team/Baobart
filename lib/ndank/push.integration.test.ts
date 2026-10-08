@@ -224,6 +224,17 @@ describe("la confirmation de renouvellement", () => {
   it("ne fait pas échouer un renouvellement quand la poussée casse", async () => {
     // Le paiement est acquis ; la notification est un confort. Une exception
     // ici déferait un renouvellement déjà payé.
+    //
+    // Le bac à sable, posé ICI et pas lu dans `.env` : il faut un paiement
+    // encore en attente après l'ouverture, pour casser la poussée entre les
+    // deux. La simulation réglerait tout pendant l'ouverture, et sans aucun
+    // pilote l'ouverture est refusée — c'est ce qui rendait ce test rouge en
+    // CI depuis le 24/09 au moins (mesuré le 08/10) : il ne passait que sur un
+    // poste dont le `.env` configurait le bac à sable.
+    delete process.env.CHECKOUT_SIMULATION_ENABLED;
+    process.env.PAYMENTS_DRIVER = "bac-a-sable";
+    process.env.PAYMENTS_SANDBOX_SECRET = "un-secret-de-bac-a-sable-assez-long";
+
     const { utilisateur, abonnement } = await abonne({
       echeance: ajouterJours(new Date(), 5),
       avecAppareil: true,

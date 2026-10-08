@@ -7,6 +7,7 @@ import {
   confirmerFichierDe,
   retirerFichierDe,
 } from "@/lib/upload/service";
+import { PREFIXE_PUBLIC, urlPublique } from "@/lib/upload/storage";
 
 /**
  * Le retrait d'un fichier, confronté à la base.
@@ -190,10 +191,14 @@ describe("retrait d'un fichier", () => {
       where: { id: mediaId },
       data: { width: 1200, height: 800 },
     });
+    // L'adresse est fabriquée par `urlPublique`, comme le fait le code. Écrite
+    // en dur (`http://localhost:9000/baobart-media/…`), elle ne correspondait
+    // qu'à un poste dont le `.env` produit exactement celle-là : ce test était
+    // rouge en CI depuis le 24/09 au moins (mesuré le 08/10).
     await db.product.update({
       where: { id: produitId },
       data: {
-        coverUrl: `http://localhost:9000/baobart-media/public/apercus/${mediaId}.webp`,
+        coverUrl: urlPublique(`${PREFIXE_PUBLIC}apercus/${mediaId}.webp`),
         coverImageId: mediaId,
       },
     });

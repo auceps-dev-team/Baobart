@@ -55,7 +55,7 @@ export default async function VerificationPage() {
         kicker: "Presque",
         titre: "Une dernière preuve",
         texte:
-          "Le mot de passe seul n'ouvre pas ce compte. Le code change toutes les trente secondes et ne sert qu'une fois : même intercepté, il ne vaut plus rien.",
+          "Le mot de passe seul n'ouvre pas ce compte, ni le code reçu par SMS. Le code de ton application change toutes les trente secondes et ne sert qu'une fois : même intercepté, il ne vaut plus rien.",
         points: [
           "Six chiffres depuis ton application",
           "Ou un code de secours, si le téléphone manque",

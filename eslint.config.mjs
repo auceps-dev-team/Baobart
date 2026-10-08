@@ -13,6 +13,10 @@ const eslintConfig = [
     ignores: [
       "Baobart Design/**",
       "Doc/**",
+      // Scripts de recette jetables, gardés hors de git sur certains postes
+      // (`require()`, variables globales) : ils cassaient `pnpm lint` en local
+      // sans que la CI, qui ne les a pas, le voie jamais.
+      "qa/**",
       ".next/**",
       "node_modules/**",
       "next-env.d.ts", // fichier généré par Next.js

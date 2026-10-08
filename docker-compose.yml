@@ -51,6 +51,26 @@ services:
       timeout: 5s
       retries: 10
 
+  # ⚠️ NON ÉPINGLÉ, ET POURQUOI — mesuré le 08/10/2026
+  #
+  # L'audit technique demandait d'épingler cette image. En cherchant une
+  # version, le registre Docker Hub a refusé l'accès anonyme à `minio/minio`
+  # et à `minio/mc` (401 « insufficient_scope »), alors qu'il l'accordait à
+  # `library/postgres` dans la même minute. L'image ne semble donc plus
+  # téléchargeable publiquement. Un poste qui l'a déjà en cache démarre ; un
+  # poste neuf échouera ici, et l'erreur ne parlera pas de cette ligne.
+  #
+  # Épingler une étiquette qu'on ne peut pas télécharger ne servirait à rien.
+  # Les remplaçants qui répondent ont chacun un défaut, d'où une décision à
+  # prendre plutôt qu'un changement à l'aveugle :
+  #   — `bitnamilegacy/minio:2025.7.23-debian-12-r5` : épinglable, mais figé
+  #     (plus de correctifs) et organisé autrement (données, commande) ;
+  #   — `chainguard/minio` : maintenu, mais seule `latest` est publiée
+  #     gratuitement — on ne peut l'épingler que par empreinte ;
+  #   — un autre serveur S3 (RustFS, Garage, SeaweedFS) : à éprouver avec
+  #     l'envoi par URL signée.
+  # Pour connaître la version qui tourne sur ce poste :
+  #   docker image inspect minio/minio:latest --format '{{index .RepoDigests 0}}'
   minio:
     image: minio/minio:latest
     container_name: baobart-minio

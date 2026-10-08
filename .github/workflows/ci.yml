@@ -5,6 +5,9 @@
 # minutes et attrape la majorité des régressions ; le second monte un Postgres
 # et exerce l'argent, les fichiers et le social contre une vraie base. Les
 # fusionner ferait attendre cinq minutes pour apprendre qu'une virgule manque.
+#
+# S'y ajoutent, depuis v1.83.0, l'audit des dépendances (le plus rapide de
+# tous) et les parcours au navigateur (le plus lent), chacun dans son job.
 # ============================================================================
 
 name: CI
@@ -60,6 +63,54 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Les failles connues des dépendances.
+  #
+  # Mesuré le 08/10/2026 : 26 alertes, dont deux critiques sur Next.js et une
+  # sur sharp, servis en production — et rien ne le signalait. Deux seuils :
+  #
+  #   — production : AUCUNE alerte, quelle que soit sa gravité. C'est ce qui
+  #     tourne face aux visiteurs ;
+  #   — tout l'arbre, outils compris : rien de « high » ni au-dessus. Un outil
+  #     de développement compromis s'exécute sur le poste et dans cette CI.
+  #
+  # Une exception, nommée dans `package.json` (`pnpm.auditConfig.ignoreGhsas`) :
+  # GHSA-vfj7-8cjw-p6xm, `braces`, sans aucune version corrigée publiée. Il
+  # n'est atteint que par le greffon eslint de Next, qui ne lui passe que des
+  # motifs de fichiers écrits par nous. À retirer dès qu'un correctif existe.
+  #
+  # Ce job casse le jour où une alerte est publiée, même sans rien changer au
+  # code. C'est voulu : Dependabot propose le correctif, et une alerte qu'on
+  # laisse passer « parce que ce n'est pas cette PR » ne se corrige jamais.
+  # ──────────────────────────────────────────────────────────────────────────
+  dependances:
+    name: Failles connues des dépendances
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activer Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      # Sans `cache: pnpm`, contrairement aux autres jobs. Mesuré le 08/10 au
+      # premier passage : les deux audits avaient réussi, et le job a échoué
+      # quand même — au nettoyage, `setup-node` veut sauvegarder le magasin de
+      # pnpm, qui n'existe pas puisque rien n'est installé ici (« Path(s)
+      # specified in the action for caching do(es) not exist »).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # L'audit lit le lockfile et interroge le registre : pas besoin
+      # d'installer quoi que ce soit.
+      - name: Production — aucune alerte
+        run: pnpm audit --prod
+
+      - name: Tout l'arbre — rien de grave
+        run: pnpm audit --audit-level=high
 
   integration:
     name: Argent, fichiers et social contre Postgres
@@ -159,3 +210,85 @@ jobs:
       # répercuter — ou l'inverse.
       - name: Vérifier qu'aucune dérive ne subsiste
         run: pnpm exec prisma migrate status
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Les parcours au navigateur, contre un vrai build.
+  #
+  # Ils existaient (4 fichiers, 19 parcours) et ne tournaient qu'à la main :
+  # l'audit technique du 07–08/10 le relevait. Ce sont pourtant les seuls à
+  # voir qu'un bouton existe, qu'un formulaire envoie les bons champs, qu'une
+  # page rend 404 à qui n'a rien à y faire, et que Next sert réellement les
+  # routes planifiées de `vercel.json`.
+  #
+  # Base `baobart_e2e` à part, port 3200 : la configuration est celle de
+  # `playwright.config.ts`, qui construit puis démarre l'application lui-même.
+  # Aucun opérateur de paiement : l'achat passe par la simulation.
+  # ──────────────────────────────────────────────────────────────────────────
+  e2e:
+    name: Parcours au navigateur
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: baobart
+          POSTGRES_PASSWORD: baobart
+          POSTGRES_DB: baobart_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U baobart -d baobart_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL_E2E: postgresql://baobart:baobart@localhost:5432/baobart_e2e?schema=public
+      # Le parcours de l'ordonnanceur refuse de tourner sans secret : sans lui,
+      # il ne prouverait rien. Une valeur de test, propre à ce job.
+      CRON_SECRET: secret-de-test-e2e-assez-long-pour-passer
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activer Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer
+        run: pnpm install --frozen-lockfile
+
+      - name: Générer le client Prisma
+        run: pnpm db:generate
+
+      - name: Installer Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # AVANT Playwright, pas seulement dans son `globalSetup`. Mesuré le
+      # 08/10/2026 : Playwright démarre le serveur et interroge sa page
+      # d'accueil AVANT d'exécuter `e2e/preparation.ts`. Sur une base neuve,
+      # l'accueil échoue faute de tables, et la campagne attend son serveur
+      # jusqu'au délai de dix minutes. Un poste local ne le voit pas : sa base
+      # garde les tables du passage précédent.
+      - name: Préparer la base du navigateur
+        run: pnpm db:e2e:setup
+
+      - name: Parcours
+        run: pnpm test:e2e
+
+      # Traces et captures des seuls échecs — c'est ce qu'il faut pour
+      # comprendre un parcours rouge sans le rejouer.
+      - name: Garder les traces d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traces-e2e
+          path: test-results/
+          retention-days: 7

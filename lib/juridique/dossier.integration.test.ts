@@ -322,6 +322,37 @@ describe("répondre", () => {
     expect(dossier._count.replies).toBe(1);
   });
 
+  it("refuse la réponse d'un autre compte, et laisse le vrai auteur répondre", async () => {
+    // Les références se suivent : NOT-2026-001, -002… Sans ce contrôle, un
+    // inconnu faisait passer le dossier en contestation, et l'auteur visé
+    // trouvait ensuite la porte fermée (« le délai est passé »).
+    const d = await retire();
+    const intrus = await personne();
+
+    expect(
+      await repondre({
+        reference: d.reference,
+        auteurId: intrus.id,
+        corps: "Je réponds à la place de quelqu'un d'autre.",
+      }),
+    ).toEqual({ ok: false, motif: "INTROUVABLE" });
+
+    const avant = await db.legalNotice.findUniqueOrThrow({
+      where: { reference: d.reference },
+      select: { state: true, _count: { select: { replies: true } } },
+    });
+    expect(avant.state).toBe("RETRAIT_PROVISOIRE");
+    expect(avant._count.replies).toBe(0);
+
+    expect(
+      await repondre({
+        reference: d.reference,
+        auteurId: d.vise.id,
+        corps: "Cette illustration est la mienne, publiée en 2023.",
+      }),
+    ).toEqual({ ok: true });
+  });
+
   it("refuse une réponse vide", async () => {
     const d = await retire();
 
@@ -333,6 +364,10 @@ describe("répondre", () => {
   it("refuse de répondre à un dossier qui n'est pas en retrait provisoire", async () => {
     const depot = await deposer({ saisie: saisie() });
     const vise = await personne();
+    const modo = await personne();
+    // Rattaché, mais pas encore retiré : c'est l'état, et lui seul, qui doit
+    // refuser — pas le contrôle de l'auteur.
+    await rapprocher({ reference: depot.reference, userId: vise.id, parId: modo.id });
 
     expect(
       await repondre({

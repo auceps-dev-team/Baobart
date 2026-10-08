@@ -123,6 +123,29 @@ describe("diagnostic de la plateforme", () => {
       expect(c.gravite).toBe("ok");
       expect(c.detail).toContain("google");
     });
+
+    it("avertit d'un fournisseur configuré qu'aucune route ne reçoit", () => {
+      // Jusqu'au 08/10/2026, ce cas s'affichait « 1 fournisseur(s) actif(s) :
+      // Google » en vert, et le bouton menait à une 404.
+      const c = constatConnexion({
+        actifs: [],
+        configuresNonBranches: ["Google"],
+        motDePasse: true,
+      });
+      expect(c.gravite).toBe("attention");
+      expect(c.detail).toContain("Google");
+      expect(c.detail).toContain("non branché");
+    });
+
+    it("ne cache pas les actifs derrière l'avertissement", () => {
+      const c = constatConnexion({
+        actifs: ["GitHub"],
+        configuresNonBranches: ["Google"],
+        motDePasse: true,
+      });
+      expect(c.gravite).toBe("attention");
+      expect(c.detail).toContain("GitHub");
+    });
   });
 
   describe("paiement simulé", () => {

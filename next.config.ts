@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { entetesDeSecurite } from "./lib/securite/entetes";
+
 /**
  * Hôtes autorisés pour l'optimiseur d'images.
  *
@@ -41,6 +43,17 @@ const nextConfig: NextConfig = {
   // s'en passe.
   output: process.env.BUILD_STANDALONE === "1" ? "standalone" : undefined,
   reactStrictMode: true,
+  // `X-Powered-By: Next.js` n'apprend rien à un visiteur et tout à quelqu'un
+  // qui cherche une version vulnérable.
+  poweredByHeader: false,
+
+  /**
+   * Les en-têtes de sécurité, sur toutes les réponses. Ce qu'ils couvrent et
+   * pourquoi la CSP n'observe encore qu'en silence : `lib/securite/entetes.ts`.
+   */
+  async headers() {
+    return [{ source: "/:path*", headers: entetesDeSecurite(process.env) }];
+  },
 
   /**
    * Où le build dépose ses artefacts.
