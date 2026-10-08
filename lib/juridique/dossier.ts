@@ -340,7 +340,7 @@ export async function retirerProvisoirement(input: {
  */
 export async function repondre(input: {
   reference: string;
-  auteurId: string | null;
+  auteurId: string;
   corps: string;
   conteste?: boolean;
 }): Promise<Suite> {
@@ -349,10 +349,24 @@ export async function repondre(input: {
 
   const dossier = await db.legalNotice.findUnique({
     where: { reference: input.reference },
-    select: { id: true, state: true },
+    select: { id: true, state: true, targetUserId: true },
   });
 
-  if (!dossier) return { ok: false, motif: "INTROUVABLE" };
+  // ──────────────────────────────────────────────────────────────────────────
+  // SEUL LE COMPTE VISÉ RÉPOND
+  //
+  // Ce contrôle manquait (relevé le 08/10/2026) : toute session pouvait
+  // répondre à n'importe quel dossier dont elle connaissait la référence — et
+  // les références sont séquentielles, `NOT-2026-001`, `-002`… Une réponse
+  // fait passer le dossier en CONTESTEE ; le vrai auteur, ensuite, se voyait
+  // répondre « le délai est passé ». Un inconnu pouvait donc lui confisquer le
+  // droit de répondre que la procédure lui ouvre.
+  //
+  // « Introuvable » plutôt que « interdit », comme partout ailleurs : dire « ce
+  // n'est pas le tien » confirmerait qu'un dossier porte cette référence.
+  if (!dossier || dossier.targetUserId !== input.auteurId) {
+    return { ok: false, motif: "INTROUVABLE" };
+  }
   if (dossier.state !== "RETRAIT_PROVISOIRE") return { ok: false, motif: "ETAT" };
 
   await db.$transaction(async (tx) => {
