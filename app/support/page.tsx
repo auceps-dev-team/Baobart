@@ -46,9 +46,11 @@ export default async function SupportPage() {
 
       <DocSection titre="Être remboursé" id="remboursement">
         <DocTexte>
-          C&apos;est le créateur qui rembourse, en tout ou en partie, depuis son écran Ventes. Écris-lui — son profil donne
-          ses liens — ou, s&apos;il ne répond pas, écris à l&apos;équipe avec la référence de ta commande. Un remboursement
-          intégral referme l&apos;accès au fichier.
+          Chaque créateur fixe son délai — aucun, 7, 14 ou 30 jours —, écrit sur la fiche à côté de la licence et figé au
+          jour de ton achat. Dans ce délai, demande-le depuis {vers("/dashboard/remboursements", "Remboursements")}, avec
+          ce qui ne va pas. Le créateur accepte ou refuse avec un motif ; sans réponse de sa part sous sept jours,
+          l&apos;équipe Baobart tranche. Un paiement contesté auprès de ta banque ne se rembourse pas en plus : c&apos;est
+          elle qui tranche. Un remboursement intégral referme l&apos;accès au fichier.
         </DocTexte>
       </DocSection>
 

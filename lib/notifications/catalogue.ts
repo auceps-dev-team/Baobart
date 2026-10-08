@@ -106,12 +106,14 @@ export type EvenementNotifiable =
   | "ACHAT_CONFIRME"
   | "TELECHARGEMENT_PRET"
   | "COMMANDE_REMBOURSEE"
+  | "REMBOURSEMENT_REFUSE"
   | "ABONNEMENT_A_RENOUVELER"
   | "ABONNEMENT_RECU"
   | "EVENEMENT_ANNULE"
   | "EVENEMENT_MAINTENU"
   // ── Vendeur, créateur, organisateur ─────────────────────────────────────
   | "VENTE_REALISEE"
+  | "DEMANDE_REMBOURSEMENT"
   | "VERSEMENT_ENVOYE"
   | "CONTENU_PUBLIE"
   | "CONTENU_REFUSE"
@@ -158,6 +160,17 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     libelle: "Lien de téléchargement",
     explication: "Le fichier est prêt, avec son lien.",
     modele: "LIEN_TELECHARGEMENT",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  // Ajouté le 08/10 avec les demandes de remboursement. Impératif pour la
+  // raison de CONTENU_REFUSE : un refus sans canal vers son destinataire est
+  // un mur — l'acheteur ne saurait jamais pourquoi rien ne revient.
+  REMBOURSEMENT_REFUSE: {
+    audience: "acheteur",
+    libelle: "Remboursement refusé",
+    explication: "Ta demande a été refusée, et pourquoi.",
+    imperatif: true,
+    modele: "REMBOURSEMENT_REFUSE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   COMMANDE_REMBOURSEE: {
@@ -209,6 +222,16 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
   },
 
   // ══════════════════════════════════════ vendeur, créateur, organisateur ══
+  // Ajouté le 08/10. Impératif : un délai court part de lui — sans réponse
+  // sous sept jours, le support tranche à la place du créateur.
+  DEMANDE_REMBOURSEMENT: {
+    audience: "vendeur",
+    libelle: "Demande de remboursement",
+    explication: "Un acheteur demande à être remboursé : tu as sept jours pour répondre.",
+    imperatif: true,
+    modele: "DEMANDE_REMBOURSEMENT",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
   VENTE_REALISEE: {
     audience: "vendeur",
     libelle: "Nouvelle vente",

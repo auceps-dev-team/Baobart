@@ -149,6 +149,10 @@ describe("les impératifs", () => {
         "VERSEMENT_ENVOYE",
         // Une décision qui n'a aucun autre canal vers son auteur.
         "CONTENU_REFUSE",
+        // Ajoutés le 08/10 : un refus de remboursement (même raison), et une
+        // demande reçue, d'où part un délai de sept jours avant le support.
+        "REMBOURSEMENT_REFUSE",
+        "DEMANDE_REMBOURSEMENT",
         // Un déplacement prévu, parfois payé — qu'on annule, ou qu'on
         // maintient après l'avoir annulé (ajouté en v1.69.12 : qui a lu
         // « annulé » a pu renoncer à son déplacement).

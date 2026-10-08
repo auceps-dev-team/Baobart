@@ -75,6 +75,7 @@ export default async function ConditionsPage() {
             "Le paiement se fait chez l'opérateur : Paystack, ou le mobile money que tu choisis. L'accès s'ouvre quand l'opérateur confirme le paiement, pas avant.",
             "Accès libre, gratuit, s'active d'un clic et se quitte de même : il ouvre les ressources offertes, pas les payantes. Les forfaits payants (Découverte, Explorer, Studio) ne sont pas encore ouverts.",
             "Chaque achat porte une licence, qui dit ce que tu peux faire du fichier, et une clé de licence — voir la page Licences.",
+            "Tu peux demander un remboursement dans le délai que le créateur affiche sur la fiche, depuis ton espace « Remboursements ». Le créateur répond ; sans réponse sous sept jours, l'équipe Baobart tranche. Un paiement contesté auprès de ta banque ne se rembourse pas en plus.",
           ]}
         />
       </DocSection>
@@ -86,7 +87,7 @@ export default async function ConditionsPage() {
             "Tu publies sans exclusivité : tes ressources t'appartiennent, et tu peux les vendre ailleurs.",
             "Une ressource ne se publie qu'avec au moins un fichier : l'acheteur doit avoir quelque chose à télécharger.",
             `Ton solde t'est versé une fois par semaine, selon le moyen choisi — ${versements.join(", ")}. En dessous du minimum de versement, il roule sur l'échéance suivante.`,
-            "Tu peux rembourser une vente, en tout ou en partie, depuis ton écran Ventes.",
+            "Tu choisis ton délai de remboursement (aucun, 7, 14 ou 30 jours), affiché sur tes fiches et figé à chaque achat. Tu réponds aux demandes des acheteurs sous sept jours, faute de quoi l'équipe Baobart tranche ; un remboursement accepté débite ton solde du prix payé. Tu peux aussi rembourser une vente de toi-même, depuis ton écran Ventes.",
           ]}
         />
       </DocSection>

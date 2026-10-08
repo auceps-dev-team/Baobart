@@ -430,6 +430,12 @@ model User {
   /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
   /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
   refundsDisabled Boolean      @default(false)
+  /// Le délai pendant lequel un acheteur peut demander un remboursement, en
+  /// jours : 0 (aucun), 7, 14 ou 30. Décidé le 05/10, comme Gumroad
+  /// (`RefundPolicy::ALLOWED_REFUND_PERIODS_IN_DAYS`, 30 par défaut). Figé sur
+  /// chaque vente (`OrderItem.refundWindowDays`) : le changer ne retire rien
+  /// à qui a déjà acheté.
+  refundWindowDays Int         @default(30)
   defaultCurrency Currency     @default(XOF)
 
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
@@ -536,6 +542,7 @@ model User {
   blogPosts     BlogPost[]
   testimonial   Testimonial?
   messagesEnvoyes ContactMessage[] @relation("MessagesEnvoyes")
+  demandesDeRemboursement RefundRequest[] @relation("DemandesDeRemboursement")
 
   /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
   /// `CommunityChatMessage` sont NOMMÉES : sans nom, Prisma ne saurait pas
@@ -1512,6 +1519,45 @@ model Testimonial {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// LES DEMANDES DE REMBOURSEMENT DES ACHETEURS
+//
+// Décidé le 05/10 : l'acheteur demande dans le délai du créateur, depuis ses
+// achats ; le créateur accepte ou refuse avec un motif ; sans réponse sous
+// sept jours, le support tranche. Une demande par ligne de commande — un refus
+// est une réponse, pas une invitation à redemander.
+//
+// Pas de colonne vers le vendeur : il se lit par la ligne
+// (`orderItem.product.sellerId`). Le dénormaliser ferait deux vérités.
+// ════════════════════════════════════════════════════════════════════════════
+
+enum RefundRequestStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+}
+
+model RefundRequest {
+  id          String @id @default(cuid())
+  orderItemId String @unique
+  buyerId     String
+  reason      String @db.Text
+  status      RefundRequestStatus @default(PENDING)
+  /// Lu par l'acheteur quand la demande est refusée.
+  refusalReason String?
+  decidedById   String?
+  /// Vrai quand c'est le support qui a tranché, faute de réponse du créateur.
+  decidedBySupport Boolean @default(false)
+  decidedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  buyer     User      @relation("DemandesDeRemboursement", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([buyerId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // MESSAGES REÇUS — Contact et Sponsoriser
 //
 // Décidé le 04/10 : les deux formulaires de la maquette (« Envoyer le message
@@ -1687,7 +1733,14 @@ model OrderItem {
   /// l'argent sans retirer l'accès.
   accessRevokedAt DateTime?
 
+  /// Le délai de remboursement du créateur au moment de l'achat. Nul pour les
+  /// ventes d'avant le 05/10 : on retombe alors sur le délai actuel du
+  /// créateur.
+  refundWindowDays Int?
+
   createdAt DateTime @default(now())
+
+  demandeDeRemboursement RefundRequest?
 
   order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product    Product     @relation(fields: [productId], references: [id])
@@ -3275,6 +3328,11 @@ enum EmailTemplate {
   /// Ajouté le 04/10 : le lien qui confirme une inscription à la lettre
   /// d'information. Sans clic, l'adresse ne compte pas.
   INFOLETTRE_CONFIRMATION
+
+  /// Ajoutés le 08/10 avec les demandes de remboursement : au créateur quand
+  /// une demande arrive (un délai court), à l'acheteur quand elle est refusée.
+  DEMANDE_REMBOURSEMENT
+  REMBOURSEMENT_REFUSE
 }
 
 /// File d'attente des messages transactionnels.

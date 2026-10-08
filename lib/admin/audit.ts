@@ -89,7 +89,11 @@ export type ActionAdmin =
   | "temoignage.refuser"
   | "temoignage.retirer"
   // Messages reçus (04/10) : qui a classé un message, quand.
-  | "contact.traiter";
+  | "contact.traiter"
+  // Demandes de remboursement tranchées par le support (08/10). Celles du
+  // créateur ne sont pas des gestes d'administration.
+  | "remboursement.accepter"
+  | "remboursement.refuser";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

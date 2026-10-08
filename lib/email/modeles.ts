@@ -74,6 +74,10 @@ export const MODELES = [
   // rien demandé — quelqu'un a pu taper son adresse. Le texte le dit, et le
   // lien de désinscription est déjà là.
   "INFOLETTRE_CONFIRMATION",
+
+  // ── Ajoutés le 08/10 avec les demandes de remboursement ─────────────────
+  "DEMANDE_REMBOURSEMENT",
+  "REMBOURSEMENT_REFUSE",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -240,6 +244,19 @@ const SCHEMAS = {
   }),
   EVENEMENT_MAINTENU: z.object({ nom, titre: z.string().min(1).max(160) }),
   INFOLETTRE_CONFIRMATION: z.object({ confirmer: lien, desinscrire: lien, jours: z.number().int().positive() }),
+  DEMANDE_REMBOURSEMENT: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    montant: z.string().min(1).max(40),
+    motif: z.string().min(1).max(500),
+    jours: z.number().int().positive(),
+  }),
+  REMBOURSEMENT_REFUSE: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    motif: z.string().min(1).max(2000),
+    par: z.string().min(1).max(40),
+  }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
 export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
@@ -460,6 +477,27 @@ ${c.raison}
       "et tu ne recevras plus rien de notre part.\n\n" +
       "Si ce n'est pas toi, ou si tu changes d'avis plus tard :\n" +
       `${c.desinscrire}` +
+      SIGNATURE,
+  }),
+
+  DEMANDE_REMBOURSEMENT: (c) => ({
+    sujet: `Demande de remboursement : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Un acheteur demande le remboursement de « ${c.ressource} » (${c.montant}). Son motif :\n\n` +
+      `  « ${c.motif} »\n\n` +
+      `Accepte ou refuse depuis ton tableau de bord, rubrique « Demandes de remboursement ». ` +
+      `Sans réponse sous ${c.jours} jours, l'équipe Baobart tranchera à ta place.` +
+      SIGNATURE,
+  }),
+
+  REMBOURSEMENT_REFUSE: (c) => ({
+    sujet: `Ta demande de remboursement : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Ta demande de remboursement pour « ${c.ressource} » a été refusée par ${c.par}. Le motif donné :\n\n` +
+      `  « ${c.motif} »\n\n` +
+      `Ton achat reste accessible dans tes téléchargements.` +
       SIGNATURE,
   }),
 

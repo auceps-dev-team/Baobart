@@ -75,6 +75,8 @@ const ACHETEUR: EntreeNav[] = [
     glyph: "↓",
     href: "/dashboard/telechargements",
   },
+  // Ajouté le 08/10 : demander un remboursement dans le délai du créateur.
+  { cle: "remboursements", label: "Remboursements", glyph: "↺", href: "/dashboard/remboursements" },
   { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: "/dashboard/suivis" },
   { cle: "collections", label: "Mes collections", glyph: "⌸", href: "/dashboard/collections" },
   {
@@ -131,6 +133,7 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
   },
   { cle: "c_commandes", label: "Commandes", glyph: "▤", href: "/dashboard/commandes" },
   { cle: "c_ventes", label: "Ventes", glyph: "◫", href: "/dashboard/ventes" },
+  { cle: "c_remboursements", label: "Demandes de remboursement", glyph: "↺", href: "/dashboard/ventes/remboursements" },
   { cle: "c_commissions", label: "Commissions", glyph: "%", href: "/dashboard/commissions" },
   { cle: "c_stats", label: "Statistiques", glyph: "▲", href: "/dashboard/statistiques" },
   { cle: "c_profil", label: "Profil de la boutique", glyph: "☺", href: "/dashboard/boutique" },
@@ -238,6 +241,15 @@ const ADMINISTRATION: EntreeAdmin[] = [
     glyph: "❝",
     href: "/dashboard/temoignages",
     pouvoir: "promouvoir_du_contenu",
+  },
+  {
+    // Les demandes laissées sans réponse par le créateur plus de sept jours
+    // (08/10). « Rembourser, trancher un litige » : le pouvoir du support.
+    cle: "a_remboursements",
+    label: "Remboursements à trancher",
+    glyph: "↺",
+    href: "/dashboard/remboursements-a-trancher",
+    pouvoir: "traiter_les_litiges",
   },
   {
     // Les formulaires Contact et Sponsoriser (04/10). Deux pouvoirs, un seul

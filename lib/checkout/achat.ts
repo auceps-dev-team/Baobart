@@ -263,6 +263,7 @@ export async function acheter(input: {
             tipsEnabled: true,
             pppEnabled: true,
             pppMaxDiscountBp: true,
+            seller: { select: { refundWindowDays: true } },
             _count: { select: { files: { where: { role: "SOURCE", deletedAt: null } } } },
           },
         });
@@ -461,6 +462,9 @@ export async function acheter(input: {
                 listPrice: prixAffiche ?? (parite.remiseBp > 0 ? retenu.prix : null),
                 offerCodeId: codeApplique?.id ?? null,
                 tipAmount: retenu.pourboire,
+                // Figé comme le prix : le créateur qui raccourcit son délai
+                // demain ne retire rien à qui achète aujourd'hui.
+                refundWindowDays: produit.seller.refundWindowDays,
                 // Gardés même sans réduction : c'est ce qui permet de savoir
                 // d'où viennent les ventes, et de répondre plus tard à « la
                 // parité change-t-elle quelque chose ? » sans instrumenter

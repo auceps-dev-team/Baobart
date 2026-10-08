@@ -65,6 +65,10 @@ export default async function TarifsPage() {
       a: "Oui. Un achat à l'unité donne un droit permanent, hors de tout quota : tu retrouves le fichier dans tes téléchargements, et sa clé de licence sur sa fiche. Ce qui le referme : un remboursement intégral, une contestation de paiement en cours, ou un retrait juridique de la ressource.",
     },
     {
+      q: "Puis-je être remboursé ?",
+      a: "Dans le délai que le créateur affiche sur la fiche — aucun, 7, 14 ou 30 jours —, depuis ton espace « Remboursements ». Le créateur accepte ou refuse avec un motif ; sans réponse sous sept jours, l'équipe Baobart tranche.",
+    },
+    {
       q: "Comment sont rémunérés les créateurs ?",
       a: `Pour chaque vente, ${part} du prix revient au créateur : Baobart retient sa commission et les frais de l'opérateur de paiement. Le solde part chaque semaine, par mobile money ou virement.`,
     },

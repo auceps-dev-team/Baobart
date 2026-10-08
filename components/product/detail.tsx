@@ -598,9 +598,16 @@ export function DetailProduit({
             <div style={{ fontFamily: "var(--font-display)", fontSize: 30 }}>
               {produit.prixAffiche}
             </div>
-            <a href="/licences" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE, textDecoration: "underline" }}>
-              {produit.licence.toLowerCase()}
-            </a>
+            <div style={{ display: "grid", justifyItems: "end", gap: 2 }}>
+              <a href="/licences" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE, textDecoration: "underline" }}>
+                {produit.licence.toLowerCase()}
+              </a>
+              {produit.remboursement ? (
+                <span data-remboursement style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
+                  {produit.remboursement}
+                </span>
+              ) : null}
+            </div>
           </div>
           <BoutonTelechargement droit={droit} slug={produit.slug} />
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>

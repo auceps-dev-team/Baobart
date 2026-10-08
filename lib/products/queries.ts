@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
+import { libelleDelai } from "@/lib/remboursements/regles";
 
 /**
  * Un achat peut-il aboutir aujourd'hui ?
@@ -35,6 +36,12 @@ export interface FicheProduit {
    * défaut que l'écran d'édition (`app/dashboard/produits/[id]`).
    */
   licence: string;
+  /**
+   * Le délai de remboursement du créateur, dit en clair (`libelleDelai`) — le
+   * même que vaudra l'achat, puisqu'il y est figé. Nul pour une ressource
+   * offerte : il n'y a rien à rembourser.
+   */
+  remboursement: string | null;
   description: string | null;
   famille: Filtre | null;
   prix: number;
@@ -227,6 +234,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
       licenseType: { select: { title: true } },
       seller: {
         select: {
+          refundWindowDays: true,
           profile: {
             select: {
               displayName: true,
@@ -274,6 +282,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
     slug: p.slug,
     titre: p.name,
     licence: p.licenseType?.title ?? LICENCE_PAR_DEFAUT,
+    remboursement: estOfferte(p) ? null : libelleDelai(p.seller.refundWindowDays),
     description: p.description,
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
     prix: p.price,

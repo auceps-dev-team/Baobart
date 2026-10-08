@@ -123,6 +123,8 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   // Ce qu'on a écrit à l'équipe depuis son compte. Ceux écrits sans compte
   // partent par l'adresse, plus bas.
   ["contactMessage", "senderId"],
+  // Une demande de remboursement porte le motif de son auteur.
+  ["refundRequest", "buyerId"],
 
   // ── Ce qui s'engage ───────────────────────────────────────────────────
   ["cart", "userId"],

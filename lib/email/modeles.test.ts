@@ -79,6 +79,8 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     desinscrire: "https://baobart.test/infolettre/desinscription?jeton=def",
     jours: 7,
   },
+  DEMANDE_REMBOURSEMENT: { nom: "Awa", ressource: "Pack textures", montant: "4 500 F", motif: "Le fichier ne s'ouvre pas.", jours: 7 },
+  REMBOURSEMENT_REFUSE: { nom: "Kofi", ressource: "Pack textures", motif: "Le fichier s'ouvre avec Illustrator 2024.", par: "le créateur" },
 };
 
 describe("modèles de courriel", () => {
