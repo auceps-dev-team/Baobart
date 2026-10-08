@@ -143,7 +143,7 @@
 | Déploiement Vercel + CI | §0-bis | `vercel.json` | ✅ | v1.18.0 | — |
 | Point de santé, journal structuré | §0-bis | — | ✅ | v1.19.0 | — |
 | Rôle plateforme + écran de configuration | §0-bis | `app/dashboard/systeme/configuration` | ✅ | v1.20.0 | — |
-| Vulnérabilités dépendances (sharp, postcss, nanoid, deepmerge-ts) | Audit 21/08 | `package.json` (`overrides`) | ✅ | corrigé | — |
+| Vulnérabilités dépendances (sharp, postcss, nanoid, deepmerge-ts) | Audit 21/08, audit technique 07–08/10 | `package.json` (`overrides`, `auditConfig`), `.github/workflows/ci.yml` (job `dependances`), `.github/dependabot.yml` | ✅ | v1.83.0 | **Mesuré le 08/10 : 26 alertes** dont deux critiques sur Next (exécution de code par l'optimiseur d'images) et une sur sharp — l'override `sharp: 0.35.3` posé le 21/08 était dépassé. Next 15.5.27, sharp 0.35.5, nodemailer 10, vitest 4. Le job `dependances` refuse désormais toute alerte de production et toute alerte « high » ailleurs. **Reste : `braces` (GHSA-vfj7-8cjw-p6xm) ignoré nommément** — aucune version corrigée publiée, atteint seulement par le greffon eslint de Next |
 | Tests bout en bout navigateur (Playwright) | §0-bis | voir « Tests au navigateur (E2E) » plus haut | ✅ | v1.57.2 | **Ligne périmée corrigée le 19 septembre 2026** : elle annonçait « ❌ — vérifications faites à la main » alors que `e2e/` existe depuis v1.35.0. Même cause que les trois lignes corrigées le 17 septembre — deux sections décrivaient le même sujet, et mettre l'une à jour laissait l'autre en arrière. Celle-ci a coûté davantage qu'un document faux : elle a été **lue et reprise comme vraie** dans un compte rendu de cette session, qui affirmait « Playwright configuré, zéro parcours écrit » |
 
 ---

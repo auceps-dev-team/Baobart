@@ -1,0 +1,65 @@
+# ============================================================================
+# Dependabot — les mises à jour de dépendances proposées en pull request.
+#
+# POURQUOI
+#
+# Mesuré le 08/10/2026 : `pnpm audit` relevait 26 alertes, dont deux
+# critiques sur Next.js (exécution de code à distance par l'optimiseur
+# d'images) et une sur sharp — des paquets servis en production. Rien ne les
+# signalait : la CI ne lançait pas d'audit, et personne ne relit un lockfile.
+# Le job « dépendances » de la CI refuse désormais une alerte connue ; ce
+# fichier fait arriver le correctif avant que la CI ne casse.
+#
+# CE QUE CE FICHIER NE FAIT PAS
+#
+# Il règle les mises à jour de VERSION. Les alertes de sécurité et les pull
+# requests de correctif (« security updates ») s'activent dans les réglages du
+# dépôt : Settings → Code security → Dependabot alerts / security updates.
+# Sans ce réglage, ce fichier propose des montées de version mais ne réagit
+# pas plus vite à une faille publiée.
+#
+# Les montées MAJEURES arrivent seules, une par paquet : Next 16, Prisma 7+ ou
+# Vitest 5 sont des migrations, pas des mises à jour, et chacune mérite sa
+# propre relecture. Les mineures et correctifs sont groupés pour ne pas noyer
+# la file sous trente pull requests par semaine.
+# ============================================================================
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Africa/Abidjan
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      production-mineures:
+        dependency-type: production
+        update-types: [minor, patch]
+      developpement-mineures:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      timezone: Africa/Abidjan
+    commit-message:
+      prefix: chore
+
+  # L'image de production : `node:22-alpine` reçoit des correctifs de sécurité
+  # sans changer d'étiquette, mais une nouvelle mineure de Node, si.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Africa/Abidjan
+    commit-message:
+      prefix: chore
