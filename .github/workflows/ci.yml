@@ -34,7 +34,7 @@ jobs:
     name: Types, style, décideurs purs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Activer Corepack
         run: |
@@ -88,7 +88,7 @@ jobs:
     name: Failles connues des dépendances
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Activer Corepack
         run: |
@@ -134,7 +134,7 @@ jobs:
       DATABASE_URL_TEST: postgresql://baobart:baobart@localhost:5432/baobart_test?schema=public
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Activer Corepack
         run: |
@@ -187,7 +187,7 @@ jobs:
       DIRECT_URL: postgresql://baobart:baobart@localhost:5432/baobart_migrations?schema=public
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Activer Corepack
         run: |
@@ -250,7 +250,7 @@ jobs:
       CRON_SECRET: secret-de-test-e2e-assez-long-pour-passer
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Activer Corepack
         run: |
