@@ -1,8 +1,7 @@
 import Image from "next/image";
 
+import { Vague } from "@/components/anime/vague";
 import { cn } from "@/lib/cn";
-
-import { Vague } from "./vague";
 
 /**
  * Le logo de l'en-tête, animé de trois façons.
@@ -16,7 +15,10 @@ import { Vague } from "./vague";
  * traductions.
  *
  * - `vague`   : le mot arrive lettre à lettre (Wave Reveal d'Animata) ;
- * - `survol`  : la pastille pivote et le mot se souligne d'orange au survol ;
+ * - `survol`  : la pastille pivote et le mot se souligne d'orange au survol.
+ *   RETENU le 08/10 pour les cinq logos du site : il passe par les classes
+ *   globales `logo-anime`, `logo-pastille` et `logo-mot` (`globals.css`),
+ *   les mêmes que dans les vraies vues ;
  * - `sticker` : la pastille arrive comme un autocollant posé (`popin` des
  *   maquettes), puis flotte (`floaty`, déjà dans `globals.css`).
  */
@@ -35,38 +37,31 @@ export function LogoAnime({
     variante === "vague" ? (
       <Vague
         texte="Baobart"
-        sens="up"
+        mode="lettre"
         duree="700ms"
         delai={150}
-        flou={false}
         fin={<span className="text-orange">.</span>}
       />
     ) : (
-      <span className="relative">
+      <>
         Baobart<span className="text-orange">.</span>
-        {variante === "survol" && (
-          <span
-            aria-hidden
-            className="absolute -bottom-0.5 left-1/2 h-[2.5px] w-0 -translate-x-1/2 rounded-full bg-orange transition-[width] duration-300 ease-out group-hover/logo:w-full group-focus-visible/logo:w-full"
-          />
-        )}
-      </span>
+      </>
     );
 
   return (
     <a
       href="#logo"
-      className="group/logo flex w-fit cursor-pointer items-center text-encre"
+      className={cn(
+        "flex w-fit cursor-pointer items-center text-encre",
+        variante === "survol" && "logo-anime",
+      )}
       style={{ gap: 10 * taille }}
     >
       <span
         className={cn(
-          "grid flex-none place-items-center overflow-hidden rounded-pastille border-[2.5px] border-encre bg-orange",
-          variante === "survol" &&
-            "transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover/logo:-rotate-12 group-hover/logo:scale-110 group-focus-visible/logo:-rotate-12",
+          "logo-pastille grid flex-none place-items-center overflow-hidden rounded-pastille border-[2.5px] border-encre bg-orange",
           variante === "sticker" &&
-            // Boucle infinie : sous mouvement réduit, on l'arrête nous-mêmes
-            // (voir la note de `animata.css`).
+            // Boucle infinie : sous mouvement réduit, on l'arrête nous-mêmes.
             "animate-[popin_.35s_cubic-bezier(0.34,1.56,0.64,1)_both,floaty_6s_ease-in-out_.6s_infinite] motion-reduce:animate-none",
         )}
         style={{ width: pastille, height: pastille }}
@@ -80,7 +75,7 @@ export function LogoAnime({
         />
       </span>
       <span
-        className="font-display"
+        className="logo-mot font-display"
         style={{ fontSize: 22 * taille, letterSpacing: `${-0.5 * taille}px` }}
       >
         {mot}

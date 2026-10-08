@@ -10,6 +10,8 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { CarteRetournee } from "@/components/anime/carte-retournee";
+import { Defile } from "@/components/anime/defile";
 import { BoutonInviter, BoutonSuivre } from "@/components/home/espace-gestes";
 import { CarteTemoignage } from "@/components/temoignages/carte";
 import type { CreateurASuivre, Espace } from "@/lib/collections/espace";
@@ -37,6 +39,45 @@ const CONTENEUR = {
   margin: "0 auto",
   padding: "72px 32px 0",
 } as const;
+
+// ──────────────────────────────────────────────────── Ruban de la baseline ─────
+
+/**
+ * Le ruban jaune sous le hero : la baseline du logo, en boucle.
+ *
+ * Ajout du 08/10 (labo Animata, `Defile`), absent de « Baobart
+ * Accueil.dc.html ». Le texte est celui de « Baobart Logo.dc.html »,
+ * variante 1a : « CREATE. SHARE. INSPIRE. », en anglais dans la maquette
+ * comme ici.
+ *
+ * Huit copies. Mesuré le 08/10 : une copie fait 353 px, huit en couvrent
+ * 2 825, assez pour un conteneur de 2 470 px plus la copie qui sort — un écran
+ * de 2 560 px moins le rail (112 px) en fait 2 448. Au-delà, un trou passerait
+ * en fin de boucle : ajouter des copies. Une copie par 10 s, soit 35 px par
+ * seconde.
+ */
+export function RubanBaseline() {
+  return (
+    <div style={{ marginTop: 56 }}>
+      <Defile
+        repetitions={8}
+        className="border-y-[2.5px] border-encre bg-jaune py-3 [--duration:10s] [--gap:28px]"
+      >
+        {["CREATE.", "SHARE.", "INSPIRE."].map((mot) => (
+          <span
+            key={mot}
+            style={{ fontFamily: "var(--font-display)", fontSize: 19, letterSpacing: "-.3px" }}
+          >
+            {mot}
+          </span>
+        ))}
+        <span aria-hidden style={{ color: ORANGE, fontSize: 19 }}>
+          ●
+        </span>
+      </Defile>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────── Gratuit, tout de suite ─────
 
@@ -253,45 +294,91 @@ export function CollectionsTrieesMain({
             gap: 14,
           }}
         >
-          {rayons.map((r, i) => (
-            <Link
-              key={r.famille}
-              href={`/explore?filtre=${encodeURIComponent(r.famille)}`}
-              className="sticker-press"
-              data-rayon={r.famille}
-              style={{
-                display: "block",
-                border: CADRE,
-                borderRadius: 16,
-                background: BLANC,
-                padding: 10,
-                color: ENCRE,
-              }}
-            >
-              <div
-                style={{
-                  height: 74,
-                  border: `2px solid ${ENCRE}`,
-                  borderRadius: 10,
-                  // Une couverture réelle quand la famille en a une ; sinon la
-                  // trame de la maquette, qui ne prétend rien montrer.
-                  background: r.couverture
-                    ? `url(${JSON.stringify(r.couverture)}) center / cover no-repeat`
-                    : TRAMES_RAYON[i % TRAMES_RAYON.length],
-                }}
+          {/* Les tuiles se retournent au survol et au focus (ajout du 08/10,
+              labo Animata). Le recto garde tout ce qu'il montrait : le verso
+              ne fait que répéter le compte en grand, avec l'appel. Au toucher,
+              où il ne se retourne pas toujours, rien ne manque. */}
+          {rayons.map((r, i) => {
+            const pieces = `${r.total} pièce${r.total > 1 ? "s" : ""}`;
+            const face = {
+              display: "block",
+              height: "100%",
+              border: CADRE,
+              borderRadius: 16,
+              padding: 10,
+              color: ENCRE,
+            } as const;
+            return (
+              <CarteRetournee
+                key={r.famille}
+                href={`/explore?filtre=${encodeURIComponent(r.famille)}` as Route}
+                etiquette={`${r.famille}, ${pieces} — explorer`}
+                // La hauteur des deux faces, posées l'une sur l'autre : celle
+                // qu'avait la tuile (10 + 74 + 8 + deux lignes + 10, contour
+                // compris), arrondie.
+                style={{ height: 142, borderRadius: 16 }}
+                recto={
+                  <span data-rayon={r.famille} style={{ ...face, background: BLANC }}>
+                    <span
+                      style={{
+                        display: "block",
+                        height: 74,
+                        border: `2px solid ${ENCRE}`,
+                        borderRadius: 10,
+                        // Une couverture réelle quand la famille en a une ;
+                        // sinon la trame de la maquette, qui ne prétend rien
+                        // montrer.
+                        background: r.couverture
+                          ? `url(${JSON.stringify(r.couverture)}) center / cover no-repeat`
+                          : TRAMES_RAYON[i % TRAMES_RAYON.length],
+                      }}
+                    />
+                    <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, marginTop: 8 }}>
+                      {r.famille}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10.5,
+                        opacity: 0.6,
+                      }}
+                    >
+                      {pieces}
+                    </span>
+                  </span>
+                }
+                verso={
+                  <span
+                    style={{
+                      ...face,
+                      background: JAUNE,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span style={{ fontSize: 12.5, fontWeight: 800 }}>{r.famille}</span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: 30,
+                        lineHeight: 1,
+                        letterSpacing: "-1px",
+                      }}
+                    >
+                      {r.total}
+                    </span>
+                    {/* Insécable : à 94 px de large (mesuré le 08/10), la flèche
+                        passait seule à la ligne. */}
+                    <span style={{ fontSize: 11.5, fontWeight: 800, whiteSpace: "nowrap" }}>
+                      Explorer&nbsp;→
+                    </span>
+                  </span>
+                }
               />
-              <div style={{ fontSize: 12.5, fontWeight: 800, marginTop: 8 }}>{r.famille}</div>
-              <div
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10.5,
-                  opacity: 0.6,
-                }}
-              >
-                {r.total} pièce{r.total > 1 ? "s" : ""}
-              </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

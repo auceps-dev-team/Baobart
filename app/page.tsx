@@ -6,6 +6,7 @@ import {
   Categories,
   CollectionsTrieesMain,
   EspacesEquipe,
+  RubanBaseline,
   Temoignages,
 } from "@/components/home/sections";
 import { Footer } from "@/components/shell/footer";
@@ -74,6 +75,7 @@ export default async function AccueilPage() {
     <>
       <Header utilisateur={utilisateur} />
       <HomeShell chiffres={chiffres} vitrine={vitrine}>
+        <RubanBaseline />
         <Categories familles={familles} />
         <Feed
           itemsInitiaux={page.items}

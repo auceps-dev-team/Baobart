@@ -1,7 +1,5 @@
-import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
-
-/** Le gris des blocs d'attente : la lavande claire de la charte. */
-const SQUELETTE = "#F4EEFC";
+import { SqueletteExplore } from "@/components/feed/squelette-explore";
+import { LAVANDE } from "@/lib/systeme/charte";
 
 /**
  * Le squelette d'attente de l'explorateur.
@@ -39,40 +37,23 @@ const SQUELETTE = "#F4EEFC";
  * n'est **pas** une issue possible. `/explore` existe toujours ; il la mérite,
  * et il en profite — la grille est lourde.
  *
- * Traduit de « Baobart Parcours Achat.dc.html », écran `loading`.
+ * ────────────────────────────────────────────────────────────────────────────
+ * TRADUIT DE LA MAQUETTE, CETTE FOIS À LA LETTRE (08/10/2026)
+ *
+ * Source : « Baobart Parcours Achat.dc.html », bloc `CHARGEMENT` (l. 483-510)
+ * et ses listes `skelChips` / `skelCards` (l. 808-809).
+ *
+ * La version précédente disait en être traduite, et s'en écartait partout :
+ * blocs figés au lieu du balayage et de la pulsation, contour d'encre à 13 %
+ * d'opacité (`${ENCRE}22`) au lieu du trait plein, aucune ombre, pas de
+ * bandeau « On charge tes ressources » avec son indicateur, une grille au lieu
+ * des colonnes, et d'autres hauteurs. Elle est reprise ici telle que dessinée.
+ *
+ * Le balisage vit dans `components/feed/squelette-explore.tsx`, pour être
+ * montré aussi dans le labo. Les animations (`squelette-balaye`,
+ * `squelette-pulse`, `squelette-tourne`) vivent dans `app/globals.css`, et
+ * s'arrêtent sous mouvement réduit.
  */
-
-/** Assez de cartes pour couvrir un premier écran, jamais plus. */
-const CARTES = 9;
-const FILTRES = 6;
-
-/** Les hauteurs varient comme celles des vraies cartes : une grille de
- *  rectangles identiques ne ressemble à rien de ce qui va s'afficher. */
-const HAUTEURS = [210, 260, 190, 240, 200, 280, 220, 250, 190];
-
-function Bloc({
-  hauteur,
-  largeur,
-  radius = 12,
-}: {
-  hauteur: number;
-  largeur?: number | string;
-  radius?: number;
-}) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        height: hauteur,
-        width: largeur ?? "100%",
-        borderRadius: radius,
-        background: SQUELETTE,
-        border: `2px solid ${ENCRE}22`,
-      }}
-    />
-  );
-}
-
 export default function Chargement() {
   return (
     <main
@@ -80,54 +61,9 @@ export default function Chargement() {
       // pour chaque rectangle rendrait la page inaudible.
       role="status"
       aria-label="On charge tes ressources"
-      style={{ minHeight: "100vh", background: LAVANDE, padding: "40px 20px" }}
+      style={{ minHeight: "100vh", background: LAVANDE }}
     >
-      <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-        <div
-          style={{
-            border: CADRE,
-            borderRadius: 20,
-            background: BLANC,
-            padding: 20,
-            marginBottom: 22,
-          }}
-        >
-          <Bloc hauteur={26} largeur={220} radius={8} />
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            {Array.from({ length: FILTRES }, (_, i) => (
-              <Bloc key={i} hauteur={34} largeur={92 + (i % 3) * 26} radius={999} />
-            ))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: 18,
-          }}
-        >
-          {Array.from({ length: CARTES }, (_, i) => (
-            <div
-              key={i}
-              style={{
-                border: CADRE,
-                borderRadius: 18,
-                background: BLANC,
-                padding: 12,
-              }}
-            >
-              <Bloc hauteur={HAUTEURS[i] ?? 220} radius={12} />
-              <div style={{ marginTop: 12 }}>
-                <Bloc hauteur={14} largeur="70%" radius={6} />
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <Bloc hauteur={12} largeur="45%" radius={6} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <SqueletteExplore />
     </main>
   );
 }

@@ -229,6 +229,7 @@ export function Header({
       >
         <Link
           href="/"
+          className="logo-anime"
           style={{
             display: "flex",
             alignItems: "center",
@@ -238,6 +239,7 @@ export function Header({
           }}
         >
           <span
+            className="logo-pastille"
             style={{
               width: 40,
               height: 40,
@@ -259,6 +261,7 @@ export function Header({
             />
           </span>
           <span
+            className="logo-mot"
             style={{
               fontFamily: "var(--font-display)",
               fontSize: 22,

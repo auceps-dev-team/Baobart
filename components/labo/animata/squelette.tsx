@@ -13,15 +13,12 @@ import { cn } from "@/lib/cn";
  * - les deux faux boutons (`<button>` sans action) deviennent des `<span>` :
  *   un squelette ne se clique pas, et le clavier s'y arrêtait ;
  * - l'original est STATIQUE — seule l'ombre bouge au survol. On peut lui
- *   ajouter le balayage `sweep` des maquettes (« Baobart Parcours
- *   Achat.dc.html »), avec `balaye`.
+ *   ajouter le balayage des maquettes (« Baobart Parcours Achat.dc.html »,
+ *   `sweep`, devenu `balayage` dans `globals.css`), avec `balaye`.
  */
 export function Squelette({ balaye = false, className }: { balaye?: boolean; className?: string }) {
-  const barre = cn(
-    "rounded-pastille bg-lavande-fond",
-    balaye &&
-      "bg-[linear-gradient(100deg,#F4EEFC_30%,#DCCFF0_50%,#F4EEFC_70%)] bg-[length:220%_100%] animate-[sweep_1.4s_ease-in-out_infinite] motion-reduce:animate-none",
-  );
+  // `squelette-balaye` : la classe globale, celle du squelette de /explore.
+  const barre = cn("rounded-pastille", balaye ? "squelette-balaye" : "bg-lavande-fond");
 
   return (
     <div

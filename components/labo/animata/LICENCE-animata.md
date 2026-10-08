@@ -1,8 +1,9 @@
 # Provenance
 
-Les composants de ce dossier sont adaptés d'Animata
-(https://github.com/codse/animata), copiés le 08/10/2026 depuis la branche
-`main`. Chaque fichier nomme le composant d'origine et dit ce qui a changé.
+Les composants de ce dossier, et ceux de `components/anime/` qui en ont été
+promus, sont adaptés d'Animata (https://github.com/codse/animata), copiés le
+08/10/2026 depuis la branche `main`. Chaque fichier nomme le composant
+d'origine et dit ce qui a changé.
 
 Animata est publié sous licence MIT, dont le texte suit.
 

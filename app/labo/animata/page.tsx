@@ -4,15 +4,16 @@ import type { ReactNode } from "react";
 
 import "@/components/labo/animata/animata.css";
 import { BoutonEnfonce, BoutonFleche, BoutonTache } from "@/components/labo/animata/boutons";
-import { CarteRetournee } from "@/components/labo/animata/carte-retournee";
-import { Compteur, enFrancs } from "@/components/labo/animata/compteur";
-import { Defile } from "@/components/labo/animata/defile";
+import { CarteRetournee } from "@/components/anime/carte-retournee";
+import { Compteur, enFrancs } from "@/components/anime/compteur";
+import { Defile } from "@/components/anime/defile";
+import { SqueletteExplore } from "@/components/feed/squelette-explore";
 import { LogoAnime } from "@/components/labo/animata/logo-anime";
 import { Rejouer } from "@/components/labo/animata/rejouer";
 import { Rouleau } from "@/components/labo/animata/rouleau";
 import { Soulignement } from "@/components/labo/animata/soulignement";
 import { Squelette } from "@/components/labo/animata/squelette";
-import { Vague } from "@/components/labo/animata/vague";
+import { Vague } from "@/components/anime/vague";
 
 /**
  * LABO — essai d'Animata (https://github.com/codse/animata).
@@ -108,8 +109,13 @@ export default function LaboAnimata() {
           }
         >
           <Rejouer>
+            {/* Les réglages d'origine d'Animata : lettre à lettre, vers le bas, flou. */}
             <Vague
               texte="Créer. Partager. Inspirer."
+              mode="lettre"
+              sens="down"
+              duree="2000ms"
+              flou
               className="font-display text-3xl uppercase sm:text-5xl"
             />
           </Rejouer>
@@ -180,12 +186,13 @@ export default function LaboAnimata() {
           note={
             <>
               La carte se retourne au survol et au focus clavier. Le squelette d&apos;Animata est
-              statique (à gauche) ; à droite, le même avec le balayage <code>sweep</code> des
-              maquettes.
+              statique (à gauche) ; à droite, le même avec le balayage des maquettes, désormais
+              celui du squelette de <code>/explore</code>.
             </>
           }
         >
           <CarteRetournee
+            className="h-72 w-56 rounded-sticker-lg"
             etiquette="Pack d'illustrations Wax — retourner pour le détail"
             recto={
               <div className={`${CARTE} bg-lavande-profond`}>
@@ -201,6 +208,7 @@ export default function LaboAnimata() {
             }
           />
           <CarteRetournee
+            className="h-72 w-56 rounded-sticker-lg"
             axe="x"
             etiquette="Carte retournée sur l'axe horizontal"
             recto={
@@ -216,6 +224,21 @@ export default function LaboAnimata() {
           />
           <Squelette />
           <Squelette balaye />
+        </Bloc>
+
+        <Bloc
+          titre="Squelette de /explore"
+          source="Baobart Parcours Achat.dc.html · écran loading"
+          note={
+            <>
+              Le vrai, celui de <code>app/explore/loading.tsx</code>, figé ici pour qu&apos;on
+              puisse le regarder : en situation, il ne dure qu&apos;une fraction de seconde.
+            </>
+          }
+        >
+          <div className="-mx-5 -my-7 w-[calc(100%+2.5rem)] bg-lavande-fond">
+            <SqueletteExplore />
+          </div>
         </Bloc>
       </div>
     </main>

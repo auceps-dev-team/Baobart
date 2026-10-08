@@ -21,7 +21,7 @@ export const enFrancs = (v: number) => `${enNombre(v)} F`;
  * Un nombre qui défile jusqu'à sa valeur quand il entre à l'écran.
  *
  * Adapté d'Animata, `animata/text/counter.tsx` (MIT, voir
- * LICENCE-animata.md). Ce qui a changé :
+ * `components/labo/animata/LICENCE-animata.md`). Ce qui a changé :
  *
  * - LE RENDU SERVEUR PORTE LA VRAIE VALEUR. L'original rend `0` côté serveur
  *   et compte jusqu'à la cible une fois dans le navigateur. Sans JavaScript,

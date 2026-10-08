@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { Compteur } from "@/components/anime/compteur";
+import { Vague } from "@/components/anime/vague";
 import {
   BLANC,
   ENCRE,
@@ -87,18 +89,25 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
               minWidth: 0,
             }}
           >
-            Le studio partagé de l&apos;Afrique{" "}
-            <span
-              style={{
-                background: LAVANDE_PROFOND,
-                border: `3px solid ${ENCRE}`,
-                padding: "0 10px",
-                display: "inline-block",
-                transform: "rotate(-1.5deg)",
-              }}
-            >
-              créative
-            </span>
+            {/* La vague arrive mot à mot ; « créative », le sticker, en dernier.
+                Ajout du 08/10 (labo Animata), absent de la maquette. */}
+            <Vague
+              texte="Le studio partagé de l'Afrique"
+              pas={70}
+              fin={
+                <span
+                  style={{
+                    background: LAVANDE_PROFOND,
+                    border: `3px solid ${ENCRE}`,
+                    padding: "0 10px",
+                    display: "inline-block",
+                    transform: "rotate(-1.5deg)",
+                  }}
+                >
+                  créative
+                </span>
+              }
+            />
           </h1>
 
           <p
@@ -149,12 +158,15 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
 
           <div style={{ display: "flex", gap: 28, marginTop: 34 }}>
             {[
+              // Les comptes défilent jusqu'à leur valeur (Compteur, labo
+              // Animata) ; le HTML porte déjà la vraie valeur. La note reste
+              // fixe : défiler jusqu'à une note sur 5 n'apprend rien.
               {
-                valeur: new Intl.NumberFormat("fr-FR").format(chiffres.ressources),
+                valeur: <Compteur cible={chiffres.ressources} />,
                 libelle: "ressources",
               },
               {
-                valeur: new Intl.NumberFormat("fr-FR").format(chiffres.createurs),
+                valeur: <Compteur cible={chiffres.createurs} delai={150} />,
                 libelle: "créatifs",
               },
               ...(chiffres.note !== null

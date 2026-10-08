@@ -289,3 +289,183 @@
 .ligne-menu[aria-disabled="true"]:hover {
   background: transparent;
 }
+
+/* ============================================================================
+   ANIMATIONS — promues du labo Animata (/labo/animata), décidé le 08/10/2026
+   Aucune ne figure dans les maquettes, sauf les squelettes : ce sont des
+   ajouts choisis, pas des traductions. Composants : components/anime/.
+   ============================================================================ */
+
+/* --- Vague : un texte qui arrive mot à mot (ou lettre à lettre) ---------- */
+
+@keyframes vague-monte {
+  from {
+    opacity: 0;
+    transform: translateY(80%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vague-descend {
+  from {
+    opacity: 0;
+    transform: translateY(-80%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vague-net {
+  from {
+    filter: blur(0.3rem);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+.vague-morceau {
+  display: inline-block;
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vague-morceau[data-sens="up"] {
+  animation-name: vague-monte;
+}
+.vague-morceau[data-sens="down"] {
+  animation-name: vague-descend;
+}
+.vague-morceau[data-sens="up"][data-flou] {
+  animation-name: vague-monte, vague-net;
+}
+.vague-morceau[data-sens="down"][data-flou] {
+  animation-name: vague-descend, vague-net;
+}
+
+/* --- Défilé : un ruban sans fin -------------------------------------------- */
+
+@keyframes defile-x {
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes defile-y {
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+.defile-x {
+  animation: defile-x var(--duration) infinite linear;
+}
+.defile-y {
+  animation: defile-y var(--duration) infinite linear;
+}
+.defile-pause:hover .defile-x,
+.defile-pause:hover .defile-y {
+  animation-play-state: paused;
+}
+
+/* --- Logo : la pastille pivote, le mot se souligne ------------------------
+ * Une seule règle pour les cinq logos (en-tête, rail, pied de page, connexion,
+ * tableau de bord) : chacun pose `logo-anime` sur son lien, `logo-pastille`
+ * sur le cercle et `logo-mot` sur le mot. Au survol ET au focus clavier. */
+
+.logo-anime .logo-pastille {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.logo-anime:hover .logo-pastille,
+.logo-anime:focus-visible .logo-pastille {
+  transform: rotate(-12deg) scale(1.08);
+}
+.logo-anime .logo-mot {
+  position: relative;
+}
+.logo-anime .logo-mot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 0;
+  height: 2.5px;
+  border-radius: 999px;
+  background: var(--color-orange);
+  translate: -50% 0;
+  transition: width 0.3s ease-out;
+}
+.logo-anime:hover .logo-mot::after,
+.logo-anime:focus-visible .logo-mot::after {
+  width: 100%;
+}
+
+/* --- Squelettes : repris de « Baobart Parcours Achat.dc.html », l. 24-27 ----
+ * Noms changés (`balayage`, `pulsation`, `tourne`) : Tailwind définit déjà
+ * `pulse` et `spin` pour `animate-pulse` et `animate-spin`, avec d'autres
+ * valeurs ; la dernière règle chargée l'emporterait. */
+
+@keyframes balayage {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+@keyframes pulsation {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes tourne {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.squelette-balaye {
+  background: linear-gradient(100deg, #f4eefc 30%, #dccff0 50%, #f4eefc 70%);
+  background-size: 220% 100%;
+  animation: balayage 1.4s ease-in-out infinite;
+}
+.squelette-pulse {
+  animation: pulsation 1.4s ease-in-out infinite;
+}
+.squelette-tourne {
+  animation: tourne 1s linear infinite;
+}
+
+/*
+ * Mouvement réduit, pour ce qui précède.
+ *
+ * Les boucles infinies s'arrêtent explicitement : la règle globale plus haut
+ * raccourcit leur durée, elle ne limite pas leurs répétitions. Les morceaux de
+ * la vague s'affichent d'un coup : leur décalage (`animation-delay`, en style
+ * en ligne) échappe à la règle globale, et ils resteraient invisibles le temps
+ * de ce décalage.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .defile-x,
+  .defile-y,
+  .squelette-balaye,
+  .squelette-pulse,
+  .squelette-tourne {
+    animation: none;
+  }
+  .vague-morceau {
+    animation: none;
+    opacity: 1;
+  }
+}

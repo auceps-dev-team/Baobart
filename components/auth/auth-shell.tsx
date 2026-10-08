@@ -65,8 +65,9 @@ export function AuthShell({
           background: LAVANDE,
         }}
       >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 11 }}>
+        <Link href="/" className="logo-anime" style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <span
+            className="logo-pastille"
             style={{
               width: 40,
               height: 40,
@@ -88,6 +89,7 @@ export function AuthShell({
             />
           </span>
           <span
+            className="logo-mot"
             style={{
               fontFamily: "var(--font-display)",
               fontSize: 21,
