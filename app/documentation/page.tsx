@@ -49,7 +49,7 @@ export default async function DocumentationPage() {
       <DocSection titre="Publier une ressource" id="publier">
         <DocListe
           elements={[
-            <>Depuis {vers("/dashboard/produits/nouveau", "Publier une ressource")} : un titre, une famille, un prix — fixe, offert, ou libre au-dessus d&apos;un minimum —, une description et des mots-clés. La recherche de l&apos;en-tête lit le titre : c&apos;est lui qu&apos;on tape pour te trouver.</>,
+            <>Depuis {vers("/dashboard/produits/nouveau", "Publier une ressource")} : un titre, une famille, un prix — fixe, offert, ou libre au-dessus d&apos;un minimum —, une description et des mots-clés. La recherche de l&apos;en-tête lit le titre, puis les mots-clés : choisis ceux qu&apos;on taperait pour te trouver.</>,
             `Dépose tes fichiers, ${formatPoids(TAILLE_MAX)} au plus chacun, et un aperçu si le fichier ne se montre pas tout seul (une police, un PSD, une archive).`,
             "Choisis la licence sur l'écran de la ressource ; sans choix, c'est la licence commerciale.",
             "Publie : la ressource paraît aussitôt, pourvu qu'elle porte un fichier. Tu peux la dépublier à tout moment.",

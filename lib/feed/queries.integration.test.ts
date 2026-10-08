@@ -116,6 +116,24 @@ describe("la recherche", () => {
     const trouves = await rechercher("Resso\u0000urce 7");
     expect(trouves.map((t) => t.title)).toEqual(["Ressource 7"]);
   });
+
+  it("trouve aussi par mot-clé, accents et casse ignorés, le titre d'abord", async () => {
+    // Les mots-clés étaient saisis et lus nulle part (relevé le 04/10).
+    const c = await creerCreateur();
+    const s = Math.random().toString(36).slice(2, 7);
+    const parMot = await publier(c.id, 8);
+    await db.product.update({
+      where: { id: parMot.id },
+      data: { name: `Pack graphique ${s}`, tags: { create: [{ tag: { create: { slug: `bogolan-${s}`, name: `Bogolan ${s}` } } }] } },
+    });
+    const parTitre = await publier(c.id, 9);
+    await db.product.update({ where: { id: parTitre.id }, data: { name: `Motifs Bogolan ${s}` } });
+
+    expect((await rechercher(`bogolan ${s}`)).map((t) => t.slug)).toEqual([parTitre.slug, parMot.slug]);
+    // Le mot-clé se compare par son slug : l'accent et la casse tombent. Le
+    // titre, lui, est comparé tel quel (ILIKE) — « Á » n'y trouve pas « a ».
+    expect((await rechercher(`BOGOLÁN ${s}`)).map((t) => t.slug)).toEqual([parMot.slug]);
+  });
 });
 
 describe("pagination par curseur", () => {

@@ -8,6 +8,7 @@ import type {
 
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
+import { slugifier } from "@/lib/products/validation";
 import {
   FAMILLE_PAR_LIBELLE,
   LIBELLE_PAR_FAMILLE,
@@ -293,7 +294,7 @@ export async function rechercher(q: string) {
   const terme = q.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 100);
   if (terme.length === 0) return [];
 
-  const lignes: SuggestionProduit[] = await db.product.findMany({
+  const parTitre: SuggestionProduit[] = await db.product.findMany({
     where: {
       status: "PUBLISHED",
       name: { contains: terme, mode: "insensitive" },
@@ -303,7 +304,27 @@ export async function rechercher(q: string) {
     select: { slug: true, name: true, family: true },
   });
 
-  return lignes.map((p) => ({
+  // Puis les mots-clés, pour compléter. Ils étaient saisis à la publication et
+  // lus nulle part (relevé le 04/10) : « wax » ne trouvait pas un pack dont le
+  // titre ne le disait pas. Le titre passe d'abord — c'est ce que la personne
+  // a le plus de chances d'avoir tapé — et le slug du mot-clé fait tomber les
+  // accents et la casse, comme à l'enregistrement (`slugifier`).
+  const slug = slugifier(terme);
+  const parMotCle: SuggestionProduit[] =
+    parTitre.length < 5 && slug.length > 0
+      ? await db.product.findMany({
+          where: {
+            status: "PUBLISHED",
+            slug: { notIn: parTitre.map((p) => p.slug) },
+            tags: { some: { tag: { OR: [{ slug: { contains: slug } }, { name: { contains: terme, mode: "insensitive" } }] } } },
+          },
+          orderBy: [{ createdAt: "desc" }],
+          take: 5 - parTitre.length,
+          select: { slug: true, name: true, family: true },
+        })
+      : [];
+
+  return [...parTitre, ...parMotCle].map((p) => ({
     slug: p.slug,
     title: p.name,
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
