@@ -4,6 +4,7 @@ import type { RefusAcces } from "@/lib/domain/delivery";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { autoriserTelechargement } from "@/lib/domain/downloads";
+import { rediriger } from "@/lib/http/redirection";
 import { signerTelechargement, stockageConfigure } from "@/lib/upload/storage";
 
 /**
@@ -51,7 +52,10 @@ export async function GET(
 ) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) {
-    return NextResponse.redirect(new URL("/connexion", requete.url));
+    // Relatif : mesuré le 08/10 sous `next start`, `new URL("/connexion",
+    // requete.url)` donnait http://localhost:3300/connexion — l'hôte d'écoute.
+    // Voir lib/http/redirection.ts. 307, comme avant.
+    return rediriger("/connexion", 307);
   }
 
   if (!stockageConfigure()) {

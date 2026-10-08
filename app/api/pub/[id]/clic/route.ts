@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
-
 import { consentementDepuisEntete } from "@/lib/consentement/regles";
 import { ajouterClic } from "@/lib/publicites/attribution";
 import { parMinute } from "@/lib/publicites/limites";
 import { sousLePlafond } from "@/lib/publicites/plafond";
 import { enregistrerClic, jourDe, lienDe, reglagesEnCache } from "@/lib/publicites/service";
+import { rediriger } from "@/lib/http/redirection";
 import { COOKIE_CLICS, DUREE_ATTRIBUTION_S } from "@/lib/publicites/types";
 import { sujetAnonyme } from "@/lib/securite/adresse";
 import { verifierLimiteHttp } from "@/lib/securite/garde";
@@ -29,6 +28,14 @@ import { verifierLimiteHttp } from "@/lib/securite/garde";
  * Même chose au-delà du plafond du jour (un clic compté par adresse et par pub,
  * par défaut — réglable depuis l'écran des publicités) : le second clic d'une
  * même adresse ne compte pas, et mène quand même où il doit.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UNE LOCATION RELATIVE POUR UN LIEN DE CHEZ NOUS
+ *
+ * Mesuré le 08/10 sous `next start` : `new URL(lien, requete.url)` menait le
+ * visiteur sur http://localhost:3300/… — l'hôte d'écoute, pas celui qu'il
+ * avait demandé. Un lien interne part désormais tel quel, relatif ; le lien
+ * absolu d'un annonceur reste absolu (`lib/http/redirection.ts`).
  */
 export async function GET(
   requete: Request,
@@ -50,9 +57,9 @@ export async function GET(
     })).length > 0;
 
   const lien = aCompter ? await enregistrerClic(id, maintenant) : await lienDe(id);
-  if (!lien) return NextResponse.redirect(new URL("/", requete.url), 303);
+  if (!lien) return rediriger("/", 303);
 
-  const reponse = NextResponse.redirect(new URL(lien, requete.url), 303);
+  const reponse = rediriger(lien, 303);
 
   // Le cookie d'attribution n'est posé qu'avec l'accord du visiteur (décidé le
   // 03/10, voir `lib/consentement/regles.ts`). Sans accord, le clic est compté

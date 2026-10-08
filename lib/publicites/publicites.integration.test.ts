@@ -166,6 +166,18 @@ describe("le clic et le consentement", () => {
     expect((await listerPourAdministration()).find((l) => l.id === pub.id)?.clics).toBe(2);
   });
 
+  it("redirige relatif vers une page de chez nous, absolu vers un annonceur", async () => {
+    // Mesuré le 08/10 sous `next start` : `new URL(lien, requete.url)` donnait
+    // http://localhost:3300/… pour une requête adressée à baobart.ci.
+    const interne = await creerPub({ linkUrl: "/explore" });
+    const externe = await creerPub({ linkUrl: "https://annonceur.example/offre" });
+    expect((await cliquer(interne.id)).headers.get("location")).toBe("/explore");
+    expect((await cliquer(externe.id)).headers.get("location")).toBe("https://annonceur.example/offre");
+    const inconnue = await clic(new Request("https://baobart.ci/api/pub/inexistante/clic"), { params: Promise.resolve({ id: "inexistante" }) });
+    expect(inconnue.status).toBe(303);
+    expect(inconnue.headers.get("location")).toBe("/");
+  });
+
   it("dépose le cookie d'attribution quand le visiteur a accepté", async () => {
     const pub = await creerPub({ linkUrl: "/explore" });
     const r = await cliquer(pub.id, `bb_consentement=${ecrireConsentement({ mesurePub: true })}`);
