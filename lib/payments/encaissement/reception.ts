@@ -77,6 +77,8 @@ export type Reception =
         | "VERSEMENT_INTROUVABLE"
         | "TRANSITION_REFUSEE"
         | "MONTANT_DISCORDANT"
+        /** Un succès sans montant, d'un opérateur qu'on ne peut pas interroger. */
+        | "MONTANT_ABSENT"
         | "DEVISE_DISCORDANTE"
         /** L'opérateur, interrogé, ne reconnaît pas la transaction annoncée. */
         | "NON_CONFIRME"
@@ -84,6 +86,27 @@ export type Reception =
         | "COMMANDE_REFERMEE";
       detail: string;
     };
+
+/**
+ * Un succès annoncé sans montant, que personne ne pourra confirmer.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI CE N'EST PAS UN DÉTAIL
+ *
+ * La confrontation des montants s'écrit « si un montant est annoncé ET qu'il
+ * est inférieur, refuser ». Un rappel qui **omet** le montant la traverse donc
+ * sans qu'aucune condition ne se déclenche : rien ne plante, la commande est
+ * livrée, et le seul garde-fou contre « payer cent francs pour cinq mille »
+ * n'a jamais été consulté. C'est le succès silencieux par excellence.
+ *
+ * Un opérateur qu'on peut interroger (`confirmer`) rattrape ce cas : on lui
+ * demande la transaction et on reconfronte sur SA valeur. Pour les autres — le
+ * bac à sable, Flutterwave quand la devise n'est pas reconnue — l'absence de
+ * montant n'est plus une confrontation qui passe son tour : c'est un refus.
+ */
+function montantInverifiable(fournisseur: string, fait: FaitPaiement): boolean {
+  return fait.montant === null && !piloteNomme(fournisseur)?.confirmer;
+}
 
 /**
  * Enregistre l'appel, puis agit.
@@ -354,6 +377,18 @@ async function appliquer(
     });
   }
 
+  if (montantInverifiable(fournisseur, fait)) {
+    journal.erreur("rappel de paiement sans montant, que rien ne confirme", {
+      commande: commande.id,
+      fournisseur,
+    });
+    return {
+      recu: false,
+      motif: "MONTANT_ABSENT",
+      detail: "Le rappel n'annonce aucun montant et l'opérateur ne peut pas être interrogé.",
+    };
+  }
+
   if (fait.devise !== null && fait.devise !== commande.currency) {
     journal.erreur("rappel de paiement dans une autre devise", {
       commande: commande.id,
@@ -533,6 +568,18 @@ async function appliquerRenouvellement(
       attendu: paiement.amount,
       annonce: fait.montant,
     });
+  }
+
+  if (montantInverifiable(fournisseur, fait)) {
+    journal.erreur("renouvellement sans montant, que rien ne confirme", {
+      paiement: paiement.id,
+      fournisseur,
+    });
+    return {
+      recu: false,
+      motif: "MONTANT_ABSENT",
+      detail: "Le rappel n'annonce aucun montant et l'opérateur ne peut pas être interrogé.",
+    };
   }
 
   if (fait.devise !== null && fait.devise !== paiement.currency) {

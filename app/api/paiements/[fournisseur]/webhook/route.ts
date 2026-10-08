@@ -11,7 +11,7 @@ import {
   verifierLimiteHttp,
 } from "@/lib/securite/garde";
 import { recevoir } from "@/lib/payments/encaissement/reception";
-import { piloteNomme } from "@/lib/payments/encaissement/pilotes";
+import { piloteCourant, piloteNomme } from "@/lib/payments/encaissement/pilotes";
 
 /**
  * Le rappel d'un opérateur de paiement.
@@ -139,6 +139,25 @@ export async function POST(
     // que d'accepter sans vérifier : accepter serait pire que refuser.
     journal.erreur("rappel reçu pour un opérateur non configuré", { fournisseur });
     return NextResponse.json({ erreur: "indisponible" }, { status: 503 });
+  }
+
+  // ── Le bac à sable n'écoute que s'il est LE pilote choisi ──────────────────
+  //
+  // Le pilote se reconnaît à l'URL, pas à `PAYMENTS_DRIVER` : c'est voulu pour
+  // les vrais opérateurs, dont un rappel tardif doit encore aboutir après un
+  // changement d'opérateur — l'argent, lui, a bien été versé.
+  //
+  // Le bac à sable n'a pas cette excuse. Il ne fait aucun `confirmer` auprès
+  // de qui que ce soit : sa signature est sa seule preuve. Un
+  // `PAYMENTS_SANDBOX_SECRET` recopié sur un serveur réel suffisait donc à
+  // marquer payée n'importe quelle commande, même avec `PAYMENTS_DRIVER=paystack`.
+  // On le ferme dès qu'il n'est pas le pilote courant, avec la même réponse
+  // qu'un fournisseur inconnu.
+  //
+  // Pas de test sur `NODE_ENV` : la campagne e2e tourne sur un build, donc en
+  // `production`, et c'est le bac à sable qu'elle exerce.
+  if (pilote.nom === "bac-a-sable" && piloteCourant().nom !== "bac-a-sable") {
+    return NextResponse.json({ erreur: "inconnu" }, { status: 404 });
   }
 
   const declaree = Number(requete.headers.get("content-length") ?? 0);

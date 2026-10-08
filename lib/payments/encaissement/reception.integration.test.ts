@@ -327,6 +327,18 @@ describe("un rappel qui ne correspond pas", () => {
     expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
   });
 
+  it("refuse un succès SANS montant d'un opérateur qu'on ne peut pas interroger", async () => {
+    // Le bac à sable n'a pas de `confirmer` : un montant absent ne peut être
+    // vérifié par personne, et « rien à comparer » ne vaut pas « conforme ».
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+
+    const suite = await recevoir("bac-a-sable", fait(orderId, { montant: null }), {});
+
+    expect(suite.recu === false && suite.motif).toBe("MONTANT_ABSENT");
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+    expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
   it("livre malgré un montant SUPÉRIEUR : refuser serait pire", async () => {
     // Un trop-perçu n'est pas une attaque — arrondi d'opérateur, frais
     // absorbés, devise reconvertie. Le refuser fabriquerait le pire cas :

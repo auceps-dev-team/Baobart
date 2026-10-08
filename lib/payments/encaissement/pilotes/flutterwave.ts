@@ -388,8 +388,9 @@ export const FLUTTERWAVE: PiloteEncaissement = {
     // refusé pour discordance.
     //
     // Sans devise reconnue, on ne convertit rien et on n'annonce rien : un
-    // montant faux vaut moins que pas de montant, puisqu'un montant absent
-    // laisse simplement la confrontation passer son tour.
+    // montant faux vaut moins que pas de montant. Un montant absent n'est pas
+    // pour autant cru sur parole : Flutterwave n'ayant pas de `confirmer`, la
+    // réception refuse un succès qui n'annonce rien (`montantInverifiable`).
     const montant =
       principal !== null &&
       Number.isFinite(principal) &&
