@@ -337,6 +337,48 @@ export function constatAntiBot(faits: FaitsAntiBot): Constat {
   };
 }
 
+export interface FaitsPlafondPub {
+  /** `AUTH_SECRET` est-il posé, et assez long ? Jamais sa valeur. */
+  secret: boolean;
+  production: boolean;
+}
+
+/**
+ * Le plafond des bannières par visiteur s'applique-t-il ?
+ *
+ * Sans `AUTH_SECRET`, `lib/publicites/plafond.ts` compte sans plafonner : une
+ * empreinte d'adresse sans secret se retrouve en essayant les quatre milliards
+ * d'IPv4, et on préfère ne rien ranger. Le débit à la minute tient toujours ;
+ * ce qui saute, c'est la limite par jour — une même adresse peut faire compter
+ * quinze mille clics en une nuit.
+ *
+ * Attention et non panne : rien ne casse pour le visiteur. Mais rien d'autre
+ * ne le signale — la connexion n'a pas besoin de cette variable, et les
+ * compteurs continuent de tourner comme si de rien n'était.
+ */
+export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
+  if (faits.secret) {
+    return {
+      cle: "plafond-pub",
+      libelle: "Plafond des bannières",
+      gravite: "ok",
+      detail: "Affichages et clics plafonnés par visiteur et par jour.",
+    };
+  }
+
+  return {
+    cle: "plafond-pub",
+    libelle: "Plafond des bannières",
+    gravite: faits.production ? "attention" : "ok",
+    detail: faits.production
+      ? "AUTH_SECRET absent ou trop court : seul le débit à la minute s'applique."
+      : "Non appliqué sans AUTH_SECRET (développement).",
+    remede: faits.production
+      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour."
+      : undefined,
+  };
+}
+
 export interface FaitsSms {
   /** Le pilote actif : « aucun », « console » ou le nom d'un opérateur. */
   pilote: string;

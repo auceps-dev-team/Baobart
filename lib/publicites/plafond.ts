@@ -23,6 +23,31 @@ export function cleDuPlafond(input: {
   return `pub:plafond:${input.nature}:${input.jour}:${empreinte}`;
 }
 
+/** En dessous, une empreinte se retrouve presque aussi vite que sans secret. */
+export const LONGUEUR_MIN_SECRET = 16;
+
+/**
+ * Le secret de l'empreinte, ou `null` s'il manque ou s'il est trop court.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * SANS SECRET, L'EMPREINTE NE CACHE RIEN
+ *
+ * Une IPv4 n'a que quatre milliards de valeurs : avec une clé vide, on retrouve
+ * l'adresse derrière une empreinte en les essayant toutes, en quelques minutes.
+ *
+ * Constaté le 08/10/2026 : `AUTH_SECRET` n'est lu qu'ici. La connexion ne
+ * l'exige pas — les sessions sont maison, sans NextAuth — et rien d'autre ne
+ * garantit sa présence en production. L'ancien repli sur `""` réussissait donc
+ * en silence : le plafond tenait, et les clés rangées dans Redis étaient des
+ * adresses à peine déguisées.
+ */
+export function secretDuPlafond(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  const secret = (env.AUTH_SECRET ?? "").trim();
+  return secret.length >= LONGUEUR_MIN_SECRET ? secret : null;
+}
+
 /**
  * Ce qu'une adresse peut encore faire compter aujourd'hui.
  *
@@ -30,10 +55,11 @@ export function cleDuPlafond(input: {
  * dans le même envoi y paraît trois fois, et chaque occurrence consomme une
  * place du plafond.
  *
- * Deux cas où l'on compte sans plafonner, comme la garde de débit
- * (`lib/securite/garde.ts`) : pas d'adresse identifiable, ou compteur en
- * panne. Fermer le comptage parce que Redis hoquette ferait croire qu'une
- * campagne ne marche plus.
+ * Trois cas où l'on compte sans plafonner, comme la garde de débit
+ * (`lib/securite/garde.ts`) : pas d'adresse identifiable, compteur en panne,
+ * ou pas de secret pour cacher l'adresse. Fermer le comptage ferait croire
+ * qu'une campagne ne marche plus ; ranger l'adresse presque en clair serait
+ * pire. L'absence de secret s'annonce sur l'écran Système.
  */
 export async function sousLePlafond(input: {
   nature: "vue" | "clic";
@@ -44,11 +70,10 @@ export async function sousLePlafond(input: {
 }): Promise<string[]> {
   if (!input.sujet) return [...input.ids];
 
+  const secret = secretDuPlafond();
+  if (!secret) return [...input.ids];
+
   const pilote = piloteLimite();
-  // Sans secret, l'empreinte se retrouverait en essayant les quatre milliards
-  // d'adresses. `AUTH_SECRET` est exigé par la connexion : il est toujours là
-  // en production.
-  const secret = process.env.AUTH_SECRET ?? "";
   const gardes: string[] = [];
 
   for (const pubId of input.ids) {

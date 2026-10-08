@@ -5,6 +5,7 @@ import {
   constatBase,
   constatAntiBot,
   constatLimitation,
+  constatPlafondPub,
   constatSms,
   constatConnexion,
   constatInterrupteurs,
@@ -217,6 +218,28 @@ describe("l'anti-bot", () => {
 
   it("se tait quand le tiers est branché", () => {
     const c = constatAntiBot({ tiers: true, production: true });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
+  });
+});
+
+describe("le plafond des bannières", () => {
+  it("avertit en production quand AUTH_SECRET manque", () => {
+    // Rien d'autre ne le dirait : la connexion n'a pas besoin de cette
+    // variable, et les compteurs tournent comme si de rien n'était.
+    const c = constatPlafondPub({ secret: false, production: true });
+    expect(c.gravite).toBe("attention");
+    expect(c.remede).toContain("AUTH_SECRET");
+  });
+
+  it("ne dit rien en développement", () => {
+    const c = constatPlafondPub({ secret: false, production: false });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
+  });
+
+  it("se tait quand le secret est posé", () => {
+    const c = constatPlafondPub({ secret: true, production: true });
     expect(c.gravite).toBe("ok");
     expect(c.remede).toBeUndefined();
   });

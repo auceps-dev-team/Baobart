@@ -1,19 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BORNES, LIMITES_PAR_DEFAUT, parMinute, validerLimites } from "@/lib/publicites/limites";
-import { cleDuPlafond, sousLePlafond } from "@/lib/publicites/plafond";
+import { cleDuPlafond, secretDuPlafond, sousLePlafond } from "@/lib/publicites/plafond";
 import { verifierLimite } from "@/lib/securite/garde";
 import { REGLES } from "@/lib/securite/limites";
 import { oublierCompteurs } from "@/lib/securite/pilotes";
 
-const AVANT = process.env.RATE_LIMIT_DRIVER;
+const AVANT = { pilote: process.env.RATE_LIMIT_DRIVER, secret: process.env.AUTH_SECRET };
+const SECRET = "un-secret-de-plafond-assez-long";
 beforeEach(() => {
   process.env.RATE_LIMIT_DRIVER = "memoire";
+  process.env.AUTH_SECRET = SECRET;
   oublierCompteurs();
 });
 afterEach(() => {
-  if (AVANT === undefined) delete process.env.RATE_LIMIT_DRIVER;
-  else process.env.RATE_LIMIT_DRIVER = AVANT;
+  for (const [nom, valeur] of [
+    ["RATE_LIMIT_DRIVER", AVANT.pilote],
+    ["AUTH_SECRET", AVANT.secret],
+  ] as const) {
+    if (valeur === undefined) delete process.env[nom];
+    else process.env[nom] = valeur;
+  }
   oublierCompteurs();
 });
 
@@ -73,6 +80,28 @@ describe("le plafond par visiteur", () => {
   it("compte sans plafonner quand l'adresse manque", async () => {
     const ids = [A, A, A];
     expect(await sousLePlafond({ nature: "clic", sujet: null, ids, plafond: 1, jour })).toEqual(ids);
+  });
+
+  it("compte sans plafonner, et sans rien ranger, quand le secret manque", async () => {
+    // Le défaut constaté le 08/10 : sans AUTH_SECRET, la clé était une
+    // empreinte à clé vide — l'adresse se retrouvait en essayant les quatre
+    // milliards d'IPv4, et rien ne le signalait.
+    delete process.env.AUTH_SECRET;
+    expect(await sousLePlafond({ nature: "clic", sujet: "1.2.3.4", ids: [A], plafond: 1, jour })).toEqual([A]);
+    expect(await sousLePlafond({ nature: "clic", sujet: "1.2.3.4", ids: [A], plafond: 1, jour })).toEqual([A]);
+
+    // Rien n'a été compté pendant l'absence : le secret revenu, la première
+    // place est encore libre.
+    process.env.AUTH_SECRET = SECRET;
+    expect(await sousLePlafond({ nature: "clic", sujet: "1.2.3.4", ids: [A], plafond: 1, jour })).toEqual([A]);
+    expect(await sousLePlafond({ nature: "clic", sujet: "1.2.3.4", ids: [A], plafond: 1, jour })).toEqual([]);
+  });
+
+  it("tient pour absent un secret vide ou trop court", () => {
+    expect(secretDuPlafond({})).toBeNull();
+    expect(secretDuPlafond({ AUTH_SECRET: "" })).toBeNull();
+    expect(secretDuPlafond({ AUTH_SECRET: "   court   " })).toBeNull();
+    expect(secretDuPlafond({ AUTH_SECRET: ` ${SECRET} ` })).toBe(SECRET);
   });
 
   it("ne range jamais l'adresse en clair dans la clé", () => {
