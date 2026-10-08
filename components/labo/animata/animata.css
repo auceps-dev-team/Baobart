@@ -1,0 +1,173 @@
+/*
+ * Les animations des composants Animata adaptés (voir LICENCE-animata.md).
+ *
+ * Animata range ces images clés dans sa feuille globale et s'appuie sur
+ * `tw-animate-css` pour `fill-mode-forwards`. On les rapatrie ici, préfixées
+ * `animata-` pour ne rien heurter dans `app/globals.css`, et sans la
+ * dépendance : trois propriétés CSS la remplacent.
+ *
+ * Pas de `@layer` : ce fichier est chargé par la page, pas par
+ * `globals.css`, et l'ordre des couches se fixe à leur première apparition.
+ * Une couche déclarée ici avant celles de Tailwind pourrait en changer
+ * l'ordre.
+ */
+
+/* --- Wave Reveal (animata/text/wave-reveal.tsx) ------------------------- */
+
+@keyframes animata-reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(80%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes animata-reveal-down {
+  from {
+    opacity: 0;
+    transform: translateY(-80%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes animata-content-blur {
+  from {
+    filter: blur(0.3rem);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+.animata-lettre {
+  display: inline-block;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+.animata-lettre[data-sens="up"] {
+  animation-name: animata-reveal-up;
+}
+.animata-lettre[data-sens="down"] {
+  animation-name: animata-reveal-down;
+}
+.animata-lettre[data-sens="up"][data-flou] {
+  animation-name: animata-reveal-up, animata-content-blur;
+}
+.animata-lettre[data-sens="down"][data-flou] {
+  animation-name: animata-reveal-down, animata-content-blur;
+}
+
+/* --- Marquee (animata/container/marquee.css) ---------------------------- */
+
+@keyframes animata-defile-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes animata-defile-y {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+.animata-defile-x {
+  animation: animata-defile-x var(--duration) infinite linear;
+}
+.animata-defile-y {
+  animation: animata-defile-y var(--duration) infinite linear;
+}
+.animata-defile-pause:hover .animata-defile-x,
+.animata-defile-pause:hover .animata-defile-y {
+  animation-play-state: paused;
+}
+
+/* --- Ripple Button (animata/button/ripple-button.css) ------------------- */
+
+.animata-ride {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background-color: var(--color-encre);
+  z-index: 1;
+  opacity: 0;
+  transition: transform 50ms linear;
+}
+.animata-ride-entre {
+  animation: animata-ride-entre 250ms ease-out forwards;
+}
+.animata-ride-sort {
+  animation: animata-ride-sort 250ms ease-out forwards;
+}
+
+@keyframes animata-ride-entre {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes animata-ride-sort {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0);
+    opacity: 1;
+  }
+}
+
+/* --- Balayage des squelettes ---------------------------------------------
+ * Pas Animata : repris à la lettre de « Baobart Parcours Achat.dc.html »,
+ * ligne 26, pour comparer le squelette d'Animata, statique, à celui des
+ * maquettes. `globals.css` ne l'a pas encore. */
+
+@keyframes sweep {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+/*
+ * Mouvement réduit.
+ *
+ * `app/globals.css` ramène déjà toute durée à 0,01 ms. Ça suffit pour une
+ * animation jouée une fois. Pour une animation infinie, l'effet attendu est
+ * l'inverse : la boucle continue, mille fois plus vite. Lu, non vérifié ici :
+ * c'est pourquoi la règle répandue ajoute `animation-iteration-count: 1`, que
+ * celle de Baobart n'a pas. Le défilement s'arrête donc explicitement.
+ *
+ * Les lettres de Wave Reveal gardent leur décalage (`animation-delay` en
+ * style en ligne, que la règle globale ne touche pas) : on les montre d'un
+ * coup.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animata-defile-x,
+  .animata-defile-y {
+    animation: none;
+  }
+  .animata-lettre {
+    animation: none;
+    opacity: 1;
+  }
+}
