@@ -212,6 +212,16 @@ export const REGLES = {
   "contact.envoi": { quota: 5, fenetreMs: 60 * 60_000 },
 
   /**
+   * Demandes de code par SMS — connexion par téléphone et vérification d'un
+   * numéro. Appliquée DEUX fois : par adresse, et par numéro visé
+   * (`tel:+225…`). Le second compte est celui qui compte : sans lui, quelqu'un
+   * qui change d'adresse à chaque essai arroserait de SMS le téléphone d'un
+   * tiers, à nos frais. Cinq par heure : assez pour un SMS perdu, deux fautes
+   * de frappe et un renvoi.
+   */
+  "telephone.code": { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
    * Inscription à la lettre d'information. Chaque inscription envoie un
    * courriel à l'adresse tapée — sans plafond, le formulaire servirait à
    * inonder la boîte de quelqu'un d'autre.

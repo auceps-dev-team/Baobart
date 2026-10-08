@@ -93,6 +93,7 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   ["totpRecoveryCode", "userId"],
   ["totpChallenge", "userId"],
   ["passwordReset", "userId"],
+  ["phoneCode", "userId"],
   ["account", "userId"],
 
   // ── Ce qui identifie ──────────────────────────────────────────────────
@@ -257,6 +258,7 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
         data: {
           email: adresseFinale,
           phone: null,
+          phoneVerifiedAt: null,
           passwordHash: null,
           totpSecret: null,
           totpActiveLe: null,

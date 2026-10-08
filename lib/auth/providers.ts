@@ -1,5 +1,7 @@
 import "server-only";
 
+import { codesParSmsPossibles } from "@/lib/auth/telephone";
+
 /**
  * Registre des moyens de connexion secondaires.
  *
@@ -48,6 +50,11 @@ interface Fournisseur {
    * Confronté au dossier par `providers.test.ts`.
    */
   branche: boolean;
+  /**
+   * Quand « configuré » ne se lit pas dans des variables seules. Le téléphone
+   * dépend du pilote SMS, qui a ses propres règles (`codesParSmsPossibles`).
+   */
+  configure?: () => boolean;
 }
 
 /**
@@ -61,8 +68,13 @@ const FOURNISSEURS: Fournisseur[] = [
     label: "Téléphone",
     glyph: "☎",
     genre: "otp",
-    variables: ["AUTH_OTP_PROVIDER", "AUTH_OTP_API_KEY", "AUTH_OTP_SENDER"],
-    branche: false,
+    // Branché le 08/10/2026 : `app/api/auth/telephone` mène au formulaire en
+    // deux étapes de `/connexion/telephone`. Configuré quand un pilote SMS
+    // peut émettre un code — jamais le pilote `console` en production, qui
+    // écrirait le code dans le journal.
+    variables: ["SMS_DRIVER"],
+    branche: true,
+    configure: () => codesParSmsPossibles(),
   },
   {
     id: "google",
@@ -153,11 +165,15 @@ function estRenseignee(variable: string): boolean {
   return typeof valeur === "string" && valeur.trim().length > 0;
 }
 
+function estConfigure(f: Fournisseur): boolean {
+  return f.configure ? f.configure() : f.variables.every(estRenseignee);
+}
+
 export function etatDesFournisseurs(): EtatFournisseur[] {
   return FOURNISSEURS.map((f) => ({
     id: f.id,
     label: f.label,
-    configure: f.variables.every(estRenseignee),
+    configure: estConfigure(f),
     branche: f.branche,
   }));
 }
@@ -168,7 +184,7 @@ export function listerFournisseurs(): FournisseurPublic[] {
     label: f.label,
     glyph: f.glyph,
     genre: f.genre,
-    actif: f.branche && f.variables.every(estRenseignee),
+    actif: f.branche && estConfigure(f),
   }));
 }
 

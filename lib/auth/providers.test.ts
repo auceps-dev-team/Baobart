@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   POUR_TESTS,
@@ -24,9 +24,11 @@ beforeEach(() => {
   for (const f of FOURNISSEURS) {
     for (const v of f.variables) delete process.env[v];
   }
+  delete process.env.TEXTBEE_API_KEY;
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   process.env = { ...AVANT };
 });
 
@@ -47,6 +49,29 @@ describe("un fournisseur configuré", () => {
   it("n'est pas actif non plus sans ses variables", () => {
     expect(listerFournisseurs().every((f) => !f.actif)).toBe(true);
     expect(etatDesFournisseurs().every((f) => !f.configure)).toBe(true);
+  });
+});
+
+describe("le téléphone", () => {
+  function bouton() {
+    return listerFournisseurs().find((f) => f.id === "telephone");
+  }
+
+  it("s'allume avec un opérateur SMS utilisable", () => {
+    process.env.SMS_DRIVER = "textbee";
+    process.env.TEXTBEE_API_KEY = "cle-textbee-de-test-assez-longue";
+    expect(bouton()?.actif).toBe(true);
+  });
+
+  it("reste éteint avec le pilote console en production", () => {
+    // Le pilote console écrit le SMS dans le journal : en production, le code
+    // de connexion y serait lisible par quiconque lit les journaux.
+    process.env.SMS_DRIVER = "console";
+    vi.stubEnv("NODE_ENV", "production");
+    expect(bouton()?.actif).toBe(false);
+
+    vi.stubEnv("NODE_ENV", "development");
+    expect(bouton()?.actif).toBe(true);
   });
 });
 

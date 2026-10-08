@@ -396,10 +396,10 @@ export function constatSms(faits: FaitsSms): Constat {
       libelle: faits.production ? "SMS SIMULÉ EN PRODUCTION" : "SMS",
       gravite: faits.production ? "panne" : "ok",
       detail: faits.production
-        ? "Les relances sont écrites dans le journal et comptées comme envoyées. Les abonnés seront coupés sans avoir été prévenus."
+        ? "Les relances sont écrites dans le journal et comptées comme envoyées. Les abonnés seront coupés sans avoir été prévenus. La connexion par téléphone, elle, reste fermée : un code écrit dans le journal ouvrirait le compte à qui le lit."
         : "Écrites dans le journal (développement).",
       remede: faits.production
-        ? "Pose SMS_DRIVER=twilio et ses identifiants, ou SMS_DRIVER=aucun — qui, lui, ne prétend rien."
+        ? "Pose SMS_DRIVER=twilio ou textbee et ses identifiants, ou SMS_DRIVER=aucun — qui, lui, ne prétend rien."
         : undefined,
     };
   }

@@ -19,6 +19,9 @@ beforeEach(() => {
   delete process.env.TWILIO_AUTH_TOKEN;
   delete process.env.TWILIO_FROM;
   delete process.env.TWILIO_MESSAGING_SERVICE_SID;
+  delete process.env.TEXTBEE_API_KEY;
+  delete process.env.TEXTBEE_DEVICE_ID;
+  delete process.env.TEXTBEE_BASE_URL;
 });
 
 afterEach(() => {
@@ -246,5 +249,116 @@ describe("le pilote Twilio", () => {
     });
     expect(verdict.ok).toBe(false);
     expect(verdict.motif).toBe("injoignable");
+  });
+});
+
+describe("textbee — un téléphone Android comme passerelle", () => {
+  const CLE = "cle-textbee-de-test-assez-longue";
+
+  function textbee() {
+    process.env.SMS_DRIVER = "textbee";
+    process.env.TEXTBEE_API_KEY = CLE;
+  }
+
+  it("n'est choisi qu'avec une clé qui ressemble à une clé", () => {
+    process.env.SMS_DRIVER = "textbee";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.TEXTBEE_API_KEY = "à-remplir";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.TEXTBEE_API_KEY = CLE;
+    expect(piloteSms().nom).toBe("textbee");
+  });
+
+  it("refuse d'envoyer la clé en clair vers une instance distante", () => {
+    textbee();
+    process.env.TEXTBEE_BASE_URL = "http://textbee.exemple.com";
+    expect(piloteSms().nom).toBe("aucun");
+
+    // Une instance auto-hébergée sur la machine même, elle, peut parler HTTP.
+    process.env.TEXTBEE_BASE_URL = "http://localhost:3005";
+    expect(piloteSms().nom).toBe("textbee");
+  });
+
+  it("appelle la route d'envoi avec la clé, le numéro E.164 et l'appareil", async () => {
+    textbee();
+    process.env.TEXTBEE_DEVICE_ID = "appareil-42";
+    let appel: { url: string; init: RequestInit } | null = null;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      appel = { url, init };
+      return new Response(
+        JSON.stringify({ data: { success: true, smsBatchId: "lot-1" } }),
+        { status: 200 },
+      );
+    });
+
+    const verdict = await envoyerSms({
+      numero: "07 00 00 00 00",
+      pays: "CI",
+      texte: "Baobart : ton code est 123456.",
+    });
+
+    expect(verdict).toMatchObject({ ok: true, reference: "lot-1" });
+    expect(appel!.url).toBe("https://api.textbee.dev/api/v1/gateway/send-sms");
+    expect(new Headers(appel!.init.headers).get("x-api-key")).toBe(CLE);
+    expect(JSON.parse(String(appel!.init.body))).toEqual({
+      recipients: ["+2250700000000"],
+      message: "Baobart : ton code est 123456.",
+      deviceId: "appareil-42",
+    });
+  });
+
+  it("vise l'instance auto-hébergée quand on la nomme", async () => {
+    textbee();
+    process.env.TEXTBEE_BASE_URL = "https://sms.baobart.test/";
+    let url = "";
+    vi.stubGlobal("fetch", async (u: string) => {
+      url = u;
+      return new Response(JSON.stringify({ data: { smsBatchId: "x" } }), { status: 200 });
+    });
+
+    await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(url).toBe("https://sms.baobart.test/api/v1/gateway/send-sms");
+  });
+
+  it.each([
+    [400, "aucun appareil textbee disponible"],
+    [401, "clé textbee refusée"],
+    [429, "quota textbee épuisé"],
+  ])("traduit un refus %i en motif lisible", async (statut, motif) => {
+    textbee();
+    vi.stubGlobal(
+      "fetch",
+      async () => new Response(JSON.stringify({ message: "refus" }), { status: statut }),
+    );
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif });
+  });
+
+  it("ne compte pas comme envoyé un lot que textbee dit refusé", async () => {
+    // Le cas qui passerait inaperçu : un 200 dont le corps dit « non ».
+    textbee();
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(JSON.stringify({ data: { success: false, message: "device offline" } }), {
+          status: 200,
+        }),
+    );
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict.ok).toBe(false);
+  });
+
+  it("ne laisse pas une passerelle injoignable remonter", async () => {
+    textbee();
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ECONNREFUSED");
+    });
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif: "injoignable" });
   });
 });

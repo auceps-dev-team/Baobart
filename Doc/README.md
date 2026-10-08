@@ -157,25 +157,30 @@ tableau mélangeait les deux, et un audit s'y est trompé.
 | UI | **Tailwind CSS v4** — design system « Sticker » (`app/globals.css`) | — |
 | Base de données | **PostgreSQL 16 + Prisma 6** — 94 modèles, 64 migrations ; le grand livre est tenu par des triggers SQL, pas par du code applicatif | — |
 | Redis | Limitation de débit uniquement (`lib/securite/pilotes.ts`, préfixe `baobart:`) | cache du feed, compteurs, sessions |
-| Authentification | **Maison** : sessions en base (jeton haché SHA-256), mots de passe scrypt, 2FA TOTP, passkeys WebAuthn (`@simplewebauthn`) | NextAuth n'est **pas** utilisé. Connexion sociale et OTP : les boutons existent, aucun fournisseur n'est branché (voir plus bas) |
+| Authentification | **Maison** : sessions en base (jeton haché SHA-256), mots de passe scrypt, 2FA TOTP, passkeys WebAuthn (`@simplewebauthn`) | NextAuth n'est **pas** utilisé. Connexion par téléphone (code SMS) branchée ; Google, Apple et les autres : boutons présents, non branchés (voir plus bas) |
 | Paiements | **Paystack**, **Flutterwave** (API v4) et un **bac à sable**, écrits à la main contre les API, sans SDK (`lib/payments/encaissement/`). Aucun compte marchand branché | CinetPay, Stripe |
 | Médias | Stockage S3-compatible (MinIO en local), envoi direct par URL signée, **sharp** pour les aperçus | CDN (R2) en production |
 | Tâches planifiées | Pas de file : **8 passages** déclenchés par les crons Vercel vers `app/api/cron/*` (`vercel.json`) | Inngest / BullMQ ; aperçus produits hors requête |
 | Courriels | File `EmailOutbox` + pilotes `console` / Resend / SMTP (nodemailer) | — |
-| Notifications | In-app, Web Push (VAPID), SMS par pilote | — |
+| Notifications | In-app, Web Push (VAPID), SMS par pilote (`console`, Twilio, textbee) | — |
 | Recherche | `contains` insensible à la casse sur le nom des ressources (`lib/feed/queries.ts`) | full-text Postgres, puis Meilisearch |
 | IA | Aucune | Assistant, fiches produit, résumés |
 | Observabilité | Journal structuré maison (`lib/observabilite/journal.ts`), requêtes lentes (`SLOW_QUERY_MS`), sonde `/api/health` | Sentry, OpenTelemetry |
 | Tests | Vitest (unitaires, et intégration contre une vraie base `baobart_test`), Playwright (parcours contre un build) | — |
 | CI | GitHub Actions : types/lint/unitaires/build, intégration, migrations rejouées à neuf, audit des dépendances, parcours e2e ; Dependabot | — |
 
-**La connexion sociale, précisément.** `lib/auth/providers.ts` distingue un
-fournisseur **configuré** (ses variables `AUTH_GOOGLE_ID`… sont posées) d'un
-fournisseur **branché** (une route `app/api/auth/<id>/route.ts` le reçoit). Seul
-un fournisseur à la fois configuré et branché rend son bouton cliquable. Au
-08/10/2026, aucun n'est branché : les neuf boutons répondent « Bientôt
-disponible », quelles que soient les variables. Un test confronte la
+**La connexion par un tiers, précisément.** `lib/auth/providers.ts` distingue
+un fournisseur **configuré** d'un fournisseur **branché** (une route
+`app/api/auth/<id>/route.ts` le reçoit). Seul un fournisseur à la fois
+configuré et branché rend son bouton cliquable, et un test confronte la
 déclaration au dossier `app/api/auth/`, dans les deux sens.
+
+Au 08/10/2026, un seul est branché : le **téléphone**. On se connecte avec un
+code SMS sur un numéro préalablement vérifié dans le profil ; la 2FA reste
+exigée si elle est active. Il est configuré dès qu'un pilote SMS peut émettre
+(`SMS_DRIVER`, par exemple `textbee` pour un téléphone Android servant de
+passerelle). Google, Apple et les autres répondent « Bientôt disponible »,
+quelles que soient leurs variables.
 
 ---
 

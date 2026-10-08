@@ -416,6 +416,10 @@ model User {
   email         String        @unique
   emailVerified DateTime?
   phone         String?       @unique // mobile money (OTP = mode principal en Afrique)
+  /// Quand ce numéro a été prouvé par un code SMS (`lib/auth/telephone.ts`).
+  /// Seul un numéro vérifié ouvre la connexion par téléphone : un numéro
+  /// saisi sans preuve laisserait n'importe qui entrer chez celui qui l'a tapé.
+  phoneVerifiedAt DateTime?
   passwordHash  String?
   riskState     UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
   kycStatus     KycStatus     @default(NONE)
@@ -508,6 +512,7 @@ model User {
   totpChallenges    TotpChallenge[]
   deletionRequest   DeletionRequest?
   passwordResets    PasswordReset[]
+  phoneCodes        PhoneCode[]
 
   // équipes multi-rôles (§3.10-B)
   memberships TeamMembership[] @relation("TeamMember")
@@ -898,6 +903,49 @@ model TotpChallenge {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+/// Un code envoyé par SMS : se connecter par téléphone, ou prouver un numéro.
+///
+/// ============================================================================
+/// L'EMPREINTE, JAMAIS LE CODE
+///
+/// Six chiffres valent un mot de passe pendant dix minutes. On garde
+/// `sha256(sel + code)` et on compare en temps constant : une copie de la base
+/// ne donne aucun code en cours. Le sel empêche une table précalculée du
+/// million de codes possibles de servir pour toutes les lignes à la fois.
+///
+/// Cinq essais par code, puis il est brûlé ; un nouveau code périme les
+/// précédents du même numéro et du même but.
+model PhoneCode {
+  id        String           @id @default(cuid())
+  /// Le numéro visé, en E.164.
+  phone     String
+  purpose   PhoneCodePurpose
+  /// Qui se connecte, ou qui rattache ce numéro à son compte.
+  userId    String
+  codeHash  String
+  salt      String
+  /// Dix minutes.
+  expiresAt DateTime
+  /// Codes faux présentés sur cette ligne.
+  attempts  Int              @default(0)
+  /// Consommé, ou périmé par un code plus récent. Un code ne sert qu'une fois.
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone, purpose, createdAt])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+enum PhoneCodePurpose {
+  /// Se connecter avec un numéro déjà vérifié.
+  LOGIN
+  /// Prouver un numéro pour le rattacher à son compte.
+  VERIFY
 }
 
 /// Une demande d'effacement, et le delai avant execution.
