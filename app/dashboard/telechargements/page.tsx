@@ -64,11 +64,17 @@ export default async function HistoriqueDesTelechargementsPage({
         precision: "au titre de ton forfait",
         fond: "#C9A8F5",
       }
-    : {
-        label: "Forfait",
-        valeur: "Aucun",
-        precision: "tes achats restent accessibles sans forfait",
-      };
+    : historique.forfait
+      ? {
+          label: "Forfait",
+          valeur: historique.forfait,
+          precision: "ressources offertes sans limite",
+        }
+      : {
+          label: "Forfait",
+          valeur: "Aucun",
+          precision: "tes achats restent accessibles sans forfait",
+        };
 
   return (
     <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>

@@ -1,10 +1,12 @@
 "use server";
 
 import type { Route } from "next";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { sessionCourante } from "@/lib/auth/session";
 import { ouvrirRenouvellement } from "@/lib/abonnements/renouvellement";
+import { quitterForfaitGratuit, souscrire } from "@/lib/abonnements/souscription";
 
 /** Les rails que Baobart sait viser. Tout le reste est ignoré. */
 const MOYENS = new Set(["om", "wave", "mtn", "moov"]);
@@ -54,4 +56,38 @@ export async function renouvelerAbonnement(
   // Simulation : le cycle est déjà avancé. On envoie sur la page de suivi, qui
   // lira l'état plutôt que de le supposer.
   redirect(`/abonnement/${abonnementId}/paiement/${resultat.paiementId}`);
+}
+
+export type EtatForfait = { ok: true; message: string } | { ok: false; message: string };
+
+const REFUS_SOUSCRIPTION = {
+  INTROUVABLE: "Ce forfait n'existe pas.",
+  FERME: "Ce forfait n'est pas encore ouvert.",
+  PAIEMENT_NON_OUVERT: "Ce forfait est payant, et son paiement n'est pas encore ouvert.",
+  DEJA_ABONNE: "Tu as déjà un forfait en cours.",
+} as const;
+
+/** Activer Accès libre, d'un clic. Le compte vient de la session, jamais du formulaire. */
+export async function activerAccesLibre(): Promise<EtatForfait> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) redirect("/connexion");
+
+  const r = await souscrire({ userId: utilisateur.id, code: "LIBRE" });
+  if (!r.ok) return { ok: false, message: REFUS_SOUSCRIPTION[r.motif] };
+  revalidatePath("/tarifs");
+  revalidatePath("/dashboard/forfait");
+  return { ok: true, message: "Accès libre est activé." };
+}
+
+export async function quitterAccesLibre(): Promise<EtatForfait> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) redirect("/connexion");
+
+  const r = await quitterForfaitGratuit(utilisateur.id);
+  if (!r.ok) {
+    return { ok: false, message: r.motif === "PAYANT" ? "Ce forfait est payant : il se résilie depuis son écran de renouvellement." : "Tu n'as pas de forfait en cours." };
+  }
+  revalidatePath("/tarifs");
+  revalidatePath("/dashboard/forfait");
+  return { ok: true, message: "Accès libre est désactivé. Tu peux le réactiver quand tu veux." };
 }

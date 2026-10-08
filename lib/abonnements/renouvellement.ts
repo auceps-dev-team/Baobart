@@ -68,11 +68,14 @@ export type MotifRefus =
   | "CLOS"
   /** Un paiement vient d'être ouvert pour cet abonnement. */
   | "EN_COURS"
+  /** Un forfait gratuit : il n'y a rien à payer, son cycle avance seul. */
+  | "GRATUIT"
   | "PAIEMENT_INDISPONIBLE";
 
 export const MESSAGES: Record<MotifRefus, string> = {
   INTROUVABLE: "Cet abonnement n'existe pas.",
   CLOS: "Cet abonnement est clos. Tu peux en reprendre un nouveau.",
+  GRATUIT: "Ce forfait est gratuit : il n'y a rien à payer.",
   EN_COURS: "Un paiement est déjà en cours pour cet abonnement.",
   PAIEMENT_INDISPONIBLE:
     "Le paiement n'est pas encore disponible. Reviens bientôt.",
@@ -157,6 +160,12 @@ export async function ouvrirRenouvellement(input: {
   // CANCELLED, non : l'abonnement est clos, il se recommence.
   if (abonnement.status === "CANCELLED") {
     return { ok: false, motif: "CLOS" };
+  }
+
+  // Ouvrir un paiement de 0 F enverrait l'abonné valider sur son téléphone
+  // un débit qui n'existe pas.
+  if (abonnement.plan.priceMonthly === 0) {
+    return { ok: false, motif: "GRATUIT" };
   }
 
   const recent = await db.subscriptionPayment.findFirst({

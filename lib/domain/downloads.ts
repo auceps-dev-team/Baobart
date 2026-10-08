@@ -168,9 +168,11 @@ export async function autoriserTelechargement(
         now,
       });
     } else {
-      // 3. Sinon, un abonnement actif et son quota du mois.
+      // 3. Sinon, un abonnement actif et son quota du mois — d'un forfait qui
+      // ouvre le payant. Accès libre ne l'ouvre pas (décidé le 05/10 : « tout
+      // sauf le payant ») : son abonné achète comme tout le monde.
       const abonnement = await tx.subscription.findFirst({
-        where: { userId, status: "ACTIVE" },
+        where: { userId, status: "ACTIVE", plan: { includesPaidResources: true } },
         include: { plan: true },
         orderBy: { createdAt: "desc" },
       });

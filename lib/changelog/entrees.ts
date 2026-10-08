@@ -27,6 +27,10 @@ export interface EntreeChangelog {
 }
 
 export const CHANGELOG: readonly EntreeChangelog[] = [
+  { date: "2026-10-08", version: "1.78.0", titre: "Accès libre", texte: "Un forfait gratuit pour tous, activé d'un clic : toutes les ressources offertes sans limite, les collections, les communautés. Les forfaits payants sont annoncés, grisés, en attendant l'ouverture de leur paiement." },
+  { date: "2026-10-08", version: "1.77.2", titre: "La recherche lit les mots-clés", texte: "Après le titre, la recherche de l'en-tête lit les mots-clés des ressources, accents et majuscules ignorés." },
+  { date: "2026-10-04", version: "1.77.0", titre: "La lettre d'information", texte: "Inscris-toi depuis le pied de page : un courriel de confirmation, puis rien sans ton clic. Désinscription en un lien." },
+  { date: "2026-10-04", version: "1.76.0", titre: "Les pages d'information", texte: "À propos, Fonctionnalités, Tarifs, Support, Documentation, Conditions, Confidentialité, Règles de publication, et des formulaires Contact et Sponsoriser qui écrivent à l'équipe." },
   { date: "2026-10-04", version: "1.75.0", titre: "Ta clé de licence", texte: "Chaque achat montre sa clé de licence sur la fiche de la ressource, et les créateurs peuvent la faire vérifier par leur programme. Une page Licences explique ce que chacune permet." },
   { date: "2026-10-04", version: "1.74.0", titre: "Les collections", texte: "Range des ressources dans tes collections, privées ou publiques, depuis la mosaïque ou la fiche. L'accueil montre tes espaces et tes collections." },
   { date: "2026-10-04", version: "1.73.0", titre: "Les témoignages des membres", texte: "Chaque membre peut proposer son témoignage ; il paraît sur l'accueil après relecture." },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { renouvelerLesGratuits } from "@/lib/abonnements/souscription";
 import { journal } from "@/lib/observabilite/journal";
 import {
   PORTS_BAOBART,
@@ -44,6 +45,10 @@ export async function GET(requete: Request) {
     return reponseIntrouvable();
   }
 
+  // Les forfaits gratuits d'abord : leur cycle avance sans paiement, et Ndank
+  // ne les lit pas (voir `renouvelerLesGratuits`).
+  const gratuits = await renouvelerLesGratuits();
+
   const bilan = await passer(PORTS_BAOBART, {
     lien: lienDeValidation,
     montant: montantLisible,
@@ -51,8 +56,8 @@ export async function GET(requete: Request) {
 
   // Un passage vide est le cas normal. Ne journaliser que ce qui s'est passé
   // évite de noyer les incidents sous la routine.
-  if (bilan.relances > 0 || bilan.suspendus > 0 || bilan.clos > 0) {
-    journal.info("passage Ndank", { ...bilan });
+  if (bilan.relances > 0 || bilan.suspendus > 0 || bilan.clos > 0 || gratuits > 0) {
+    journal.info("passage Ndank", { ...bilan, gratuits });
   }
 
   // Celui-ci est un incident, pas une statistique : on va couper l'accès de

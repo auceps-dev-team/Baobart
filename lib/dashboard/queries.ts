@@ -170,6 +170,8 @@ export interface Telechargements {
   totalGeneral: number;
   ressourcesDistinctes: number;
   quota: { utilises: number; limite: number | null } | null;
+  /** Le nom du forfait en cours, quota ou non. */
+  forfait: string | null;
 }
 
 export async function historiqueDesTelechargements(
@@ -259,12 +261,15 @@ export async function historiqueDesTelechargements(
   const abonnement = await db.subscription.findFirst({
     where: { userId, status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
-    select: { id: true, plan: { select: { downloadsPerMonth: true } } },
+    select: { id: true, plan: { select: { name: true, downloadsPerMonth: true, includesPaidResources: true } } },
   });
 
   let quota: Telechargements["quota"] = null;
 
-  if (abonnement) {
+  // Un quota n'a de sens que pour un forfait qui ouvre le payant : Accès
+  // libre n'en ouvre aucun, et « Illimité au titre de ton forfait » laisserait
+  // croire le contraire.
+  if (abonnement?.plan.includesPaidResources) {
     const periode = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const compteur = await db.downloadQuota.findUnique({
       where: {
@@ -285,5 +290,6 @@ export async function historiqueDesTelechargements(
     totalGeneral: evenements.length,
     ressourcesDistinctes,
     quota,
+    forfait: abonnement ? abonnement.plan.name : null,
   };
 }

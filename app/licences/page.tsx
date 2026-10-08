@@ -81,7 +81,7 @@ export default async function LicencesPage() {
           elements={[
             "Revendre ou redistribuer le fichier tel quel est interdit, quelle que soit la licence.",
             "La licence vaut pour celui qui a acheté : elle ne se transmet pas avec une copie du fichier.",
-            "Les forfaits ouvrent des téléchargements, chacun avec la licence du forfait : la licence personnelle pour Explorer, la licence commerciale pour Studio.",
+            "Accès libre ne change pas la licence d'une ressource : c'est celle que son créateur a choisie. Les forfaits payants, quand ils ouvriront, porteront la leur : la personnelle pour Explorer, la commerciale pour Studio.",
           ]}
         />
       </DocSection>

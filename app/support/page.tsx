@@ -37,7 +37,7 @@ export default async function SupportPage() {
         <DocListe
           elements={[
             <>L&apos;achat est-il payé ? Tant que l&apos;opérateur n&apos;a pas confirmé le paiement, le fichier reste fermé. L&apos;état de chaque commande est dans {vers("/dashboard/achats", "tes achats")}.</>,
-            <>Avec un forfait, ton quota du mois est sur {vers("/dashboard/telechargements", "tes téléchargements")} : il repart le premier du mois.</>,
+            <>Accès libre ouvre les ressources offertes, pas les payantes : celles-ci s&apos;achètent à l&apos;unité. Ton forfait est sur {vers("/dashboard/forfait", "la page Forfait")}.</>,
             "Le lien de téléchargement est temporaire : s'il a expiré, relance le téléchargement depuis la fiche ou tes téléchargements.",
             "Une ressource retirée à la suite d'un signalement n'est plus livrée, même à ceux qui l'ont achetée.",
           ]}

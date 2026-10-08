@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 
+import { BoutonForfait } from "@/components/abonnements/bouton-forfait";
 import { Notifications } from "@/components/push/notifications";
+import { ACCES_LIBRE, fonctionsDuForfait } from "@/lib/abonnements/grille";
 import { DashboardFrame, DashboardPanel, EmptyState, ENCRE, JAUNE } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
 import { lireAbonnements, lirePlans } from "@/lib/dashboard/lectures";
@@ -42,10 +44,28 @@ export default async function ForfaitPage() {
     <DashboardFrame utilisateur={utilisateur} titre="Forfait & pass" description="Choisis ton niveau d'accès : découverte gratuite, quotas ou usage studio.">
       <DashboardPanel titre="Ton forfait">
         {actif === null ? (
-          <EmptyState
-            titre="Aucun forfait en cours"
-            texte="Baobart s'utilise gratuitement. Un forfait sert à télécharger davantage chaque mois, pas à accéder au site."
-          />
+          <div style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+            <EmptyState
+              titre="Aucun forfait en cours"
+              texte="Accès libre est gratuit et s'active d'un clic : toutes les ressources offertes sans limite, les collections, les communautés."
+            />
+            <BoutonForfait mode="activer" />
+          </div>
+        ) : actif.plan.priceMonthly === 0 ? (
+          // Un forfait gratuit n'a ni échéance à payer ni grâce : son cycle
+          // avance seul (`renouvelerLesGratuits`). Lui montrer « Renouveler »
+          // promettrait un paiement qui n'existe pas.
+          <div data-forfait-actif style={{ border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 14, display: "grid", gap: 10, maxWidth: 520 }}>
+            <div>
+              <strong>{actif.plan.name}</strong> · gratuit, sans prélèvement
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.6, opacity: 0.8 }}>
+              {ACCES_LIBRE.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+            <BoutonForfait mode="quitter" />
+          </div>
         ) : (
           <div style={{ border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 14 }}>
             <strong>{actif.plan.name}</strong> · {formatMoney(actif.plan.priceMonthly, "XOF")}/mois
@@ -112,12 +132,20 @@ export default async function ForfaitPage() {
           <EmptyState titre="Plans non initialisés" texte="Lance le seed pour créer Découverte, Explorer et Studio." />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
-            {plans.map((plan) => (
-              <div key={plan.id} style={{ border: `2.5px solid ${ENCRE}`, borderRadius: 20, padding: 18, background: plan.priceMonthly === 0 ? "#FFFFFF" : JAUNE, boxShadow: `4px 4px 0 ${ENCRE}` }}>
+            {/* La même grille que Tarifs : l'ouvert en couleur, le reste grisé
+                avec « Bientôt » (décidé le 05/10). */}
+            {[...plans].sort((a, b) => Number(b.openForSubscription) - Number(a.openForSubscription) || a.priceMonthly - b.priceMonthly).map((plan) => (
+              <div key={plan.id} data-plan={plan.code} style={{ border: `2.5px solid ${ENCRE}`, borderRadius: 20, padding: 18, background: plan.openForSubscription ? JAUNE : "#FFFFFF", boxShadow: `4px 4px 0 ${ENCRE}`, opacity: plan.openForSubscription ? 1 : 0.5, filter: plan.openForSubscription ? undefined : "grayscale(1)" }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>{plan.name}</div>
-                <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900 }}>{formatMoney(plan.priceMonthly, "XOF")}/mois</div>
-                <p style={{ fontSize: 13, opacity: .75 }}>{plan.downloadsPerMonth ?? "Téléchargements illimités"} {plan.downloadsPerMonth ? "téléchargements/mois" : ""}</p>
-                <div style={{ fontSize: 12, fontWeight: 800 }}>Licence : {plan.licenseIncluded ?? "—"} · Shield : {plan.shieldLevel}</div>
+                <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900 }}>
+                  {formatMoney(plan.priceMonthly, "XOF")}
+                  {plan.openForSubscription ? "" : "/mois · bientôt"}
+                </div>
+                <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12.5, lineHeight: 1.55 }}>
+                  {(plan.openForSubscription && !plan.includesPaidResources ? [...ACCES_LIBRE] : fonctionsDuForfait(plan)).map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>

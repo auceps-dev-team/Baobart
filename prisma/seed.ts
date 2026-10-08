@@ -48,6 +48,20 @@ async function seedPlans() {
         earlyAccess: true,
       },
     },
+    {
+      // Décidé le 05/10 : le seul forfait ouvert, gratuit, « tout sauf le
+      // payant ». Les trois autres restent dans la grille, grisés. La
+      // migration 20261005090100 le pose aussi, pour qu'il existe sans seed.
+      code: "LIBRE" as const,
+      name: "Accès libre",
+      priceMonthly: 0,
+      downloadsPerMonth: null,
+      licenseIncluded: null,
+      shieldLevel: "NONE" as const,
+      features: {},
+      openForSubscription: true,
+      includesPaidResources: false,
+    },
   ];
 
   for (const plan of plans) {

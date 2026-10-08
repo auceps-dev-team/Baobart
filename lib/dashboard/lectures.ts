@@ -133,6 +133,8 @@ export interface PlanDashboard {
   licenseIncluded: string | null;
   shieldLevel: string;
   features: unknown;
+  openForSubscription: boolean;
+  includesPaidResources: boolean;
 }
 
 export interface BalanceDashboard {
@@ -395,6 +397,8 @@ export async function lirePlans(): Promise<PlanDashboard[]> {
       licenseIncluded: true,
       shieldLevel: true,
       features: true,
+      openForSubscription: true,
+      includesPaidResources: true,
     },
   });
 }

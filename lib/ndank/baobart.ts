@@ -93,6 +93,9 @@ const lecture: Lecture = {
         // CANCELLED et EXPIRED sont clos : rien ne doit plus partir.
         status: { in: ["ACTIVE", "PENDING_CANCELLATION"] },
         cycleEnd: { lte: avant },
+        // Un forfait gratuit n'a rien à payer : pas de relance, pas de
+        // suspension. Son cycle avance seul (`renouvelerLesGratuits`).
+        plan: { priceMonthly: { gt: 0 } },
       },
       orderBy: { cycleEnd: "asc" },
       take: limite,

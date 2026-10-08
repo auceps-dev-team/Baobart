@@ -54,9 +54,13 @@ export default async function HistoriqueDesAchatsPage({
   const lignesAbonnements: Ligne[] = achats.abonnements.map((a) => ({
     cle: a.id,
     titre: a.nom,
-    meta: a.actif
-      ? `prélèvement mensuel · prochain le ${DATE.format(a.prochainPrelevement)}`
-      : `arrêté le ${DATE.format(a.prochainPrelevement)}`,
+    // Un forfait gratuit n'a pas de prélèvement : son échéance n'est qu'un
+    // cycle qui avance seul.
+    meta: !a.actif
+      ? `arrêté le ${DATE.format(a.prochainPrelevement)}`
+      : a.prixMensuel === 0
+        ? "gratuit · sans prélèvement"
+        : `prélèvement mensuel · prochain le ${DATE.format(a.prochainPrelevement)}`,
     montant: formatPrice(a.prixMensuel, a.devise),
     etat: a.actif ? "EN COURS" : "ARRÊTÉ",
     etatFond: a.actif ? PRUNE : BLANC,
@@ -127,7 +131,7 @@ export default async function HistoriqueDesAchatsPage({
                 : "Rien acheté pour l'instant",
             texte:
               filtre === "Abonnement"
-                ? "Les forfaits d'accès arriveront avec le paiement."
+                ? "Accès libre, gratuit, s'active depuis la page Tarifs."
                 : "Tes commandes apparaîtront ici, avec leur état et le détail des articles.",
             action: { label: "Explorer les ressources", href: "/explore" },
           },

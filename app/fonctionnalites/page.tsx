@@ -110,7 +110,7 @@ export default async function FonctionnalitesPage() {
       intro: "Un tableau de bord par rôle : acheteur ou créateur, tu vois ce qui te concerne.",
       items: [
         { t: "Gains et ventes", d: "Ce qui est disponible, en attente, le prochain versement ; chaque vente, ses remboursements, et les téléchargements et ventes de chaque ressource." },
-        { t: "Côté acheteur", d: "Tes achats, tes téléchargements, ton quota si tu as un forfait, et la clé de licence de chaque achat." },
+        { t: "Côté acheteur", d: "Tes achats, tes téléchargements, ton forfait Accès libre, et la clé de licence de chaque achat." },
         { t: "Ce qui se passe, quand ça se passe", d: "Une vente, un versement, un nouvel abonné : dans la cloche, et par courriel selon tes réglages." },
       ],
     },

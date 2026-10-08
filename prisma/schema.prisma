@@ -273,6 +273,9 @@ enum PlanCode {
   DISCOVERY
   EXPLORER
   STUDIO
+  /// Ajouté le 05/10 : le seul forfait ouvert à la souscription, gratuit,
+  /// « tout sauf le payant » (décidé le 05/10).
+  LIBRE
 }
 
 enum SubscriptionStatus {
@@ -1932,6 +1935,12 @@ model Plan {
   licenseIncluded   LicenseCode?
   shieldLevel       ShieldLevel  @default(NONE)
   features          Json         @default("{}")
+  /// Se souscrit depuis le site. Faux pour les forfaits payants tant que leur
+  /// paiement n'est pas ouvert : la grille les montre grisés.
+  openForSubscription   Boolean @default(false)
+  /// Ouvre les ressources payantes sans achat, dans le quota du mois. Faux
+  /// pour Accès libre : « tout sauf le payant ».
+  includesPaidResources Boolean @default(true)
 
   subscriptions Subscription[]
 }

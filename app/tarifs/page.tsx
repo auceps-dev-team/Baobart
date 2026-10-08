@@ -1,60 +1,64 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { BoutonForfait } from "@/components/abonnements/bouton-forfait";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
+import { ACCES_LIBRE, fonctionsDuForfait } from "@/lib/abonnements/grille";
 import { sessionCourante } from "@/lib/auth/session";
 import { lirePlans } from "@/lib/dashboard/lectures";
+import { db } from "@/lib/db";
 import { partDuCreateur } from "@/lib/domain/fees";
 import { formatMoney } from "@/lib/i18n/money";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, VERT } from "@/lib/systeme/charte";
 
 export const metadata = {
   title: "Tarifs — Baobart.",
-  description: "Ce que coûte Baobart : rien pour s'inscrire, le prix du créateur à l'achat, et les forfaits mensuels.",
+  description: "Accès libre, gratuit pour tous ; les forfaits payants à venir ; et le prix de chaque ressource, fixé par son créateur.",
 };
 
 export const dynamic = "force-dynamic";
 
-const LICENCE: Record<string, string> = { PERSONAL: "Licence personnelle", COMMERCIAL: "Licence commerciale", EXTENDED: "Licence étendue" };
-
 /**
- * Tarifs — l'écran `isTarifs` de la maquette : trois cartes, puis une FAQ.
+ * Tarifs — l'écran `isTarifs` de la maquette : des cartes, puis une FAQ.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * CE QUI SE VEND AUJOURD'HUI, ET CE QUI NE SE VEND PAS ENCORE
+ * UN SEUL FORFAIT OUVERT, LES AUTRES GRISÉS
  *
- * La maquette affichait « Free, Essentiel, Pro » à 0, 5 000 et 10 000 F, avec
- * 100 et 200 téléchargements. Les forfaits réels sont en base (`Plan`) :
- * Découverte, Explorer, Studio, avec leurs propres prix et quotas — on les lit.
+ * Décidé le 05/10 : Accès libre, gratuit, « tout sauf le payant », s'active
+ * d'un clic (`lib/abonnements/souscription.ts`). Les forfaits payants restent
+ * dans la grille, grisés, avec leurs fonctionnalités et l'étiquette
+ * « Bientôt » : rien de ce qu'ils annoncent n'est appliqué aujourd'hui, et
+ * leur paiement n'est pas ouvert (`openForSubscription`). Ce qui est ouvert et
+ * ce qui ne l'est pas se lit en base, pas dans cette page.
  *
- * Mais lu le 04/10, aucun code du site ne CRÉE d'abonnement : seul le script
- * des comptes de test le fait (`scripts/comptes-de-test.ts`). Un forfait se
- * renouvelle (`/abonnement/[id]/renouveler`), il ne se souscrit pas. Les
- * cartes disent donc ce que chaque forfait ouvre, et que la souscription n'est
- * pas ouverte ; un bouton « S'abonner » mènerait nulle part.
- *
- * Les promesses de résolution, de filigrane et de « support prioritaire » ne
- * sont pas reprises : rien ne les applique (`Plan.features` les décrit, aucun
- * code ne les lit).
+ * La maquette affichait « Free, Essentiel, Pro » à 0, 5 000 et 10 000 F : les
+ * forfaits réels sont ceux de `Plan`.
  */
 export default async function TarifsPage() {
   const [visiteur, plans] = await Promise.all([sessionCourante(), lirePlans()]);
   const part = partDuCreateur().directe;
-  const payants = plans.filter((p) => p.priceMonthly > 0);
+  const ouverts = plans.filter((p) => p.openForSubscription);
+  const grises = plans.filter((p) => !p.openForSubscription).sort((a, b) => a.priceMonthly - b.priceMonthly);
+  const enCours = visiteur
+    ? await db.subscription.findFirst({
+        where: { userId: visiteur.id, status: { in: ["ACTIVE", "PENDING_CANCELLATION"] } },
+        select: { plan: { select: { code: true, name: true } } },
+      })
+    : null;
 
   const faq = [
     {
-      q: "Faut-il un forfait pour utiliser Baobart ?",
-      a: "Non. Un compte gratuit télécharge toutes les ressources offertes, sans limite, et achète les autres à l'unité. Un forfait sert à télécharger des ressources payantes chaque mois sans les acheter une à une.",
+      q: "Faut-il payer pour utiliser Baobart ?",
+      a: "Non. Accès libre est gratuit et s'active d'un clic : toutes les ressources offertes, sans limite, les collections, les communautés. Les ressources payantes s'achètent à l'unité, au prix que leur créateur leur donne.",
     },
     {
-      q: "Quels forfaits existent ?",
-      a: `${plans.map((p) => `${p.name} (${formatMoney(p.priceMonthly, "XOF")} par mois, ${p.downloadsPerMonth === null ? "téléchargements illimités" : `${p.downloadsPerMonth} téléchargements`})`).join(", ")}. La souscription en ligne n'est pas encore ouverte.`,
+      q: "Et les forfaits payants ?",
+      a: `${grises.map((p) => p.name).join(", ")} sont prévus, et grisés tant que leur paiement n'est pas ouvert. Ce qu'ils annoncent n'est pas encore appliqué.`,
     },
     {
       q: "Quelle différence entre licence personnelle et commerciale ?",
-      a: "La personnelle couvre l'usage privé et les projets non commerciaux. La commerciale couvre les projets pour un client et les produits vendus. Le détail, et ce que chacune exclut, est sur la page Licences.",
+      a: "La personnelle couvre l'usage privé et les projets non commerciaux. La commerciale couvre les projets pour un client et les produits vendus. Chaque ressource porte la licence choisie par son créateur ; le détail est sur la page Licences.",
     },
     {
       q: "Ce que j'achète reste-t-il accessible ?",
@@ -73,38 +77,39 @@ export default async function TarifsPage() {
         <div style={{ maxWidth: 1400, margin: "0 auto", padding: "44px 32px 0" }}>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px,4.2vw,54px)", letterSpacing: "-2px", margin: 0, textTransform: "uppercase" }}>Tarifs</h1>
           <p style={{ fontSize: 16, fontWeight: 600, opacity: 0.75, margin: "8px 0 0", maxWidth: 760 }}>
-            S&apos;inscrire ne coûte rien. Chaque ressource payante a le prix que son créateur lui donne ; les forfaits ouvrent
-            des téléchargements chaque mois.
+            Accès libre est gratuit, pour tout le monde. Chaque ressource payante a le prix que son créateur lui donne ; les
+            forfaits payants arriveront plus tard.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(280px,100%),1fr))", gap: 18, marginTop: 24 }}>
-            <Carte
-              nom="Sans forfait"
-              prix="0 F"
-              par="pour toujours"
-              fond={BLANC}
-              points={[
-                "Les ressources offertes, sans limite",
-                "Les ressources payantes, à l'unité, au prix du créateur",
-                "La licence choisie par le créateur, et sa clé",
-                "Collections, communautés, commentaires",
-              ]}
-              action={visiteur ? { label: "Explorer les ressources", href: "/explore" } : { label: "Créer un compte", href: "/inscription" }}
-            />
-            {payants.map((p, i) => (
-              <Carte
-                key={p.id}
-                nom={p.name}
-                prix={formatMoney(p.priceMonthly, "XOF")}
-                par="/ mois"
-                fond={i === 0 ? JAUNE : BLANC}
-                points={[
-                  p.downloadsPerMonth === null ? "Téléchargements illimités" : `${p.downloadsPerMonth} téléchargements de ressources payantes par mois`,
-                  p.licenseIncluded ? LICENCE[p.licenseIncluded] ?? p.licenseIncluded : "Licence de la ressource",
-                  "Le quota repart chaque mois",
-                ]}
-                action={null}
-              />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(260px,100%),1fr))", gap: 18, marginTop: 24 }}>
+            {ouverts.map((p) => (
+              <Carte key={p.id} nom={p.name} prix={formatMoney(p.priceMonthly, "XOF")} par="pour toujours" fond={JAUNE} points={p.includesPaidResources ? fonctionsDuForfait(p) : [...ACCES_LIBRE]}>
+                {!visiteur ? (
+                  <Link href={"/inscription" as Route} style={ctaNoir}>
+                    Créer un compte, c&apos;est gratuit
+                  </Link>
+                ) : enCours?.plan.code === p.code ? (
+                  <div data-forfait-actif style={{ display: "grid", gap: 8 }}>
+                    <div style={{ padding: 14, border: CADRE, borderRadius: 14, background: VERT, textAlign: "center", fontSize: 14, fontWeight: 800 }}>Actif ✓</div>
+                    <Link href={"/dashboard/forfait" as Route} style={{ textAlign: "center", fontSize: 13, fontWeight: 700, color: ENCRE }}>
+                      Gérer mon forfait
+                    </Link>
+                  </div>
+                ) : enCours ? (
+                  <div style={{ padding: 14, border: CADRE, borderRadius: 14, background: BLANC, textAlign: "center", fontSize: 13.5, fontWeight: 700 }}>
+                    Tu as déjà le forfait {enCours.plan.name}.
+                  </div>
+                ) : (
+                  <BoutonForfait mode="activer" />
+                )}
+              </Carte>
+            ))}
+            {grises.map((p) => (
+              <Carte key={p.id} nom={p.name} prix={formatMoney(p.priceMonthly, "XOF")} par="/ mois" fond={BLANC} grise points={fonctionsDuForfait(p)}>
+                <div aria-disabled="true" style={{ padding: 14, border: CADRE, borderRadius: 14, background: "#DCDCDC", textAlign: "center", fontSize: 13.5, fontWeight: 800 }}>
+                  Bientôt
+                </div>
+              </Carte>
             ))}
           </div>
 
@@ -133,45 +138,64 @@ export default async function TarifsPage() {
   );
 }
 
+const ctaNoir: React.CSSProperties = {
+  display: "block",
+  padding: 14,
+  border: CADRE,
+  borderRadius: 14,
+  background: ENCRE,
+  color: BLANC,
+  textAlign: "center",
+  fontSize: 14,
+  fontWeight: 800,
+};
+
 function Carte({
   nom,
   prix,
   par,
   fond,
   points,
-  action,
+  grise = false,
+  children,
 }: {
   nom: string;
   prix: string;
   par: string;
   fond: string;
   points: string[];
-  action: { label: string; href: string } | null;
+  grise?: boolean;
+  children: React.ReactNode;
 }) {
   return (
-    <div data-tarif={nom} style={{ border: CADRE, borderRadius: 24, background: fond, boxShadow: `6px 6px 0 ${ENCRE}`, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ fontFamily: "var(--font-display)", fontSize: 26, textTransform: "uppercase" }}>{nom}</div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 6, paddingBottom: 14, borderBottom: CADRE }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 36 }}>{prix}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.7 }}>{par}</div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: "1 1 auto" }}>
-        {points.map((p) => (
-          <div key={p} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13.5, fontWeight: 600, lineHeight: 1.4 }}>
-            <span style={{ flex: "0 0 auto", width: 18, height: 18, border: `2px solid ${ENCRE}`, borderRadius: 6, background: BLANC, display: "grid", placeItems: "center", fontSize: 11 }}>✓</span>
-            {p}
-          </div>
-        ))}
-      </div>
-      {action ? (
-        <Link href={action.href as Route} style={{ padding: 14, border: CADRE, borderRadius: 14, background: ENCRE, color: BLANC, textAlign: "center", fontSize: 14, fontWeight: 800 }}>
-          {action.label}
-        </Link>
-      ) : (
-        <div aria-disabled="true" style={{ padding: 14, border: CADRE, borderRadius: 14, background: MAUVE, color: ENCRE, textAlign: "center", fontSize: 13.5, fontWeight: 800, opacity: 0.75 }}>
-          Souscription pas encore ouverte
+    <div
+      data-tarif={nom}
+      data-grise={grise ? "1" : undefined}
+      aria-disabled={grise || undefined}
+      style={{ border: CADRE, borderRadius: 24, background: fond, boxShadow: `6px 6px 0 ${ENCRE}`, padding: 22, display: "flex", flexDirection: "column", gap: 14, position: "relative" }}
+    >
+      {/* Grisée, pas illisible : on doit pouvoir lire ce qui viendra. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: "1 1 auto", opacity: grise ? 0.5 : 1, filter: grise ? "grayscale(1)" : undefined }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 26, textTransform: "uppercase" }}>{nom}</div>
+          {grise ? (
+            <span style={{ padding: "4px 10px", border: `2px solid ${ENCRE}`, borderRadius: 999, background: BLANC, fontSize: 10.5, fontWeight: 800, textTransform: "uppercase" }}>Bientôt</span>
+          ) : null}
         </div>
-      )}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, paddingBottom: 14, borderBottom: CADRE }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 36 }}>{prix}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.7 }}>{par}</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: "1 1 auto" }}>
+          {points.map((p) => (
+            <div key={p} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13.5, fontWeight: 600, lineHeight: 1.4 }}>
+              <span style={{ flex: "0 0 auto", width: 18, height: 18, border: `2px solid ${ENCRE}`, borderRadius: 6, background: BLANC, display: "grid", placeItems: "center", fontSize: 11 }}>✓</span>
+              {p}
+            </div>
+          ))}
+        </div>
+      </div>
+      {children}
     </div>
   );
 }

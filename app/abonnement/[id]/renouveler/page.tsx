@@ -104,6 +104,8 @@ export default async function RenouvelerPage({
   // 404 et non « accès refusé » : dire qu'un abonnement existe mais n'est pas
   // le tien, c'est déjà en dire trop.
   if (!abonnement || abonnement.userId !== utilisateur.id) notFound();
+  // Rien à payer pour un forfait gratuit : son cycle avance seul.
+  if (abonnement.plan.priceMonthly === 0) redirect("/dashboard/forfait");
 
   const maintenant = new Date();
   const cadence = abonnement.cadence as Cadence;

@@ -73,7 +73,7 @@ export default async function ConditionsPage() {
           elements={[
             "Le prix affiché sur la fiche est celui que tu paies, pourboire éventuel en plus. Il est fixé par le créateur — parfois libre, au-dessus d'un minimum qu'il choisit.",
             "Le paiement se fait chez l'opérateur : Paystack, ou le mobile money que tu choisis. L'accès s'ouvre quand l'opérateur confirme le paiement, pas avant.",
-            "Un forfait (Découverte, Explorer, Studio) ouvre un nombre de téléchargements par mois ; le quota repart chaque mois.",
+            "Accès libre, gratuit, s'active d'un clic et se quitte de même : il ouvre les ressources offertes, pas les payantes. Les forfaits payants (Découverte, Explorer, Studio) ne sont pas encore ouverts.",
             "Chaque achat porte une licence, qui dit ce que tu peux faire du fichier, et une clé de licence — voir la page Licences.",
           ]}
         />
