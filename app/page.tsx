@@ -1,3 +1,4 @@
+import { Apparition } from "@/components/anime/defilement";
 import { Feed } from "@/components/feed/feed";
 import { HomeShell } from "@/components/home/home-shell";
 import {
@@ -76,7 +77,11 @@ export default async function AccueilPage() {
       <Header utilisateur={utilisateur} />
       <HomeShell chiffres={chiffres} vitrine={vitrine}>
         <RubanBaseline />
-        <Categories familles={familles} />
+        {/* Les sections se posent en entrant à l'écran (08/10). Pas le feed :
+            il s'allonge sans fin, et ses cartes ont déjà leur `popin`. */}
+        <Apparition>
+          <Categories familles={familles} />
+        </Apparition>
         <Feed
           itemsInitiaux={page.items}
           curseurInitial={page.nextCursor}
@@ -87,16 +92,26 @@ export default async function AccueilPage() {
           colonnesInitiales={colonnes}
           diffusion={pubs}
         />
-        <CollectionsTrieesMain total={chiffres.ressources} rayons={rayons} />
-        <EspacesEquipe
-          connecte={utilisateur !== null}
-          espace={espace}
-          collections={mesCollectionsAccueil}
-          createurs={createurs}
-        />
-        <AppelAuxCreatifs partCreateur={partCreateur} connecte={utilisateur !== null} />
-        <Temoignages temoignages={temoignages} />
-        <Blog articles={articles} />
+        <Apparition>
+          <CollectionsTrieesMain total={chiffres.ressources} rayons={rayons} />
+        </Apparition>
+        <Apparition>
+          <EspacesEquipe
+            connecte={utilisateur !== null}
+            espace={espace}
+            collections={mesCollectionsAccueil}
+            createurs={createurs}
+          />
+        </Apparition>
+        <Apparition>
+          <AppelAuxCreatifs partCreateur={partCreateur} connecte={utilisateur !== null} />
+        </Apparition>
+        <Apparition>
+          <Temoignages temoignages={temoignages} />
+        </Apparition>
+        <Apparition>
+          <Blog articles={articles} />
+        </Apparition>
         <Footer />
       </HomeShell>
     </>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { Compteur } from "@/components/anime/compteur";
+import { Parallaxe } from "@/components/anime/defilement";
 import { Vague } from "@/components/anime/vague";
 import {
   BLANC,
@@ -262,35 +263,39 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
             </Link>
           ) : null}
 
+          {/* Les deux petites cartes glissent à contre-sens au défilement
+              (parallaxe, 08/10) : 50 px d'écart sur toute la traversée, pour
+              décoller les plans sans les promener. */}
           {[vitrine.gratuite, vitrine.payante].map((c, i) =>
             c ? (
-              <Link
-                key={c.slug}
-                href={`/products/${c.slug}`}
-                scroll={false}
-                className="sticker-press"
-                style={{
-                  display: "block",
-                  border: CADRE,
-                  borderRadius: 24,
-                  background: i === 0 ? JAUNE : BLANC,
-                  boxShadow: `6px 6px 0 ${ENCRE}`,
-                  padding: 16,
-                  color: ENCRE,
-                  animation: i === 0 ? "floaty 7s ease-in-out infinite" : undefined,
-                }}
-              >
-                <div
+              <Parallaxe key={c.slug} amplitude={i === 0 ? 50 : -50}>
+                <Link
+                  href={`/products/${c.slug}`}
+                  scroll={false}
+                  className="sticker-press"
                   style={{
-                    height: 130,
+                    display: "block",
                     border: CADRE,
-                    borderRadius: 14,
-                    background: `url(${JSON.stringify(c.couverture)}) center / cover no-repeat`,
+                    borderRadius: 24,
+                    background: i === 0 ? JAUNE : BLANC,
+                    boxShadow: `6px 6px 0 ${ENCRE}`,
+                    padding: 16,
+                    color: ENCRE,
+                    animation: i === 0 ? "floaty 7s ease-in-out infinite" : undefined,
                   }}
-                />
-                <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>{c.titre}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>{c.detail}</div>
-              </Link>
+                >
+                  <div
+                    style={{
+                      height: 130,
+                      border: CADRE,
+                      borderRadius: 14,
+                      background: `url(${JSON.stringify(c.couverture)}) center / cover no-repeat`,
+                    }}
+                  />
+                  <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>{c.titre}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>{c.detail}</div>
+                </Link>
+              </Parallaxe>
             ) : null,
           )}
         </div>

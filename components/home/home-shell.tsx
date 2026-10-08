@@ -31,7 +31,11 @@ export function HomeShell({
       style={{
         minHeight: "100vh",
         background: "#EADFF9",
-        overflowX: "hidden",
+        // `clip` et non `hidden` (08/10) : coupe pareil ce qui déborde, mais
+        // `hidden` force `overflow-y: auto` et fait de l'enveloppe un
+        // conteneur de défilement — qui ne défile pas. Les animations au
+        // défilement (`view()`) s'y accrochaient et restaient inertes.
+        overflowX: "clip",
         transition: "padding-left .18s ease",
         paddingLeft: railOuvert ? 268 : 112,
       }}

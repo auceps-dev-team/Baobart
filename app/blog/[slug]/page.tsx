@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 
+import { BarreLecture } from "@/components/anime/defilement";
 import { CorpsArticle } from "@/components/cms/corps";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
@@ -123,7 +124,10 @@ export default async function ArticlePage({
       <Header utilisateur={visiteur} />
 
       <main style={{ minHeight: "100vh", background: LAVANDE, paddingBottom: 72 }}>
-        <article style={{ maxWidth: 760, margin: "0 auto", padding: "36px 20px 0" }}>
+        {/* `defil-lecture` : la barre de lecture (08/10) suit l'article seul,
+            pas le pied de page. */}
+        <article className="defil-lecture" style={{ maxWidth: 760, margin: "0 auto", padding: "36px 20px 0" }}>
+          <BarreLecture />
           <Link
             href={"/blog" as Route}
             style={{ fontSize: 13, fontWeight: 800, color: ENCRE }}

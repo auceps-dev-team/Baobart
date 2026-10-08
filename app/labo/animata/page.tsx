@@ -14,9 +14,9 @@ import {
   BarreLecture,
   Parallaxe,
   TexteQuiSAllume,
-} from "@/components/labo/animata/defilement";
+} from "@/components/anime/defilement";
 import { Rejouer } from "@/components/labo/animata/rejouer";
-import { SectionsEmpilees } from "@/components/labo/animata/sections-empilees";
+import { SectionsEmpilees } from "@/components/anime/sections-empilees";
 import { Rouleau } from "@/components/labo/animata/rouleau";
 import { Soulignement } from "@/components/labo/animata/soulignement";
 import { Squelette } from "@/components/labo/animata/squelette";
@@ -302,7 +302,7 @@ export default function LaboAnimata() {
               <SectionsEmpilees>
                 {[
                   ["1", "Dépose", "Tes fichiers, ta description, ton prix.", "bg-lavande-profond"],
-                  ["2", "Publie", "Relue par l'équipe, ta ressource entre au catalogue.", "bg-jaune"],
+                  ["2", "Publie", "Elle est en ligne dès que tu publies, sans relecture à attendre.", "bg-jaune"],
                   ["3", "Vends", "Mobile money ou carte, chaque achat t'est notifié.", "bg-blanc"],
                   ["4", "Encaisse", "Ta part est versée à chaque cycle.", "bg-orange"],
                 ].map(([n, titre, texte, fond]) => (

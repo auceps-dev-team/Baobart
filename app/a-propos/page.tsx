@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { TexteQuiSAllume } from "@/components/anime/defilement";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { CarteTemoignage } from "@/components/temoignages/carte";
@@ -118,11 +119,13 @@ export default async function AProposPage() {
           {/* ── Plutôt que de monter une entreprise ────────────────────── */}
           <section style={{ ...carte, background: ENCRE, color: BLANC, boxShadow: `7px 7px 0 ${ORANGE}`, padding: "40px 32px" }}>
             <h2 style={titreSection}>Plutôt que de monter une entreprise…</h2>
-            <p style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.55, maxWidth: 760, margin: "14px 0 0", opacity: 0.85 }}>
-              …commence par vendre un projet à côté. Pas de statuts à déposer, pas de boutique à coder, pas de terminal de
-              paiement à louer : un fichier, un prix, une page. Si ça prend, tu grandis. Sinon, tu n&apos;as perdu
-              qu&apos;une soirée.
-            </p>
+            {/* Le manifeste s'allume mot à mot pendant qu'il traverse l'écran
+                (08/10, adapté d'Animata `scroll-reveal`). Sans prise en
+                charge ou sous mouvement réduit, il est entièrement allumé. */}
+            <TexteQuiSAllume
+              style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.55, maxWidth: 760, margin: "14px 0 0", opacity: 0.85 }}
+              texte="…commence par vendre un projet à côté. Pas de statuts à déposer, pas de boutique à coder, pas de terminal de paiement à louer : un fichier, un prix, une page. Si ça prend, tu grandis. Sinon, tu n'as perdu qu'une soirée."
+            />
           </section>
 
           {/* ── La méthode ─────────────────────────────────────────────── */}

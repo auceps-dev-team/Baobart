@@ -447,6 +447,105 @@
   animation: tourne 1s linear infinite;
 }
 
+/* --- Au défilement : essayé au labo le 08/10, posé sur les vues -----------
+ *
+ * Animations PILOTÉES PAR LE DÉFILEMENT (`animation-timeline`) : leur avancée
+ * suit la position de la page, pas le temps. Aucun JavaScript, aucun
+ * écouteur de défilement, et le navigateur les calcule hors du fil principal.
+ *
+ * Mesuré le 08/10 dans le navigateur intégré (Chrome 152) : `view()`,
+ * `scroll()`, `animation-range` et `timeline-scope` sont pris en charge.
+ * Firefox et Safari : non vérifiés.
+ *
+ * D'où la double garde : `@supports` (un navigateur qui ne connaît pas
+ * `animation-timeline` jouerait sinon l'animation une fois, sur le temps, au
+ * chargement — et le texte « qui s'allume » resterait éteint) et
+ * `prefers-reduced-motion: no-preference`. Hors des deux, rien ne bouge et
+ * tout est visible : c'est l'état par défaut, pas un repli. */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Apparition : l'élément se pose comme un sticker en entrant à l'écran.
+       Les images clés sont `popin`, celles des maquettes (plus haut). */
+    .defil-apparait {
+      animation: popin linear both;
+      animation-timeline: view();
+      /* 260 px d'entrée, quelle que soit la hauteur : voir defilement.tsx. */
+      animation-range: entry 0px entry 260px;
+    }
+
+    /* Parallaxe : l'élément glisse moins vite que la page. --amplitude
+       règle l'écart total, en pixels, sur toute la traversée de l'écran. */
+    .defil-parallaxe {
+      animation: defil-parallaxe linear both;
+      animation-timeline: view();
+    }
+
+    /* Barre de lecture : remplie à proportion de la page parcourue. */
+    .defil-barre {
+      transform-origin: 0 50%;
+      animation: defil-barre linear both;
+      animation-timeline: scroll(root block);
+    }
+
+    /* … ou de l'article seul : `defil-lecture` sur l'article nomme sa
+       traversée, et la barre, posée DANS l'article, la suit. Vide quand le
+       haut de l'article atteint le haut de l'écran, pleine quand son bas
+       atteint le bas — le pied de page n'en fait plus partie.
+       Mesuré le 08/10 sur un élément de 5 597 px : 0, 0,50, 1 aux trois
+       repères. LIMITE, mesurée aussi : sur un élément plus court que l'écran
+       (534 px pour 746), `contain` s'inverse en pratique — la barre est
+       pleine quand le haut de l'article touche le haut de l'écran. Un
+       article de blog fait d'ordinaire plusieurs écrans ; un billet très
+       court verrait une barre qui ne veut rien dire. */
+    .defil-lecture {
+      view-timeline: --lecture block;
+    }
+    .defil-lecture .defil-barre {
+      animation-timeline: --lecture;
+      animation-range: contain 0% contain 100%;
+    }
+
+    /* Texte qui s'allume : le paragraphe nomme sa traversée de l'écran, et
+       chaque mot prend sa tranche (--debut / --fin, en %). */
+    .defil-allume {
+      view-timeline: --allume block;
+    }
+    .defil-allume > span {
+      animation: defil-allume linear both;
+      animation-timeline: --allume;
+      animation-range: contain var(--debut) contain var(--fin);
+    }
+  }
+}
+
+@keyframes defil-parallaxe {
+  from {
+    transform: translateY(calc(var(--amplitude, 80px) / 2));
+  }
+  to {
+    transform: translateY(calc(var(--amplitude, 80px) / -2));
+  }
+}
+
+@keyframes defil-barre {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes defil-allume {
+  from {
+    opacity: 0.18;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /*
  * Mouvement réduit, pour ce qui précède.
  *
