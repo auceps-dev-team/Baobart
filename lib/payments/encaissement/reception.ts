@@ -77,7 +77,10 @@ export type Reception =
         | "VERSEMENT_INTROUVABLE"
         | "TRANSITION_REFUSEE"
         | "MONTANT_DISCORDANT"
-        /** Un succès sans montant, d'un opérateur qu'on ne peut pas interroger. */
+        /**
+         * Un succès sans montant, d'un opérateur qu'on ne peut pas interroger —
+         * ou qu'on a interrogé et qui confirme sans montant lisible.
+         */
         | "MONTANT_ABSENT"
         | "DEVISE_DISCORDANTE"
         /** L'opérateur, interrogé, ne reconnaît pas la transaction annoncée. */
@@ -106,6 +109,66 @@ export type Reception =
  */
 function montantInverifiable(fournisseur: string, fait: FaitPaiement): boolean {
   return fait.montant === null && !piloteNomme(fournisseur)?.confirmer;
+}
+
+/**
+ * Ce que l'opérateur, interrogé, confirme — confronté à ce qu'on attend.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * « CONFIRMÉ » SANS MONTANT N'EST PAS « CONFORME »
+ *
+ * `montantInverifiable` laisse passer un rappel sans montant quand l'opérateur
+ * sait `confirmer` : c'est la confirmation qui confronte. Mais la confrontation
+ * s'écrivait « si un montant est confirmé ET qu'il diffère, refuser » — une
+ * confirmation sans montant lisible (devise hors de nos devises, champ absent)
+ * la traversait, et la commande était livrée sans qu'aucun montant ait jamais
+ * été comparé. Relevé à la relecture du 08/10/2026 : le succès silencieux que
+ * `MONTANT_ABSENT` disait avoir fermé.
+ *
+ * La devise confirmée, elle, n'était pas regardée du tout : un montant en
+ * nairas aurait été comparé, chiffre pour chiffre, à un total en francs.
+ */
+function confrontationConfirmee(
+  verdict: { montant: number | null; devise: string | null },
+  attendu: { montant: number; devise: string },
+  contexte: Record<string, unknown>,
+): Extract<Reception, { recu: false }> | null {
+  if (verdict.devise !== null && verdict.devise !== attendu.devise) {
+    journal.erreur("devise confirmée différente de la nôtre", {
+      ...contexte,
+      attendue: attendu.devise,
+      confirmee: verdict.devise,
+    });
+    return {
+      recu: false,
+      motif: "DEVISE_DISCORDANTE",
+      detail: `Attendu ${attendu.devise}, confirmé ${verdict.devise}.`,
+    };
+  }
+
+  if (verdict.montant === null) {
+    journal.erreur("transaction confirmée sans montant lisible", contexte);
+    return {
+      recu: false,
+      motif: "MONTANT_ABSENT",
+      detail: "L'opérateur confirme la transaction sans montant lisible : rien à comparer.",
+    };
+  }
+
+  if (verdict.montant !== attendu.montant) {
+    journal.erreur("montant confirmé différent du nôtre", {
+      ...contexte,
+      attendu: attendu.montant,
+      confirme: verdict.montant,
+    });
+    return {
+      recu: false,
+      motif: "MONTANT_DISCORDANT",
+      detail: `Attendu ${attendu.montant}, confirmé ${verdict.montant}.`,
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -425,18 +488,12 @@ async function appliquer(
     }
 
     // Et on reconfronte sur SA valeur, pas sur celle du corps reçu.
-    if (verdict.montant !== null && verdict.montant !== commande.total) {
-      journal.erreur("montant confirmé différent du nôtre", {
-        commande: commande.id,
-        attendu: commande.total,
-        confirme: verdict.montant,
-      });
-      return {
-        recu: false,
-        motif: "MONTANT_DISCORDANT",
-        detail: `Attendu ${commande.total}, confirmé ${verdict.montant}.`,
-      };
-    }
+    const refus = confrontationConfirmee(
+      verdict,
+      { montant: commande.total, devise: commande.currency },
+      { commande: commande.id, fournisseur },
+    );
+    if (refus) return refus;
   }
 
   await db.order.update({
@@ -614,18 +671,12 @@ async function appliquerRenouvellement(
       };
     }
 
-    if (verdict.montant !== null && verdict.montant !== paiement.amount) {
-      journal.erreur("montant de renouvellement confirmé différent du nôtre", {
-        paiement: paiement.id,
-        attendu: paiement.amount,
-        confirme: verdict.montant,
-      });
-      return {
-        recu: false,
-        motif: "MONTANT_DISCORDANT",
-        detail: `Attendu ${paiement.amount}, confirmé ${verdict.montant}.`,
-      };
-    }
+    const refus = confrontationConfirmee(
+      verdict,
+      { montant: paiement.amount, devise: paiement.currency },
+      { paiement: paiement.id, fournisseur },
+    );
+    if (refus) return refus;
   }
 
   // La référence de l'opérateur est écrite AVANT le règlement : c'est elle qui
