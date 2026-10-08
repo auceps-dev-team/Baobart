@@ -41,7 +41,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.33.2 --activate
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -100,7 +100,7 @@ jobs:
       # quand même — au nettoyage, `setup-node` veut sauvegarder le magasin de
       # pnpm, qui n'existe pas puisque rien n'est installé ici (« Path(s)
       # specified in the action for caching do(es) not exist »).
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -141,7 +141,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.33.2 --activate
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -194,7 +194,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.33.2 --activate
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -257,7 +257,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.33.2 --activate
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
