@@ -1,0 +1,58 @@
+# ============================================================================
+# Ce que `COPY . .` ne doit PAS embarquer dans l'étape de build du Dockerfile.
+#
+# Sans ce fichier, le contexte envoyé à Docker comprenait tout le dossier :
+#
+#   — `.env` et ses variantes, c'est-à-dire les secrets du poste qui construit
+#     l'image. Ils atterrissaient dans une couche de l'étape `builder`, lisible
+#     par quiconque récupère le cache de build ;
+#   — `node_modules` et `.next` de l'hôte, qui écrasaient ceux que l'étape
+#     `deps` venait d'installer pour Linux — des binaires natifs Windows ou
+#     macOS (sharp, Prisma) dans une image Alpine ;
+#   — la documentation et les maquettes, des dizaines de mégaoctets envoyés à
+#     chaque build pour rien : aucun fichier de `Doc/` ni de `Baobart Design/`
+#     n'est lu par le code, seulement cité en commentaire.
+#
+# Ce qui reste : le code, `prisma/`, `public/`, les configurations. Les tests
+# et `e2e/` restent aussi — `tsconfig.json` inclut `**/*.ts` et `next build`
+# vérifie les types de tout ce qu'il inclut.
+# ============================================================================
+
+# Secrets — seul le modèle passe.
+.env
+.env.*
+!.env.example
+
+# Dépendances et artefacts de l'hôte : l'image installe et construit les siens.
+node_modules
+.pnpm-store
+.next
+.next-verif
+out
+coverage
+*.tsbuildinfo
+
+# Traces de tests au navigateur.
+test-results
+playwright-report
+blob-report
+playwright/.cache
+
+# Documentation, maquettes, notes de travail : jamais lues par le code.
+Doc
+Baobart Design
+Qualitytest*.md
+addproduct.md
+qa
+memory-bank
+
+# Outillage local.
+.git
+.github
+.vscode
+.idea
+.docker-data
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore

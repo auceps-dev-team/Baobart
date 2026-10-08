@@ -17,7 +17,7 @@ docker compose up -d      # postgres + redis + minio
 pnpm db:migrate           # applique le schéma
 pnpm db:seed              # plans, licences, badges
 pnpm db:test:setup        # base de test isolée (pour pnpm test)
-pnpm dev                  # http://localhost:3000
+pnpm dev                  # http://localhost:3100
 ```
 
 Les tests d'intégration tournent sur **`baobart_test`**, jamais sur la base de

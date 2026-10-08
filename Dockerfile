@@ -17,6 +17,14 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Lus AU BUILD par next.config.ts : les hôtes d'images et l'origine du stockage
+# dans la CSP sont figés dans le manifeste des routes, pas relus au démarrage.
+# Ils arrivaient jusqu'ici par le `.env` de l'hôte, embarqué sans le vouloir
+# par `COPY . .` ; `.dockerignore` l'exclut désormais. Ce ne sont pas des
+# secrets — des adresses publiques — d'où des arguments de build :
+#   docker build --build-arg S3_PUBLIC_URL=https://cdn.exemple.com .
+ARG S3_PUBLIC_URL
+ARG S3_ENDPOINT
 RUN pnpm prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 # Active la sortie standalone (cf. next.config.ts) — Linux gère les symlinks.
@@ -39,5 +47,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
+
+# La sonde interroge /api/health, qui va chercher la base et répond 503 quand
+# elle manque — là où la page d'accueil répondrait 200 avec une coquille vide.
+# `node` plutôt que `wget` ou `curl` : c'est le seul binaire dont on soit sûr
+# qu'il est dans l'image, quelle que soit la base Alpine du jour.
+# Le délai de démarrage couvre la première connexion Prisma.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "server.js"]
