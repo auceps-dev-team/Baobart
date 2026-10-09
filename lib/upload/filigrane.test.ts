@@ -20,6 +20,21 @@ import {
   tuileDeFiligrane,
 } from "@/lib/upload/filigrane";
 
+/**
+ * Les tests qui passent par sharp traitent de vraies images, et ce travail
+ * dépend de la charge de la machine.
+ *
+ * Mesuré le 09/10 : seul, ce fichier tourne en 1,6 s. Dans la suite unitaire
+ * complète (90 fichiers sur 4 cœurs), « se voit sur une image claire » a
+ * dépassé les 5 s par défaut, et le fichier a pris 7,7 s. L'échec visait donc
+ * du code juste : la charge, pas une régression.
+ *
+ * Trente secondes ici plutôt que dans `vitest.config.ts`, comme dans
+ * `lib/auth/password.test.ts` : le reste de la suite garde un délai serré,
+ * pour qu'une vraie boucle infinie se signale vite.
+ */
+const LENT = { timeout: 30_000 };
+
 /** Une image unie : tout écart vient du filigrane. */
 function unie(largeur: number, hauteur: number, gris: number): Promise<Buffer> {
   return sharp({
@@ -58,7 +73,7 @@ describe("le texte du filigrane", () => {
   });
 });
 
-describe("le filigrane posé sur une image", () => {
+describe("le filigrane posé sur une image", LENT, () => {
   it.each([
     ["claire", 245],
     ["sombre", 15],
@@ -105,7 +120,8 @@ describe("la police embarquée", () => {
     );
   });
 
-  it("dessine le même texte sans aucune police système — comme sous Alpine", () => {
+  // Trois processus Node, qui chargent chacun sharp : le plus lent du fichier.
+  it("dessine le même texte sans aucune police système — comme sous Alpine", LENT, () => {
     // Mesuré le 09/10 : sous une configuration fontconfig vide, une police
     // demandée par son nom sort en carrés vides, sans erreur. Le rendu se fait
     // avec les options EXACTES du module (`optionsDuTexte`) : retirer leur
@@ -146,7 +162,7 @@ describe("la police embarquée", () => {
   });
 });
 
-describe("la tuile du motif", () => {
+describe("la tuile du motif", LENT, () => {
   it("est transparente autour du texte", async () => {
     const tuile = await tuileDeFiligrane("Baobart", 800);
     const { channels } = await sharp(tuile).stats();
