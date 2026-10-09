@@ -7,7 +7,8 @@ import {
   confirmerFichierDe,
   retirerFichierDe,
 } from "@/lib/upload/service";
-import { PREFIXE_PUBLIC, urlPublique } from "@/lib/upload/storage";
+import { ancienneCleDApercu, cleDApercu } from "@/lib/upload/apercu";
+import { urlPublique } from "@/lib/upload/storage";
 
 /**
  * Le retrait d'un fichier, confronté à la base.
@@ -182,7 +183,10 @@ describe("retrait d'un fichier", () => {
     expect(await retirerFichierDe({ userId: vendeur, produitId, fichierId })).toMatchObject({ ok: false });
   });
 
-  it("efface la couverture quand son fichier part, et reprend la suivante", async () => {
+  it.each([
+    ["filigranée", cleDApercu],
+    ["d'avant le filigrane, pas encore régénérée", ancienneCleDApercu],
+  ])("efface la couverture %s quand son fichier part", async (_cas, cle) => {
     const { produitId, fichierId, mediaId } = await ressourceAvecFichier();
 
     // Le média porte des dimensions : c'est ce qui en fait une couverture
@@ -198,7 +202,7 @@ describe("retrait d'un fichier", () => {
     await db.product.update({
       where: { id: produitId },
       data: {
-        coverUrl: urlPublique(`${PREFIXE_PUBLIC}apercus/${mediaId}.webp`),
+        coverUrl: urlPublique(cle(mediaId)),
         coverImageId: mediaId,
       },
     });
