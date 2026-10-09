@@ -15,7 +15,7 @@ import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme
 export const metadata = {
   title: "Concours & événements — Baobart.",
   description:
-    "Un thème, deux semaines, un jury de créatifs du continent. Ateliers, conférences et expositions de la communauté Baobart.",
+    "Concours, ateliers, conférences, expositions de la communauté Baobart. Trouve le prochain, inscris-toi depuis sa fiche.",
 };
 
 export const dynamic = "force-dynamic";
@@ -54,8 +54,13 @@ export const dynamic = "force-dynamic";
  * — une demande, pas un refus.
  *
  * Les trois étapes de la maquette décrivaient un concours qui n'existe pas
- * ici (« jusqu'à 3 propositions », « 5 créatifs invités ») : ni dépôt ni jury
- * dans le code. Elles sont remplacées par trois étapes VRAIES du module —
+ * ici (« jusqu'à 3 propositions », « 5 créatifs invités »). Relu le 09/10 :
+ * aucun modèle de dépôt d'œuvres — seul `EventRegistration` (les inscrits) se
+ * rattache à `Event`. Le jury, lui, a une colonne (`Event.jury`, avec
+ * `prizeAmount`), mais rien dans `lib/`, `app/` ni `components/` ne la
+ * remplit ni ne l'affiche. (La première version de ce commentaire disait
+ * « ni dépôt ni jury dans le code » : vrai pour le dépôt, inexact pour le
+ * jury.) Elles sont remplacées par trois étapes VRAIES du module —
  * relecture, inscription, fiche qui reste après la date (`phases.ts`).
  */
 export default async function EvenementsPage({
@@ -68,12 +73,25 @@ export default async function EvenementsPage({
     ? (demande as EventKind)
     : undefined;
 
-  const [visiteur, prochain, evenements, organisateur] = await Promise.all([
+  const [visiteur, prochain, evenements, organisateur, concours] = await Promise.all([
     sessionCourante(),
     prochainEvenement(),
     listerPublics({ genre }),
     accesAuxEvenements(),
+    listerPublics({ genre: "CONTEST" }),
   ]);
+  // Le sous-titre chiffré (charte, technique 1 : un chiffre vrai) : le premier
+  // concours auquel on peut VRAIMENT s'inscrire — ni terminé, ni annulé, ni
+  // complet, ni à billet payant (fermé tant que l'encaissement n'est pas
+  // branché, lib/evenements/inscription.ts) — et qui porte une dotation.
+  const concoursDote = concours.find(
+    (e) =>
+      e.phase !== "TERMINE" &&
+      e.annuleLe === null &&
+      (e.dotation ?? 0) > 0 &&
+      !((e.prixBillet ?? 0) > 0) &&
+      placesRestantes(e.capacite, e.inscrits) !== 0,
+  );
   // Qui peut organiser va au formulaire ; les autres nous écrivent.
   const proposer = (organisateur ? "/dashboard/evenements/nouveau" : "/contact") as Route;
 
@@ -135,8 +153,22 @@ export default async function EvenementsPage({
                   opacity: 0.8,
                 }}
               >
-                Un thème, deux semaines, un jury de créatifs du continent. Les
-                gagnants sont mis en avant sur l&apos;accueil et rémunérés.
+                {/* Réécrit le 09/10 selon la charte éditoriale. L'ancien texte
+                    de la maquette promettait un jury, deux semaines et des
+                    gagnants « mis en avant sur l'accueil et rémunérés » : rien
+                    de cela n'existe dans le code. */}
+                {concoursDote ? (
+                  <>
+                    Le {concoursDote.phase === "EN_COURS" ? "concours en cours" : "prochain concours"} met{" "}
+                    {formatMoney(concoursDote.dotation ?? 0, concoursDote.devise as Currency)} en jeu.
+                    Inscris-toi depuis sa fiche.
+                  </>
+                ) : (
+                  <>
+                    Concours, ateliers, conférences, expositions. Trouve le
+                    prochain, inscris-toi depuis sa fiche.
+                  </>
+                )}
               </p>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
@@ -507,7 +539,8 @@ export default async function EvenementsPage({
 
 /**
  * Trois étapes VRAIES du module, à la place de celles de la maquette (qui
- * décrivaient un dépôt de propositions et un jury absents du code) :
+ * décrivaient un dépôt de propositions absent du code, et un jury dont la
+ * colonne existe sans qu'aucun écran ne la remplisse ni ne l'affiche) :
  * - la relecture : un événement naît BROUILLON et paraît après relecture
  *   (`Event.state`, `refusedReason`) ;
  * - l'inscription : depuis la fiche ; places parfois comptées (`capacity`) ;
