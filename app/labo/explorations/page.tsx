@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import "@/components/labo/explorations/explorations.css";
+import { PackEtale } from "@/components/anime/pack-etale";
 import { CarteInclinee } from "@/components/labo/explorations/carte-inclinee";
 import { Carrousel } from "@/components/labo/explorations/carrousel";
 import { CartesEtalees } from "@/components/labo/explorations/cartes-etalees";
@@ -128,6 +129,26 @@ export default function LaboExplorations() {
           note="Zéro JavaScript : une case à cocher et :has(). Sans :has(), les cartes restent étalées à plat."
         >
           <CartesEtalees />
+        </Bloc>
+
+        <Bloc
+          titre="Pack qu'on étale — version des vues"
+          source="components/anime/pack-etale.tsx"
+          usage="Les collections partagées d'une communauté (app/communautes/[slug]), dès deux vignettes. Ici avec 3 et 6 vignettes : la base de développement n'a aucune collection partagée qui en ait plus d'une (relevé le 09/10)."
+          note="N'importe quel nombre de cartes : chacune porte son rang (--i) et le total (--n), une seule formule les resserre."
+        >
+          <div className="flex w-full flex-col gap-6">
+            {[3, 6].map((n) => (
+              <PackEtale
+                key={n}
+                items={Array.from({ length: n }, (_, i) => ({
+                  id: `${n}-${i}`,
+                  titre: `Ressource ${i + 1}`,
+                  couverture: null,
+                }))}
+              />
+            ))}
+          </div>
         </Bloc>
 
         <Bloc

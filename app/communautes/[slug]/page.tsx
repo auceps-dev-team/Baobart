@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Route } from "next";
 
+import { PackEtale } from "@/components/anime/pack-etale";
 import { CorpsArticle } from "@/components/cms/corps";
 import { Adhesion } from "@/components/forum/adhesion";
 import {
@@ -203,8 +204,12 @@ export default async function CommunautePage({
                     ) : null}
                   </div>
 
-                  {/* La grille de vignettes de la maquette. */}
-                  {c.apercu.length > 0 ? (
+                  {/* Deux vignettes ou plus : un paquet qu'on étale (09/10,
+                      labo « explorations »). Une seule : la grille de la
+                      maquette — il n'y a rien à étaler. */}
+                  {c.apercu.length >= 2 ? (
+                    <PackEtale items={c.apercu} />
+                  ) : c.apercu.length > 0 ? (
                     <div
                       style={{
                         display: "grid",

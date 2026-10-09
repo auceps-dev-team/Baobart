@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 
+import { Inclinable } from "@/components/anime/inclinable";
+import { usePastille } from "@/components/anime/pastille";
+import { avecTransition } from "@/components/anime/transition-vue";
 import { ChoixEpingle } from "@/components/collections/choix-epingle";
 import { GrilleMasonry } from "@/components/feed/grille-masonry";
 import { CarteAlaUne, CarteMosaique, type StyleCarte } from "@/components/feed/resource-card";
@@ -87,10 +90,21 @@ export function Feed({
         `/api/feed?filtre=${encodeURIComponent(f)}`,
       );
       const page = await reponse.json();
-      setItems(page.items);
-      setCurseur(page.nextCursor);
+      // La mosaïque se recompose sous une transition de vue (09/10) : les
+      // cartes qui restent glissent à leur nouvelle place, les autres
+      // s'effacent. Sans l'API ou sous mouvement réduit, d'un coup.
+      avecTransition(() => {
+        setItems(page.items);
+        setCurseur(page.nextCursor);
+      });
     });
   }, []);
+
+  // La pastille noire glisse sous le filtre choisi (09/10, adapté d'Animata
+  // `tabs/fluid-tabs`). Avant sa première mesure, le bouton actif se marque
+  // lui-même.
+  const barreFiltres = useRef<HTMLDivElement>(null);
+  const pastille = usePastille(barreFiltres, "button", FILTRES.indexOf(filtre));
 
   const chargerPlus = useCallback(() => {
     if (!curseur) return;
@@ -201,7 +215,9 @@ export function Feed({
             <button
               key={cs}
               type="button"
-              onClick={() => setStyleCarte(cs)}
+              // Chaque carte change de forme et de hauteur, et la mosaïque se
+              // recompose : la transition de vue fait voyager chacune.
+              onClick={() => avecTransition(() => setStyleCarte(cs))}
               aria-pressed={styleCarte === cs}
               style={{
                 padding: "6px 13px",
@@ -231,13 +247,31 @@ export function Feed({
       </div>
 
       <div
+        ref={barreFiltres}
         style={{
+          position: "relative",
           display: "flex",
           flexWrap: "wrap",
           gap: 10,
           margin: "22px 0 26px",
         }}
       >
+        {pastille ? (
+          <span
+            aria-hidden
+            className="pastille-glisse"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: pastille.l,
+              height: pastille.h,
+              transform: `translate(${pastille.x}px, ${pastille.y}px)`,
+              borderRadius: 999,
+              background: ENCRE,
+            }}
+          />
+        ) : null}
         {FILTRES.map((f) => (
           <button
             key={f}
@@ -245,14 +279,17 @@ export function Feed({
             onClick={() => changerFiltre(f)}
             aria-pressed={filtre === f}
             style={{
+              position: "relative",
               padding: "9px 16px",
               border: `2.5px solid ${ENCRE}`,
               borderRadius: 999,
               fontSize: 13,
               fontWeight: 800,
               cursor: "pointer",
-              background: filtre === f ? ENCRE : BLANC,
+              // Une fois la pastille posée, c'est elle qui fait le fond noir.
+              background: filtre === f ? (pastille ? "transparent" : ENCRE) : BLANC,
               color: filtre === f ? BLANC : ENCRE,
+              transition: "color .2s ease",
             }}
           >
             {f}
@@ -269,9 +306,13 @@ export function Feed({
             marginBottom: 20,
           }}
         >
+          {/* Les cartes « à la une » s'inclinent vers la souris (09/10, labo
+              « explorations ») : elles se détachent du reste de la mosaïque. */}
           {alaUne.map((r) => (
             <Link key={r.id} href={`/products/${r.slug}`} scroll={false}>
-              <CarteAlaUne {...proprietesCarte(r)} />
+              <Inclinable>
+                <CarteAlaUne {...proprietesCarte(r)} />
+              </Inclinable>
             </Link>
           ))}
         </div>
@@ -296,7 +337,16 @@ export function Feed({
           c.nature === "pub" ? (
             <Banniere pub={c.pub} style={styleCarte} rang={c.rang} />
           ) : (
-            <Link href={`/products/${c.produit.slug}`} scroll={false} style={{ display: "block" }}>
+            // Un nom de transition par carte : c'est lui qui dit au navigateur
+            // que la carte d'avant et celle d'après sont la même. Les cartes
+            // « à la une » n'en portent pas — une même ressource peut y être
+            // aussi, et deux noms identiques annuleraient la transition.
+            <Link
+              href={`/products/${c.produit.slug}`}
+              scroll={false}
+              className="vt-carte"
+              style={{ display: "block", viewTransitionName: `carte-${c.produit.id}` }}
+            >
               <CarteMosaique {...proprietesCarte(c.produit)} />
             </Link>
           )

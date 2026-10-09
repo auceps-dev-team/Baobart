@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { Confettis } from "@/components/anime/confettis";
+import { Frise } from "@/components/anime/frise";
 import { BacASable } from "@/components/checkout/bac-a-sable";
 import { declencherRappel } from "@/lib/payments/encaissement/bac-a-sable";
 import { sessionCourante } from "@/lib/auth/session";
@@ -191,6 +193,22 @@ export default async function RetourPaiementPage({
   const vendeur = ligne.product.seller.profile?.displayName ?? "un créateur";
   const bac = piloteCourant().nom === "bac-a-sable";
 
+  // La frise de la commande (09/10, labo « explorations ») : où en est-on,
+  // dit en étapes. Pas sur un échec — la carte d'état le dit, et une frise
+  // arrêtée à mi-chemin ferait croire que la suite viendra.
+  const gratuite = ligne.state === "NOT_CHARGED";
+  const etapes = [
+    { titre: "Commande créée", detail: "Le prix est figé." },
+    ...(gratuite
+      ? []
+      : [
+          { titre: "Paiement chez l'opérateur", detail: "Il confirme, ou il refuse." },
+          { titre: "Paiement confirmé", detail: "Le rappel de l'opérateur est arrivé." },
+        ]),
+    { titre: "Dans ton espace", detail: "Prête à télécharger." },
+  ];
+  const etapeCourante = abouti ? etapes.length - 1 : 1;
+
   return (
     <main style={{ minHeight: "100vh", background: LAVANDE, padding: "48px 20px" }}>
       {/*
@@ -198,6 +216,11 @@ export default async function RetourPaiementPage({
         jamais changer d'avis pousse à recharger, puis à repayer.
       */}
       {enAttente ? <meta httpEquiv="refresh" content="8" /> : null}
+
+      {/* Une poignée de confettis quand l'achat aboutit, une seule fois par
+          commande (09/10, labo « explorations »). Ni en attente, ni sur un
+          refus. */}
+      {abouti ? <Confettis cle={`baobart:confettis:${commande.id}`} /> : null}
 
       <div
         style={{
@@ -268,6 +291,12 @@ export default async function RetourPaiementPage({
               </div>
             </div>
           </Carte>
+
+          {!echoue ? (
+            <Carte>
+              <Frise etapes={etapes} courante={etapeCourante} />
+            </Carte>
+          ) : null}
 
           {/*
             Le bandeau d'attente. Il ne décore pas : il dit explicitement de ne

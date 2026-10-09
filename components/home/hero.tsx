@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import { Compteur } from "@/components/anime/compteur";
 import { Parallaxe } from "@/components/anime/defilement";
+import { PileAvatars } from "@/components/anime/pile-avatars";
+import type { CreateurASuivre } from "@/lib/collections/espace";
 import { Vague } from "@/components/anime/vague";
 import {
   BLANC,
@@ -48,7 +50,15 @@ interface CarteHero {
   detail: string;
 }
 
-export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vitrine: Vitrine }) {
+export function HeroB({
+  chiffres,
+  vitrine,
+  visages = [],
+}: {
+  chiffres: ChiffresCommunaute;
+  vitrine: Vitrine;
+  visages?: CreateurASuivre[];
+}) {
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "34px 32px 0" }}>
       <div
@@ -193,6 +203,15 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
                 </div>
               </div>
             ))}
+            {/* Des visages derrière le compte : les créateurs les plus suivis,
+                chacun vers son profil (09/10, adapté d'Animata
+                `list/avatar-list`). Aucun inventé — la liste vient de la base,
+                et la pile disparaît si elle est vide. */}
+            {visages.length > 0 ? (
+              <div style={{ alignSelf: "center" }}>
+                <PileAvatars visages={visages} />
+              </div>
+            ) : null}
           </div>
         </div>
 

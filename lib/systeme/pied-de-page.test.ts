@@ -26,6 +26,12 @@ import { describe, expect, it } from "vitest";
  * pages de connexion (« Baobart Auth.dc.html » n'en a pas) et le tunnel
  * d'achat (« Baobart Parcours Achat.dc.html » non plus : rien ne doit
  * détourner de payer).
+ *
+ * Les labos (`app/labo/`) non plus : ce ne sont pas des pages publiques. Ils
+ * répondent 404 en production (`notFound()` sous NODE_ENV=production), ne
+ * sont liés de nulle part et sont exclus de l'indexation. Ajouté le 09/10 :
+ * ce test échouait depuis la création du premier labo (v1.80.2), qui n'avait
+ * pas été suivie d'un passage de la suite.
  */
 
 const RACINE = join(process.cwd(), "app");
@@ -35,6 +41,7 @@ const SANS_PIED = [
   /^@modal\//,
   /^(connexion|inscription|mot-de-passe-oublie|reinitialiser)\b/,
   /^(acheter|achat|abonnement)\//,
+  /^labo\//,
 ];
 
 function pages(dossier: string): string[] {

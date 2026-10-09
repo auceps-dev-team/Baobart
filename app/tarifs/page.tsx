@@ -120,9 +120,22 @@ export default async function TarifsPage() {
           <div style={{ border: CADRE, borderRadius: 26, background: BLANC, boxShadow: `6px 6px 0 ${ENCRE}`, padding: 24, marginTop: 24 }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: "-1px", margin: "0 0 16px", textTransform: "uppercase" }}>FAQ</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Les réponses se déplient en hauteur au lieu d'apparaître
+                  (09/10, labo « explorations » : `interpolate-size` sur le
+                  `<details>` natif). Sans prise en charge, elles s'ouvrent d'un
+                  coup, comme avant. Le marqueur natif laisse place à un « + »
+                  qui tourne en « × ». */}
               {faq.map((f) => (
-                <details key={f.q} data-faq style={{ border: CADRE, borderRadius: 16, background: BLANC, padding: "14px 16px" }}>
-                  <summary style={{ fontSize: 14.5, fontWeight: 800, cursor: "pointer" }}>{f.q}</summary>
+                <details key={f.q} data-faq className="details-anime" style={{ border: CADRE, borderRadius: 16, background: BLANC, padding: "14px 16px" }}>
+                  <summary
+                    className="[&::-webkit-details-marker]:hidden"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, listStyle: "none", fontSize: 14.5, fontWeight: 800, cursor: "pointer" }}
+                  >
+                    {f.q}
+                    <span aria-hidden className="details-signe" style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1 }}>
+                      +
+                    </span>
+                  </summary>
                   <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, marginTop: 10, opacity: 0.82 }}>{f.a}</div>
                 </details>
               ))}

@@ -6,6 +6,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { usePlaceholderTape } from "@/components/anime/placeholder-tape";
 import { deconnecter } from "@/lib/auth/actions";
 
 import {
@@ -109,6 +110,15 @@ export function Header({
 }) {
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
+  // L'indication du champ tape ses exemples, une fois, puis revient à
+  // elle-même (09/10, adapté d'Animata `text/typing-text`). Les quatre
+  // familles nommées existent dans la barre de filtres.
+  const indication = usePlaceholderTape({
+    base: "Cherche un mockup, une illu, une font…",
+    prefixe: "Cherche",
+    exemples: ["un mockup…", "une illu…", "une font…", "une photo…"],
+    pause: focus || q !== "",
+  });
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   // Ce que le panneau a à dire. Il ne s'ouvrait que s'il y avait des
   // résultats : zéro résultat, recherche en cours et recherche en panne se
@@ -296,7 +306,7 @@ export function Header({
             }}
             onFocus={() => setFocus(true)}
             onBlur={() => setTimeout(() => setFocus(false), 150)}
-            placeholder="Cherche un mockup, une illu, une font…"
+            placeholder={indication}
             aria-label="Rechercher une ressource"
             style={{
               width: "100%",

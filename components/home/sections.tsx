@@ -12,6 +12,7 @@ import {
 } from "@/components/shell/nav-data";
 import { CarteRetournee } from "@/components/anime/carte-retournee";
 import { Defile } from "@/components/anime/defile";
+import { MotQuiTourne } from "@/components/anime/mot-qui-tourne";
 import { BoutonInviter, BoutonSuivre } from "@/components/home/espace-gestes";
 import { CarteTemoignage } from "@/components/temoignages/carte";
 import type { CreateurASuivre, Espace } from "@/lib/collections/espace";
@@ -714,7 +715,15 @@ export function AppelAuxCreatifs({ partCreateur, connecte }: { partCreateur: str
               textTransform: "uppercase",
             }}
           >
-            Publie tes ressources. Fais-toi payer
+            {/* Le nom tourne entre quatre familles du catalogue, puis revient
+                à « ressources » (09/10, adapté d'Animata `text/cycle-text`).
+                Le titre lu reste la phrase d'origine. */}
+            Publie tes{" "}
+            <MotQuiTourne
+              mots={["ressources", "illustrations", "polices", "mockups", "photos"]}
+              style={{ color: JAUNE }}
+            />
+            . Fais-toi payer
             <span style={{ color: JAUNE }}>.</span>
           </h2>
           <p

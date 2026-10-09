@@ -44,7 +44,7 @@ export const dynamic = "force-dynamic";
 export default async function AccueilPage() {
   const utilisateur = await sessionCourante();
   const colonnes = colonnesDepuisAgent((await headers()).get("user-agent"));
-  const [page, alaUne, familles, createurs, chiffres, pubs, rayons, articles, vitrine, temoignages] = await Promise.all([
+  const [page, alaUne, familles, createurs, chiffres, pubs, rayons, articles, vitrine, temoignages, visages] = await Promise.all([
     listerFeed(),
     listerAlaUne(),
     compterParFamille(),
@@ -55,6 +55,9 @@ export default async function AccueilPage() {
     listerPublics({ limite: 3 }),
     vitrineDuHero(),
     temoignagesPublies(4),
+    // Les visages du hero : les cinq créateurs les plus suivis, pour tout le
+    // monde — sans visiteur, la requête n'exclut personne.
+    createursASuivre(null, 5),
   ]);
   const [espace, mesCollectionsAccueil] = utilisateur
     ? await Promise.all([espaceDuVisiteur(utilisateur.id), mesCollections(utilisateur.id, 3)])
@@ -75,7 +78,7 @@ export default async function AccueilPage() {
   return (
     <>
       <Header utilisateur={utilisateur} />
-      <HomeShell chiffres={chiffres} vitrine={vitrine}>
+      <HomeShell chiffres={chiffres} vitrine={vitrine} visages={visages}>
         <RubanBaseline />
         {/* Les sections se posent en entrant à l'écran (08/10). Pas le feed :
             il s'allonge sans fin, et ses cartes ont déjà leur `popin`. */}
