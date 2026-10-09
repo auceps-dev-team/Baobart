@@ -1,7 +1,8 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { ancienneCleDApercu, cleDApercu, produireApercu } from "@/lib/upload/apercu";
+import { produireApercu } from "@/lib/upload/apercu";
+import { anciennesClesDApercu, cleDApercu, toutesLesClesDApercu } from "@/lib/upload/vignette";
 import {
   natureApercu,
   verifierApercu,
@@ -96,9 +97,9 @@ export async function retirerFichierDe(input: {
     if (encoreUtilise === 0) {
       await db.mediaAsset.delete({ where: { id: fichier.media.id } });
       await supprimerObjet(fichier.media.s3Key);
-      await supprimerObjet(cleDApercu(fichier.media.id));
-      // Un aperçu d'avant le filigrane, s'il n'a pas encore été régénéré.
-      await supprimerObjet(ancienneCleDApercu(fichier.media.id));
+      // L'aperçu, sa vignette, et ceux des recettes précédentes s'ils n'ont
+      // pas encore été régénérés : plus rien ne doit répondre à leur adresse.
+      for (const cle of toutesLesClesDApercu(fichier.media.id)) await supprimerObjet(cle);
     }
   }
 
@@ -131,10 +132,11 @@ async function rendreLaVitrineCoherente(input: {
     });
   }
 
-  // Les deux adresses : celle du filigrane, et celle d'avant, tant que
-  // `scripts/regenerer-apercus.ts` n'est pas passé sur ce produit.
-  const apercusRetires = [cleDApercu, ancienneCleDApercu].map((cle) =>
-    urlPublique(cle(input.mediaRetire.id)),
+  // Toutes les adresses qu'a pu avoir son aperçu : la courante, et celles des
+  // recettes précédentes tant que `scripts/regenerer-apercus.ts` n'est pas
+  // passé sur ce produit.
+  const apercusRetires = [cleDApercu(input.mediaRetire.id), ...anciennesClesDApercu(input.mediaRetire.id)].map(
+    urlPublique,
   );
   if (!input.coverUrl || !apercusRetires.includes(input.coverUrl)) return;
 

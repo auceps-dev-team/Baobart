@@ -7,10 +7,10 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
 import {
-  ancienneCleDApercu,
-  cleDApercu,
   LARGEUR_APERCU,
+  LARGEUR_VIGNETTE,
   QUALITE_APERCU,
+  QUALITE_VIGNETTE,
 } from "@/lib/upload/apercu";
 import {
   filigraner,
@@ -158,14 +158,8 @@ describe("la tuile du motif", () => {
 });
 
 describe("l'aperçu public", () => {
-  it("suit la spec : 800 px, qualité 60", () => {
-    expect(LARGEUR_APERCU).toBe(800);
-    expect(QUALITE_APERCU).toBe(60);
-  });
-
-  it("change de clé avec sa recette, pour échapper au cache « immutable »", () => {
-    expect(cleDApercu("m1")).toBe("public/apercus/m1-v2.webp");
-    expect(ancienneCleDApercu("m1")).toBe("public/apercus/m1.webp");
-    expect(cleDApercu("m1")).not.toBe(ancienneCleDApercu("m1"));
+  it("suit la spec : 800 px q60 pour la fiche, 400 px q65 pour le fil", () => {
+    expect([LARGEUR_APERCU, QUALITE_APERCU]).toEqual([800, 60]);
+    expect([LARGEUR_VIGNETTE, QUALITE_VIGNETTE]).toEqual([400, 65]);
   });
 });

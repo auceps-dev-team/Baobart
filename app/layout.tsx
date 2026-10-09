@@ -76,6 +76,13 @@ export const metadata: Metadata = {
   icons: {
     apple: "/icones/apple-touch-icon.png",
   },
+  // `noai, noimageai` : la réserve d'entraînement d'IA sur chaque page.
+  // Directives de fait (nées chez DeviantArt), hors du standard robots :
+  // respectées par qui veut bien, comme `robots.txt` (`lib/seo/plan.ts`).
+  // Une balise à part, et non `robots:` de Next — celui-ci n'accepte que les
+  // directives qu'il connaît, et les pages qui posent `robots: { index: false }`
+  // gardent la leur.
+  other: { robots: "noai, noimageai" },
 };
 
 /**

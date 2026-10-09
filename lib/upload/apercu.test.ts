@@ -18,7 +18,7 @@ vi.mock("@/lib/upload/storage", () => ({
   urlPublique: (cle: string) => `https://cdn.baobart.test/${cle}`,
 }));
 
-import { cleDApercu, produireApercu } from "@/lib/upload/apercu";
+import { cleDApercu, cleDeVignette, produireApercu, xmpDe } from "@/lib/upload/apercu";
 
 /** Une photo factice : un dégradé, pour que la compression ait du travail. */
 async function photo(largeur: number, hauteur: number): Promise<Buffer> {
@@ -58,13 +58,28 @@ describe("l'aperçu public", () => {
       largeur: 2000,
       hauteur: 1500,
     });
-    expect(deposes).toHaveLength(1);
-    expect(deposes[0]!.contentType).toBe("image/webp");
-    expect(await sharp(deposes[0]!.corps).metadata()).toMatchObject({
-      format: "webp",
-      width: 800,
-      height: 600,
-    });
+    // La vignette d'abord, l'aperçu ensuite : la base ne garde que l'adresse
+    // de l'aperçu, et la vignette s'en déduit.
+    expect(deposes.map((d) => d.cle)).toEqual([cleDeVignette("m1"), cleDApercu("m1")]);
+    expect(deposes.every((d) => d.contentType === "image/webp")).toBe(true);
+    expect(await sharp(deposes[1]!.corps).metadata()).toMatchObject({ format: "webp", width: 800, height: 600 });
+    expect(await sharp(deposes[0]!.corps).metadata()).toMatchObject({ format: "webp", width: 400, height: 300 });
+  });
+
+  it("signe chaque taille en XMP : auteur, et refus de la fouille pour l'IA", async () => {
+    source = await photo(1200, 900);
+    await produireApercu({ mediaId: "m4", cleSource: "k", nomFichier: "x.png", taille: source.length, pseudo: "awa" });
+
+    for (const depose of deposes) {
+      const xmp = (await sharp(depose.corps).metadata()).xmp?.toString("utf8") ?? "";
+      expect(xmp).toContain('plus:DataMining="http://ns.useplus.org/ldf/vocab/DMI-PROHIBITED-EXCEPTSEARCHENGINEINDEXING"');
+      expect(xmp).toContain("<rdf:li>@awa</rdf:li>");
+    }
+  });
+
+  it("échappe le pseudo dans le XMP", () => {
+    expect(xmpDe('a<b&"c')).toContain("@a&lt;b&amp;&quot;c");
+    expect(xmpDe(null)).toContain("<rdf:li>Baobart</rdf:li>");
   });
 
   it("porte le filigrane : l'aperçu diffère d'une simple réduction", async () => {
@@ -75,8 +90,9 @@ describe("l'aperçu public", () => {
     // Une première version comparait à 800 px quoi qu'il arrive : l'ancien
     // aperçu (1 400 px, sans marque) la passait — les pixels décalés
     // suffisaient à faire des « écarts » (contre-épreuve du 09/10).
-    const { width, height } = await sharp(deposes[0]!.corps).metadata();
-    const marque = await sharp(deposes[0]!.corps).removeAlpha().raw().toBuffer();
+    const apercu = deposes.find((d) => d.cle === cleDApercu("m2"))!.corps;
+    const { width, height } = await sharp(apercu).metadata();
+    const marque = await sharp(apercu).removeAlpha().raw().toBuffer();
     const nu = await sharp(source).resize({ width, height }).webp({ quality: 60 }).toBuffer()
       .then((b) => sharp(b).removeAlpha().raw().toBuffer());
     expect(nu.length).toBe(marque.length);
@@ -91,6 +107,7 @@ describe("l'aperçu public", () => {
   it("ne grossit pas une petite image", async () => {
     source = await photo(500, 300);
     await produireApercu({ mediaId: "m3", cleSource: "k", nomFichier: "x.png", taille: source.length, pseudo: null });
-    expect(await sharp(deposes[0]!.corps).metadata()).toMatchObject({ width: 500, height: 300 });
+    const apercu = deposes.find((d) => d.cle === cleDApercu("m3"))!.corps;
+    expect(await sharp(apercu).metadata()).toMatchObject({ width: 500, height: 300 });
   });
 });

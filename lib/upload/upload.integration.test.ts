@@ -7,7 +7,7 @@ import {
   confirmerFichierDe,
   retirerFichierDe,
 } from "@/lib/upload/service";
-import { ancienneCleDApercu, cleDApercu } from "@/lib/upload/apercu";
+import { anciennesClesDApercu, cleDApercu } from "@/lib/upload/vignette";
 import { urlPublique } from "@/lib/upload/storage";
 
 /**
@@ -184,8 +184,9 @@ describe("retrait d'un fichier", () => {
   });
 
   it.each([
-    ["filigranée", cleDApercu],
-    ["d'avant le filigrane, pas encore régénérée", ancienneCleDApercu],
+    ["de la recette courante", cleDApercu],
+    ["d'avant le filigrane, pas encore régénérée", (id: string) => anciennesClesDApercu(id)[0]!],
+    ["de v1.86.0, pas encore régénérée", (id: string) => anciennesClesDApercu(id)[1]!],
   ])("efface la couverture %s quand son fichier part", async (_cas, cle) => {
     const { produitId, fichierId, mediaId } = await ressourceAvecFichier();
 

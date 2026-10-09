@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { assemblerPlan, CHEMINS_EXCLUS, PAGES_PUBLIQUES } from "@/lib/seo/plan";
+import {
+  assemblerPlan,
+  CHEMINS_EXCLUS,
+  consignesAuxRobots,
+  PAGES_PUBLIQUES,
+  ROBOTS_D_ENTRAINEMENT,
+} from "@/lib/seo/plan";
 
 const VIDE = { ressources: [], articles: [], createurs: [] };
 
@@ -41,6 +47,33 @@ describe("le plan du site", () => {
         const prefixe = exclu.split("*")[0]!;
         expect(page === prefixe || page.startsWith(prefixe)).toBe(false);
       }
+    }
+  });
+});
+
+describe("les consignes aux robots d'IA", () => {
+  const regles = () => {
+    const r = consignesAuxRobots().rules;
+    return Array.isArray(r) ? r : [r];
+  };
+
+  it("refusent tout le site aux robots d'entraînement", () => {
+    const ia = regles().find((r) => Array.isArray(r.userAgent) && r.userAgent.includes("GPTBot"));
+    expect(ia?.disallow).toBe("/");
+    expect(ia?.userAgent).toEqual([...ROBOTS_D_ENTRAINEMENT]);
+  });
+
+  it("laissent la règle générale intacte : les moteurs de recherche indexent toujours", () => {
+    const tous = regles().find((r) => r.userAgent === "*");
+    expect(tous).toMatchObject({ allow: "/" });
+    expect(tous?.disallow).not.toBe("/");
+  });
+
+  it("ne nomment pas les robots de recherche des assistants", () => {
+    // Choix documenté dans `plan.ts` : les bloquer retirerait Baobart des
+    // réponses, sans rien protéger de plus que l'aperçu filigrané.
+    for (const nom of ["OAI-SearchBot", "Claude-SearchBot", "Googlebot", "Bingbot"]) {
+      expect(ROBOTS_D_ENTRAINEMENT as readonly string[]).not.toContain(nom);
     }
   });
 });

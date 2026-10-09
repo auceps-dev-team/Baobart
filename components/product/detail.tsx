@@ -21,6 +21,7 @@ import type {
   FicheProduit,
 } from "@/lib/products/queries";
 import type { CommentaireRendu } from "@/lib/social/queries";
+import { vignetteDe } from "@/lib/upload/vignette";
 
 /**
  * Contenu de la fiche ressource, traduit du bloc « DÉTAIL RESSOURCE » de
@@ -480,7 +481,7 @@ export function DetailProduit({
                   border: CADRE,
                   borderRadius: 13,
                   background: a.coverUrl
-                    ? `center / cover no-repeat url(${a.coverUrl})`
+                    ? `center / cover no-repeat url(${vignetteDe(a.coverUrl)})`
                     : trameDe(a.slug),
                 }}
               />

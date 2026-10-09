@@ -4,6 +4,7 @@ import type { Route } from "next";
 import type { CarteRessource } from "@/lib/feed/types";
 import { formatCount } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE } from "@/lib/systeme/charte";
+import { vignetteDe } from "@/lib/upload/vignette";
 
 /**
  * Une ressource, sur la vitrine de son créateur.
@@ -42,7 +43,7 @@ export function CarteRessourceLien({ ressource }: { ressource: CarteRessource })
           aspectRatio: "4 / 3",
           borderBottom: CADRE,
           background: ressource.coverUrl
-            ? `center / cover no-repeat url(${ressource.coverUrl})`
+            ? `center / cover no-repeat url(${vignetteDe(ressource.coverUrl)})`
             : "repeating-linear-gradient(135deg,#EADFF9 0 9px,#FFFFFF 9px 18px)",
         }}
       />
