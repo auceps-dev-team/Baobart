@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.84.1",
+  "version": "1.88.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -27,6 +27,7 @@
     "admin:promouvoir": "node scripts/promouvoir-admin.mjs",
     "push:cles": "node scripts/cles-push.mjs",
     "versements": "tsx --conditions=react-server --env-file=.env scripts/versements-du-cycle.ts",
+    "apercus:regenerer": "tsx --conditions=react-server --env-file=.env scripts/regenerer-apercus.ts",
     "comptes:test": "tsx --conditions=react-server --env-file=.env scripts/comptes-de-test.ts",
     "db:e2e:setup": "node scripts/setup-test-db.mjs e2e",
     "test:e2e": "playwright test",
@@ -47,8 +48,13 @@
     "overrides": {
       "postcss": "8.5.26",
       "nanoid": "3.3.18",
-      "sharp": "0.35.3",
+      "sharp": "0.35.5",
       "deepmerge-ts": "8.0.2"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
     }
   },
   "dependencies": {
@@ -59,17 +65,17 @@
     "@simplewebauthn/server": "^14.0.2",
     "ioredis": "^6.0.0",
     "motion": "^12.43.0",
-    "next": "^15.1.6",
-    "nodemailer": "^9.0.5",
+    "next": "^15.5.27",
+    "nodemailer": "^10.0.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "web-push": "^3.6.7",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
-    "@next/eslint-plugin-next": "^15.5.22",
+    "@next/eslint-plugin-next": "^15.5.27",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.12.0",
@@ -80,7 +86,7 @@
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^9.19.0",
-    "eslint-config-next": "^15.1.6",
+    "eslint-config-next": "^15.5.27",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
@@ -90,6 +96,6 @@
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.4"
+    "vitest": "^4.1.11"
   }
 }

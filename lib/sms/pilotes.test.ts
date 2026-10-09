@@ -19,6 +19,13 @@ beforeEach(() => {
   delete process.env.TWILIO_AUTH_TOKEN;
   delete process.env.TWILIO_FROM;
   delete process.env.TWILIO_MESSAGING_SERVICE_SID;
+  delete process.env.TEXTBEE_API_KEY;
+  delete process.env.TEXTBEE_DEVICE_ID;
+  delete process.env.TEXTBEE_BASE_URL;
+  delete process.env.SMSGATE_URL;
+  delete process.env.SMSGATE_USERNAME;
+  delete process.env.SMSGATE_PASSWORD;
+  delete process.env.SMSGATE_DEVICE_ID;
 });
 
 afterEach(() => {
@@ -246,5 +253,251 @@ describe("le pilote Twilio", () => {
     });
     expect(verdict.ok).toBe(false);
     expect(verdict.motif).toBe("injoignable");
+  });
+});
+
+describe("textbee — un téléphone Android comme passerelle", () => {
+  const CLE = "cle-textbee-de-test-assez-longue";
+
+  function textbee() {
+    process.env.SMS_DRIVER = "textbee";
+    process.env.TEXTBEE_API_KEY = CLE;
+  }
+
+  it("n'est choisi qu'avec une clé qui ressemble à une clé", () => {
+    process.env.SMS_DRIVER = "textbee";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.TEXTBEE_API_KEY = "à-remplir";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.TEXTBEE_API_KEY = CLE;
+    expect(piloteSms().nom).toBe("textbee");
+  });
+
+  it("refuse d'envoyer la clé en clair vers une instance distante", () => {
+    textbee();
+    process.env.TEXTBEE_BASE_URL = "http://textbee.exemple.com";
+    expect(piloteSms().nom).toBe("aucun");
+
+    // Une instance auto-hébergée sur la machine même, elle, peut parler HTTP.
+    process.env.TEXTBEE_BASE_URL = "http://localhost:3005";
+    expect(piloteSms().nom).toBe("textbee");
+  });
+
+  it("appelle la route d'envoi avec la clé, le numéro E.164 et l'appareil", async () => {
+    textbee();
+    process.env.TEXTBEE_DEVICE_ID = "appareil-42";
+    let appel: { url: string; init: RequestInit } | null = null;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      appel = { url, init };
+      return new Response(
+        JSON.stringify({ data: { success: true, smsBatchId: "lot-1" } }),
+        { status: 200 },
+      );
+    });
+
+    const verdict = await envoyerSms({
+      numero: "07 00 00 00 00",
+      pays: "CI",
+      texte: "Baobart : ton code est 123456.",
+    });
+
+    expect(verdict).toMatchObject({ ok: true, reference: "lot-1" });
+    expect(appel!.url).toBe("https://api.textbee.dev/api/v1/gateway/send-sms");
+    expect(new Headers(appel!.init.headers).get("x-api-key")).toBe(CLE);
+    expect(JSON.parse(String(appel!.init.body))).toEqual({
+      recipients: ["+2250700000000"],
+      message: "Baobart : ton code est 123456.",
+      deviceId: "appareil-42",
+    });
+  });
+
+  it("vise l'instance auto-hébergée quand on la nomme", async () => {
+    textbee();
+    process.env.TEXTBEE_BASE_URL = "https://sms.baobart.test/";
+    let url = "";
+    vi.stubGlobal("fetch", async (u: string) => {
+      url = u;
+      return new Response(JSON.stringify({ data: { smsBatchId: "x" } }), { status: 200 });
+    });
+
+    await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(url).toBe("https://sms.baobart.test/api/v1/gateway/send-sms");
+  });
+
+  it.each([
+    [400, "aucun appareil textbee disponible"],
+    [401, "clé textbee refusée"],
+    [429, "quota textbee épuisé"],
+  ])("traduit un refus %i en motif lisible", async (statut, motif) => {
+    textbee();
+    vi.stubGlobal(
+      "fetch",
+      async () => new Response(JSON.stringify({ message: "refus" }), { status: statut }),
+    );
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif });
+  });
+
+  it("ne compte pas comme envoyé un lot que textbee dit refusé", async () => {
+    // Le cas qui passerait inaperçu : un 200 dont le corps dit « non ».
+    textbee();
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(JSON.stringify({ data: { success: false, message: "device offline" } }), {
+          status: 200,
+        }),
+    );
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict.ok).toBe(false);
+  });
+
+  it("ne laisse pas une passerelle injoignable remonter", async () => {
+    textbee();
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ECONNREFUSED");
+    });
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif: "injoignable" });
+  });
+});
+
+describe("smsgate — SMS Gateway for Android, sans service tiers", () => {
+  // Le mot de passe que l'application tire au premier lancement fait huit
+  // caractères (`LocalServerSettings.kt`) ; l'utilisateur par défaut est « sms ».
+  function smsgate(url?: string) {
+    process.env.SMS_DRIVER = "smsgate";
+    process.env.SMSGATE_USERNAME = "sms";
+    process.env.SMSGATE_PASSWORD = "Ab3dE6gH";
+    if (url) process.env.SMSGATE_URL = url;
+  }
+
+  /** Ce que le téléphone rend à la soumission : 202, message en file. */
+  const accepte = (etat = "Pending", erreur: string | null = null) =>
+    new Response(
+      JSON.stringify({
+        id: "msg-1",
+        state: etat,
+        recipients: [{ phoneNumber: "+2250700000000", state: etat, error: erreur }],
+      }),
+      { status: 202 },
+    );
+
+  it("n'est choisi qu'avec un utilisateur et un mot de passe plausibles", () => {
+    process.env.SMS_DRIVER = "smsgate";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.SMSGATE_USERNAME = "sms";
+    process.env.SMSGATE_PASSWORD = "court";
+    expect(piloteSms().nom).toBe("aucun");
+
+    process.env.SMSGATE_PASSWORD = "Ab3dE6gH";
+    expect(piloteSms().nom).toBe("smsgate");
+  });
+
+  it.each([
+    ["http://192.168.1.20:8080", true],
+    ["http://10.0.0.5:8080", true],
+    ["http://172.20.0.3:8080", true],
+    ["http://localhost:8080", true],
+    ["https://sms.baobart.test/3rdparty/v1", true],
+    // En clair hors du réseau local, les identifiants Basic traverseraient
+    // Internet lisibles par tous.
+    ["http://sms.exemple.com:8080", false],
+    ["http://172.32.0.1:8080", false],
+    ["http://8.8.8.8:8080", false],
+    ["http://192.168.1.300:8080", false],
+    // Des identifiants dans l'adresse finiraient dans les journaux.
+    ["https://sms:secret@sms.baobart.test", false],
+    ["ftp://192.168.1.20", false],
+  ])("adresse %s → configuré : %s", (url, attendu) => {
+    smsgate(url);
+    expect(piloteSms().nom).toBe(attendu ? "smsgate" : "aucun");
+  });
+
+  it("appelle le serveur du téléphone en Basic, avec le texte, le numéro et la validité", async () => {
+    smsgate("http://192.168.1.20:8080/");
+    process.env.SMSGATE_DEVICE_ID = "tel-42";
+    let appel: { url: string; init: RequestInit } | null = null;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      appel = { url, init };
+      return accepte();
+    });
+
+    const verdict = await envoyerSms({
+      numero: "07 00 00 00 00",
+      pays: "CI",
+      texte: "Baobart : ton code est 123456.",
+      validiteS: 600,
+    });
+
+    expect(verdict).toMatchObject({ ok: true, reference: "msg-1" });
+    expect(appel!.url).toBe("http://192.168.1.20:8080/message");
+    expect(new Headers(appel!.init.headers).get("authorization")).toBe(
+      `Basic ${Buffer.from("sms:Ab3dE6gH").toString("base64")}`,
+    );
+    expect(JSON.parse(String(appel!.init.body))).toEqual({
+      textMessage: { text: "Baobart : ton code est 123456." },
+      phoneNumbers: ["+2250700000000"],
+      ttl: 600,
+      deviceId: "tel-42",
+    });
+  });
+
+  it("vise le relais en nuage par défaut, sans validité quand on n'en donne pas", async () => {
+    smsgate();
+    let appel: { url: string; init: RequestInit } | null = null;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      appel = { url, init };
+      return accepte();
+    });
+
+    await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(appel!.url).toBe("https://api.sms-gate.app/3rdparty/v1/message");
+    expect(JSON.parse(String(appel!.init.body))).not.toHaveProperty("ttl");
+  });
+
+  it("ne compte pas comme envoyé un 202 dont l'état dit déjà « Failed »", async () => {
+    // Le succès silencieux qu'on cherche : la réponse est un 202, le corps dit non.
+    smsgate("http://192.168.1.20:8080");
+    vi.stubGlobal("fetch", async () => accepte("Failed", "RESULT_ERROR_NO_SERVICE"));
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif: "RESULT_ERROR_NO_SERVICE" });
+  });
+
+  it("traduit des identifiants refusés", async () => {
+    smsgate("http://192.168.1.20:8080");
+    // Ktor rend un 401 sans corps.
+    vi.stubGlobal("fetch", async () => new Response(null, { status: 401 }));
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif: "identifiants SMS Gateway refusés" });
+  });
+
+  it("rend le motif d'une requête refusée", async () => {
+    smsgate("http://192.168.1.20:8080");
+    vi.stubGlobal(
+      "fetch",
+      async () => new Response(JSON.stringify({ message: "Invalid device ID" }), { status: 400 }),
+    );
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif: "Invalid device ID" });
+  });
+
+  it("ne laisse pas un téléphone injoignable remonter", async () => {
+    smsgate("http://192.168.1.20:8080");
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("ECONNREFUSED");
+    });
+
+    const verdict = await envoyerSms({ numero: "+2250700000000", pays: "CI", texte: "x" });
+    expect(verdict).toMatchObject({ ok: false, motif: "injoignable" });
   });
 });

@@ -7,7 +7,7 @@ import { pilotePush } from "@/lib/push/pilotes";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { listerFournisseurs } from "@/lib/auth/providers";
+import { etatDesFournisseurs } from "@/lib/auth/providers";
 import { simulationOuverte } from "@/lib/checkout/achat";
 import { etatDes } from "@/lib/config/fonctionnalites";
 import { db } from "@/lib/db";
@@ -17,6 +17,7 @@ import {
   constatBase,
   constatAntiBot,
   constatLimitation,
+  constatPlafondPub,
   constatPush,
   constatSms,
   constatConnexion,
@@ -29,6 +30,7 @@ import {
 } from "@/lib/systeme/diagnostic";
 import { stockageConfigure } from "@/lib/upload/storage";
 import { etatAntiBot } from "@/lib/securite/antibot";
+import { secretDuPlafond } from "@/lib/publicites/plafond";
 
 /**
  * Collecte les faits que `diagnostic.ts` interprète.
@@ -124,6 +126,8 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       ? duDepot.filter((m) => !etatMigrations.appliquees.has(m)).length
       : 0;
 
+  const fournisseurs = etatDesFournisseurs();
+
   const constats: Constat[] = [
     constatBase({ joignable, enAttente }),
     constatStockage({
@@ -132,8 +136,11 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       production,
     }),
     constatConnexion({
-      actifs: listerFournisseurs()
-        .filter((f) => f.actif)
+      actifs: fournisseurs
+        .filter((f) => f.configure && f.branche)
+        .map((f) => f.label),
+      configuresNonBranches: fournisseurs
+        .filter((f) => f.configure && !f.branche)
         .map((f) => f.label),
       // Le mot de passe est toujours une voie d'entrée : `lib/auth/actions.ts`
       // l'implémente sans condition d'environnement.
@@ -142,6 +149,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
     constatAdressePublique({ origine: urlDuSite(), production }),
     constatLimitation({ pilote: piloteLimite().nom, production }),
     constatAntiBot({ tiers: etatAntiBot().tiers, production }),
+    constatPlafondPub({ secret: secretDuPlafond() !== null, production }),
     constatSms({ pilote: piloteSms().nom, production }),
     constatPush({ pilote: pilotePush(), appareils: appareilsPush, production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),

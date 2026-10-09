@@ -7,6 +7,8 @@ import {
   confirmerFichierDe,
   retirerFichierDe,
 } from "@/lib/upload/service";
+import { anciennesClesDApercu, cleDApercu } from "@/lib/upload/vignette";
+import { urlPublique } from "@/lib/upload/storage";
 
 /**
  * Le retrait d'un fichier, confronté à la base.
@@ -181,7 +183,11 @@ describe("retrait d'un fichier", () => {
     expect(await retirerFichierDe({ userId: vendeur, produitId, fichierId })).toMatchObject({ ok: false });
   });
 
-  it("efface la couverture quand son fichier part, et reprend la suivante", async () => {
+  it.each([
+    ["de la recette courante", cleDApercu],
+    ["d'avant le filigrane, pas encore régénérée", (id: string) => anciennesClesDApercu(id)[0]!],
+    ["de v1.86.0, pas encore régénérée", (id: string) => anciennesClesDApercu(id)[1]!],
+  ])("efface la couverture %s quand son fichier part", async (_cas, cle) => {
     const { produitId, fichierId, mediaId } = await ressourceAvecFichier();
 
     // Le média porte des dimensions : c'est ce qui en fait une couverture
@@ -190,10 +196,14 @@ describe("retrait d'un fichier", () => {
       where: { id: mediaId },
       data: { width: 1200, height: 800 },
     });
+    // L'adresse est fabriquée par `urlPublique`, comme le fait le code. Écrite
+    // en dur (`http://localhost:9000/baobart-media/…`), elle ne correspondait
+    // qu'à un poste dont le `.env` produit exactement celle-là : ce test était
+    // rouge en CI depuis le 24/09 au moins (mesuré le 08/10).
     await db.product.update({
       where: { id: produitId },
       data: {
-        coverUrl: `http://localhost:9000/baobart-media/public/apercus/${mediaId}.webp`,
+        coverUrl: urlPublique(cle(mediaId)),
         coverImageId: mediaId,
       },
     });

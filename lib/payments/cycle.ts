@@ -28,8 +28,11 @@ import { preparerVersement } from "@/lib/payments/versements";
  * CE QUE CE MODULE NE FAIT PAS
  *
  * Il n'envoie pas l'argent. Il prépare des versements en état CREATING, avec
- * leurs soldes réservés ; c'est l'appel à l'opérateur — Wave, Orange Money, un
- * virement — qui les fera passer en PROCESSING, et il n'existe pas encore.
+ * leurs soldes réservés ; c'est `envoyerLesVersements` (`lib/payments/envoi.ts`)
+ * qui ordonne le virement chez l'opérateur et les fait passer en PROCESSING —
+ * le même passage de cron enchaîne les deux. Écrit et testé, cet envoi n'a
+ * encore jamais été exercé contre le vrai service (MATRICE, « appel opérateur
+ * réel »).
  * Préparer sans envoyer est sans danger : un versement CREATING s'annule, et
  * ses soldes redeviennent versables.
  *

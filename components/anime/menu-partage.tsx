@@ -22,10 +22,13 @@ import { type CSSProperties, useEffect, useState } from "react";
  * Sans l'API Popover, le menu n'est pas masqué : il s'affiche sous le bouton,
  * toujours utilisable.
  *
- * Ce que ça ne règle pas : l'aperçu que montrera le service. Lu le 09/10 :
- * `generateMetadata` de `app/products/[slug]/page.tsx` ne pose ni
- * `openGraph` ni image, et aucun `opengraph-image` n'existe sous
- * `app/products/`. WhatsApp ou Facebook afficheront donc ce qu'ils trouvent.
+ * Ce que ça ne règle pas : l'aperçu que montrera le service. Lu le 09/10,
+ * après la fusion de v1.87.0 : `generateMetadata` de
+ * `app/products/[slug]/page.tsx` pose le titre et la description de la
+ * fiche, sans image propre ; la seule image d'aperçu est celle du site
+ * (`app/opengraph-image.tsx`, voir le commentaire de `app/layout.tsx`). Un
+ * lien de fiche montrera donc au mieux l'image du site, pas la couverture de
+ * la ressource — lu dans le code, non vérifié dans un aperçu réel.
  */
 export function MenuPartage({ slug, titre }: { slug: string; titre: string }) {
   const chemin = `/products/${slug}`;

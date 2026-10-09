@@ -149,8 +149,14 @@ export function constatStockage(faits: FaitsStockage): Constat {
 }
 
 export interface FaitsConnexion {
-  /** Identifiants des fournisseurs dont toutes les variables sont posées. */
+  /** Fournisseurs configurés ET branchés : leur bouton mène quelque part. */
   actifs: readonly string[];
+  /**
+   * Fournisseurs dont les variables sont posées, mais qu'aucune route ne
+   * reçoit. Leur bouton reste « Bientôt disponible » : quelqu'un a cru les
+   * allumer.
+   */
+  configuresNonBranches?: readonly string[];
   /** Le mot de passe reste-t-il une voie d'entrée ? */
   motDePasse: boolean;
 }
@@ -166,13 +172,37 @@ export function constatConnexion(faits: FaitsConnexion): Constat {
     };
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // CONFIGURÉ N'EST PAS BRANCHÉ
+  //
+  // Avant le 08/10/2026, cet écran disait « 1 fournisseur(s) actif(s) :
+  // Google » dès que ses variables étaient posées — alors qu'aucune route ne
+  // recevait la connexion et que le bouton menait à une 404. Un réglage posé
+  // pour rien se signale : la personne qui l'a posé attend un effet qui ne
+  // viendra pas.
+  const enAttente = faits.configuresNonBranches ?? [];
+  if (enAttente.length > 0) {
+    return {
+      cle: "connexion",
+      libelle: "Connexion",
+      gravite: "attention",
+      detail:
+        `Configuré mais non branché : ${enAttente.join(", ")}. ` +
+        "Le bouton reste « Bientôt disponible » : aucune route ne reçoit cette connexion." +
+        (faits.actifs.length > 0 ? ` Actif(s) : ${faits.actifs.join(", ")}.` : ""),
+      remede:
+        "Retire ces variables, ou écris la route `app/api/auth/<id>` et passe le fournisseur à branché.",
+    };
+  }
+
   if (faits.actifs.length === 0) {
     return {
       cle: "connexion",
       libelle: "Connexion",
       gravite: "attention",
-      detail: "Mot de passe seul — aucun fournisseur tiers configuré.",
-      remede: "Renseigne toutes les variables d'un fournisseur pour l'activer.",
+      detail: "Mot de passe seul — aucun fournisseur tiers branché.",
+      remede:
+        "Un fournisseur s'active quand ses variables sont posées ET qu'une route le reçoit (`lib/auth/providers.ts`).",
     };
   }
 
@@ -337,6 +367,51 @@ export function constatAntiBot(faits: FaitsAntiBot): Constat {
   };
 }
 
+export interface FaitsPlafondPub {
+  /** `AUTH_SECRET` est-il posé, et assez long ? Jamais sa valeur. */
+  secret: boolean;
+  production: boolean;
+}
+
+/**
+ * Le plafond des bannières par visiteur s'applique-t-il ?
+ *
+ * Sans `AUTH_SECRET`, `lib/publicites/plafond.ts` compte sans plafonner : une
+ * empreinte d'adresse sans secret se retrouve en essayant les quatre milliards
+ * d'IPv4, et on préfère ne rien ranger. Le débit à la minute tient toujours ;
+ * ce qui saute, c'est la limite par jour — une même adresse peut faire compter
+ * quinze mille clics en une nuit.
+ *
+ * Attention et non panne : rien ne casse pour le visiteur. La connexion n'a
+ * pas besoin de cette variable, et les compteurs tournent comme si de rien
+ * n'était. Le seul autre signal vient de la lettre d'information, qui refuse
+ * de partir sans `AUTH_SECRET` (lib/infolettre/envoi.ts) — mais seulement au
+ * moment où quelqu'un clique « Envoyer », et seulement s'il manque : un secret
+ * trop court pour le plafond lui suffit. D'où la mention dans le remède.
+ */
+export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
+  if (faits.secret) {
+    return {
+      cle: "plafond-pub",
+      libelle: "Plafond des bannières",
+      gravite: "ok",
+      detail: "Affichages et clics plafonnés par visiteur et par jour.",
+    };
+  }
+
+  return {
+    cle: "plafond-pub",
+    libelle: "Plafond des bannières",
+    gravite: faits.production ? "attention" : "ok",
+    detail: faits.production
+      ? "AUTH_SECRET absent ou trop court : seul le débit à la minute s'applique."
+      : "Non appliqué sans AUTH_SECRET (développement).",
+    remede: faits.production
+      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour ; absent, il bloque aussi l'envoi de la lettre d'information."
+      : undefined,
+  };
+}
+
 export interface FaitsSms {
   /** Le pilote actif : « aucun », « console » ou le nom d'un opérateur. */
   pilote: string;
@@ -366,10 +441,10 @@ export function constatSms(faits: FaitsSms): Constat {
       libelle: faits.production ? "SMS SIMULÉ EN PRODUCTION" : "SMS",
       gravite: faits.production ? "panne" : "ok",
       detail: faits.production
-        ? "Les relances sont écrites dans le journal et comptées comme envoyées. Les abonnés seront coupés sans avoir été prévenus."
+        ? "Les relances sont écrites dans le journal et comptées comme envoyées. Les abonnés seront coupés sans avoir été prévenus. La connexion par téléphone, elle, reste fermée : un code écrit dans le journal ouvrirait le compte à qui le lit."
         : "Écrites dans le journal (développement).",
       remede: faits.production
-        ? "Pose SMS_DRIVER=twilio et ses identifiants, ou SMS_DRIVER=aucun — qui, lui, ne prétend rien."
+        ? "Pose SMS_DRIVER=twilio, textbee ou smsgate et ses identifiants, ou SMS_DRIVER=aucun — qui, lui, ne prétend rien."
         : undefined,
     };
   }

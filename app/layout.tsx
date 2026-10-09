@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo_Black, Poppins, Space_Mono } from "next/font/google";
 
 import { BanniereCookies } from "@/components/consentement/banniere-cookies";
+import { urlDuSite } from "@/lib/config/site";
 
 import "./globals.css";
 
@@ -40,10 +41,26 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+const SITE = urlDuSite();
+
 export const metadata: Metadata = {
   title: "Baobart. — Le studio partagé de l'Afrique créative",
   description:
     "Publier, découvrir, vendre. Du premier croquis au premier encaissement, en FCFA.",
+  // Les adresses de `og:image` et des liens canoniques doivent être absolues.
+  // Sans `APP_URL`, Next retombe sur localhost (lu dans sa documentation, non
+  // vérifié ici) : deviner le domaine depuis la requête est précisément ce que
+  // `urlDuSite` refuse.
+  ...(SITE ? { metadataBase: new URL(SITE) } : {}),
+  // L'aperçu d'un lien partagé : l'image vient de `app/opengraph-image.tsx`,
+  // que Next déclare de lui-même dans `og:image` et `twitter:image`.
+  //
+  // PAS de bloc `openGraph` ici, et c'est délibéré. Next remplit `og:title`
+  // avec le titre du segment qui déclare le bloc — celui du layout, donc de
+  // l'accueil — et ne le met pas à jour quand une page change son `<title>`.
+  // Vu le 08/10 sur /tarifs : « Tarifs — Baobart. » dans l'onglet, le slogan
+  // de l'accueil dans l'aperçu. Sans bloc, Next tire `og:title` et
+  // `og:description` de chaque page — mesuré le même jour sur /tarifs et /.
   // `app/manifest.ts` sert le fichier ; cette ligne le déclare à la page. Sans
   // elle, le manifeste existe et personne ne le lit — rien n'est installable.
   manifest: "/manifest.webmanifest",
@@ -59,6 +76,13 @@ export const metadata: Metadata = {
   icons: {
     apple: "/icones/apple-touch-icon.png",
   },
+  // `noai, noimageai` : la réserve d'entraînement d'IA sur chaque page.
+  // Directives de fait (nées chez DeviantArt), hors du standard robots :
+  // respectées par qui veut bien, comme `robots.txt` (`lib/seo/plan.ts`).
+  // Une balise à part, et non `robots:` de Next — celui-ci n'accepte que les
+  // directives qu'il connaît, et les pages qui posent `robots: { index: false }`
+  // gardent la leur.
+  other: { robots: "noai, noimageai" },
 };
 
 /**

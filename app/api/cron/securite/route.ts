@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { purgerDefisExpires } from "@/lib/auth/deux-facteurs";
+import { purgerCodesTelephone } from "@/lib/auth/telephone";
 import { purgerDefisWebauthn } from "@/lib/auth/webauthn";
 import { journal } from "@/lib/observabilite/journal";
 import { executerLesEffacementsDus } from "@/lib/rgpd/effacement";
@@ -52,12 +53,15 @@ export async function GET(requete: Request) {
     // Les deux ménages ensemble : ils tiennent le même raisonnement — le
     // filtrage se fait à la lecture, ceci ne récupère que des lignes — et
     // une seconde route n'apporterait qu'une seconde chose à oublier.
-    const [blocages, defisTotp, defisCles] = await Promise.all([
+    const [blocages, defisTotp, defisCles, codesSms] = await Promise.all([
       purgerExpirees(),
       purgerDefisExpires(),
       purgerDefisWebauthn(),
+      // Les codes envoyés par SMS : périmés en dix minutes, gardés une
+      // journée pour enquêter, puis supprimés (`lib/auth/telephone.ts`).
+      purgerCodesTelephone(),
     ]);
-    const defis = defisTotp + defisCles;
+    const defis = defisTotp + defisCles + codesSms;
 
     // ══════════════════════════════════════════════════════════════════════
     // LES EFFACEMENTS APRÈS LE MÉNAGE, ET SÉPARÉMENT

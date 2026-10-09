@@ -277,6 +277,7 @@ export async function lireProfilDashboard(userId: string) {
     select: {
       email: true,
       phone: true,
+      phoneVerifiedAt: true,
       defaultCurrency: true,
       kycStatus: true,
       riskState: true,

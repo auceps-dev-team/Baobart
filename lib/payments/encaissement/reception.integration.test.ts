@@ -7,7 +7,7 @@
  * succès. Chacun, laissé ouvert, se solde par de l'argent créé de rien.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
@@ -327,6 +327,18 @@ describe("un rappel qui ne correspond pas", () => {
     expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
   });
 
+  it("refuse un succès SANS montant d'un opérateur qu'on ne peut pas interroger", async () => {
+    // Le bac à sable n'a pas de `confirmer` : un montant absent ne peut être
+    // vérifié par personne, et « rien à comparer » ne vaut pas « conforme ».
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+
+    const suite = await recevoir("bac-a-sable", fait(orderId, { montant: null }), {});
+
+    expect(suite.recu === false && suite.motif).toBe("MONTANT_ABSENT");
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+    expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
   it("livre malgré un montant SUPÉRIEUR : refuser serait pire", async () => {
     // Un trop-perçu n'est pas une attaque — arrondi d'opérateur, frais
     // absorbés, devise reconvertie. Le refuser fabriquerait le pire cas :
@@ -375,6 +387,71 @@ describe("un rappel qui ne correspond pas", () => {
     });
     expect(trace.status).toBe("REJECTED");
     expect(trace.error).toContain("42");
+  });
+});
+
+describe("l'opérateur interrogé (Paystack)", () => {
+  // La confirmation passe par le vrai `confirmerAupresDePaystack` ; seule la
+  // réponse de son serveur est simulée.
+  const CLE_AVANT = process.env.PAYSTACK_SECRET_KEY;
+
+  beforeEach(() => {
+    process.env.PAYSTACK_SECRET_KEY = "sk_test_cle-de-test-paystack";
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    if (CLE_AVANT === undefined) delete process.env.PAYSTACK_SECRET_KEY;
+    else process.env.PAYSTACK_SECRET_KEY = CLE_AVANT;
+  });
+
+  function paystackConfirme(data: Record<string, unknown>) {
+    vi.stubGlobal(
+      "fetch",
+      async () =>
+        new Response(JSON.stringify({ status: true, data: { status: "success", ...data } }), {
+          status: 200,
+        }),
+    );
+  }
+
+  it("refuse une transaction confirmée SANS montant lisible, quand le rappel n'en portait pas non plus", async () => {
+    // Le trou relevé à la relecture du 08/10 : `montantInverifiable` laisse
+    // passer parce que Paystack sait confirmer, et la confirmation passait son
+    // tour faute de montant. Personne n'avait comparé quoi que ce soit.
+    const { orderId, orderItemId, vendeur } = await ouvrirCommande();
+    paystackConfirme({ currency: "XOF" });
+
+    const suite = await recevoir("paystack", fait(orderId, { montant: null, devise: null }), {});
+
+    expect(suite.recu === false && suite.motif).toBe("MONTANT_ABSENT");
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+    expect(await db.balance.count({ where: { userId: vendeur.id } })).toBe(0);
+  });
+
+  it("refuse une transaction confirmée dans une autre devise", async () => {
+    // 5 000 kobos (50 nairas) se lisent « 5 000 » une fois ramenés en unités
+    // mineures — les mêmes chiffres que nos 5 000 francs. Sans regard sur la
+    // devise confirmée, la commande partait pour 50 nairas.
+    const { orderId, orderItemId } = await ouvrirCommande();
+    paystackConfirme({ amount: PRIX, currency: "NGN" });
+
+    const suite = await recevoir("paystack", fait(orderId, { montant: null, devise: null }), {});
+
+    expect(suite.recu === false && suite.motif).toBe("DEVISE_DISCORDANTE");
+    expect((await etatDe(orderItemId)).state).toBe("IN_PROGRESS");
+  });
+
+  it("livre quand Paystack confirme notre montant, dans notre devise", async () => {
+    // Le témoin : sans lui, les deux refus ci-dessus pourraient venir d'un
+    // chemin qui refuse tout.
+    const { orderId, orderItemId } = await ouvrirCommande();
+    paystackConfirme({ amount: PRIX * 100, currency: "XOF" });
+
+    const suite = await recevoir("paystack", fait(orderId, { montant: null, devise: null }), {});
+
+    expect(suite).toEqual({ recu: true, effet: "ENCAISSE" });
+    expect((await etatDe(orderItemId)).state).toBe("SUCCESSFUL");
   });
 });
 

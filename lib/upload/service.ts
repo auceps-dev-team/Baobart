@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { produireApercu } from "@/lib/upload/apercu";
+import { anciennesClesDApercu, cleDApercu, toutesLesClesDApercu } from "@/lib/upload/vignette";
 import {
   natureApercu,
   verifierApercu,
@@ -96,7 +97,9 @@ export async function retirerFichierDe(input: {
     if (encoreUtilise === 0) {
       await db.mediaAsset.delete({ where: { id: fichier.media.id } });
       await supprimerObjet(fichier.media.s3Key);
-      await supprimerObjet(`${PREFIXE_PUBLIC}apercus/${fichier.media.id}.webp`);
+      // L'aperçu, sa vignette, et ceux des recettes précédentes s'ils n'ont
+      // pas encore été régénérés : plus rien ne doit répondre à leur adresse.
+      for (const cle of toutesLesClesDApercu(fichier.media.id)) await supprimerObjet(cle);
     }
   }
 
@@ -129,10 +132,13 @@ async function rendreLaVitrineCoherente(input: {
     });
   }
 
-  const apercuRetire = urlPublique(
-    `${PREFIXE_PUBLIC}apercus/${input.mediaRetire.id}.webp`,
+  // Toutes les adresses qu'a pu avoir son aperçu : la courante, et celles des
+  // recettes précédentes tant que `scripts/regenerer-apercus.ts` n'est pas
+  // passé sur ce produit.
+  const apercusRetires = [cleDApercu(input.mediaRetire.id), ...anciennesClesDApercu(input.mediaRetire.id)].map(
+    urlPublique,
   );
-  if (input.coverUrl !== apercuRetire) return;
+  if (!input.coverUrl || !apercusRetires.includes(input.coverUrl)) return;
 
   // `desc` sur le rôle : l'énumération liste SOURCE avant PREVIEW, et c'est
   // l'aperçu choisi à la main qui doit l'emporter.
@@ -150,7 +156,7 @@ async function rendreLaVitrineCoherente(input: {
     where: { id: input.produitId },
     data: {
       coverUrl: suivant
-        ? urlPublique(`${PREFIXE_PUBLIC}apercus/${suivant.media.id}.webp`)
+        ? urlPublique(cleDApercu(suivant.media.id))
         : null,
       coverImageId: suivant?.media.id ?? null,
     },
@@ -317,6 +323,7 @@ export async function confirmerFichierDe(
         cleSource: reservation.s3Key,
         nomFichier: reservation.filename,
         taille: depose.taille,
+        pseudo: await pseudoDe(userId),
       });
 
   await db.mediaAsset.update({
@@ -362,4 +369,10 @@ export async function confirmerFichierDe(
     couverture,
     extrait,
   };
+}
+
+/** Le pseudo public d'un créateur, pour le filigrane de ses aperçus. */
+export async function pseudoDe(userId: string): Promise<string | null> {
+  const profil = await db.profile.findUnique({ where: { userId }, select: { username: true } });
+  return profil?.username ?? null;
 }
