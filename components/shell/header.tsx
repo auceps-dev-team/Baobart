@@ -25,7 +25,8 @@ import {
  * En-tête, traduit du bloc HEADER de « Baobart Accueil.dc.html ».
  *
  * Carte blanche contourée collée en haut, logo, champ de recherche avec
- * suggestions, menus déroulants au survol, panier et puce de compte.
+ * suggestions, menus déroulants au survol et puce de compte. (Le panier de la
+ * maquette est retiré depuis le 09/10 : voir plus bas.)
  */
 
 interface Suggestion {
@@ -102,10 +103,8 @@ function liensCompte(username: string | null): LienCompte[] {
 }
 
 export function Header({
-  cartCount = 0,
   utilisateur = null,
 }: {
-  cartCount?: number;
   utilisateur?: UtilisateurEnTete | null;
 }) {
   const [q, setQ] = useState("");
@@ -561,46 +560,14 @@ export function Header({
         </nav>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
-          <button
-            type="button"
-            style={{
-              position: "relative",
-              padding: "10px 13px",
-              border: `2.5px solid ${ENCRE}`,
-              borderRadius: 12,
-              background: BLANC,
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: ".06em",
-              cursor: "pointer",
-            }}
-          >
-            PANIER
-            {cartCount > 0 ? (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -8,
-                  right: -8,
-                  minWidth: 22,
-                  height: 22,
-                  padding: "0 5px",
-                  border: `2.5px solid ${ENCRE}`,
-                  borderRadius: 99,
-                  background: ORANGE,
-                  color: BLANC,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                {cartCount}
-              </span>
-            ) : null}
-          </button>
-
+          {/*
+            Le bouton « PANIER » de la maquette est retiré (09/10, décision
+            après les tests QA) : il n'existe pas de panier — l'achat se fait
+            ressource par ressource, par `/acheter/[slug]`. Le bouton ne faisait
+            rien et son compteur valait toujours 0. Un panier pourra revenir
+            avec la fonctionnalité qui le porte (plusieurs ressources, un seul
+            paiement).
+          */}
           <div
             onMouseEnter={() => {
               annulerFermeture();

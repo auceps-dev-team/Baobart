@@ -343,18 +343,6 @@ export async function inscrire(
   const motDePasse = String(donnees.get("motDePasse") ?? "");
   const conditions = donnees.get("conditions") === "on";
 
-  // ───────────────────────────────────────────────────────────────────────
-  // UNE INTENTION, PAS UN RÔLE
-  //
-  // `lib/auth/roles.ts` pose qu'il n'existe **aucune colonne de rôle** : on ne
-  // devient pas créateur parce qu'on l'a déclaré, mais parce qu'on a publié.
-  // Écrire ce choix en base créerait une seconde vérité, qui dériverait — un
-  // compte marqué « créateur » sans un seul produit, ou l'inverse.
-  //
-  // Il ne sert donc qu'à une chose : décider où l'on atterrit. Rien n'est
-  // accordé, rien n'est fermé, et publier suffit toujours à devenir créateur.
-  const veutPublier = donnees.get("compte") === "createur";
-
   if (!prenom || !nom) {
     return { erreur: "Indique ton prénom et ton nom.", champ: "nom" };
   }
@@ -455,9 +443,11 @@ export async function inscrire(
 
   await ouvrirSession(compte.id, await adresseCourante());
 
-  // La seule conséquence du choix : la première page. Celle-ci est ouverte à
-  // tout le monde — c'est déjà la seule porte créateur que voit un acheteur.
-  redirect(veutPublier ? "/dashboard/produits/nouveau" : "/dashboard");
+  // Le tableau de bord, pour tout le monde. Le choix « Acheteur / Créateur »
+  // qui envoyait les seconds vers `/dashboard/produits/nouveau` est retiré
+  // (09/10) : il n'existe aucun rôle (`lib/auth/roles.ts`), on devient
+  // créateur en publiant, et le tableau de bord mène aux deux usages.
+  redirect("/dashboard");
 }
 
 export async function deconnecter(): Promise<void> {

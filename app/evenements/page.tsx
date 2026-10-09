@@ -6,6 +6,7 @@ import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { GENRES, LIBELLE_GENRE, type EventKind } from "@/lib/evenements/enums";
+import { accesAuxEvenements } from "@/lib/evenements/garde";
 import { LIBELLE_PHASE, placesRestantes } from "@/lib/evenements/phases";
 import { listerPublics, prochainEvenement } from "@/lib/evenements/queries";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
@@ -42,13 +43,20 @@ export const dynamic = "force-dynamic";
  * en proposer un.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * DEUX BLOCS DESSINÉS, ABSENTS
+ * DEUX BLOCS DESSINÉS, REPRIS LE 09/10 (après les tests QA : « page vide »)
  *
- * Le bouton « Proposer un événement » ne mène nulle part : publier est réservé
- * à l'administration (§18.1), et un bouton qui ouvre sur un refus vaut moins
- * qu'une phrase qui explique. Les trois étapes « Comment ça se passe » sont du
- * texte éditorial que rien ne porte en base — les écrire en dur ici les ferait
- * vieillir sans que personne ne puisse les corriger.
+ * Jusqu'ici, ce commentaire disait : « Proposer un événement ne mène nulle
+ * part : publier est réservé à l'administration (§18.1) ». Ce n'était plus
+ * vrai depuis v1.50.0 : les agences badgées, abonnement ouvert, publient
+ * aussi (`lib/evenements/acces.ts`). Le texte affiché le répétait (« publiés
+ * par l'équipe Baobart »). Le bouton existe donc : vers le formulaire pour
+ * qui peut organiser (`accesAuxEvenements`), vers le contact pour les autres
+ * — une demande, pas un refus.
+ *
+ * Les trois étapes de la maquette décrivaient un concours qui n'existe pas
+ * ici (« jusqu'à 3 propositions », « 5 créatifs invités ») : ni dépôt ni jury
+ * dans le code. Elles sont remplacées par trois étapes VRAIES du module —
+ * relecture, inscription, fiche qui reste après la date (`phases.ts`).
  */
 export default async function EvenementsPage({
   searchParams,
@@ -60,11 +68,14 @@ export default async function EvenementsPage({
     ? (demande as EventKind)
     : undefined;
 
-  const [visiteur, prochain, evenements] = await Promise.all([
+  const [visiteur, prochain, evenements, organisateur] = await Promise.all([
     sessionCourante(),
     prochainEvenement(),
     listerPublics({ genre }),
+    accesAuxEvenements(),
   ]);
+  // Qui peut organiser va au formulaire ; les autres nous écrivent.
+  const proposer = (organisateur ? "/dashboard/evenements/nouveau" : "/contact") as Route;
 
   return (
     <>
@@ -128,8 +139,8 @@ export default async function EvenementsPage({
                 gagnants sont mis en avant sur l&apos;accueil et rémunérés.
               </p>
 
-              {prochain ? (
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+                {prochain ? (
                   <Link
                     href={`/evenements/${prochain.id}` as Route}
                     className="sticker-press"
@@ -147,8 +158,25 @@ export default async function EvenementsPage({
                       ? "Participer au concours en cours"
                       : "Voir le prochain événement"}
                   </Link>
-                </div>
-              ) : null}
+                ) : null}
+                {/* Le second bouton de la maquette, désormais réel. */}
+                <Link
+                  href={proposer}
+                  className="sticker-press"
+                  style={{
+                    padding: "14px 26px",
+                    border: CADRE,
+                    borderRadius: 16,
+                    background: BLANC,
+                    boxShadow: `5px 5px 0 ${ENCRE}`,
+                    color: ENCRE,
+                    fontSize: 14.5,
+                    fontWeight: 800,
+                  }}
+                >
+                  Proposer un événement
+                </Link>
+              </div>
             </div>
 
             {/* ── L'encart « Édition en cours » ───────────────────────────── */}
@@ -234,10 +262,19 @@ export default async function EvenementsPage({
                     opacity: 0.8,
                   }}
                 >
-                  Les prochains concours et ateliers paraîtront ici. Tu organises
-                  quelque chose ? Écris-nous — les événements sont publiés par
-                  l&apos;équipe Baobart.
+                  Les prochains concours et ateliers paraîtront ici. Ils sont
+                  publiés par l&apos;équipe Baobart et par les agences badgées,
+                  après relecture.{" "}
+                  {organisateur
+                    ? "Tu peux en proposer un dès maintenant."
+                    : "Tu organises quelque chose ? Écris-nous."}
                 </p>
+                <Link
+                  href={proposer}
+                  style={{ display: "inline-block", marginTop: 12, fontSize: 13.5, fontWeight: 800, color: ENCRE, textDecoration: "underline" }}
+                >
+                  {organisateur ? "Proposer un événement →" : "Nous écrire →"}
+                </Link>
               </div>
             )}
           </div>
@@ -276,6 +313,16 @@ export default async function EvenementsPage({
                 Reviens dans quelques jours — le calendrier se remplit au fil des
                 éditions.
               </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                {genre ? (
+                  <Link href={"/evenements" as Route} style={boutonVide(JAUNE)}>
+                    Voir tous les événements
+                  </Link>
+                ) : null}
+                <Link href={proposer} style={boutonVide(genre ? BLANC : JAUNE)}>
+                  Proposer un événement
+                </Link>
+              </div>
             </div>
           ) : (
             <div
@@ -395,11 +442,109 @@ export default async function EvenementsPage({
               })}
             </div>
           )}
+
+          {/* ── Comment ça se passe (bloc `contestSteps` de la maquette) ─── */}
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 26,
+              letterSpacing: "-.8px",
+              textTransform: "uppercase",
+              margin: "40px 0 16px",
+            }}
+          >
+            Comment ça se passe
+          </h2>
+          <ol
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(min(260px,100%),1fr))",
+              gap: 16,
+            }}
+          >
+            {ETAPES.map((e, i) => (
+              <li
+                key={e.titre}
+                style={{
+                  border: CADRE,
+                  borderRadius: 22,
+                  background: e.fond,
+                  boxShadow: `5px 5px 0 ${ENCRE}`,
+                  padding: 20,
+                }}
+              >
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    border: CADRE,
+                    borderRadius: 99,
+                    background: BLANC,
+                    display: "grid",
+                    placeItems: "center",
+                    fontFamily: "var(--font-display)",
+                    fontSize: 17,
+                  }}
+                >
+                  {i + 1}
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 800, marginTop: 12 }}>{e.titre}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.5, marginTop: 6, opacity: 0.8 }}>
+                  {e.texte}
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </main>
       <Footer />
     </>
   );
+}
+
+/**
+ * Trois étapes VRAIES du module, à la place de celles de la maquette (qui
+ * décrivaient un dépôt de propositions et un jury absents du code) :
+ * - la relecture : un événement naît BROUILLON et paraît après relecture
+ *   (`Event.state`, `refusedReason`) ;
+ * - l'inscription : depuis la fiche ; places parfois comptées (`capacity`) ;
+ *   un billet payant reste fermé tant que l'encaissement n'est pas branché
+ *   (`lib/evenements/inscription.ts`) — d'où « gratuits » ;
+ * - la fiche qui reste : « TERMINÉ N'EST PAS EXPIRÉ » (`lib/evenements/phases.ts`).
+ */
+const ETAPES = [
+  {
+    titre: "Il est relu, puis publié",
+    texte: "Proposé par l'équipe ou par une agence badgée, chaque événement est relu avant de paraître ici.",
+    fond: BLANC,
+  },
+  {
+    titre: "Tu t'inscris",
+    texte: "Depuis sa fiche, pour les événements gratuits. Les places sont parfois comptées : le nombre restant y est affiché.",
+    fond: LAVANDE,
+  },
+  {
+    titre: "Il reste en ligne",
+    texte: "Après sa date, la fiche reste lisible : on y retrouve ce qui s'est passé.",
+    fond: JAUNE,
+  },
+];
+
+function boutonVide(fond: string): React.CSSProperties {
+  return {
+    display: "inline-block",
+    padding: "11px 18px",
+    border: CADRE,
+    borderRadius: 14,
+    background: fond,
+    boxShadow: `4px 4px 0 ${ENCRE}`,
+    fontSize: 13.5,
+    fontWeight: 800,
+    color: ENCRE,
+  };
 }
 
 function fondDePhase(phase: string): string {
