@@ -289,3 +289,653 @@
 .ligne-menu[aria-disabled="true"]:hover {
   background: transparent;
 }
+
+/* ============================================================================
+   ANIMATIONS — promues du labo Animata (/labo/animata), décidé le 08/10/2026
+   Aucune ne figure dans les maquettes, sauf les squelettes : ce sont des
+   ajouts choisis, pas des traductions. Composants : components/anime/.
+   ============================================================================ */
+
+/* --- Vague : un texte qui arrive mot à mot (ou lettre à lettre) ---------- */
+
+@keyframes vague-monte {
+  from {
+    opacity: 0;
+    transform: translateY(80%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vague-descend {
+  from {
+    opacity: 0;
+    transform: translateY(-80%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vague-net {
+  from {
+    filter: blur(0.3rem);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+.vague-morceau {
+  display: inline-block;
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vague-morceau[data-sens="up"] {
+  animation-name: vague-monte;
+}
+.vague-morceau[data-sens="down"] {
+  animation-name: vague-descend;
+}
+.vague-morceau[data-sens="up"][data-flou] {
+  animation-name: vague-monte, vague-net;
+}
+.vague-morceau[data-sens="down"][data-flou] {
+  animation-name: vague-descend, vague-net;
+}
+
+/* --- Défilé : un ruban sans fin -------------------------------------------- */
+
+@keyframes defile-x {
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes defile-y {
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+.defile-x {
+  animation: defile-x var(--duration) infinite linear;
+}
+.defile-y {
+  animation: defile-y var(--duration) infinite linear;
+}
+.defile-pause:hover .defile-x,
+.defile-pause:hover .defile-y {
+  animation-play-state: paused;
+}
+
+/* --- Logo : la pastille pivote, le mot se souligne ------------------------
+ * Une seule règle pour les cinq logos (en-tête, rail, pied de page, connexion,
+ * tableau de bord) : chacun pose `logo-anime` sur son lien, `logo-pastille`
+ * sur le cercle et `logo-mot` sur le mot. Au survol ET au focus clavier. */
+
+.logo-anime .logo-pastille {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.logo-anime:hover .logo-pastille,
+.logo-anime:focus-visible .logo-pastille {
+  transform: rotate(-12deg) scale(1.08);
+}
+.logo-anime .logo-mot {
+  position: relative;
+}
+.logo-anime .logo-mot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 0;
+  height: 2.5px;
+  border-radius: 999px;
+  background: var(--color-orange);
+  translate: -50% 0;
+  transition: width 0.3s ease-out;
+}
+.logo-anime:hover .logo-mot::after,
+.logo-anime:focus-visible .logo-mot::after {
+  width: 100%;
+}
+
+/* --- Squelettes : repris de « Baobart Parcours Achat.dc.html », l. 24-27 ----
+ * Noms changés (`balayage`, `pulsation`, `tourne`) : Tailwind définit déjà
+ * `pulse` et `spin` pour `animate-pulse` et `animate-spin`, avec d'autres
+ * valeurs ; la dernière règle chargée l'emporterait. */
+
+@keyframes balayage {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+@keyframes pulsation {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes tourne {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.squelette-balaye {
+  background: linear-gradient(100deg, #f4eefc 30%, #dccff0 50%, #f4eefc 70%);
+  background-size: 220% 100%;
+  animation: balayage 1.4s ease-in-out infinite;
+}
+.squelette-pulse {
+  animation: pulsation 1.4s ease-in-out infinite;
+}
+.squelette-tourne {
+  animation: tourne 1s linear infinite;
+}
+
+/* --- Au défilement : essayé au labo le 08/10, posé sur les vues -----------
+ *
+ * Animations PILOTÉES PAR LE DÉFILEMENT (`animation-timeline`) : leur avancée
+ * suit la position de la page, pas le temps. Aucun JavaScript, aucun
+ * écouteur de défilement, et le navigateur les calcule hors du fil principal.
+ *
+ * Mesuré le 08/10 dans le navigateur intégré (Chrome 152) : `view()`,
+ * `scroll()`, `animation-range` et `timeline-scope` sont pris en charge.
+ * Firefox et Safari : non vérifiés.
+ *
+ * D'où la double garde : `@supports` (un navigateur qui ne connaît pas
+ * `animation-timeline` jouerait sinon l'animation une fois, sur le temps, au
+ * chargement — et le texte « qui s'allume » resterait éteint) et
+ * `prefers-reduced-motion: no-preference`. Hors des deux, rien ne bouge et
+ * tout est visible : c'est l'état par défaut, pas un repli. */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Apparition : l'élément se pose comme un sticker en entrant à l'écran.
+       Les images clés sont `popin`, celles des maquettes (plus haut). */
+    .defil-apparait {
+      animation: popin linear both;
+      animation-timeline: view();
+      /* 260 px d'entrée, quelle que soit la hauteur : voir defilement.tsx. */
+      animation-range: entry 0px entry 260px;
+    }
+
+    /* Parallaxe : l'élément glisse moins vite que la page. --amplitude
+       règle l'écart total, en pixels, sur toute la traversée de l'écran. */
+    .defil-parallaxe {
+      animation: defil-parallaxe linear both;
+      animation-timeline: view();
+    }
+
+    /* Barre de lecture : remplie à proportion de la page parcourue. */
+    .defil-barre {
+      transform-origin: 0 50%;
+      animation: defil-barre linear both;
+      animation-timeline: scroll(root block);
+    }
+
+    /* … ou de l'article seul : `defil-lecture` sur l'article nomme sa
+       traversée, et la barre, posée DANS l'article, la suit. Vide quand le
+       haut de l'article atteint le haut de l'écran, pleine quand son bas
+       atteint le bas — le pied de page n'en fait plus partie.
+       Mesuré le 08/10 sur un élément de 5 597 px : 0, 0,50, 1 aux trois
+       repères. LIMITE, mesurée aussi : sur un élément plus court que l'écran
+       (534 px pour 746), `contain` s'inverse en pratique — la barre est
+       pleine quand le haut de l'article touche le haut de l'écran. Un
+       article de blog fait d'ordinaire plusieurs écrans ; un billet très
+       court verrait une barre qui ne veut rien dire. */
+    .defil-lecture {
+      view-timeline: --lecture block;
+    }
+    .defil-lecture .defil-barre {
+      animation-timeline: --lecture;
+      animation-range: contain 0% contain 100%;
+    }
+
+    /* Texte qui s'allume : le paragraphe nomme sa traversée de l'écran, et
+       chaque mot prend sa tranche (--debut / --fin, en %). */
+    .defil-allume {
+      view-timeline: --allume block;
+    }
+    .defil-allume > span {
+      animation: defil-allume linear both;
+      animation-timeline: --allume;
+      animation-range: contain var(--debut) contain var(--fin);
+    }
+  }
+}
+
+@keyframes defil-parallaxe {
+  from {
+    transform: translateY(calc(var(--amplitude, 80px) / 2));
+  }
+  to {
+    transform: translateY(calc(var(--amplitude, 80px) / -2));
+  }
+}
+
+@keyframes defil-barre {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes defil-allume {
+  from {
+    opacity: 0.18;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Mouvement réduit, pour ce qui précède.
+ *
+ * Les boucles infinies s'arrêtent explicitement : la règle globale plus haut
+ * raccourcit leur durée, elle ne limite pas leurs répétitions. Les morceaux de
+ * la vague s'affichent d'un coup : leur décalage (`animation-delay`, en style
+ * en ligne) échappe à la règle globale, et ils resteraient invisibles le temps
+ * de ce décalage.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .defile-x,
+  .defile-y,
+  .squelette-balaye,
+  .squelette-pulse,
+  .squelette-tourne {
+    animation: none;
+  }
+  .vague-morceau {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   INTERACTIONS — promues de /labo/explorations, décidé le 09/10/2026
+   Aucune ne figure dans les maquettes : ce sont des ajouts choisis. Les
+   composants vivent dans components/anime/ ; les originaux du labo, avec
+   leurs mesures, dans components/labo/explorations/ (préfixe `explo-`).
+   Règle commune : sans la propriété récente qu'on emploie, l'état est
+   correct et immobile — chaque nouveauté est derrière un `@supports`.
+   ============================================================================ */
+
+/* --- Curseur de la recherche qui tape (en-tête) --------------------------- */
+
+.curseur-tape {
+  animation: curseur-clignote 1s steps(1) infinite;
+}
+@keyframes curseur-clignote {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* --- Mot qui tourne (« Publie tes … ») -------------------------------------- */
+
+.mot-tourne[data-etat="cache"] {
+  visibility: hidden;
+}
+.mot-tourne[data-etat="entre"] {
+  animation: mot-entre 450ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+}
+.mot-tourne[data-etat="sort"] {
+  animation: mot-sort 300ms ease-in both;
+}
+@keyframes mot-entre {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes mot-sort {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(-110%);
+    visibility: hidden;
+  }
+}
+
+/* --- Bascule de libellé (« Suivre » ↔ « Abonné ») ----------------------------
+ * Deux libellés dans la même case de grille ; l'actif glisse en place. La case
+ * prend la largeur du plus long : le bouton ne change pas de taille. */
+
+.bascule {
+  display: inline-grid;
+  overflow: clip;
+  vertical-align: bottom;
+}
+.bascule > span {
+  grid-area: 1 / 1;
+  transition: transform 350ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.bascule > span:nth-child(2) {
+  transform: translateY(170%);
+}
+.bascule[data-actif] > span:nth-child(1) {
+  transform: translateY(-170%);
+}
+.bascule[data-actif] > span:nth-child(2) {
+  transform: none;
+}
+
+/* --- Rebond d'un compteur qui change ------------------------------------- */
+
+.rebond {
+  display: inline-block;
+  animation: rebond 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes rebond {
+  35% {
+    transform: scale(1.35) translateY(-3px);
+  }
+}
+
+/* --- J'aime qui éclate ----------------------------------------------------- */
+
+.coeur-bat {
+  display: inline-block;
+  animation: coeur-bat 380ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes coeur-bat {
+  0% {
+    transform: scale(0.6);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+}
+.eclats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.eclat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border: 1.5px solid var(--color-encre);
+  background: var(--color-jaune);
+  opacity: 0;
+  animation: eclat 520ms ease-out;
+}
+.eclat:nth-child(even) {
+  background: var(--color-blanc);
+}
+@keyframes eclat {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(-8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-28px) scale(0.4);
+  }
+}
+
+/* --- Pack qu'on étale (collections d'une communauté) ------------------------
+ * Une case à cocher porte l'état, `:has()` le lit : aucun JavaScript. Chaque
+ * carte connaît son rang (--i) et le nombre de cartes (--n) : le paquet se
+ * resserre vers le centre quel que soit le nombre — le labo, lui, en avait
+ * quatre, écrits en dur. Sans `:has()`, aucune règle de paquet ne s'applique :
+ * les vignettes restent à plat, toutes visibles. */
+
+.etale {
+  --ecart: 0.75rem;
+}
+.etale-bouton {
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+  border: 2.5px solid var(--color-encre);
+  border-radius: var(--radius-pastille);
+  background: var(--color-blanc);
+  padding: 0.35rem 0.9rem;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: var(--shadow-sticker);
+}
+.etale-bouton:has(.etale-case:focus-visible) {
+  outline: 3px solid var(--color-jaune);
+  outline-offset: 2px;
+}
+.etale-fermer {
+  display: none;
+}
+.etale:has(.etale-case:checked) .etale-ouvrir {
+  display: none;
+}
+.etale:has(.etale-case:checked) .etale-fermer {
+  display: inline;
+}
+.etale-scene {
+  overflow-x: auto;
+  padding: 1rem 0.25rem 1.25rem;
+}
+.etale-grille {
+  display: grid;
+  grid-template-columns: repeat(var(--n), 7rem);
+  gap: var(--ecart);
+  width: fit-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.etale-carte {
+  position: relative;
+  z-index: var(--i);
+}
+.etale-interne {
+  transform-origin: bottom;
+  transition: transform 520ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+.etale:not(:has(.etale-case:checked)) .etale-interne {
+  transform: translateX(calc(((var(--n) - 1) / 2 - var(--i)) * (100% + var(--ecart))))
+    rotate(calc((var(--i) - (var(--n) - 1) / 2) * 2.5deg));
+}
+.etale:has(.etale-case:checked) .etale-interne {
+  transition: transform 480ms cubic-bezier(0.22, 1.18, 0.36, 1);
+  transform: rotate(calc((1 - 2 * mod(var(--i), 2)) * -2deg));
+}
+
+/* --- Pastille glissante de la barre de filtres ------------------------------ */
+
+.pastille-glisse {
+  transition:
+    transform 320ms cubic-bezier(0.3, 1.3, 0.5, 1),
+    width 320ms cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+/* --- Transition de la mosaïque (View Transitions) -------------------------- */
+
+.vt-carte {
+  view-transition-class: vt-carte;
+}
+::view-transition-group(*.vt-carte) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+
+/* --- Menu « Partager » (popover + @starting-style) --------------------------
+ * Le placement sous le bouton passe par l'ancrage CSS ; son nom est posé en
+ * style en ligne par le composant (un seul menu par page). Sans ancrage, le
+ * navigateur centre le popover ; sans popover, le menu s'affiche en dessous. */
+
+@supports selector(:popover-open) {
+  .pop {
+    margin: 0;
+    inset: auto;
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 160ms ease-out,
+      transform 160ms ease-out,
+      overlay 160ms allow-discrete,
+      display 160ms allow-discrete;
+  }
+  .pop:not(:popover-open) {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  @starting-style {
+    .pop:popover-open {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.97);
+    }
+  }
+}
+@supports selector(:popover-open) and (not (anchor-name: --a)) {
+  .pop {
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+  }
+}
+@supports (anchor-name: --a) {
+  .pop {
+    top: anchor(bottom);
+    left: anchor(left);
+    margin-top: 10px;
+    position-try-fallbacks: flip-block, flip-inline;
+  }
+}
+
+/* --- FAQ qui se déplie (<details> + interpolate-size) ---------------------- */
+
+@supports (interpolate-size: allow-keywords) and selector(::details-content) {
+  .details-anime {
+    interpolate-size: allow-keywords;
+  }
+  .details-anime::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 280ms cubic-bezier(0.2, 0.85, 0.3, 1),
+      content-visibility 280ms allow-discrete;
+  }
+  .details-anime[open]::details-content {
+    block-size: auto;
+  }
+}
+.details-signe {
+  transition: transform 200ms ease-out;
+}
+.details-anime[open] .details-signe {
+  transform: rotate(45deg);
+}
+
+/* --- Carte inclinée (« À la une ») ---------------------------------------- */
+
+.incline {
+  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 450ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.incline[data-suit="1"] {
+  transition-duration: 80ms;
+}
+
+/* --- Ruban aimanté (« Du même créateur ») ---------------------------------- */
+
+.ruban-aimante {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 2px;
+  overscroll-behavior-x: contain;
+  padding-bottom: 6px;
+}
+.ruban-aimante > * {
+  flex: 0 0 calc((100% - 36px) / 4);
+  scroll-snap-align: start;
+}
+@media (max-width: 620px) {
+  .ruban-aimante > * {
+    flex-basis: 42%;
+  }
+}
+
+/* --- Frise de la commande ----------------------------------------------------
+ * En CSS seul, et non en état React comme au labo : la page de confirmation
+ * se recharge toutes les 8 s pendant l'attente (`<meta refresh>`), et un état
+ * React repartirait de zéro à chaque fois sans jamais rien animer. Ici chaque
+ * point et chaque trait allumés jouent leur animation au premier affichage,
+ * avec un délai en cascade (--d) ; `both` montre l'état éteint pendant le
+ * délai. L'état final est posé en style en ligne par le composant : sans
+ * animation (mouvement réduit), c'est lui qu'on voit. */
+
+.frise-point[data-allume] {
+  animation: frise-point 140ms ease both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes frise-point {
+  from {
+    background: var(--color-blanc);
+  }
+  to {
+    background: var(--color-jaune);
+  }
+}
+.frise-trait {
+  transform-origin: top;
+  animation: frise-trait 160ms ease-in-out both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes frise-trait {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/*
+ * Mouvement réduit, pour les interactions.
+ *
+ * Boucle infinie (le curseur) : arrêtée — la règle globale l'accélère, elle
+ * ne l'arrête pas. Éclats : décoratifs, retirés. Délais de cascade (frise) :
+ * la règle globale raccourcit les durées, pas les délais ; sans cette règle
+ * les points s'allumeraient encore un par un.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .curseur-tape,
+  .coeur-bat,
+  .rebond,
+  .mot-tourne[data-etat],
+  .frise-point[data-allume],
+  .frise-trait {
+    animation: none;
+  }
+  .mot-tourne[data-etat="sort"] {
+    visibility: hidden;
+  }
+  .eclats {
+    display: none;
+  }
+}

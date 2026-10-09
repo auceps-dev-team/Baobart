@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 
+import { Compteur } from "@/components/anime/compteur";
+import { Parallaxe } from "@/components/anime/defilement";
+import { PileAvatars } from "@/components/anime/pile-avatars";
+import type { CreateurASuivre } from "@/lib/collections/espace";
+import { Vague } from "@/components/anime/vague";
 import {
   BLANC,
   ENCRE,
@@ -45,7 +50,15 @@ interface CarteHero {
   detail: string;
 }
 
-export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vitrine: Vitrine }) {
+export function HeroB({
+  chiffres,
+  vitrine,
+  visages = [],
+}: {
+  chiffres: ChiffresCommunaute;
+  vitrine: Vitrine;
+  visages?: CreateurASuivre[];
+}) {
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "34px 32px 0" }}>
       <div
@@ -87,18 +100,25 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
               minWidth: 0,
             }}
           >
-            Le studio partagé de l&apos;Afrique{" "}
-            <span
-              style={{
-                background: LAVANDE_PROFOND,
-                border: `3px solid ${ENCRE}`,
-                padding: "0 10px",
-                display: "inline-block",
-                transform: "rotate(-1.5deg)",
-              }}
-            >
-              créative
-            </span>
+            {/* La vague arrive mot à mot ; « créative », le sticker, en dernier.
+                Ajout du 08/10 (labo Animata), absent de la maquette. */}
+            <Vague
+              texte="Le studio partagé de l'Afrique"
+              pas={70}
+              fin={
+                <span
+                  style={{
+                    background: LAVANDE_PROFOND,
+                    border: `3px solid ${ENCRE}`,
+                    padding: "0 10px",
+                    display: "inline-block",
+                    transform: "rotate(-1.5deg)",
+                  }}
+                >
+                  créative
+                </span>
+              }
+            />
           </h1>
 
           <p
@@ -149,12 +169,15 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
 
           <div style={{ display: "flex", gap: 28, marginTop: 34 }}>
             {[
+              // Les comptes défilent jusqu'à leur valeur (Compteur, labo
+              // Animata) ; le HTML porte déjà la vraie valeur. La note reste
+              // fixe : défiler jusqu'à une note sur 5 n'apprend rien.
               {
-                valeur: new Intl.NumberFormat("fr-FR").format(chiffres.ressources),
+                valeur: <Compteur cible={chiffres.ressources} />,
                 libelle: "ressources",
               },
               {
-                valeur: new Intl.NumberFormat("fr-FR").format(chiffres.createurs),
+                valeur: <Compteur cible={chiffres.createurs} delai={150} />,
                 libelle: "créatifs",
               },
               ...(chiffres.note !== null
@@ -180,6 +203,15 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
                 </div>
               </div>
             ))}
+            {/* Des visages derrière le compte : les créateurs les plus suivis,
+                chacun vers son profil (09/10, adapté d'Animata
+                `list/avatar-list`). Aucun inventé — la liste vient de la base,
+                et la pile disparaît si elle est vide. */}
+            {visages.length > 0 ? (
+              <div style={{ alignSelf: "center" }}>
+                <PileAvatars visages={visages} />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -250,35 +282,39 @@ export function HeroB({ chiffres, vitrine }: { chiffres: ChiffresCommunaute; vit
             </Link>
           ) : null}
 
+          {/* Les deux petites cartes glissent à contre-sens au défilement
+              (parallaxe, 08/10) : 50 px d'écart sur toute la traversée, pour
+              décoller les plans sans les promener. */}
           {[vitrine.gratuite, vitrine.payante].map((c, i) =>
             c ? (
-              <Link
-                key={c.slug}
-                href={`/products/${c.slug}`}
-                scroll={false}
-                className="sticker-press"
-                style={{
-                  display: "block",
-                  border: CADRE,
-                  borderRadius: 24,
-                  background: i === 0 ? JAUNE : BLANC,
-                  boxShadow: `6px 6px 0 ${ENCRE}`,
-                  padding: 16,
-                  color: ENCRE,
-                  animation: i === 0 ? "floaty 7s ease-in-out infinite" : undefined,
-                }}
-              >
-                <div
+              <Parallaxe key={c.slug} amplitude={i === 0 ? 50 : -50}>
+                <Link
+                  href={`/products/${c.slug}`}
+                  scroll={false}
+                  className="sticker-press"
                   style={{
-                    height: 130,
+                    display: "block",
                     border: CADRE,
-                    borderRadius: 14,
-                    background: `url(${JSON.stringify(c.couverture)}) center / cover no-repeat`,
+                    borderRadius: 24,
+                    background: i === 0 ? JAUNE : BLANC,
+                    boxShadow: `6px 6px 0 ${ENCRE}`,
+                    padding: 16,
+                    color: ENCRE,
+                    animation: i === 0 ? "floaty 7s ease-in-out infinite" : undefined,
                   }}
-                />
-                <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>{c.titre}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>{c.detail}</div>
-              </Link>
+                >
+                  <div
+                    style={{
+                      height: 130,
+                      border: CADRE,
+                      borderRadius: 14,
+                      background: `url(${JSON.stringify(c.couverture)}) center / cover no-repeat`,
+                    }}
+                  />
+                  <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>{c.titre}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>{c.detail}</div>
+                </Link>
+              </Parallaxe>
             ) : null,
           )}
         </div>

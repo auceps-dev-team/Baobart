@@ -16,7 +16,14 @@
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { listerCreateurs, profilPublic, suitCeCreateur } from "@/lib/createurs/queries";
+import {
+  famillesDesCreateurs,
+  listerCreateurs,
+  profilPublic,
+  suitCeCreateur,
+  suivisParmi,
+} from "@/lib/createurs/queries";
+import type { ProductFamily } from "@/lib/domain/prisma-types";
 
 let n = 0;
 
@@ -40,7 +47,7 @@ async function compte(options: { suspendu?: boolean } = {}) {
   });
 }
 
-async function publier(vendeurId: string, ventes = 0) {
+async function publier(vendeurId: string, ventes = 0, famille?: ProductFamily) {
   n += 1;
   return db.product.create({
     data: {
@@ -51,8 +58,13 @@ async function publier(vendeurId: string, ventes = 0) {
       currency: "XOF",
       status: "PUBLISHED",
       salesCount: ventes,
+      family: famille ?? null,
+      // Une seconde d'écart par ressource : l'ordre « la plus récente
+      // d'abord » ne dépend pas de deux créations tombées sur la même
+      // milliseconde.
+      createdAt: new Date(Date.UTC(2026, 0, 1) + n * 1_000),
     },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
 }
 
@@ -171,5 +183,56 @@ describe("le suivi", () => {
     const c = await compte();
     expect(await suitCeCreateur(null, c.id)).toBe(false);
     expect(await suitCeCreateur(c.id, c.id)).toBe(false);
+  });
+
+  it("se lit pour tout l'annuaire d'un coup", async () => {
+    const suivi = await compte();
+    const pasSuivi = await compte();
+    const visiteur = await compte();
+    await db.follow.create({ data: { followerId: visiteur.id, followingId: suivi.id } });
+
+    const ensemble = await suivisParmi(visiteur.id, [suivi.id, pasSuivi.id]);
+    expect([...ensemble]).toEqual([suivi.id]);
+    expect((await suivisParmi(null, [suivi.id])).size).toBe(0);
+  });
+});
+
+// Ajouté le 09/10, avec la page Créateurs reprise de la maquette (bande de
+// travaux, filtre par famille).
+describe("l'annuaire, par famille et avec ses travaux", () => {
+  it("ne garde que ceux qui publient dans la famille, et compte tout leur catalogue", async () => {
+    const polyvalent = await compte();
+    await publier(polyvalent.id, 0, "PHOTO");
+    await publier(polyvalent.id, 0, "FONT");
+    const photographe = await compte();
+    await publier(photographe.id, 0, "PHOTO");
+
+    const liste = await listerCreateurs({ famille: "FONT" });
+    expect(liste.map((c) => c.id)).toEqual([polyvalent.id]);
+    // Le total reste celui du créateur, toutes familles confondues…
+    expect(liste[0]!.ressourcesPubliees).toBe(2);
+    // … mais les vignettes montrent ce qui l'a fait entrer dans la liste.
+    expect(liste[0]!.travaux).toHaveLength(1);
+  });
+
+  it("montre au plus cinq travaux, le plus récent d'abord", async () => {
+    const c = await compte();
+    const publies = [];
+    for (let i = 0; i < 7; i += 1) publies.push(await publier(c.id));
+
+    const [vitrine] = await listerCreateurs();
+    expect(vitrine!.travaux).toHaveLength(5);
+    expect(vitrine!.travaux.map((t) => t.slug)).toEqual(
+      publies.slice(2).reverse().map((p) => p.slug),
+    );
+  });
+
+  it("ne propose que les familles où publie un compte visible", async () => {
+    const actif = await compte();
+    await publier(actif.id, 0, "ILLUSTRATION");
+    const suspendu = await compte({ suspendu: true });
+    await publier(suspendu.id, 0, "AUDIO");
+
+    expect(await famillesDesCreateurs()).toEqual(["ILLUSTRATION"]);
   });
 });

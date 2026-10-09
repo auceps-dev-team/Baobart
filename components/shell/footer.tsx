@@ -66,8 +66,9 @@ export function Footer() {
           }}
         >
           <div>
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Link href="/" className="logo-anime" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span
+                className="logo-pastille"
                 style={{
                   width: 36,
                   height: 36,
@@ -88,7 +89,7 @@ export function Footer() {
                   style={{ width: 24, height: "auto", display: "block", marginTop: 2 }}
                 />
               </span>
-              <span style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>
+              <span className="logo-mot" style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>
                 Baobart<span style={{ color: ORANGE }}>.</span>
               </span>
             </Link>

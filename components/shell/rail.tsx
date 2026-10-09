@@ -123,6 +123,7 @@ export function Rail({
         onClick={() => setVerrouille((v) => !v)}
         aria-label={verrouille ? "Déverrouiller le rail" : "Verrouiller le rail ouvert"}
         aria-pressed={verrouille}
+        className="logo-anime"
         style={{
           display: "flex",
           alignItems: "center",
@@ -157,6 +158,7 @@ export function Rail({
           de l'en-tête y toucherait les bords.
         */}
         <span
+          className="logo-pastille"
           style={{
             width: 36,
             height: 36,
@@ -179,6 +181,7 @@ export function Rail({
         </span>
         {ouvert ? (
           <span
+            className="logo-mot"
             style={{
               fontFamily: "var(--font-display)",
               fontSize: 17,

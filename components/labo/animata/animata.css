@@ -1,0 +1,50 @@
+/*
+ * Ce qui reste propre au labo (voir LICENCE-animata.md).
+ *
+ * La vague, le défilé et les squelettes ont été promus le 08/10/2026 : leurs
+ * images clés vivent désormais dans `app/globals.css`, section ANIMATIONS.
+ * Il ne reste ici que l'effet de tache du bouton, qui n'est pas sorti du labo.
+ *
+ * Pas de `@layer` : ce fichier est chargé par la page, pas par `globals.css`,
+ * et l'ordre des couches se fixe à leur première apparition.
+ */
+
+/* --- Ripple Button (animata/button/ripple-button.css) ------------------- */
+
+.animata-ride {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background-color: var(--color-encre);
+  z-index: 1;
+  opacity: 0;
+  transition: transform 50ms linear;
+}
+.animata-ride-entre {
+  animation: animata-ride-entre 250ms ease-out forwards;
+}
+.animata-ride-sort {
+  animation: animata-ride-sort 250ms ease-out forwards;
+}
+
+@keyframes animata-ride-entre {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes animata-ride-sort {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0);
+    opacity: 1;
+  }
+}

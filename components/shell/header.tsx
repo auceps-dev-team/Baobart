@@ -6,6 +6,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { usePlaceholderTape } from "@/components/anime/placeholder-tape";
 import { deconnecter } from "@/lib/auth/actions";
 
 import {
@@ -24,7 +25,8 @@ import {
  * En-tête, traduit du bloc HEADER de « Baobart Accueil.dc.html ».
  *
  * Carte blanche contourée collée en haut, logo, champ de recherche avec
- * suggestions, menus déroulants au survol, panier et puce de compte.
+ * suggestions, menus déroulants au survol et puce de compte. (Le panier de la
+ * maquette est retiré depuis le 09/10 : voir plus bas.)
  */
 
 interface Suggestion {
@@ -101,14 +103,21 @@ function liensCompte(username: string | null): LienCompte[] {
 }
 
 export function Header({
-  cartCount = 0,
   utilisateur = null,
 }: {
-  cartCount?: number;
   utilisateur?: UtilisateurEnTete | null;
 }) {
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
+  // L'indication du champ tape ses exemples, une fois, puis revient à
+  // elle-même (09/10, adapté d'Animata `text/typing-text`). Les quatre
+  // familles nommées existent dans la barre de filtres.
+  const indication = usePlaceholderTape({
+    base: "Cherche un mockup, une illu, une font…",
+    prefixe: "Cherche",
+    exemples: ["un mockup…", "une illu…", "une font…", "une photo…"],
+    pause: focus || q !== "",
+  });
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   // Ce que le panneau a à dire. Il ne s'ouvrait que s'il y avait des
   // résultats : zéro résultat, recherche en cours et recherche en panne se
@@ -229,6 +238,7 @@ export function Header({
       >
         <Link
           href="/"
+          className="logo-anime"
           style={{
             display: "flex",
             alignItems: "center",
@@ -238,6 +248,7 @@ export function Header({
           }}
         >
           <span
+            className="logo-pastille"
             style={{
               width: 40,
               height: 40,
@@ -259,6 +270,7 @@ export function Header({
             />
           </span>
           <span
+            className="logo-mot"
             style={{
               fontFamily: "var(--font-display)",
               fontSize: 22,
@@ -293,7 +305,7 @@ export function Header({
             }}
             onFocus={() => setFocus(true)}
             onBlur={() => setTimeout(() => setFocus(false), 150)}
-            placeholder="Cherche un mockup, une illu, une font…"
+            placeholder={indication}
             aria-label="Rechercher une ressource"
             style={{
               width: "100%",
@@ -548,46 +560,14 @@ export function Header({
         </nav>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
-          <button
-            type="button"
-            style={{
-              position: "relative",
-              padding: "10px 13px",
-              border: `2.5px solid ${ENCRE}`,
-              borderRadius: 12,
-              background: BLANC,
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: ".06em",
-              cursor: "pointer",
-            }}
-          >
-            PANIER
-            {cartCount > 0 ? (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -8,
-                  right: -8,
-                  minWidth: 22,
-                  height: 22,
-                  padding: "0 5px",
-                  border: `2.5px solid ${ENCRE}`,
-                  borderRadius: 99,
-                  background: ORANGE,
-                  color: BLANC,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                {cartCount}
-              </span>
-            ) : null}
-          </button>
-
+          {/*
+            Le bouton « PANIER » de la maquette est retiré (09/10, décision
+            après les tests QA) : il n'existe pas de panier — l'achat se fait
+            ressource par ressource, par `/acheter/[slug]`. Le bouton ne faisait
+            rien et son compteur valait toujours 0. Un panier pourra revenir
+            avec la fonctionnalité qui le porte (plusieurs ressources, un seul
+            paiement).
+          */}
           <div
             onMouseEnter={() => {
               annulerFermeture();

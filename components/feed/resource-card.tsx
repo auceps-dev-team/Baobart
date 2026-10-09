@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+
+import { Eclats } from "@/components/anime/eclats";
 
 import type { CarteRessource } from "@/lib/feed/types";
 import { formatCount } from "@/lib/i18n/money";
@@ -189,6 +191,9 @@ function ActionsSurvol({
   onLike,
   onSave,
 }: ActionsProps) {
+  // Combien de « j'aime » donnés depuis que les actions sont visibles : la clé
+  // des éclats (09/10, labo « explorations »). Retirer le sien n'éclate pas.
+  const [salve, setSalve] = useState(0);
   const bouton = (fond: string): CSSProperties => ({
     width: taille,
     height: taille,
@@ -223,11 +228,15 @@ function ActionsSurvol({
           // défaut de l'ancre. Sans lui, aimer une carte ouvre sa fiche.
           e.preventDefault();
           e.stopPropagation();
+          if (!aime) setSalve((s) => s + 1);
           onLike();
         }}
-        style={bouton(aime ? "#E2622C" : "#FFFFFF")}
+        style={{ ...bouton(aime ? "#E2622C" : "#FFFFFF"), position: "relative" }}
       >
-        ♥
+        <span key={salve} className={salve > 0 && aime ? "coeur-bat" : undefined}>
+          ♥
+        </span>
+        {aime ? <Eclats salve={salve} /> : null}
       </button>
       <button
         type="button"

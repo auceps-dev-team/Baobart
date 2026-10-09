@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { Eclats } from "@/components/anime/eclats";
 import { basculerLike, basculerSuivi } from "@/lib/social/actions";
 
 const ENCRE = "#121212";
@@ -30,6 +31,12 @@ function useBascule(
   const [total, setTotal] = useState(initialTotal);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
+  // Combien de fois on est passé à « actif » par un clic : la clé des éclats
+  // et du cœur qui bat. Zéro au rendu initial — un cœur déjà plein ne bat pas.
+  const [salve, setSalve] = useState(0);
+  // Le nombre a-t-il changé sous les yeux ? Sans cela, il rebondirait au
+  // premier affichage.
+  const [abouge, setAbouge] = useState(false);
   const routeur = useRouter();
 
   function basculer() {
@@ -39,6 +46,8 @@ function useBascule(
     setErreur(null);
     setActif(!avantActif);
     setTotal(Math.max(0, avantTotal + (avantActif ? -1 : 1)));
+    setAbouge(true);
+    if (!avantActif) setSalve((s) => s + 1);
 
     demarrer(async () => {
       const reponse = await action();
@@ -58,7 +67,23 @@ function useBascule(
     });
   }
 
-  return { actif, total, erreur, enCours, basculer };
+  return { actif, total, erreur, enCours, basculer, salve, abouge };
+}
+
+/**
+ * Le nombre, qui rebondit quand il change (09/10, labo « explorations »).
+ * La clé qui change remonte l'élément et relance l'animation.
+ */
+function Nombre({ total, abouge }: { total: number; abouge: boolean }) {
+  if (total <= 0) return null;
+  return (
+    <>
+      {" · "}
+      <span key={total} className={abouge ? "rebond" : undefined}>
+        {total}
+      </span>
+    </>
+  );
 }
 
 export function BoutonJaime({
@@ -72,7 +97,7 @@ export function BoutonJaime({
   totalInitial: number;
   pleineLargeur?: boolean;
 }) {
-  const { actif, total, erreur, enCours, basculer } = useBascule(
+  const { actif, total, erreur, enCours, basculer, salve, abouge } = useBascule(
     actifInitial,
     totalInitial,
     () => basculerLike(produitId),
@@ -97,11 +122,21 @@ export function BoutonJaime({
           fontWeight: 800,
           cursor: enCours ? "wait" : "pointer",
           background: actif ? ORANGE : BLANC,
-          color: actif ? BLANC : ENCRE,
+          // Encre et non blanc sur l'orange : 5,37:1 contre 3,49:1 (calculé
+          // le 08/10 au labo « explorations », formule WCAG). L'orange est une
+          // surface (charte §4.2) ; le blanc dessus ne passait pas le seuil.
+          color: ENCRE,
         }}
       >
-        ♥ {actif ? "Aimé" : "J'aime"}
-        {total > 0 ? ` · ${total}` : ""}
+        {/* Le cœur bat et éclate quand on aime (09/10, labo « explorations »). */}
+        <span style={{ position: "relative", display: "inline-block" }}>
+          <span key={salve} className={salve > 0 && actif ? "coeur-bat" : undefined}>
+            ♥
+          </span>
+          {actif ? <Eclats salve={salve} /> : null}
+        </span>{" "}
+        {actif ? "Aimé" : "J'aime"}
+        <Nombre total={total} abouge={abouge} />
       </button>
 
       {erreur ? <Erreur texte={erreur} /> : null}
@@ -120,7 +155,7 @@ export function BoutonSuivre({
   totalInitial: number;
   chezSoi: boolean;
 }) {
-  const { actif, total, erreur, enCours, basculer } = useBascule(
+  const { actif, total, erreur, enCours, basculer, abouge } = useBascule(
     actifInitial,
     totalInitial,
     () => basculerSuivi(createurId),
@@ -165,8 +200,16 @@ export function BoutonSuivre({
           color: actif ? BLANC : ENCRE,
         }}
       >
-        {actif ? "Abonné" : "Suivre"}
-        {total > 0 ? ` · ${total}` : ""}
+        {/* Le libellé glisse d'un état à l'autre (09/10, adapté d'Animata
+            `text/swap-text`, voir components/labo/explorations/panier.tsx).
+            Les deux lignes visuelles sont cachées aux lecteurs d'écran : ils
+            n'entendent que l'état vrai, une fois. */}
+        <span className="sr-only">{actif ? "Abonné" : "Suivre"}</span>
+        <span aria-hidden className="bascule" data-actif={actif || undefined}>
+          <span>Suivre</span>
+          <span>Abonné</span>
+        </span>
+        <Nombre total={total} abouge={abouge} />
       </button>
 
       {erreur ? <Erreur texte={erreur} /> : null}

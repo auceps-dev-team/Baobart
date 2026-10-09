@@ -1,0 +1,380 @@
+/*
+ * Labo « explorations » — styles propres à app/labo/explorations.
+ *
+ * Préfixe `explo-` partout. Pas de `@layer` (même raison que animata.css :
+ * ce fichier est chargé par la page, l'ordre des couches se fixe à leur
+ * première apparition dans globals.css).
+ *
+ * Règle commune : l'état SANS cette feuille, ou sans la propriété récente
+ * qu'on essaie, est un état correct et immobile. Chaque nouveauté du
+ * navigateur est derrière un `@supports` ; chaque mouvement a son repli sous
+ * `prefers-reduced-motion: reduce`.
+ *
+ * Rappel : la règle globale de globals.css ramène DURÉES d'animation et de
+ * transition à 0,01 ms sous mouvement réduit. Elle ne touche ni aux délais,
+ * ni au nombre de répétitions, ni aux pseudo-éléments `::view-transition-*`.
+ */
+
+/* --- Mot qui tourne (text/cycle-text) ------------------------------------ */
+
+.explo-mot[data-etat="cache"] {
+  visibility: hidden;
+}
+.explo-mot[data-etat="entre"] {
+  animation: explo-mot-entre 450ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+}
+.explo-mot[data-etat="sort"] {
+  animation: explo-mot-sort 300ms ease-in both;
+}
+@keyframes explo-mot-entre {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes explo-mot-sort {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(-110%);
+    visibility: hidden;
+  }
+}
+
+/* --- Curseur de la recherche tapée (text/typing-text) -------------------- */
+
+.explo-curseur {
+  animation: explo-clignote 1s steps(1) infinite;
+}
+@keyframes explo-clignote {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* --- Bascule du bouton panier (text/swap-text) --------------------------- */
+
+.explo-bascule > span {
+  transition: transform 350ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.explo-bascule > span:nth-child(2) {
+  transform: translateY(170%);
+}
+.explo-bascule[data-actif] > span:nth-child(1) {
+  transform: translateY(-170%);
+}
+.explo-bascule[data-actif] > span:nth-child(2) {
+  transform: none;
+}
+
+/* --- Pastille du panier qui rebondit (hors Animata) ---------------------- */
+
+.explo-rebond {
+  animation: explo-rebond 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes explo-rebond {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35) translateY(-4px);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* --- Cartes étalées (card/card-spread) ----------------------------------- */
+
+.explo-etale {
+  --explo-lance: cubic-bezier(0.22, 1.18, 0.36, 1);
+  --explo-rassemble: cubic-bezier(0.33, 1, 0.68, 1);
+}
+.explo-etale-bouton {
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+  border: 2.5px solid var(--color-encre);
+  border-radius: var(--radius-pastille);
+  background: var(--color-blanc);
+  padding: 0.4rem 1rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-sticker);
+}
+.explo-etale-bouton:has(.explo-etale-case:focus-visible) {
+  outline: 3px solid var(--color-jaune);
+  outline-offset: 2px;
+}
+.explo-etale-fermer {
+  display: none;
+}
+.explo-etale:has(.explo-etale-case:checked) .explo-etale-ouvrir {
+  display: none;
+}
+.explo-etale:has(.explo-etale-case:checked) .explo-etale-fermer {
+  display: inline;
+}
+.explo-etale-scene {
+  width: 100%;
+  padding: 1.5rem 0.5rem;
+  overflow-x: auto;
+}
+.explo-etale-grille {
+  --explo-gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(4, 10rem);
+  gap: var(--explo-gap);
+  width: fit-content;
+  margin-inline: auto;
+}
+.explo-etale-carte:nth-child(1) {
+  z-index: 1;
+}
+.explo-etale-carte:nth-child(2) {
+  z-index: 2;
+}
+.explo-etale-carte:nth-child(3) {
+  z-index: 3;
+}
+.explo-etale-carte:nth-child(4) {
+  z-index: 4;
+}
+.explo-etale-carte {
+  position: relative;
+}
+.explo-etale-survol,
+.explo-etale-interne {
+  transform-origin: bottom;
+}
+.explo-etale-survol {
+  transition: transform 300ms ease-out;
+}
+.explo-etale-interne {
+  transition: transform 520ms var(--explo-rassemble);
+}
+.explo-etale:has(.explo-etale-case:checked) .explo-etale-interne {
+  transition: transform 480ms var(--explo-lance);
+}
+/* En paquet : chaque carte est ramenée vers le centre de la grille. Le
+   pourcentage est celui de la carte elle-même ; le reste compte les espaces. */
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-carte:nth-child(1) .explo-etale-interne {
+  transform: translateX(calc(150% + 1.5 * var(--explo-gap))) rotate(-3deg);
+}
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-carte:nth-child(2) .explo-etale-interne {
+  transform: translateX(calc(50% + 0.5 * var(--explo-gap))) rotate(2deg);
+}
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-carte:nth-child(3) .explo-etale-interne {
+  transform: translateX(calc(-50% - 0.5 * var(--explo-gap))) rotate(-1deg);
+}
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-carte:nth-child(4) .explo-etale-interne {
+  transform: translateX(calc(-150% - 1.5 * var(--explo-gap))) rotate(1deg);
+}
+/* Étalées : à leur place, légèrement de travers. */
+.explo-etale:has(.explo-etale-case:checked) .explo-etale-carte:nth-child(odd) .explo-etale-interne {
+  transform: rotate(-2deg);
+}
+.explo-etale:has(.explo-etale-case:checked) .explo-etale-carte:nth-child(even) .explo-etale-interne {
+  transform: translateY(0.5rem) rotate(2deg);
+}
+/* Survol du paquet : il s'évase un peu, pour dire qu'il s'ouvre. */
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-scene:hover .explo-etale-carte:nth-child(1) .explo-etale-survol {
+  transform: rotate(-6deg);
+}
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-scene:hover .explo-etale-carte:nth-child(2) .explo-etale-survol {
+  transform: rotate(-2deg);
+}
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-scene:hover .explo-etale-carte:nth-child(3) .explo-etale-survol {
+  transform: rotate(2deg);
+}
+.explo-etale:not(:has(.explo-etale-case:checked)) .explo-etale-scene:hover .explo-etale-carte:nth-child(4) .explo-etale-survol {
+  transform: rotate(6deg);
+}
+
+/* --- Onglets glissants (tabs/fluid-tabs) ---------------------------------- */
+
+.explo-pastille {
+  /* Légèrement au-delà de 1 : un dépassement, comme le ressort d'origine. */
+  transition:
+    transform 320ms cubic-bezier(0.3, 1.3, 0.5, 1),
+    width 320ms cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+/* --- Grille ↔ liste (View Transitions) ------------------------------------ */
+
+.explo-vt {
+  view-transition-class: explo-vt;
+}
+::view-transition-group(*.explo-vt) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+
+/* --- Menu « Partager » (popover + @starting-style) ------------------------ */
+
+@supports selector(:popover-open) {
+  .explo-pop {
+    margin: 0;
+    inset: auto;
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 160ms ease-out,
+      transform 160ms ease-out,
+      overlay 160ms allow-discrete,
+      display 160ms allow-discrete;
+  }
+  .explo-pop:not(:popover-open) {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  @starting-style {
+    .explo-pop:popover-open {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.97);
+    }
+  }
+}
+/* Sans ancrage CSS, `inset: auto` laisserait le menu en haut à gauche :
+   on revient au centrage par défaut du navigateur. */
+@supports selector(:popover-open) and (not (anchor-name: --a)) {
+  .explo-pop {
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+  }
+}
+@supports (anchor-name: --a) {
+  .explo-ancre {
+    anchor-name: --explo-partage;
+  }
+  .explo-pop {
+    position-anchor: --explo-partage;
+    top: anchor(bottom);
+    left: anchor(left);
+    margin-top: 10px;
+    position-try-fallbacks: flip-block;
+  }
+}
+
+/* --- FAQ qui se déplie (<details> + interpolate-size) --------------------- */
+
+@supports (interpolate-size: allow-keywords) and selector(::details-content) {
+  .explo-details {
+    interpolate-size: allow-keywords;
+  }
+  .explo-details::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 280ms cubic-bezier(0.2, 0.85, 0.3, 1),
+      content-visibility 280ms allow-discrete;
+  }
+  .explo-details[open]::details-content {
+    block-size: auto;
+  }
+}
+.explo-details-signe {
+  transition: transform 200ms ease-out;
+}
+.explo-details[open] .explo-details-signe {
+  transform: rotate(45deg);
+}
+
+/* --- Carte inclinée (hors Animata) ---------------------------------------- */
+
+.explo-incline {
+  transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  box-shadow: var(--sx, 6px) var(--sy, 6px) 0 var(--color-encre);
+  transition:
+    transform 450ms cubic-bezier(0.2, 0.85, 0.3, 1),
+    box-shadow 450ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.explo-incline[data-suit="1"] {
+  transition-duration: 80ms;
+}
+
+/* --- J'aime qui éclate (hors Animata) ------------------------------------- */
+
+.explo-coeur-bat {
+  animation: explo-coeur-bat 380ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes explo-coeur-bat {
+  0% {
+    transform: scale(0.6);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: none;
+  }
+}
+.explo-eclats {
+  pointer-events: none;
+}
+.explo-eclat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border: 1.5px solid var(--color-encre);
+  background: var(--color-jaune);
+  opacity: 0;
+  animation: explo-eclat 520ms ease-out;
+}
+.explo-eclat:nth-child(even) {
+  background: var(--color-blanc);
+}
+@keyframes explo-eclat {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-24px) scale(0.4);
+  }
+}
+
+/* --- Carrousel aimanté (scroll-snap) -------------------------------------- */
+
+.explo-ruban {
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 4px;
+  overscroll-behavior-x: contain;
+}
+.explo-ruban-item {
+  scroll-snap-align: start;
+}
+
+/* --- Mouvement réduit, pour ce qui précède -------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Boucle infinie : la règle globale l'accélère, elle ne l'arrête pas. */
+  .explo-curseur {
+    animation: none;
+  }
+  /* Éclats : purement décoratifs, on ne les montre pas. */
+  .explo-eclats {
+    display: none;
+  }
+  .explo-coeur-bat,
+  .explo-rebond,
+  .explo-mot[data-etat] {
+    animation: none;
+  }
+  /* Sans son animation, le mot sortant resterait affiché par-dessus l'autre
+     (cas d'un réglage changé en cours de rotation). */
+  .explo-mot[data-etat="sort"] {
+    visibility: hidden;
+  }
+  /* Le paquet ne s'évase pas au survol. */
+  .explo-etale-survol {
+    transform: none !important;
+  }
+}

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import type { ProductFamily } from "@/lib/domain/prisma-types";
 
 /**
  * Le profil public d'un créateur.
@@ -150,6 +151,8 @@ export async function profilPublic(
 }
 
 export interface CreateurEnVitrine {
+  /** L'identifiant du compte : c'est lui que « Suivre » vise. */
+  id: string;
   username: string;
   nom: string;
   specialite: string | null;
@@ -158,7 +161,17 @@ export interface CreateurEnVitrine {
   verifie: boolean;
   ressourcesPubliees: number;
   abonnes: number;
+  /**
+   * Ses dernières ressources publiées, cinq au plus — la bande de vignettes de
+   * la maquette (`PAGE CREATEURS`, `c.work`). Filtrées par famille quand
+   * l'annuaire l'est : on montre ce qui a fait entrer le créateur dans la
+   * liste.
+   */
+  travaux: Array<{ slug: string; titre: string; couverture: string | null }>;
 }
+
+/** Combien de vignettes par créateur, comme la maquette. */
+const TRAVAUX_PAR_CREATEUR = 5;
 
 /**
  * L'annuaire des créateurs.
@@ -173,8 +186,21 @@ export interface CreateurEnVitrine {
  * Le tri est par nombre d'abonnés puis par nom. Trier par ventes mettrait en
  * avant ceux qui vendent cher plutôt que ceux qu'on suit — et ferait de la page
  * un classement commercial.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * PAR FAMILLE (09/10)
+ *
+ * La maquette pose au-dessus de la liste des étiquettes « Populaire » qui
+ * mènent à une recherche par mot-clé. Explorer ne sait chercher que par
+ * famille (`/explore?filtre=`) : ces étiquettes auraient mené à une page qui
+ * ne filtre pas. Le filtre de l'annuaire porte donc sur la famille — « qui
+ * publie des polices ? » —, et `ressourcesPubliees` reste le total du
+ * créateur, toutes familles confondues.
  */
-export async function listerCreateurs(limite = 60): Promise<CreateurEnVitrine[]> {
+export async function listerCreateurs({
+  limite = 60,
+  famille,
+}: { limite?: number; famille?: ProductFamily } = {}): Promise<CreateurEnVitrine[]> {
   const groupes = await db.product.groupBy({
     by: ["sellerId"],
     where: { status: "PUBLISHED" },
@@ -185,9 +211,21 @@ export async function listerCreateurs(limite = 60): Promise<CreateurEnVitrine[]>
 
   const parVendeur = new Map(groupes.map((g) => [g.sellerId, g._count._all]));
 
+  // Ceux qui publient dans la famille demandée, quand il y en a une.
+  const retenus = famille
+    ? (
+        await db.product.groupBy({
+          by: ["sellerId"],
+          where: { status: "PUBLISHED", family: famille },
+        })
+      ).map((g) => g.sellerId)
+    : [...parVendeur.keys()];
+
+  if (retenus.length === 0) return [];
+
   const profils = await db.profile.findMany({
     where: {
-      userId: { in: [...parVendeur.keys()] },
+      userId: { in: retenus },
       user: { suspendedAt: null },
     },
     orderBy: [{ followerCount: "desc" }, { displayName: "asc" }],
@@ -204,7 +242,33 @@ export async function listerCreateurs(limite = 60): Promise<CreateurEnVitrine[]>
     },
   });
 
+  // Les vignettes : une seule requête pour tout l'annuaire, la plus récente
+  // d'abord, puis cinq par créateur. Prisma ne sait pas limiter « par
+  // groupe » ; le plafond borne ce qu'on lit si un créateur publiait
+  // beaucoup — au pire, un créateur prolifique prive les autres de quelques
+  // vignettes, il n'en invente aucune.
+  const ids = profils.map((p) => p.userId);
+  const recents = await db.product.findMany({
+    where: {
+      sellerId: { in: ids },
+      status: "PUBLISHED",
+      ...(famille ? { family: famille } : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: ids.length * TRAVAUX_PAR_CREATEUR * 4,
+    select: { sellerId: true, slug: true, name: true, coverUrl: true },
+  });
+  const travaux = new Map<string, CreateurEnVitrine["travaux"]>();
+  for (const r of recents) {
+    const liste = travaux.get(r.sellerId) ?? [];
+    if (liste.length < TRAVAUX_PAR_CREATEUR) {
+      liste.push({ slug: r.slug, titre: r.name, couverture: r.coverUrl });
+      travaux.set(r.sellerId, liste);
+    }
+  }
+
   return profils.map((p) => ({
+    id: p.userId,
     username: p.username,
     nom: p.displayName,
     specialite: p.speciality,
@@ -213,7 +277,37 @@ export async function listerCreateurs(limite = 60): Promise<CreateurEnVitrine[]>
     verifie: p.isVerified,
     ressourcesPubliees: parVendeur.get(p.userId) ?? 0,
     abonnes: p.followerCount,
+    travaux: travaux.get(p.userId) ?? [],
   }));
+}
+
+/**
+ * Les familles où publie au moins un créateur visible — la barre de filtres
+ * de l'annuaire. Une famille sans personne n'y figure pas : elle mènerait à
+ * une liste vide.
+ */
+export async function famillesDesCreateurs(): Promise<ProductFamily[]> {
+  const groupes = await db.product.groupBy({
+    by: ["family"],
+    where: { status: "PUBLISHED", family: { not: null }, seller: { suspendedAt: null } },
+  });
+  return groupes.map((g) => g.family).filter((f): f is ProductFamily => f !== null);
+}
+
+/**
+ * Parmi ces créateurs, ceux que le visiteur suit — en une requête pour tout
+ * l'annuaire, là où `suitCeCreateur` en ferait une par carte.
+ */
+export async function suivisParmi(
+  visiteurId: string | null,
+  createurIds: string[],
+): Promise<Set<string>> {
+  if (!visiteurId || createurIds.length === 0) return new Set();
+  const lignes = await db.follow.findMany({
+    where: { followerId: visiteurId, followingId: { in: createurIds } },
+    select: { followingId: true },
+  });
+  return new Set(lignes.map((l) => l.followingId));
 }
 
 /**

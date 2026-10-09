@@ -13,6 +13,7 @@ import {
 import type { MotifRefus } from "@/lib/checkout/achat";
 import { texteDuRetour } from "@/lib/checkout/retour";
 import { formatCount } from "@/lib/i18n/money";
+import { MenuPartage } from "@/components/anime/menu-partage";
 import { BoutonCollection } from "@/components/collections/bouton-collection";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
@@ -463,19 +464,26 @@ export function DetailProduit({
           </div>
         ) : null}
 
+        {/*
+          Un ruban qui s'aimante (09/10, labo « explorations », `scroll-snap`).
+          En grille, la règle des 900 px (globals.css) empilait les quatre
+          vignettes de 80 px l'une sous l'autre sur téléphone ; en ruban, elles
+          défilent au doigt et s'arrêtent sur une vignette, pas entre deux. Sur
+          grand écran, les quatre tiennent et rien ne défile.
+        */}
         {produit.duMemeCreateur.length > 0 ? (
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
-              gap: 12,
-            }}
+            className="ruban-aimante"
+            role="region"
+            aria-label="Du même créateur"
+            tabIndex={0}
           >
             {produit.duMemeCreateur.map((a) => (
               <Link
                 key={a.slug}
                 href={`/products/${a.slug}`}
                 title={a.titre}
+                aria-label={a.titre}
                 style={{
                   height: 80,
                   border: CADRE,
@@ -627,6 +635,9 @@ export function DetailProduit({
               rangeeInitiale={social.epingle}
             />
           </div>
+          {/* Le lien se partage où sont les clients (/a-propos : « WhatsApp,
+              Instagram, ton site ») — 09/10, labo « explorations ». */}
+          <MenuPartage slug={produit.slug} titre={produit.titre} />
         </div>
 
         <div

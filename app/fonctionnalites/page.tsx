@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { SectionsEmpilees } from "@/components/anime/sections-empilees";
 import { ENTREES_RAIL } from "@/components/shell/nav-data";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
@@ -150,53 +151,59 @@ export default async function FonctionnalitesPage() {
             </div>
           </div>
 
-          {blocs.map((b, i) => {
-            const couverture = couvertures[i % Math.max(couvertures.length, 1)] ?? null;
-            const bord = b.sombre ? `2.5px solid ${BLANC}` : CADRE;
-            return (
-              <section
-                key={b.kicker}
-                id={`bloc-${i + 1}`}
-                data-bloc-fonction={i + 1}
-                style={{ border: CADRE, borderRadius: 28, boxShadow: `7px 7px 0 ${ENCRE}`, padding: 30, background: b.fond, color: b.sombre ? BLANC : ENCRE, scrollMarginTop: 120 }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".14em", opacity: 0.65 }}>
-                    0{i + 1} · {b.kicker}
+          {/* Les cinq blocs s'empilent au défilement (08/10, labo Animata) :
+              chacun se colle sous l'en-tête et recouvre le précédent. Plus
+              haut que l'écran — sur téléphone surtout —, un bloc se colle par
+              le bas, une fois lu en entier : voir `SectionsEmpilees`. */}
+          <SectionsEmpilees>
+            {blocs.map((b, i) => {
+              const couverture = couvertures[i % Math.max(couvertures.length, 1)] ?? null;
+              const bord = b.sombre ? `2.5px solid ${BLANC}` : CADRE;
+              return (
+                <section
+                  key={b.kicker}
+                  id={`bloc-${i + 1}`}
+                  data-bloc-fonction={i + 1}
+                  style={{ border: CADRE, borderRadius: 28, boxShadow: `7px 7px 0 ${ENCRE}`, padding: 30, background: b.fond, color: b.sombre ? BLANC : ENCRE, scrollMarginTop: 120 }}
+                >
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".14em", opacity: 0.65 }}>
+                      0{i + 1} · {b.kicker}
+                    </div>
+                    <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3.6vw,44px)", lineHeight: 1, letterSpacing: "-1.6px", margin: "10px 0 0", textTransform: "uppercase" }}>{b.titre}</h2>
+                    <p style={{ maxWidth: 560, margin: "12px auto 0", fontSize: 15.5, fontWeight: 500, lineHeight: 1.5, opacity: 0.8 }}>{b.intro}</p>
                   </div>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3.6vw,44px)", lineHeight: 1, letterSpacing: "-1.6px", margin: "10px 0 0", textTransform: "uppercase" }}>{b.titre}</h2>
-                  <p style={{ maxWidth: 560, margin: "12px auto 0", fontSize: 15.5, fontWeight: 500, lineHeight: 1.5, opacity: 0.8 }}>{b.intro}</p>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(320px,100%),1fr))", gap: 22, marginTop: 26, alignItems: "stretch" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14, order: b.inverse ? 2 : 1 }}>
-                    {b.items.map((it) => (
-                      <div key={it.t} style={{ borderRadius: 20, padding: 18, background: b.sombre ? "#1E1E1E" : BLANC, border: bord }}>
-                        <div style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.25 }}>{it.t}</div>
-                        <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, marginTop: 6, opacity: 0.8 }}>{it.d}</div>
-                      </div>
-                    ))}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(320px,100%),1fr))", gap: 22, marginTop: 26, alignItems: "stretch" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14, order: b.inverse ? 2 : 1 }}>
+                      {b.items.map((it) => (
+                        <div key={it.t} style={{ borderRadius: 20, padding: 18, background: b.sombre ? "#1E1E1E" : BLANC, border: bord }}>
+                          <div style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.25 }}>{it.t}</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, marginTop: 6, opacity: 0.8 }}>{it.d}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {couverture ? (
+                      <Link
+                        href={`/products/${couverture.slug}` as Route}
+                        aria-label={couverture.titre}
+                        style={{
+                          display: "block",
+                          minHeight: 360,
+                          borderRadius: 22,
+                          order: b.inverse ? 1 : 2,
+                          border: bord,
+                          boxShadow: `6px 6px 0 ${b.sombre ? ORANGE : ENCRE}`,
+                          background: `url(${JSON.stringify(couverture.couverture)}) center / cover no-repeat`,
+                        }}
+                      />
+                    ) : (
+                      <div style={{ minHeight: 360, borderRadius: 22, order: b.inverse ? 1 : 2, border: bord, background: `repeating-linear-gradient(135deg,${LAVANDE_CLAIR} 0 8px,${BLANC} 8px 18px)` }} />
+                    )}
                   </div>
-                  {couverture ? (
-                    <Link
-                      href={`/products/${couverture.slug}` as Route}
-                      aria-label={couverture.titre}
-                      style={{
-                        display: "block",
-                        minHeight: 360,
-                        borderRadius: 22,
-                        order: b.inverse ? 1 : 2,
-                        border: bord,
-                        boxShadow: `6px 6px 0 ${b.sombre ? ORANGE : ENCRE}`,
-                        background: `url(${JSON.stringify(couverture.couverture)}) center / cover no-repeat`,
-                      }}
-                    />
-                  ) : (
-                    <div style={{ minHeight: 360, borderRadius: 22, order: b.inverse ? 1 : 2, border: bord, background: `repeating-linear-gradient(135deg,${LAVANDE_CLAIR} 0 8px,${BLANC} 8px 18px)` }} />
-                  )}
-                </div>
-              </section>
-            );
-          })}
+                </section>
+              );
+            })}
+          </SectionsEmpilees>
 
           <div style={{ border: CADRE, borderRadius: 28, background: ORANGE, color: BLANC, boxShadow: `7px 7px 0 ${ENCRE}`, padding: "40px 32px", textAlign: "center" }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(30px,4.2vw,52px)", lineHeight: 0.98, letterSpacing: "-2px", margin: 0, textTransform: "uppercase" }}>

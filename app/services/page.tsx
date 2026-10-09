@@ -176,6 +176,42 @@ export default async function ServicesPage({
                 Les services paraissent après relecture. Reviens dans un jour
                 ou deux — ou propose le tien.
               </p>
+              {/* La phrase invitait à proposer sans y mener (relevé aux tests
+                  QA du 09/10 : « pas d'appel à l'action ») : le bouton suit. */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                <Link
+                  href={"/services/deposer" as Route}
+                  className="sticker-press"
+                  style={{
+                    padding: "11px 18px",
+                    border: CADRE,
+                    borderRadius: 14,
+                    background: JAUNE,
+                    boxShadow: `4px 4px 0 ${ENCRE}`,
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: ENCRE,
+                  }}
+                >
+                  Proposer mon service
+                </Link>
+                {categorieActive ? (
+                  <Link
+                    href={"/services" as Route}
+                    style={{
+                      padding: "11px 18px",
+                      border: CADRE,
+                      borderRadius: 14,
+                      background: BLANC,
+                      fontSize: 13.5,
+                      fontWeight: 800,
+                      color: ENCRE,
+                    }}
+                  >
+                    Voir tous les services
+                  </Link>
+                ) : null}
+              </div>
             </div>
           ) : (
             <div

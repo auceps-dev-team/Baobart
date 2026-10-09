@@ -100,8 +100,9 @@ export async function DashboardSidebar({
         gap: 16,
       }}
     >
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <Link href="/" className="logo-anime" style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span
+          className="logo-pastille"
           style={{
             width: 38,
             height: 38,
@@ -122,7 +123,7 @@ export async function DashboardSidebar({
             style={{ width: 26, height: "auto", display: "block", marginTop: 2 }}
           />
         </span>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>
+        <span className="logo-mot" style={{ fontFamily: "var(--font-display)", fontSize: 19 }}>
           Baobart<span style={{ color: ORANGE }}>.</span>
         </span>
       </Link>

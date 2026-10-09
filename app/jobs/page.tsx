@@ -161,6 +161,42 @@ export default async function JobsPage({
                 Les offres paraissent après relecture. Reviens dans un jour ou
                 deux — ou publie la tienne.
               </p>
+              {/* La phrase invitait à publier sans y mener (relevé aux tests QA
+                  du 09/10 : « pas d'appel à l'action ») : le bouton suit. */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                <Link
+                  href="/jobs/deposer"
+                  className="sticker-press"
+                  style={{
+                    padding: "11px 18px",
+                    border: CADRE,
+                    borderRadius: 14,
+                    background: JAUNE,
+                    boxShadow: `4px 4px 0 ${ENCRE}`,
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: ENCRE,
+                  }}
+                >
+                  Publier une mission
+                </Link>
+                {type ? (
+                  <Link
+                    href={"/jobs" as Route}
+                    style={{
+                      padding: "11px 18px",
+                      border: CADRE,
+                      borderRadius: 14,
+                      background: BLANC,
+                      fontSize: 13.5,
+                      fontWeight: 800,
+                      color: ENCRE,
+                    }}
+                  >
+                    Voir toutes les missions
+                  </Link>
+                ) : null}
+              </div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 24 }}>
