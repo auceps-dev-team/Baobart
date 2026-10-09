@@ -2,6 +2,9 @@ import "server-only";
 
 import sharp from "sharp";
 
+import { journal } from "@/lib/observabilite/journal";
+
+import { filigraner, texteDuFiligrane } from "./filigrane";
 import { formatDe } from "./formats";
 import {
   PREFIXE_PUBLIC,
@@ -20,8 +23,36 @@ import {
  * privé derrière une URL signée.
  */
 
-/** Largeur maximale d'un aperçu : au-delà, le feed ne gagne plus rien. */
-const LARGEUR_APERCU = 1400;
+/**
+ * Largeur maximale d'un aperçu, et sa qualité.
+ *
+ * 800 px en WebP qualité 60 : `Doc/SPEC_BAOBART_SHIELD.md` §3.1 (« aperçu
+ * détail ~800 px, q60, filigrane diagonal visible »). Avant le 09/10/2026 :
+ * 1 400 px en qualité 80, sans marque — assez pour un usage réel de l'image,
+ * ce qui en faisait la version gratuite de ce qui est vendu. La carte du fil
+ * l'affiche sur moins de 400 px : elle n'y perd rien.
+ */
+export const LARGEUR_APERCU = 800;
+export const QUALITE_APERCU = 60;
+
+/**
+ * Change quand la recette de l'aperçu change.
+ *
+ * Les aperçus sont servis avec `Cache-Control: immutable` pour un an : réécrire
+ * la MÊME clé laisserait l'ancienne image — grande et sans filigrane — dans le
+ * cache des navigateurs et du CDN. Une nouvelle clé force le nouveau rendu ;
+ * l'ancienne est supprimée par `scripts/regenerer-apercus.ts`.
+ */
+export const VERSION_APERCU = 2;
+
+export function cleDApercu(mediaId: string): string {
+  return `${PREFIXE_PUBLIC}apercus/${mediaId}-v${VERSION_APERCU}.webp`;
+}
+
+/** La clé d'avant le filigrane, à supprimer. */
+export function ancienneCleDApercu(mediaId: string): string {
+  return `${PREFIXE_PUBLIC}apercus/${mediaId}.webp`;
+}
 
 /**
  * Au-delà, on renonce à l'aperçu plutôt que de charger le fichier en mémoire.
@@ -63,6 +94,8 @@ export async function produireApercu(input: {
   cleSource: string;
   nomFichier: string;
   taille: number;
+  /** Le pseudo du créateur, écrit dans le filigrane. */
+  pseudo: string | null;
 }): Promise<Apercu | null> {
   if (!apercuPossible(input.nomFichier, input.taille)) return null;
 
@@ -79,7 +112,7 @@ export async function produireApercu(input: {
 
     const metadonnees = await image.metadata();
 
-    const rendu = await image
+    const reduite = await image
       .rotate() // respecte l'orientation EXIF, sinon les photos sortent couchées
       .resize({
         width: LARGEUR_APERCU,
@@ -87,10 +120,16 @@ export async function produireApercu(input: {
         withoutEnlargement: true,
         fit: "inside",
       })
-      .webp({ quality: 80 })
+      // Sans perte à l'étape intermédiaire : la seule compression est la finale.
+      .png()
+      .toBuffer();
+
+    const marquee = await filigraner(reduite, texteDuFiligrane(input.pseudo));
+    const rendu = await sharp(marquee)
+      .webp({ quality: QUALITE_APERCU })
       .toBuffer({ resolveWithObject: true });
 
-    const cle = `${PREFIXE_PUBLIC}apercus/${input.mediaId}.webp`;
+    const cle = cleDApercu(input.mediaId);
 
     await deposerObjet({
       cle,
@@ -106,7 +145,14 @@ export async function produireApercu(input: {
       largeur: metadonnees.width ?? rendu.info.width,
       hauteur: metadonnees.height ?? rendu.info.height,
     };
-  } catch {
+  } catch (cause) {
+    // Un fichier illisible n'empêche pas la ressource d'exister. Mais le
+    // journal le dit : un filigrane qui échoue (police absente) ne doit pas
+    // passer pour une image corrompue.
+    journal.avertissement("aperçu non produit", {
+      media: input.mediaId,
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
     return null;
   }
 }

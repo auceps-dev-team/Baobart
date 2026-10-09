@@ -40,6 +40,10 @@ RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+# La police du filigrane des aperçus (lib/upload/filigrane.ts). Lue à
+# l'exécution, elle n'est pas tracée par la sortie standalone ; et Alpine n'a
+# aucune police système : sans cette ligne, le filigrane sortirait en carrés.
+COPY --from=builder /app/assets ./assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma

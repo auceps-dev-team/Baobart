@@ -56,7 +56,7 @@
 | Fonctionnalité | Spec | Module | Statut | Preuve/tests | Dette |
 |---|---|---|---|---|---|
 | Envoi de fichiers (24 formats, URL signée, direct-to-storage) | §3.9 | `lib/upload/*` | ✅ | 13 tests + bout en bout MinIO | — |
-| Aperçus (vignette publique, source privée) | `SPEC_LIVRAISON_PREVIEWS_ASSETS.md` | `lib/upload/*` | ✅ | 200/403 vérifiés | Formats non-image sans aperçu auto (PSD, AI, TTF, MP4, ZIP) — choix assumé |
+| Aperçus (vignette publique, source privée) | `SPEC_LIVRAISON_PREVIEWS_ASSETS.md`, `SPEC_BAOBART_SHIELD.md` §3 | `lib/upload/*`, `lib/upload/filigrane.ts`, `scripts/regenerer-apercus.ts` | ✅ | 200/403 vérifiés ; v1.86.0 : 16 tests unitaires + 7 cas d’intégration, contre-épreuves | **Filigrane visible depuis v1.86.0** : `@pseudo · Baobart` en diagonale, répété sur toute l'image, blanc sur ombre noire ; aperçu ramené de 1 400 px q80 à 800 px q60 (spec §3.1). Police embarquée (`assets/polices/Inter-Bold.otf`, OFL) : Alpine n'en a aucune, et une police demandée par son nom y sort en carrés sans erreur (mesuré le 09/10). Nouvelle clé `-v2` : l'ancienne est servie « immutable » un an. **Reste :** les anciens aperçus à régénérer après déploiement (`pnpm apercus:regenerer`) ; pas de vignette 400 px distincte pour le fil ; pas d'anti-hotlink (les aperçus sont servis par le stockage, hors de Next) ; formats non-image sans aperçu auto (PSD, AI, TTF, MP4, ZIP) ; les extraits audio/vidéo sont servis tels quels |
 | Livraison après achat (URL signée, journal de consommation) | §3.9 | `lib/ventes/*` | ✅ | 8 tests, octets vérifiés | Durée d'URL Gumroad dépend de la taille du fichier — non répliqué |
 | `UploadReservation` orphelins | §0-bis | `lib/upload/*` | ⚠️ | balayage existe | Lignes « uploaded » s'accumulent comme journal |
 
