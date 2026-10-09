@@ -5,9 +5,9 @@ import sharp from "sharp";
 import { journal } from "@/lib/observabilite/journal";
 
 import { filigraner, texteDuFiligrane } from "./filigrane";
+import { cleDApercu, cleDeVignette } from "./vignette";
 import { formatDe } from "./formats";
 import {
-  PREFIXE_PUBLIC,
   deposerObjet,
   telechargerObjet,
   urlPublique,
@@ -35,23 +35,56 @@ import {
 export const LARGEUR_APERCU = 800;
 export const QUALITE_APERCU = 60;
 
+/** La vignette du fil : 400 px, qualité 65 (spec §3.1, « miniature feed »). */
+export const LARGEUR_VIGNETTE = 400;
+export const QUALITE_VIGNETTE = 65;
+
+// Les clés vivent dans `./vignette` : la carte du fil, côté navigateur, en
+// déduit l'adresse de la vignette.
+export { cleDApercu, cleDeVignette, VERSION_APERCU } from "./vignette";
+
 /**
- * Change quand la recette de l'aperçu change.
+ * Les métadonnées XMP posées dans chaque aperçu : qui l'a créé, et le refus
+ * de la fouille de données pour l'entraînement d'IA.
  *
- * Les aperçus sont servis avec `Cache-Control: immutable` pour un an : réécrire
- * la MÊME clé laisserait l'ancienne image — grande et sans filigrane — dans le
- * cache des navigateurs et du CDN. Une nouvelle clé force le nouveau rendu ;
- * l'ancienne est supprimée par `scripts/regenerer-apercus.ts`.
+ * ════════════════════════════════════════════════════════════════════════════
+ * LE CHAMP « DATA MINING » DE L'IPTC
+ *
+ * `plus:DataMining` (espace `http://ns.useplus.org/ldf/xmp/1.0/`), valeur
+ * `DMI-PROHIBITED-EXCEPTSEARCHENGINEINDEXING` : interdit sauf l'indexation
+ * par les moteurs de recherche — la fiche doit rester trouvable. Vocabulaire
+ * lu le 09/10/2026 dans le code d'exiftool 13.59 (`Image/ExifTool/PLUS.pm`),
+ * la page de l'IPTC n'étant pas joignable depuis cet environnement ; l'aperçu
+ * produit a été relu par exiftool, qui décode la valeur (voir le commit).
+ *
+ * C'est une DÉCLARATION, pas une serrure : un robot qui ne lit pas les
+ * métadonnées, ou les jette, n'est arrêté par rien. Elle compte pour qui
+ * respecte la règle — et comme preuve d'une réserve explicite.
  */
-export const VERSION_APERCU = 2;
-
-export function cleDApercu(mediaId: string): string {
-  return `${PREFIXE_PUBLIC}apercus/${mediaId}-v${VERSION_APERCU}.webp`;
-}
-
-/** La clé d'avant le filigrane, à supprimer. */
-export function ancienneCleDApercu(mediaId: string): string {
-  return `${PREFIXE_PUBLIC}apercus/${mediaId}.webp`;
+export function xmpDe(pseudo: string | null): string {
+  const echapper = (t: string) =>
+    t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const auteur = echapper(pseudo ? `@${pseudo}` : "Baobart");
+  const droits = echapper(
+    `© ${pseudo ? `@${pseudo}` : "le créateur"} — aperçu Baobart. Reproduction et entraînement d'IA interdits.`,
+  );
+  return [
+    `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>`,
+    `<x:xmpmeta xmlns:x="adobe:ns:meta/">`,
+    `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">`,
+    `<rdf:Description rdf:about=""`,
+    ` xmlns:dc="http://purl.org/dc/elements/1.1/"`,
+    ` xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/"`,
+    ` xmlns:plus="http://ns.useplus.org/ldf/xmp/1.0/"`,
+    ` xmpRights:Marked="True"`,
+    ` plus:DataMining="http://ns.useplus.org/ldf/vocab/DMI-PROHIBITED-EXCEPTSEARCHENGINEINDEXING">`,
+    `<dc:creator><rdf:Seq><rdf:li>${auteur}</rdf:li></rdf:Seq></dc:creator>`,
+    `<dc:rights><rdf:Alt><rdf:li xml:lang="x-default">${droits}</rdf:li></rdf:Alt></dc:rights>`,
+    `</rdf:Description>`,
+    `</rdf:RDF>`,
+    `</x:xmpmeta>`,
+    `<?xpacket end="w"?>`,
+  ].join("");
 }
 
 /**
@@ -112,30 +145,40 @@ export async function produireApercu(input: {
 
     const metadonnees = await image.metadata();
 
-    const reduite = await image
-      .rotate() // respecte l'orientation EXIF, sinon les photos sortent couchées
-      .resize({
-        width: LARGEUR_APERCU,
-        // On ne grossit jamais une petite image : ce serait du flou en plus lourd.
-        withoutEnlargement: true,
-        fit: "inside",
-      })
-      // Sans perte à l'étape intermédiaire : la seule compression est la finale.
-      .png()
-      .toBuffer();
+    // Orientation EXIF appliquée une fois : sinon les photos sortent couchées.
+    const redressee = await image.rotate().png().toBuffer();
+    const texte = texteDuFiligrane(input.pseudo);
+    const xmp = xmpDe(input.pseudo);
 
-    const marquee = await filigraner(reduite, texteDuFiligrane(input.pseudo));
-    const rendu = await sharp(marquee)
-      .webp({ quality: QUALITE_APERCU })
-      .toBuffer({ resolveWithObject: true });
+    /** Une taille : réduite, marquée à SA largeur, compressée, signée en XMP. */
+    const rendre = async (largeur: number, qualite: number) => {
+      const reduite = await sharp(redressee)
+        .resize({
+          width: largeur,
+          // On ne grossit jamais une petite image : ce serait du flou en plus lourd.
+          withoutEnlargement: true,
+          fit: "inside",
+        })
+        // Sans perte à l'étape intermédiaire : la seule compression est la finale.
+        .png()
+        .toBuffer();
+      const marquee = await filigraner(reduite, texte);
+      return sharp(marquee).withXmp(xmp).webp({ quality: qualite }).toBuffer({ resolveWithObject: true });
+    };
+
+    const [rendu, vignette] = await Promise.all([
+      rendre(LARGEUR_APERCU, QUALITE_APERCU),
+      rendre(LARGEUR_VIGNETTE, QUALITE_VIGNETTE),
+    ]);
+
+    // La vignette AVANT l'aperçu : la base ne garde que l'adresse de l'aperçu,
+    // et la carte du fil en déduit celle de la vignette. Déposée après, une
+    // vignette qui échoue laisserait une couverture qui pointe vers une
+    // vignette absente.
+    await deposerObjet({ cle: cleDeVignette(input.mediaId), corps: vignette.data, contentType: "image/webp" });
 
     const cle = cleDApercu(input.mediaId);
-
-    await deposerObjet({
-      cle,
-      corps: rendu.data,
-      contentType: "image/webp",
-    });
+    await deposerObjet({ cle, corps: rendu.data, contentType: "image/webp" });
 
     return {
       cle,

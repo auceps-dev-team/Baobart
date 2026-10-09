@@ -24,8 +24,8 @@ vi.mock("@/lib/upload/storage", async (original) => ({
 }));
 
 import { db } from "@/lib/db";
-import { ancienneCleDApercu, cleDApercu } from "@/lib/upload/apercu";
-import { mediaDeLAncienneCle, regenererApercus } from "@/lib/upload/regeneration";
+import { regenererApercus } from "@/lib/upload/regeneration";
+import { anciennesClesDApercu, cleDApercu, cleDeVignette } from "@/lib/upload/vignette";
 
 let n = 0;
 
@@ -35,8 +35,12 @@ async function image(largeur: number, hauteur: number): Promise<Buffer> {
     .toBuffer();
 }
 
-/** Une ressource publiée avant le filigrane : source privée, ancien aperçu public. */
-async function ressourceDAvant(options: { sourcePresente?: boolean } = {}) {
+/**
+ * Une ressource publiée par une recette périmée : source privée, ancien
+ * aperçu public. `recette` 1 = avant le filigrane (`<id>.webp`), 2 = v1.86.0
+ * (`<id>-v2.webp`, sans vignette).
+ */
+async function ressourceDAvant(options: { sourcePresente?: boolean; recette?: 1 | 2 } = {}) {
   n += 1;
   const vendeur = await db.user.create({
     data: {
@@ -61,7 +65,7 @@ async function ressourceDAvant(options: { sourcePresente?: boolean } = {}) {
     data: { productId: produit.id, mediaId: media.id, filename: `visuel-${n}.png`, sizeBytes: source.length },
   });
 
-  const ancienne = ancienneCleDApercu(media.id);
+  const ancienne = anciennesClesDApercu(media.id)[(options.recette ?? 1) - 1]!;
   objets.set(ancienne, await image(1400, 700));
   await db.product.update({
     where: { id: produit.id },
@@ -75,31 +79,24 @@ beforeEach(() => {
   objets.clear();
 });
 
-describe("reconnaître une ancienne clé", () => {
-  it("prend l'aperçu d'avant, pas celui du filigrane", () => {
-    expect(mediaDeLAncienneCle("public/apercus/abc123.webp")).toBe("abc123");
-    expect(mediaDeLAncienneCle("public/apercus/abc123-v2.webp")).toBeNull();
-    expect(mediaDeLAncienneCle("public/extraits/p1/a.webp")).toBeNull();
-  });
-});
-
 describe("régénérer les aperçus", () => {
   it("ne touche à rien sans --appliquer", async () => {
     const r = await ressourceDAvant();
 
     const issues = await regenererApercus({ appliquer: false });
 
-    expect(issues).toEqual([{ cle: r.ancienne, issue: "REFAIT", couvertures: 1 }]);
+    expect(issues).toEqual([{ media: r.mediaId, cles: [r.ancienne], issue: "REFAIT", couvertures: 1 }]);
     expect(objets.has(r.ancienne)).toBe(true);
     expect(objets.has(cleDApercu(r.mediaId))).toBe(false);
   });
 
-  it("refait l'aperçu marqué, repointe la couverture, et supprime l'ancien", async () => {
-    const r = await ressourceDAvant();
+  it.each([1, 2] as const)("refait un aperçu de la recette %i, avec sa vignette, et supprime l'ancien", async (recette) => {
+    const r = await ressourceDAvant({ recette });
 
     const issues = await regenererApercus({ appliquer: true });
 
-    expect(issues).toEqual([{ cle: r.ancienne, issue: "REFAIT", couvertures: 1 }]);
+    expect(issues).toEqual([{ media: r.mediaId, cles: [r.ancienne], issue: "REFAIT", couvertures: 1 }]);
+    expect(await sharp(objets.get(cleDeVignette(r.mediaId))!).metadata()).toMatchObject({ width: 400 });
     // L'ancien — grand, sans marque — ne répond plus.
     expect(objets.has(r.ancienne)).toBe(false);
     const nouveau = objets.get(cleDApercu(r.mediaId));
@@ -123,7 +120,7 @@ describe("régénérer les aperçus", () => {
 
     const issues = await regenererApercus({ appliquer: true });
 
-    expect(issues).toMatchObject([{ cle: r.ancienne, issue: "ECHEC" }]);
+    expect(issues).toMatchObject([{ media: r.mediaId, cles: [r.ancienne], issue: "ECHEC" }]);
     expect(objets.has(r.ancienne)).toBe(true);
     const produit = await db.product.findUniqueOrThrow({ where: { id: r.produitId } });
     expect(produit.coverUrl).toBe(`https://cdn.baobart.test/${r.ancienne}`);
@@ -134,7 +131,22 @@ describe("régénérer les aperçus", () => {
 
     const issues = await regenererApercus({ appliquer: true });
 
-    expect(issues).toEqual([{ cle: "public/apercus/media-disparu.webp", issue: "ORPHELIN_SUPPRIME" }]);
+    expect(issues).toEqual([
+      { media: "media-disparu", cles: ["public/apercus/media-disparu.webp"], issue: "ORPHELIN_SUPPRIME" },
+    ]);
     expect(objets.size).toBe(0);
+  });
+
+  it("refait une seule fois un média qui a deux clés périmées, et les supprime toutes", async () => {
+    const r = await ressourceDAvant({ recette: 1 });
+    const v2 = anciennesClesDApercu(r.mediaId)[1]!;
+    objets.set(v2, await image(800, 400));
+
+    const issues = await regenererApercus({ appliquer: true });
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ media: r.mediaId, issue: "REFAIT" });
+    expect([...(issues[0]!.cles)].sort()).toEqual([r.ancienne, v2].sort());
+    expect(objets.has(r.ancienne) || objets.has(v2)).toBe(false);
   });
 });

@@ -200,7 +200,7 @@ Upload (navigateur)
 
 | Phase | Contenu Shield | Statut |
 |---|---|---|
-| **M1** | **Couche 2** (previews filigranés + URLs signées) — levier commercial + anti-copie | **En partie fait (v1.86.0)** : filigrane visible et aperçu 800 px q60 ; originaux derrière URLs signées. Reste : vignette 400 px du fil, anti-hotlink, `noindex` des aperçus |
+| **M1** | **Couche 2** (previews filigranés + URLs signées) — levier commercial + anti-copie | **En grande partie fait** : filigrane visible, aperçu 800 px q60 (v1.86.0), vignette 400 px q65 du fil, réserve IPTC « Data Mining » en XMP, robots d'entraînement refusés, `noai` (v1.87.0) ; originaux derrière URLs signées. Reste : anti-hotlink (CDN) |
 | **M6** | **Couche 1** complète (pHash, filigrane invisible, C2PA, OTS option) + **couche 3** (worker GPU, niveaux, aperçu avant/après) | Badge « Shield » visible |
 | **M7+** | **Couche 4** : procédure de retrait automatisée, veille inversée, déclarations IA, indicateurs | Boucle continue |
 

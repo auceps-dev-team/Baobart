@@ -171,10 +171,47 @@ export async function planDuSite(): Promise<MetadataRoute.Sitemap> {
   }
 }
 
+/**
+ * Les robots d'ENTRAÎNEMENT d'IA, refusés partout (Baobart Shield, couche 3 —
+ * le volet déclaratif).
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * CE QUE CETTE LISTE FAIT, ET CE QU'ELLE NE FAIT PAS
+ *
+ * `robots.txt` est une consigne, pas une serrure : seuls les robots qui la
+ * respectent s'arrêtent. Un aspirateur qui ment sur son nom passe — c'est au
+ * CDN de le bloquer.
+ *
+ * Seuls les robots qui collectent pour ENTRAÎNER des modèles sont nommés. Les
+ * robots de recherche des assistants (OAI-SearchBot, Claude-SearchBot…) et les
+ * lectures déclenchées par un utilisateur restent permis : bloquer ceux-là
+ * retirerait Baobart des réponses où un acheteur pourrait le trouver, sans
+ * rien protéger de plus — l'image publique y est de toute façon l'aperçu
+ * filigrané. Choix à revoir si la politique change.
+ *
+ * Liste lue le 09/10/2026 dans des guides tiers, PAS sur les pages des
+ * éditeurs, injoignables depuis l'environnement où elle a été écrite. À
+ * revérifier chez chacun : les noms changent, se scindent, disparaissent.
+ * `anthropic-ai` est un ancien nom, gardé : il ne coûte rien.
+ */
+export const ROBOTS_D_ENTRAINEMENT = [
+  "GPTBot", // OpenAI
+  "ClaudeBot", // Anthropic
+  "anthropic-ai", // Anthropic, ancien nom
+  "CCBot", // Common Crawl, le corpus de nombreux modèles ouverts
+  "Google-Extended", // Google, entraînement de Gemini — sans effet sur la recherche
+  "Applebot-Extended", // Apple, entraînement d'Apple Intelligence
+  "Meta-ExternalAgent", // Meta
+  "Bytespider", // ByteDance
+] as const;
+
 export function consignesAuxRobots(): MetadataRoute.Robots {
   const base = urlDuSite();
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: [...CHEMINS_EXCLUS] }],
+    rules: [
+      { userAgent: "*", allow: "/", disallow: [...CHEMINS_EXCLUS] },
+      { userAgent: [...ROBOTS_D_ENTRAINEMENT], disallow: "/" },
+    ],
     ...(base ? { sitemap: `${base}/sitemap.xml` } : {}),
   };
 }

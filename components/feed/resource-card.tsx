@@ -4,6 +4,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 
 import type { CarteRessource } from "@/lib/feed/types";
 import { formatCount } from "@/lib/i18n/money";
+import { vignetteDe } from "@/lib/upload/vignette";
 
 /**
  * Carte de ressource du feed.
@@ -347,7 +348,16 @@ export function CarteMosaique(props: CarteProps) {
           // déclarés, et une couverture peut venir d'ailleurs (voir cms/corps).
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={r.coverUrl}
+            // La vignette de 400 px pour l'écran ordinaire, l'aperçu de 800 px
+            // pour un écran dense : le navigateur choisit, la page ne charge
+            // plus cinquante images de fiche (Baobart Shield §3.1).
+            src={vignetteDe(r.coverUrl)}
+            srcSet={
+              vignetteDe(r.coverUrl) === r.coverUrl
+                ? undefined
+                : `${vignetteDe(r.coverUrl)} 400w, ${r.coverUrl} 800w`
+            }
+            sizes="(max-width: 700px) 100vw, 360px"
             alt={r.title}
             loading="lazy"
             decoding="async"

@@ -293,7 +293,8 @@ Le code range les fichiers ainsi :
 
 ```
 produits/<id>/…            privé  — ce que l'acheteur paie
-public/apercus/<id>-v2.webp public — la vignette de la grille (800 px, filigranée)
+public/apercus/<id>-v3.webp     public — l'aperçu de la fiche (800 px, filigrané)
+public/apercus/<id>-v3-400.webp public — la vignette du fil (400 px, filigranée)
 public/extraits/<id>/…     public — l'extrait audio ou vidéo
 ```
 
@@ -306,13 +307,14 @@ cette API** : la pose échoue en silence, par choix — un envoi ne doit pas
 Vérification, une fois déployé :
 
 ```bash
-curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID-v2.webp"
+curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID-v3.webp"
 curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/produits/ID/fichier.zip"
 ```
 
-**Depuis v1.86.0, une fois après le déploiement :** les aperçus publiés avant
-le filigrane (`public/apercus/<id>.webp`, 1 400 px, sans marque) restent
-publics tant qu'on ne les refait pas. `pnpm apercus:regenerer` dit ce qu'il
+**Après chaque déploiement qui change la recette des aperçus (v1.86.0,
+v1.87.0) :** les aperçus d'une recette périmée (`<id>.webp` : 1 400 px sans
+marque ; `<id>-v2.webp` : sans vignette ni métadonnées) restent publics tant
+qu'on ne les refait pas. `pnpm apercus:regenerer` dit ce qu'il
 ferait ; `pnpm apercus:regenerer -- --appliquer` les refait sous leur nouvelle
 clé, repointe les couvertures et supprime les anciens. Un échec est listé et
 l'ancien aperçu est gardé — la couverture ne se vide pas en silence.
@@ -602,7 +604,7 @@ Trois choses à faire dessus, dans cet ordre :
 3. **Vérifier la frontière**, une fois déployé :
 
 ```bash
-curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID-v2.webp"
+curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID-v3.webp"
 curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/produits/ID/fichier.zip"
 ```
 
