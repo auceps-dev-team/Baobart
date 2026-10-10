@@ -193,12 +193,15 @@ Vide ou inconnu, le tunnel d'achat **refuse franchement** plutôt que d'ouvrir
 une commande qui n'aboutira jamais. Un opérateur à moitié branché encaisse
 peut-être, mais personne ne sait dire si l'argent est arrivé.
 
-Aucun opérateur réel n'est encore intégré : le substrat existe — interface de
-pilote, vérification de signature, route de rappel, anti-rejeu, confrontation
-des montants — et le seul pilote livré est un bac à sable qui parcourt cette
-chaîne en entier, signature comprise. Brancher Orange Money, Wave, MTN ou Moov
-consiste à écrire un pilote de plus dans
-`lib/payments/encaissement/pilotes.ts` ; rien d'autre ne bouge.
+Le substrat existe — interface de pilote, vérification de signature, route de
+rappel, anti-rejeu, confrontation des montants — et trois pilotes le servent :
+un bac à sable qui parcourt la chaîne en entier, signature comprise,
+**Paystack** et **Flutterwave** (`lib/payments/encaissement/pilotes/`). Les
+deux derniers sont testés hors ligne et n'ont jamais été exercés contre le
+vrai service : aucun compte marchand n'est ouvert. Un opérateur de plus
+s'ajoute dans `lib/payments/encaissement/pilotes.ts` ; rien d'autre ne bouge.
+(Ce paragraphe, écrit en v1.30.0, annonçait le bac à sable comme seul pilote ;
+relu contre le code le 10/10/2026.)
 
 **L'URL de rappel à déclarer chez l'opérateur** est
 `https://<domaine>/api/paiements/<pilote>/webhook`. Elle est publique par
@@ -373,13 +376,15 @@ mégaoctets frôle la limite de temps ; la page déclare `maxDuration = 60` pour
 s'en accommoder. La vraie réponse est une tâche de fond, qui n'existe pas
 encore.
 
-**Rien n'encaisse.** Pas de panier, pas de passage en caisse, pas de webhook de
-paiement. Une ressource gratuite se télécharge ; une ressource payante ne
-s'achète pas.
-
-**L'ordonnanceur prépare, il n'envoie pas.** Les versements sortent en état
-`CREATING`, soldes réservés. L'appel à l'opérateur mobile money n'existe pas.
-C'est sans danger : un versement `CREATING` s'annule et rend ses soldes.
+**L'encaissement est écrit, pas éprouvé.** Ces deux paragraphes disaient,
+en v1.18.0 : « rien n'encaisse » et « l'appel à l'opérateur n'existe pas ».
+Relu le 10/10/2026, ce n'est plus vrai. Le passage en caisse
+(`lib/checkout/achat.ts`, v1.30.0), la route de rappel
+(`app/api/paiements/[fournisseur]/webhook`, v1.32.0) et l'appel de versement
+(`lib/payments/envoi.ts`, v1.33.0) existent. Aucun n'a tourné contre un vrai
+opérateur : en production, sans compte marchand, une ressource payante ne
+s'achète toujours pas. Il n'y a pas de panier, par choix : on achète une
+ressource à la fois, depuis sa fiche (`/acheter/[slug]`).
 
 ---
 

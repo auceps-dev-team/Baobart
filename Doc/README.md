@@ -88,10 +88,19 @@ Une **place de marché communautaire** qui combine :
 
 > **Visées, pas toutes construites.** Relevé le 08/10/2026 dans le code, sans
 > prétendre à l'exhaustivité : aucune dépendance d'IA dans `package.json`
-> (pas d'Assistant), aucune intégration Figma / Canva / Framer, aucun module
-> Shield (filigrane, C2PA) au-delà d'un champ `shieldLevel` lu par le tableau
-> de bord, pas d'escrow ni de produits physiques. La matrice dit ce qui
-> fonctionne ; cette liste dit où l'on va.
+> (pas d'Assistant), aucune intégration Figma / Canva / Framer, pas d'escrow
+> ni de produits physiques. La matrice dit ce qui fonctionne ; cette liste dit
+> où l'on va.
+>
+> **Shield, corrigé le 10/10/2026.** Cette note disait « aucun module Shield
+> au-delà d'un champ `shieldLevel` » : vrai le 08/10, faux depuis v1.86.0. Une
+> partie existe : filigrane **visible** sur chaque aperçu, aperçu ramené à
+> 800 px, vignette de 400 px, réserve « Data Mining » IPTC en XMP, robots
+> d'entraînement refusés, `noai` sur chaque page (`lib/upload/filigrane.ts`,
+> matrice §2). Rien ne fait encore de filigrane invisible, de provenance C2PA
+> ni de perturbation anti-IA (Glaze, Nightshade) : aucune de ces trois
+> mentions n'apparaît dans `lib/`, `app/` ou `components/` (recherché le
+> 10/10).
 
 ### Découverte (Pinterest)
 - Feed visuel masonry infini, **pagination curseur** (rapide à grande échelle)
@@ -154,12 +163,12 @@ tableau mélangeait les deux, et un audit s'y est trompé.
 | Couche | En place | Visé, non branché |
 |---|---|---|
 | Framework | **Next.js 15.5 (App Router)**, React 19, TypeScript strict (`noUncheckedIndexedAccess`) | — |
-| UI | **Tailwind CSS v4** — design system « Sticker » (`app/globals.css`) | — |
-| Base de données | **PostgreSQL 16 + Prisma 6** — 94 modèles, 64 migrations ; le grand livre est tenu par des triggers SQL, pas par du code applicatif | — |
+| UI | **Tailwind CSS v4** — design system « Sticker » (`app/globals.css`). Animations en CSS d'abord (défilement par `animation-timeline`, View Transitions, `popover`), `motion` en hooks pour le seul compteur ; mouvement réduit respecté (`components/anime/`) | — |
+| Base de données | **PostgreSQL 16 + Prisma 6** — 97 modèles, 69 migrations (recomptés le 10/10) ; le grand livre est tenu par des triggers SQL, pas par du code applicatif | — |
 | Redis | Limitation de débit uniquement (`lib/securite/pilotes.ts`, préfixe `baobart:`) | cache du feed, compteurs, sessions |
 | Authentification | **Maison** : sessions en base (jeton haché SHA-256), mots de passe scrypt, 2FA TOTP, passkeys WebAuthn (`@simplewebauthn`) | NextAuth n'est **pas** utilisé. Connexion par téléphone (code SMS) branchée ; Google, Apple et les autres : boutons présents, non branchés (voir plus bas) |
 | Paiements | **Paystack**, **Flutterwave** (API v4) et un **bac à sable**, écrits à la main contre les API, sans SDK (`lib/payments/encaissement/`). Aucun compte marchand branché | CinetPay, Stripe |
-| Médias | Stockage S3-compatible (MinIO en local), envoi direct par URL signée, **sharp** pour les aperçus | CDN (R2) en production |
+| Médias | Stockage S3-compatible (MinIO en local), envoi direct par URL signée, **sharp** pour les aperçus filigranés (police embarquée, `assets/polices/`) | CDN (R2) en production |
 | Tâches planifiées | Pas de file : **8 passages** déclenchés par les crons Vercel vers `app/api/cron/*` (`vercel.json`) | Inngest / BullMQ ; aperçus produits hors requête |
 | Courriels | File `EmailOutbox` + pilotes `console` / Resend / SMTP (nodemailer) | — |
 | Notifications | In-app, Web Push (VAPID), SMS par pilote (`console`, Twilio, textbee, SMS Gateway for Android) | — |
@@ -191,7 +200,7 @@ La documentation vit dans `Doc/`. Les maquettes de référence sont dans `Baobar
 
 | Document | Contenu |
 |---|---|
-| [`PLAN_REFONTE_BAOBART_GUMROAD.md`](PLAN_REFONTE_BAOBART_GUMROAD.md) | Plan directeur v11 : concept, modèle économique, catalogue des découvertes Gumroad (MIT), roadmap M0→M8. Le §0-bis est le journal d'avancement réel |
+| [`PLAN_REFONTE_BAOBART_GUMROAD.md`](PLAN_REFONTE_BAOBART_GUMROAD.md) | Plan directeur v11 : concept, modèle économique, catalogue des découvertes Gumroad (MIT), roadmap M0→M8. Son §0-bis s'arrête au 30/08/2026 : pour l'état réel, lire la matrice |
 | [`AUDIT_GUMROAD_2026-08-28.md`](AUDIT_GUMROAD_2026-08-28.md) | Audit du 28/08/2026 : écart plan/code, statut des points bloquants, catalogue Gumroad croisé avec le code réel |
 | [`MATRICE_IMPLEMENTATION.md`](MATRICE_IMPLEMENTATION.md) | **Inventaire vivant** spec → module → statut → tests → dette, mis à jour à chaque commit qui fait avancer une fonctionnalité |
 | [`VERIFICATION_GUMROAD.md`](VERIFICATION_GUMROAD.md) | **Relevé des écarts** entre le plan et le code réel de Gumroad (le référent) — ce qui est vérifié, ce qui est faux, ce qui manquait |
@@ -292,6 +301,7 @@ baobart/
 │   │   └── systeme/        #   exploitation (réservée aux rôles d'administration)
 │   ├── api/                # cron/*, paiements/[fournisseur]/webhook,
 │   │                       #   telechargement, feed, recherche, health…
+│   ├── labo/               # essais d'animation — 404 en production
 │   ├── sitemap.ts  robots.ts  opengraph-image.tsx  manifest.ts
 ├── lib/                    # La logique métier, un dossier par domaine :
 │   ├── domain/             #   frais, soldes, risque, livraison (porté de Gumroad, MIT)
@@ -302,7 +312,9 @@ baobart/
 │   ├── blog/  cms/  forum/  evenements/  jobs/  services/  juridique/
 │   ├── email/  notifications/  push/  sms/  ndank/
 │   └── observabilite/  systeme/  rgpd/  seo/  config/  i18n/
-├── components/             # Composants React, rangés par domaine
+├── components/             # Composants React, rangés par domaine ;
+│                           #   anime/ : les animations promues sur les vues
+├── assets/polices/         # police du filigrane (OFL), lue à l'exécution
 ├── prisma/                 # schema.prisma, migrations/, seeds
 ├── e2e/                    # Parcours Playwright
 ├── scripts/                # Base de test, démo, comptes de test

@@ -3,9 +3,12 @@
 **Baobart = Dribbble × Pinterest × monétisation, pour l'Afrique créative**
 **Document v11 — 4 août 2026** (v10 : exploration finale — admin produits, policies, équipes multi-rôles, Staff Picked, lib/helpers · v10.1 : corrections issues de la lecture du code · **v11 : journal d'avancement, §0-bis**)
 
-> **Où en est-on ?** Le §0-bis, juste en dessous, tient le journal de ce qui
+> **Où en est-on ?** Le §0-bis, juste en dessous, a tenu le journal de ce qui
 > existe réellement dans le dépôt — par opposition au reste du document, qui
-> décrit ce qu'on veut construire. C'est là qu'il faut regarder en premier.
+> décrit ce qu'on veut construire. **Il s'arrête au 30 août 2026** : rien de
+> ce qui a été fait depuis n'y figure. L'état réel vit
+> désormais dans [`MATRICE_IMPLEMENTATION.md`](MATRICE_IMPLEMENTATION.md), mise
+> à jour ligne par ligne. Note ajoutée le 10/10/2026, sans réécrire le §0-bis.
 
 > ### ⚠️ Statut de vérification
 >

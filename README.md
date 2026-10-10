@@ -37,12 +37,17 @@ resterait pour toujours.
 | `pnpm test:e2e` | Parcours Playwright contre un build, base `baobart_e2e`, port 3200 (`CRON_SECRET` requis) |
 | `pnpm db:migrate` / `db:deploy` / `db:studio` / `db:seed` | Prisma |
 | `pnpm stack:up` / `stack:down` | Postgres + Redis + MinIO |
+| `pnpm db:seed:demo` / `db:demo:catalogue` | Jeu de démonstration ; le catalogue (90 produits) suppose MinIO déjà rempli |
+| `pnpm comptes:test` | Quatre comptes pour parcourir l'application à la main |
+| `pnpm apercus:regenerer` | Refait les aperçus filigranés périmés — lecture seule ; `-- --appliquer` pour écrire |
 
 ## Structure
 
 ```
-app/          pages et routes App Router (+ globals.css : les tokens du Sticker System)
-components/   composants d'interface, rangés par domaine
+app/          pages et routes App Router (+ globals.css : les tokens du Sticker System
+              et les animations) ; app/labo/ : essais d'animation, 404 en production
+components/   composants d'interface, rangés par domaine ; anime/ : les
+              animations promues des labos vers les vues
 lib/          la logique métier, un dossier par domaine (payments/, auth/,
               securite/, products/, upload/…) ; db.ts : client Prisma + log
               des requêtes lentes ; i18n/ : formatage monétaire fr-FR
