@@ -20,9 +20,20 @@ recoupées ; les affirmations les plus sensibles (checkout simulé, cron, mot de
 >
 > Deux jalons ont passé (v1.30.0 à v1.33.0) : l'encaissement mobile money et
 > l'envoi des versements existent, la réinitialisation du mot de passe aussi.
-> Ses constats sur les cinq points bloquants sont donc **périmés** — voir le
-> §0-bis du plan, tenu à jour, et la seconde passe en §16 de
-> `VERIFICATION_GUMROAD.md`.
+> Ses constats sur les cinq points bloquants sont donc **périmés** — voir la
+> seconde passe en §16 de `VERIFICATION_GUMROAD.md`.
+>
+> **Relu le 10/10/2026 (v1.88.x)** : un résumé tiré de ce document a été pris
+> pour l'état du jour. Ce renvoi désignait le §0-bis du plan comme « tenu à
+> jour » ; il s'est arrêté au 30/08. L'état réel vit dans
+> [`MATRICE_IMPLEMENTATION.md`](MATRICE_IMPLEMENTATION.md). Au-delà des points
+> bloquants, sont aussi périmées les lignes du §4 sur le **passage en caisse**
+> (deux chemins depuis v1.30.0 : simulation et opérateur réel), les
+> **e-mails** (22 modèles au schéma aujourd'hui), le **mot de passe oublié**
+> (v1.30.0), le **profil public créateur** (v1.45.0), **Jobs, Services,
+> Événements, Blog** (routes depuis v1.47.0 à v1.53.0 ; seul le forum en
+> catégories et sujets reste sans écran) et le **tableau de bord en lecture
+> seule** (profil éditable depuis v1.48.9).
 >
 > Il est conservé tel quel : un audit qu'on récrit après coup ne dit plus ce
 > qu'on savait le jour où on l'a écrit.

@@ -32,8 +32,14 @@
 
 ## 0-bis. État d'avancement — 30 août 2026
 
-> Cette section est le **journal de ce qui existe réellement dans le dépôt**, par
-> opposition au reste du document, qui décrit ce qu'on veut construire. Elle est
+> ⏹️ **Arrêtée au 30 août 2026** (relu le 10/10/2026). Cette section se disait
+> tenue à jour à chaque jalon ; elle ne l'est plus, et un résumé tiré d'elle a
+> été pris pour l'état du jour. L'état réel : `MATRICE_IMPLEMENTATION.md`. Les
+> lignes devenues fausses portent une correction datée, le reste est laissé tel
+> qu'écrit.
+>
+> Cette section est le **journal de ce qui existait réellement dans le dépôt**, par
+> opposition au reste du document, qui décrit ce qu'on veut construire. Elle était
 > tenue à jour à chaque jalon ; le détail des écarts avec Gumroad vit toujours
 > dans `VERIFICATION_GUMROAD.md`, et l'inventaire vivant spec → module → statut
 > vit désormais dans `MATRICE_IMPLEMENTATION.md`.
@@ -70,12 +76,12 @@
 | **Envoi de fichiers** — 24 formats, URL signée, dépôt direct au stockage, 200 Mo | ✅ | 13 tests + bout en bout MinIO |
 | **Aperçus** — vignette dérivée publique, source privée, extrait audio/vidéo | ✅ | aperçu 200 / source 403 vérifiés |
 | **Livraison après achat** — décision, URL signée, journal de consommation | ✅ | 8 tests, octets vérifiés |
-| **Frais & grand livre** — barème deux régimes, écritures immuables, remboursements partiels | ✅ | 24 + 21 tests |
+| **Frais & grand livre** — barème deux régimes, écritures immuables, remboursements partiels | ✅ | 24 + 21 tests · *10/10 : une seule commission de 10 %, le régime découverte est retiré du barème* |
 | **Remboursement & litiges** — déclenchable, chargebacks débitent le vendeur et suspendent ses versements | ✅ | v1.25.0, testé (concurrence incluse) |
 | **Versements** — calendrier, éligibilité, exécution, huit états pilotables (admin) | ✅ | 27 tests + v1.26.0 |
 | **Trust & suspension de compte** — sessions fermées, ressources retirées, levée explicite | ✅ | v1.26.0 |
 | **Ordonnanceur** — crons Vercel (versements en semaine, e-mails toutes les 5 min) | ✅ | `vercel.json`, `CRON_SECRET` |
-| **File d'e-mails transactionnels** — dépôt dans la même transaction, reprise, supervision admin | ✅ **4 modèles sur 5 déposés**, le cinquième volontairement muet | v1.21-1.30.0 |
+| **File d'e-mails transactionnels** — dépôt dans la même transaction, reprise, supervision admin | ✅ **4 modèles sur 5 déposés**, le cinquième volontairement muet | v1.21-1.30.0 · *10/10 : 22 modèles au schéma, tous cités par le code ; seul le lien de téléchargement reste volontairement muet* |
 | **Écran Gains** — soldes, prochaine date, historique, compte de versement | ✅ | 14 tests |
 | **Social** — j'aime, suivi, commentaires à deux niveaux, modération par signalement | ✅ | 20 + 27 tests |
 | **Tableau de bord acheteur** — achats, téléchargements, éléments suivis, abonnements | ✅ | 12 tests |
@@ -163,7 +169,7 @@ Trois écrans montrent des données qu'aucun parcours ne produit encore :
 Commandes et Ventes attendent le paiement réel, Commissions attend le type de
 produit « commission ».
 
-Il n'existe pas de **profil public de créateur** : le bouton « Suivre »
+*(Corrigé le 10/10/2026 : faux depuis v1.45.0 — `/createurs/[username]` existe, et l'annuaire `/createurs` depuis v1.84.0.)* Il n'existait pas de **profil public de créateur** : le bouton « Suivre »
 fonctionne, mais on ne peut pas visiter la page de quelqu'un qu'on suit.
 
 Un **espace admin d'exploitation technique** est apparu depuis (v1.20.0-1.26.0) :
@@ -173,6 +179,11 @@ CONTENT_MANAGER / MARKETING / MODERATOR / SUPPORT / ACCOUNTANT / COMPLIANCE)
 spécifié dans `SPEC_ADMIN_CMS_BAOBART.md`, qui reste entièrement à construire.
 
 ### Micro-services non commencés
+
+> *Correction du 10/10/2026 : faux depuis septembre.* Jobs (v1.47.0), Services
+> (v1.48.0), Événements (v1.51-1.52), Blog (v1.53.0) et Communautés (v1.56.0)
+> ont leurs routes sous `app/`. Seul le forum en catégories et sujets
+> (`ForumCategory`, `ForumTopic`, `ForumPost`) reste sans écran.
 
 Job board, Services listés, CMS événements & blogs, forum. Les maquettes
 existent dans `Baobart Design/`, le schéma porte toujours leurs tables (69
