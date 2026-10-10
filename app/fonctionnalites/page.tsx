@@ -51,7 +51,7 @@ interface Bloc {
  */
 export default async function FonctionnalitesPage() {
   const [visiteur, couvertures] = await Promise.all([sessionCourante(), couverturesPopulaires(5)]);
-  const part = partDuCreateur().directe;
+  const part = partDuCreateur();
   const moyens = Object.values(RAILS_BAOBART).map((r) => r.label);
   const familles = ENTREES_RAIL.filter((e) => e.filtre !== "Tous").map((e) => e.label);
   const ouvrir = (visiteur ? "/dashboard/produits/nouveau" : "/inscription") as Route;
@@ -76,7 +76,7 @@ export default async function FonctionnalitesPage() {
       intro: "Prix en francs CFA, paiement chez l'opérateur, versement chaque semaine.",
       items: [
         { t: "Carte ou mobile money", d: "L'acheteur paie sur la page sécurisée de Paystack, avec ce qu'elle propose dans son pays. Toi, tu reçois par " + moyens.slice(0, -1).join(", ") + " ou " + moyens.at(-1) + "." },
-        { t: `${part} pour toi`, d: `${BAREME_XOF.directRateBp / 100} % de commission, les frais d'opérateur, et rien d'autre : aucun frais fixe, aucune exclusivité. Ton solde part chaque semaine, le jour de ton moyen de versement, dès qu'il atteint le minimum.` },
+        { t: `${part} pour toi`, d: `${BAREME_XOF.commissionBp / 100} % de commission, les frais d'opérateur, et rien d'autre : aucun frais fixe, aucune exclusivité. Ton solde part chaque semaine, le jour de ton moyen de versement, dès qu'il atteint le minimum.` },
         { t: "Gratuit, payant, ou prix libre", d: "Fixe un prix, offre une ressource, ou laisse l'acheteur choisir au-dessus d'un minimum. Et des codes promo, à ta charge." },
       ],
     },

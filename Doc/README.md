@@ -225,7 +225,7 @@ La documentation vit dans `Doc/`. Les maquettes de référence sont dans `Baobar
 | Flux | Mécanique |
 |---|---|
 | **Abonnements acheteurs** | Découverte (gratuit) · Explorer (2 500 F/mois) · Studio (7 500 F/mois) |
-| **Commission créateurs** | **10 %** sur ventes directes (recommandé) |
+| **Commission créateurs** | **10 %** sur toute vente, que la plateforme apporte l'acheteur ou non (décidé le 10/10/2026) — 88,5 % au créateur avec les frais d'opérateur |
 | **Pool créateurs** | 60 % des abonnements redistribués (modèle Envato Elements) |
 | **Autres** | Sponsoring, job board payant, boosts, événements, POD physique |
 | **Frais de paiement** | ~1,5 % (mobile money / cartes) |

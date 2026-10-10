@@ -5,24 +5,18 @@
  * antiwork/gumroad (MIT, lu comme spécification), adaptée au FCFA.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * LES DEUX RÉGIMES
+ * UNE SEULE COMMISSION, QUI QUE SOIT CELUI QUI A AMENÉ L'ACHETEUR
  *
- * Gumroad ne facture pas un taux unique : il facture selon QUI a amené
- * l'acheteur. Baobart reprend ce principe, parce qu'il aligne le prix sur le
- * service réellement rendu.
+ * Gumroad facture selon QUI a amené l'acheteur : un taux bas quand c'est le
+ * créateur, 30 % tout compris quand c'est la plateforme. Ce module a porté les
+ * deux régimes (DIRECT, DECOUVERTE) jusqu'en v1.88.1, et le plan directeur
+ * (§2.4) en faisait la règle.
  *
- *   DIRECT     le créateur a amené l'acheteur (son lien, son audience).
- *              Baobart n'a fourni que l'infrastructure → commission basse.
- *
- *   DECOUVERTE l'acheteur vient du feed, de la recherche ou d'une collection
- *              éditoriale. Baobart a fourni la vente elle-même → commission
- *              haute, mais AUCUN frais fixe : le créateur n'avance rien et ne
- *              paie que s'il a vendu.
- *
- * C'est aussi ce qui remplace la publicité au CPM : un créateur qui veut plus
- * de visibilité relève son propre taux « découverte » au lieu d'acheter des
- * impressions. Il ne prend aucun risque de trésorerie — ce qui compte sur un
- * marché où les créateurs n'avancent pas d'argent.
+ * Décision du 10/10/2026 : Baobart prend la même commission que la plateforme
+ * apporte l'acheteur ou non. Le second régime n'avait d'ailleurs jamais servi
+ * — `finaliserVente` passait `"DIRECT"` en dur, aucune vente n'était
+ * attribuée à l'exploration — mais il attendait dans le barème, et un audit
+ * l'a lu comme la règle en vigueur. Il est retiré plutôt que laissé dormir.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * UNITÉS
@@ -40,19 +34,12 @@
 
 import type { Currency } from "@/lib/i18n/money";
 
-export type FeeRegime = "DIRECT" | "DECOUVERTE";
-
 export interface FeeSchedule {
-  /** Commission Baobart quand le créateur amène l'acheteur. */
-  directRateBp: number;
-  /**
-   * Prélèvement TOTAL quand Baobart amène l'acheteur, frais de passerelle
-   * INCLUS — comme chez Gumroad, où les 30 % absorbent le coût du processeur.
-   */
-  decouverteRateBp: number;
+  /** Commission Baobart, la même pour toute vente. */
+  commissionBp: number;
   /** Frais de la passerelle de paiement (mobile money, carte). */
   processorRateBp: number;
-  /** Part fixe Baobart, régime DIRECT uniquement. */
+  /** Part fixe Baobart. */
   fixedFee: number;
   /** Part fixe de la passerelle. */
   processorFixedFee: number;
@@ -61,22 +48,17 @@ export interface FeeSchedule {
 /**
  * Barème par défaut, en XOF.
  *
- * ⚠️ Deux de ces valeurs sont des DÉCISIONS COMMERCIALES encore ouvertes
- * (PLAN §2.8-1) et non des constantes techniques :
- *   - `directRateBp` : 10 % est la recommandation du §2.4 (le plan hésitait
- *     avec 20 %). La lecture de Gumroad rend le choix moins coûteux : le taux
- *     bas n'est appliqué qu'aux ventes que Baobart n'a pas générées.
- *   - `decouverteRateBp` : 30 % est la valeur de Gumroad, reprise telle quelle
- *     faute de mieux. À calibrer sur le marché ouest-africain.
+ * `commissionBp` : 10 %, la recommandation du §2.4 (le plan hésitait avec
+ * 20 %), appliquée à toute vente depuis la décision du 10/10/2026.
  *
  * `processorRateBp` vient de l'hypothèse « ~1,5 % » du modèle économique.
+ * Il reste à la charge du créateur : 10 % + 1,5 % = 88,5 % pour lui.
  * Les parts fixes sont à 0 tant que les coûts réels par transaction mobile
  * money ne sont pas mesurés — en poser une au hasard fausserait le prix
  * plancher des petits produits.
  */
 export const BAREME_XOF: FeeSchedule = {
-  directRateBp: 1_000, // 10 %
-  decouverteRateBp: 3_000, // 30 %
+  commissionBp: 1_000, // 10 %
   processorRateBp: 150, // 1,5 %
   fixedFee: 0,
   processorFixedFee: 0,
@@ -87,7 +69,6 @@ export interface FeeInput {
   unitPrice: number;
   quantity?: number;
   currency?: Currency;
-  regime: FeeRegime;
   /** Part de l'affilié en points de base. 0 ou absent = pas d'affilié. */
   affiliateBasisPoints?: number;
   /**
@@ -124,7 +105,6 @@ export interface FeeInput {
 }
 
 export interface FeeBreakdown {
-  regime: FeeRegime;
   /** Prix × quantité + pourboire, avant tout prélèvement. */
   gross: number;
   /** Ce que l'acheteur débourse réellement (brut + taxe). */
@@ -164,7 +144,6 @@ export function computeFees(input: FeeInput): FeeBreakdown {
   const {
     unitPrice,
     quantity = 1,
-    regime,
     affiliateBasisPoints = 0,
     sellerBearsAffiliateFee = false,
     taxAmount = 0,
@@ -193,7 +172,6 @@ export function computeFees(input: FeeInput): FeeBreakdown {
   // fixe rendrait le gratuit déficitaire pour le créateur.
   if (gross === 0) {
     return {
-      regime,
       gross: 0,
       buyerTotal: taxAmount,
       platformFee: 0,
@@ -207,15 +185,7 @@ export function computeFees(input: FeeInput): FeeBreakdown {
   const processorFee =
     applyBp(gross, schedule.processorRateBp) + schedule.processorFixedFee;
 
-  let platformFee: number;
-  if (regime === "DECOUVERTE") {
-    // Le taux « découverte » est TOUT COMPRIS : Baobart absorbe le coût de la
-    // passerelle dedans, et ne prend aucune part fixe.
-    const totalTake = applyBp(gross, schedule.decouverteRateBp);
-    platformFee = Math.max(0, totalTake - processorFee);
-  } else {
-    platformFee = applyBp(gross, schedule.directRateBp) + schedule.fixedFee;
-  }
+  const platformFee = applyBp(gross, schedule.commissionBp) + schedule.fixedFee;
 
   // Part de l'affilié : pourcentage du BRUT, diminué de sa quote-part de la
   // commission plateforme — sauf si le vendeur choisit de l'absorber.
@@ -232,7 +202,6 @@ export function computeFees(input: FeeInput): FeeBreakdown {
   const sellerNet = gross - platformFee - processorFee - affiliateCredit;
 
   return {
-    regime,
     gross,
     buyerTotal: gross + taxAmount,
     platformFee,
@@ -250,18 +219,11 @@ export function computeFees(input: FeeInput): FeeBreakdown {
  * les tout petits produits déficitaires pour le créateur — c'est la raison
  * d'être du `min_price` par devise chez Gumroad.
  */
-export function minimumViablePrice(
-  regime: FeeRegime,
-  schedule: FeeSchedule = BAREME_XOF,
-): number {
-  const fixed =
-    schedule.processorFixedFee + (regime === "DIRECT" ? schedule.fixedFee : 0);
+export function minimumViablePrice(schedule: FeeSchedule = BAREME_XOF): number {
+  const fixed = schedule.processorFixedFee + schedule.fixedFee;
   if (fixed === 0) return 0;
 
-  const variableBp =
-    regime === "DIRECT"
-      ? schedule.directRateBp + schedule.processorRateBp
-      : schedule.decouverteRateBp;
+  const variableBp = schedule.commissionBp + schedule.processorRateBp;
 
   // On cherche le plus petit prix p tel que p − frais(p) ≥ 0.
   const remainingShare = (10_000 - variableBp) / 10_000;
@@ -315,7 +277,7 @@ export function partProportionnelle(input: {
  *
  * L'accueil et l'inscription annonçaient « 90 % » en calculant `100 −
  * commission` chacun de leur côté. Mesuré le 25/09 (Qualitytest S-90pc) : une
- * vente directe de 10 000 F crédite 8 850 F — 88,5 %, parce que les frais
+ * vente de 10 000 F crédite 8 850 F — 88,5 %, parce que les frais
  * d'opérateur (1,5 %) restent aussi à la charge du vendeur. L'écran des gains
  * avait été corrigé en v1.69.8 ; l'accueil et l'inscription, non (relevé le
  * 04/10). La phrase vit désormais ici, à côté du barème qu'elle décrit. (La
@@ -323,16 +285,13 @@ export function partProportionnelle(input: {
  * de référence, VERIFICATION_GUMROAD §2.1.)
  *
  * ════════════════════════════════════════════════════════════════════════════
- * PAS DE PART « DÉCOUVERTE », TANT QU'AUCUNE VENTE NE LA SUIT
+ * UNE SEULE PART, PUISQU'UNE SEULE COMMISSION
  *
- * Le régime DECOUVERTE (PLAN §2.4) est calculé ci-dessus, mais rien ne
- * l'applique : lu le 04/10, `encaisserLigne` n'a qu'un appelant,
- * `finaliserVente`, qui passe `"DIRECT"` en dur — aucune vente n'est attribuée
- * à l'exploration. L'écran des gains annonçait pourtant « 70 % quand l'acheteur
- * te trouve par l'exploration ». La phrase reviendra avec l'attribution.
+ * Décision du 10/10/2026 (voir l'en-tête). L'écran des gains a un temps
+ * annoncé « 70 % quand l'acheteur te trouve par l'exploration » : ce régime
+ * n'a jamais été appliqué, il est retiré du barème.
  */
-export function partDuCreateur(bareme: FeeSchedule = BAREME_XOF): { directe: string } {
-  const pourcent = (bp: number) =>
-    `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(bp / 100)} %`;
-  return { directe: pourcent(10_000 - bareme.directRateBp - bareme.processorRateBp) };
+export function partDuCreateur(bareme: FeeSchedule = BAREME_XOF): string {
+  const bp = 10_000 - bareme.commissionBp - bareme.processorRateBp;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(bp / 100)} %`;
 }

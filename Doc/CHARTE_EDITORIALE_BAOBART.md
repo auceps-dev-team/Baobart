@@ -70,9 +70,11 @@ Gumroad affiche « $1,924,054 gagnés par les créateurs la semaine dernière »
 
 Gumroad tutoie et écrit comme un ami qui connaît le sujet.
 
-- ✅ *« Dépose tes fichiers, fixe ton prix (ou offre-les), garde 80 % de chaque vente. On s'occupe du reste. »*
+- ✅ *« Dépose tes fichiers, fixe ton prix (ou offre-les), garde 88,5 % de chaque vente. On s'occupe du reste. »*
 - ✅ *« T'as besoin d'un mockup ? Cherche-le. Il est peut-être gratuit. »*
 - ❌ *« Notre plateforme permet aux créateurs de monétiser leurs actifs numériques via un processus optimisé. »*
+
+> **La part du créateur est un chiffre calculé, pas un slogan.** Cette charte disait « garde 80 % » : un taux de la maquette, abandonné, que le barème n'applique pas. Corrigé le 10/10/2026. Baobart prend **une seule commission de 10 %**, que la plateforme apporte l'acheteur ou non ; avec 1,5 % de frais d'opérateur, il reste **88,5 %** au créateur (mesuré le 25/09/2026 : 8 850 F crédités pour une vente de 10 000 F). Le site tire ce chiffre de `partDuCreateur()` (`lib/domain/fees.ts`) : si le barème change, c'est lui qu'il faut relire, pas cette page.
 
 **Mots bannis** : « monétiser » → « se faire payer » · « actifs numériques » → « tes créations » · « expérience utilisateur » → « c'est simple » · « solution complète » → « tout est là » · « levier de croissance » → « te faire voir ».
 
@@ -173,7 +175,7 @@ La philosophie Gumroad : tester, voir ce qui prend, itérer. Baobart l'applique 
 ### 4.2 La page « pour les créateurs »
 
 > **Titre** : « Fais-toi payer pour ce que tu sais faire »
-> **Sous-titre** : « Dépose tes fichiers, fixe ton prix (ou offre-les), garde 80 % de chaque vente. On s'occupe du reste. »
+> **Sous-titre** : « Dépose tes fichiers, fixe ton prix (ou offre-les), garde 88,5 % de chaque vente. On s'occupe du reste. »
 > **Preuve** : « PNG · JPG · AI · PSD · TTF · ZIP — jusqu'à 200 Mo »
 > **CTA** : « Déposer un fichier » / « Comment ça marche »
 
@@ -240,7 +242,7 @@ La philosophie Gumroad : tester, voir ce qui prend, itérer. Baobart l'applique 
 
 | ❌ À éviter | Pourquoi | ✅ À la place |
 |---|---|---|
-| « Baobart est la plateforme ultime pour monétiser vos créations numériques. » | Corporate, impersonnel | « Dépose tes fichiers, fixe ton prix, garde 80 %. » |
+| « Baobart est la plateforme ultime pour monétiser vos créations numériques. » | Corporate, impersonnel | « Dépose tes fichiers, fixe ton prix, garde 88,5 %. » |
 | « Des milliers de créateurs satisfaits. » | Chiffre flou | « 184 000 F versés aux créateurs ce mois-ci. » |
 | « Protégez vos œuvres de manière infaillible contre l'IA. » | Fausse promesse (dangereuse) | « La meilleure protection du marché : filigrane, provenance, anti-entraînement. » |
 | « Nous révolutionnons le marché de l'art africain. » | Superlatif vide | « Du vrai matériel local, payé en FCFA, avec des outils qui protègent ton travail. » |

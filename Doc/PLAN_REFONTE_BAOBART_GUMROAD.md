@@ -184,9 +184,13 @@ sur `app/` : rien pour "job", "event", "forum", "commun[auté]").
 
 Chacune est documentée dans le code, à l'endroit où elle s'applique.
 
-- **La commission est de 10 % en direct, 30 % en découverte** — et non les 20 %
-  du §2.4 ni les « 80 % » qu'affichait la maquette. Le taux vient du barème
-  (`lib/domain/fees.ts`), et l'écran Gains le dérive plutôt que de l'écrire.
+- **La commission est de 10 %, une seule** — et non les 20 % du §2.4 ni les
+  « 80 % » qu'affichait la maquette. Ce journal disait « 10 % en direct, 30 %
+  en découverte » ; décision du 10/10/2026 : la même commission, que la
+  plateforme apporte l'acheteur ou non, et le régime découverte quitte le
+  barème (il n'avait jamais été appliqué). Le taux vient de
+  `lib/domain/fees.ts`, et les écrans le dérivent plutôt que de l'écrire :
+  88,5 % pour le créateur, frais d'opérateur (1,5 %) compris.
 - **`Like` et `Comment` sont polymorphes** (shot *ou* ressource), avec une
   contrainte SQL « exactement une cible ». Le §5 les attachait au seul `WorkItem`,
   ce qui rendait une ressource vendable impossible à aimer.
@@ -579,6 +583,11 @@ Groupement utile relevé : `SERVICE_TYPES = [commission, call, coffee]`, qui rec
 | `two_factor_authentication_mailer.rb` | Emails de sécurité 2FA | Sécurité |
 
 #### D. « Boost de découverte » payant — 🟠 (monétisation native)
+
+> ⏸️ **Suspendu le 10/10/2026.** Ce boost relève la commission des ventes issues du feed : il
+> supposait le régime « découverte », retiré du barème ce jour-là (une seule commission, que la
+> plateforme apporte l'acheteur ou non). À rediscuter avant toute construction ; la colonne
+> `Product.discoverFeePerThousand` existe au schéma et n'est lue par aucun code.
 
 > ❌ **Vérifié le 2 août 2026** → `VERIFICATION_GUMROAD.md` §2.2. **Ce n'est pas de la publicité.**
 > `_per_thousand` signifie « **pour mille** », pas « par millier d'impressions » : c'est un

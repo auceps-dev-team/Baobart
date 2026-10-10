@@ -13,17 +13,17 @@ describe("la part du créateur, telle que le site l'annonce", () => {
   it("dit ce que computeFees crédite vraiment, frais d'opérateur compris", () => {
     // Mesuré le 25/09 (Qualitytest S-90pc) : 10 000 F → 8 850 F crédités.
     // L'accueil et l'inscription annonçaient pourtant « 90 % ».
-    const directe = computeFees({ unitPrice: 10_000, regime: "DIRECT" });
+    const vente = computeFees({ unitPrice: 10_000 });
     const dire = (net: number) => `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(net / 100)} %`;
 
-    expect(partDuCreateur()).toEqual({ directe: dire(directe.sellerNet) });
-    expect(partDuCreateur().directe).toBe("88,5 %");
+    expect(partDuCreateur()).toBe(dire(vente.sellerNet));
+    expect(partDuCreateur()).toBe("88,5 %");
   });
 });
 
-describe("computeFees — régime DIRECT (le créateur amène l'acheteur)", () => {
+describe("computeFees — une seule commission", () => {
   it("prélève 10 % de commission et 1,5 % de passerelle", () => {
-    const f = computeFees({ unitPrice: 10_000, regime: "DIRECT" });
+    const f = computeFees({ unitPrice: 10_000 });
 
     expect(f.gross).toBe(10_000);
     expect(f.platformFee).toBe(1_000); // 10 %
@@ -32,7 +32,7 @@ describe("computeFees — régime DIRECT (le créateur amène l'acheteur)", () =
   });
 
   it("multiplie par la quantité", () => {
-    const f = computeFees({ unitPrice: 5_000, quantity: 3, regime: "DIRECT" });
+    const f = computeFees({ unitPrice: 5_000, quantity: 3 });
 
     expect(f.gross).toBe(15_000);
     expect(f.platformFee).toBe(1_500);
@@ -40,27 +40,24 @@ describe("computeFees — régime DIRECT (le créateur amène l'acheteur)", () =
   });
 });
 
-describe("computeFees — régime DÉCOUVERTE (Baobart amène l'acheteur)", () => {
-  it("prélève 30 % au total, frais de passerelle inclus", () => {
-    const f = computeFees({ unitPrice: 10_000, regime: "DECOUVERTE" });
-
-    expect(f.platformFee + f.processorFee).toBe(3_000); // tout compris
-    expect(f.processorFee).toBe(150);
-    expect(f.platformFee).toBe(2_850); // Baobart absorbe la passerelle
-    expect(f.sellerNet).toBe(7_000);
-  });
-
-  it("laisse toujours plus au créateur en DIRECT qu'en DÉCOUVERTE", () => {
-    const direct = computeFees({ unitPrice: 20_000, regime: "DIRECT" });
-    const decouverte = computeFees({ unitPrice: 20_000, regime: "DECOUVERTE" });
-
-    expect(direct.sellerNet).toBeGreaterThan(decouverte.sellerNet);
+describe("le barème — une commission, qui que soit celui qui amène l'acheteur", () => {
+  it("n'a qu'un taux de commission, et il vaut 10 %", () => {
+    // Décision du 10/10/2026 : le régime « découverte » (30 % quand Baobart
+    // amène l'acheteur) est retiré. Il n'avait jamais été appliqué, mais il
+    // attendait dans le barème et un audit l'a lu comme la règle. Figer le
+    // barème entier fait tomber ce test si un second taux revient.
+    expect(BAREME_XOF).toEqual({
+      commissionBp: 1_000,
+      processorRateBp: 150,
+      fixedFee: 0,
+      processorFixedFee: 0,
+    });
   });
 });
 
 describe("computeFees — produit gratuit", () => {
   it("ne prélève rien du tout", () => {
-    const f = computeFees({ unitPrice: 0, regime: "DIRECT" });
+    const f = computeFees({ unitPrice: 0 });
 
     expect(f.gross).toBe(0);
     expect(f.platformFee).toBe(0);
@@ -70,7 +67,7 @@ describe("computeFees — produit gratuit", () => {
 
   it("reste gratuit même avec une part fixe au barème", () => {
     const bareme: FeeSchedule = { ...BAREME_XOF, fixedFee: 100 };
-    const f = computeFees({ unitPrice: 0, regime: "DIRECT", schedule: bareme });
+    const f = computeFees({ unitPrice: 0, schedule: bareme });
 
     expect(f.platformFee).toBe(0);
     expect(f.sellerNet).toBe(0);
@@ -81,7 +78,6 @@ describe("computeFees — affiliation", () => {
   it("verse à l'affilié son pourcentage du brut, moins sa quote-part de commission", () => {
     const f = computeFees({
       unitPrice: 10_000,
-      regime: "DIRECT",
       affiliateBasisPoints: 1_000, // 10 %
     });
 
@@ -93,7 +89,6 @@ describe("computeFees — affiliation", () => {
   it("verse le pourcentage plein quand le vendeur absorbe la quote-part", () => {
     const f = computeFees({
       unitPrice: 10_000,
-      regime: "DIRECT",
       affiliateBasisPoints: 1_000,
       sellerBearsAffiliateFee: true,
     });
@@ -103,17 +98,16 @@ describe("computeFees — affiliation", () => {
   });
 
   it("ne verse rien sans affilié", () => {
-    expect(computeFees({ unitPrice: 10_000, regime: "DIRECT" }).affiliateCredit)
+    expect(computeFees({ unitPrice: 10_000 }).affiliateCredit)
       .toBe(0);
   });
 });
 
 describe("computeFees — la taxe n'appartient pas au vendeur", () => {
   it("s'ajoute à ce que paie l'acheteur sans toucher au net vendeur", () => {
-    const sansTaxe = computeFees({ unitPrice: 10_000, regime: "DIRECT" });
+    const sansTaxe = computeFees({ unitPrice: 10_000 });
     const avecTaxe = computeFees({
       unitPrice: 10_000,
-      regime: "DIRECT",
       taxAmount: 1_800,
     });
 
@@ -129,14 +123,12 @@ describe("computeFees — invariante comptable", () => {
   it("brut = net vendeur + commission + passerelle + affiliation, sans exception", () => {
     for (const unitPrice of cas) {
       for (const affiliateBasisPoints of affiliations) {
-        for (const regime of ["DIRECT", "DECOUVERTE"] as const) {
-          const f = computeFees({ unitPrice, regime, affiliateBasisPoints });
+        const f = computeFees({ unitPrice, affiliateBasisPoints });
 
-          expect(
-            f.sellerNet + f.platformFee + f.processorFee + f.affiliateCredit,
-            `${regime} ${unitPrice} @ ${affiliateBasisPoints}bp`,
-          ).toBe(f.gross);
-        }
+        expect(
+          f.sellerNet + f.platformFee + f.processorFee + f.affiliateCredit,
+          `${unitPrice} @ ${affiliateBasisPoints}bp`,
+        ).toBe(f.gross);
       }
     }
   });
@@ -145,7 +137,6 @@ describe("computeFees — invariante comptable", () => {
     const f = computeFees({
       unitPrice: 3_333,
       quantity: 7,
-      regime: "DECOUVERTE",
       affiliateBasisPoints: 1_234,
     });
 
@@ -159,20 +150,20 @@ describe("computeFees — invariante comptable", () => {
 
 describe("computeFees — entrées invalides", () => {
   it("refuse un montant décimal (une fraction de FCFA n'existe pas)", () => {
-    expect(() => computeFees({ unitPrice: 1_000.5, regime: "DIRECT" })).toThrow(
+    expect(() => computeFees({ unitPrice: 1_000.5 })).toThrow(
       TypeError,
     );
   });
 
   it("refuse un prix négatif", () => {
-    expect(() => computeFees({ unitPrice: -1, regime: "DIRECT" })).toThrow(
+    expect(() => computeFees({ unitPrice: -1 })).toThrow(
       RangeError,
     );
   });
 
   it("refuse une quantité nulle", () => {
     expect(() =>
-      computeFees({ unitPrice: 1_000, quantity: 0, regime: "DIRECT" }),
+      computeFees({ unitPrice: 1_000, quantity: 0 }),
     ).toThrow(RangeError);
   });
 
@@ -180,7 +171,6 @@ describe("computeFees — entrées invalides", () => {
     expect(() =>
       computeFees({
         unitPrice: 1_000,
-        regime: "DIRECT",
         affiliateBasisPoints: 10_001,
       }),
     ).toThrow(RangeError);
@@ -189,7 +179,7 @@ describe("computeFees — entrées invalides", () => {
 
 describe("minimumViablePrice", () => {
   it("vaut zéro tant qu'aucune part fixe n'est au barème", () => {
-    expect(minimumViablePrice("DIRECT")).toBe(0);
+    expect(minimumViablePrice()).toBe(0);
   });
 
   it("garantit un net vendeur positif dès qu'une part fixe existe", () => {
@@ -198,15 +188,15 @@ describe("minimumViablePrice", () => {
       fixedFee: 100,
       processorFixedFee: 50,
     };
-    const plancher = minimumViablePrice("DIRECT", bareme);
+    const plancher = minimumViablePrice(bareme);
 
     expect(plancher).toBeGreaterThan(0);
     expect(
-      computeFees({ unitPrice: plancher, regime: "DIRECT", schedule: bareme })
+      computeFees({ unitPrice: plancher, schedule: bareme })
         .sellerNet,
     ).toBeGreaterThanOrEqual(0);
     expect(
-      computeFees({ unitPrice: plancher - 1, regime: "DIRECT", schedule: bareme })
+      computeFees({ unitPrice: plancher - 1, schedule: bareme })
         .sellerNet,
     ).toBeLessThan(0);
   });

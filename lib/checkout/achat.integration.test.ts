@@ -150,7 +150,6 @@ describe("l'argent", () => {
     const attendu = computeFees({
       unitPrice: 10_000,
       quantity: 1,
-      regime: "DIRECT",
     });
 
     const mouvements = await db.balanceTransaction.findMany({
@@ -172,7 +171,7 @@ describe("l'argent", () => {
     const ligne = await db.orderItem.findUniqueOrThrow({
       where: { id: r.orderItemId },
     });
-    const attendu = computeFees({ unitPrice: 10_000, quantity: 1, regime: "DIRECT" });
+    const attendu = computeFees({ unitPrice: 10_000, quantity: 1 });
     expect(ligne.platformFee).toBe(attendu.platformFee);
     expect(ligne.processorFee).toBe(attendu.processorFee);
   });

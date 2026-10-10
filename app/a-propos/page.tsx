@@ -58,7 +58,7 @@ export default async function AProposPage() {
     meilleuresVentes(6),
     temoignagesPublies(3),
   ]);
-  const part = partDuCreateur().directe;
+  const part = partDuCreateur();
   const moyens = Object.values(RAILS_BAOBART).map((r) => r.label);
   const commencer = (visiteur ? "/dashboard/produits/nouveau" : "/inscription") as Route;
 
@@ -206,7 +206,7 @@ export default async function AProposPage() {
           {/* ── Comment Baobart se finance, et qui le fait ─────────────── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(300px,100%),1fr))", gap: 18 }}>
             <Bloc fond={BLANC} titre="Comment on se finance">
-              Par une commission de {BAREME_XOF.directRateBp / 100} % sur chaque vente — tu gardes {part}, une fois
+              Par une commission de {BAREME_XOF.commissionBp / 100} % sur chaque vente — tu gardes {part}, une fois
               déduits aussi les frais de l&apos;opérateur de paiement — et par les cartes sponsorisées de la mosaïque. Une ressource offerte ne
               rapporte rien à personne, et ne coûte rien non plus.
             </Bloc>

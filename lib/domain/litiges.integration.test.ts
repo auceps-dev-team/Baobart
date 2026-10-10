@@ -54,7 +54,7 @@ async function venteDe(prix: number, encaisser = true) {
   });
 
   const ligneId = commande.items[0]!.id;
-  if (encaisser) await encaisserLigne({ orderItemId: ligneId, regime: "DIRECT" });
+  if (encaisser) await encaisserLigne({ orderItemId: ligneId });
 
   return { vendeurId: vendeur.id, ligneId };
 }

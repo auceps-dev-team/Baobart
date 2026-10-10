@@ -84,7 +84,6 @@ describe("encaissement d'une vente", () => {
 
     const { frais, mouvement } = await encaisserLigne({
       orderItemId: ligne.id,
-      regime: "DIRECT",
     });
 
     // La ligne porte la décomposition, figée.
@@ -110,27 +109,13 @@ describe("encaissement d'une vente", () => {
     });
   });
 
-  it("prélève davantage quand la vente vient du feed", async () => {
-    const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
-    const l1 = await creerCommande(acheteur.id, produit.id, 10_000);
-    const direct = await encaisserLigne({ orderItemId: l1.id, regime: "DIRECT" });
-
-    const l2 = await creerCommande(acheteur.id, produit.id, 10_000);
-    const feed = await encaisserLigne({
-      orderItemId: l2.id,
-      regime: "DECOUVERTE",
-    });
-
-    expect(feed.frais.sellerNet).toBeLessThan(direct.frais.sellerNet);
-  });
-
   it("regroupe deux ventes du même jour sur un seul solde", async () => {
     const { produit } = await creerProduitAvecFichier(createur.id, 5_000);
     const l1 = await creerCommande(acheteur.id, produit.id, 5_000);
     const l2 = await creerCommande(acheteur.id, produit.id, 5_000);
 
-    await encaisserLigne({ orderItemId: l1.id, regime: "DIRECT" });
-    await encaisserLigne({ orderItemId: l2.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: l1.id });
+    await encaisserLigne({ orderItemId: l2.id });
 
     const soldes = await db.balance.findMany({ where: { userId: createur.id } });
     expect(soldes).toHaveLength(1);
@@ -147,7 +132,6 @@ describe("encaissement d'une vente", () => {
 
     const { mouvement } = await encaisserLigne({
       orderItemId: ligne.id,
-      regime: "DIRECT",
     });
 
     const relue = await db.orderItem.findUniqueOrThrow({ where: { id: ligne.id } });
@@ -164,8 +148,8 @@ describe("encaissement d'une vente", () => {
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
 
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
-    await expect(encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" })).rejects.toThrow();
+    await encaisserLigne({ orderItemId: ligne.id });
+    await expect(encaisserLigne({ orderItemId: ligne.id })).rejects.toThrow();
 
     const relu = await db.product.findUniqueOrThrow({ where: { id: produit.id } });
     expect(relu.salesCount).toBe(1);
@@ -175,9 +159,9 @@ describe("encaissement d'une vente", () => {
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
 
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
     await expect(
-      encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" }),
+      encaisserLigne({ orderItemId: ligne.id }),
     ).rejects.toThrow(/déjà en état/);
 
     expect(
@@ -200,7 +184,6 @@ describe("remboursement", () => {
 
     const { frais } = await encaisserLigne({
       orderItemId: ligne.id,
-      regime: "DIRECT",
     });
 
     // Remboursement de la moitié.
@@ -232,7 +215,7 @@ describe("remboursement", () => {
     const acheteur = await creerCreateur("-a3");
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
 
     await rembourserLigne({ orderItemId: ligne.id, amount: 3_000 });
     await rembourserLigne({ orderItemId: ligne.id, amount: 2_000 });
@@ -252,7 +235,6 @@ describe("remboursement", () => {
 
     const { frais } = await encaisserLigne({
       orderItemId: ligne.id,
-      regime: "DIRECT",
     });
 
     let rendu = 0;
@@ -281,7 +263,7 @@ describe("remboursement", () => {
     const acheteur = await creerCreateur("-a4");
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
 
     await expect(
       rembourserLigne({ orderItemId: ligne.id, amount: 10_001 }),
@@ -297,7 +279,6 @@ describe("le grand livre est immuable en base", () => {
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
     const { mouvement } = await encaisserLigne({
       orderItemId: ligne.id,
-      regime: "DIRECT",
     });
 
     await expect(
@@ -314,7 +295,7 @@ describe("le grand livre est immuable en base", () => {
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
 
     const l1 = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: l1.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: l1.id });
 
     // Le versement démarre : le solde du jour se fige.
     const solde = await db.balance.findFirstOrThrow({
@@ -327,7 +308,7 @@ describe("le grand livre est immuable en base", () => {
 
     const l2 = await creerCommande(acheteur.id, produit.id, 10_000);
     await expect(
-      encaisserLigne({ orderItemId: l2.id, regime: "DIRECT" }),
+      encaisserLigne({ orderItemId: l2.id }),
     ).rejects.toThrow(/figés/);
   });
 });
@@ -338,7 +319,7 @@ describe("téléchargement", () => {
     const acheteur = await creerCreateur("-a7");
     const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
 
     const r = await autoriserTelechargement({
       userId: acheteur.id,
@@ -383,7 +364,7 @@ describe("téléchargement", () => {
     const acheteur = await creerCreateur("-a9");
     const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
     await rembourserLigne({ orderItemId: ligne.id, amount: 10_000 });
 
     const r = await autoriserTelechargement({
@@ -500,7 +481,7 @@ describe("téléchargement", () => {
     const acheteur = await creerCreateur("-a14");
     const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
 
     await db.orderItem.update({
       where: { id: ligne.id },
@@ -532,7 +513,7 @@ describe("téléchargement", () => {
     const acheteur = await creerCreateur("-a15");
     const { produit, fichier } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
 
     await db.orderItem.update({
       where: { id: ligne.id },
@@ -570,7 +551,7 @@ describe("téléchargement", () => {
     const acheteur = await creerCreateur("-a13");
     const { produit } = await creerProduitAvecFichier(createur.id, 10_000);
     const ligne = await creerCommande(acheteur.id, produit.id, 10_000);
-    await encaisserLigne({ orderItemId: ligne.id, regime: "DIRECT" });
+    await encaisserLigne({ orderItemId: ligne.id });
 
     const media = await db.mediaAsset.create({
       data: {
@@ -617,14 +598,12 @@ describe("projection des versements sur données réelles", () => {
     const l1 = await creerCommande(acheteur.id, produit.id, 10_000);
     await encaisserLigne({
       orderItemId: l1.id,
-      regime: "DIRECT",
       date: new Date("2026-07-20T10:00:00Z"),
     });
 
     const l2 = await creerCommande(acheteur.id, produit.id, 10_000);
     await encaisserLigne({
       orderItemId: l2.id,
-      regime: "DIRECT",
       date: new Date("2026-07-28T10:00:00Z"),
     });
 

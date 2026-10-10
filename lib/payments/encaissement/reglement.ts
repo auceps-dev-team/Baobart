@@ -35,7 +35,7 @@ import { noterConversion } from "@/lib/commerce/relance-paiement";
  * c'est le signal que l'appelant traduit en « rejeu, rien à faire ».
  */
 export async function finaliserVente(orderItemId: string): Promise<void> {
-  await encaisserLigne({ orderItemId, regime: "DIRECT" });
+  await encaisserLigne({ orderItemId });
 
   const ligne = await db.orderItem.findUniqueOrThrow({
     where: { id: orderItemId },

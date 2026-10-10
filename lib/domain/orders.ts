@@ -14,11 +14,7 @@ import type { Prisma } from "@prisma/client";
 import type { Currency } from "@/lib/domain/prisma-types";
 
 import { crediterSolde } from "@/lib/domain/balances";
-import {
-  computeFees,
-  partProportionnelle,
-  type FeeRegime,
-} from "@/lib/domain/fees";
+import { computeFees, partProportionnelle } from "@/lib/domain/fees";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { notifier } from "@/lib/notifications/aiguilleur";
@@ -43,8 +39,6 @@ export class RemboursementInterditError extends Error {
 
 export interface EncaissementInput {
   orderItemId: string;
-  /** Qui a amené l'acheteur — décide du taux de commission (voir fees.ts). */
-  regime: FeeRegime;
   affiliateBasisPoints?: number;
   sellerBearsAffiliateFee?: boolean;
   taxAmount?: number;
@@ -64,7 +58,6 @@ export interface EncaissementInput {
 export async function encaisserLigne(input: EncaissementInput) {
   const {
     orderItemId,
-    regime,
     affiliateBasisPoints = 0,
     sellerBearsAffiliateFee = false,
     taxAmount = 0,
@@ -89,7 +82,6 @@ export async function encaisserLigne(input: EncaissementInput) {
     const frais = computeFees({
       unitPrice: ligne.price,
       quantity: ligne.quantity,
-      regime,
       affiliateBasisPoints,
       sellerBearsAffiliateFee,
       taxAmount,

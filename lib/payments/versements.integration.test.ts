@@ -67,7 +67,7 @@ async function vendre(prix: number, date: Date) {
   });
 
   const ligneId = o.items[0]!.id;
-  const { frais } = await encaisserLigne({ orderItemId: ligneId, regime: "DIRECT", date });
+  const { frais } = await encaisserLigne({ orderItemId: ligneId, date });
   return { ligneId, net: frais.sellerNet };
 }
 
@@ -730,7 +730,6 @@ describe("exécution d'un versement", () => {
     });
     await encaisserLigne({
       orderItemId: o.items[0]!.id,
-      regime: "DIRECT",
       date: new Date("2026-07-20T10:00:00Z"),
     });
 
@@ -815,7 +814,6 @@ describe("le passage hebdomadaire", () => {
 
     await encaisserLigne({
       orderItemId: o.items[0]!.id,
-      regime: "DIRECT",
       date: new Date("2026-07-20T10:00:00Z"),
     });
 
@@ -1001,7 +999,6 @@ describe("le passage hebdomadaire", () => {
     });
     await encaisserLigne({
       orderItemId: o.items[0]!.id,
-      regime: "DIRECT",
       date: new Date("2026-07-20T10:00:00Z"),
     });
 

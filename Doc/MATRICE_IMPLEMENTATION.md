@@ -23,7 +23,7 @@
 
 | Fonctionnalité | Spec | Module | Statut | Preuve/tests | Dette |
 |---|---|---|---|---|---|
-| Frais & grand livre (2 régimes) | §2.4 | `lib/domain/fees.ts` | ✅ | 24 tests | Pas de compte plateforme — se reconstitue par requête, pas par lecture directe |
+| Frais & grand livre (une seule commission) | §2.4 | `lib/domain/fees.ts` | ✅ | `fees.test.ts` | **Une commission de 10 %, que la plateforme apporte l'acheteur ou non** (décision du 10/10/2026) ; 88,5 % au créateur avec les frais d'opérateur, chiffre que tous les écrans tirent de `partDuCreateur()`. Le régime « découverte » (30 %) a été retiré : il était au barème sans qu'aucune vente ne l'applique, et un audit l'a lu comme la règle. Un test fige le barème entier pour qu'un second taux ne revienne pas en silence. **Reste :** pas de compte plateforme — se reconstitue par requête, pas par lecture directe ; `Product.discoverFeePerThousand` reste au schéma, sans lecteur |
 | Remboursement déclenchable | §3.1 | `lib/domain/orders.ts`, `lib/ventes/actions.ts` | ✅ | v1.36.0, 6 tests de plus | **L'argent repart vraiment** : appel `/refund` chez l'opérateur avant toute écriture. Jusqu'en v1.35.0 le grand livre était écrit sans que rien ne soit rendu à l'acheteur |
 | Litiges / chargebacks | §3.6-A | `lib/domain/litiges.ts` | ✅ | testé, concurrence incluse | Pas de scoring de risque amont (type Stripe Radar) |
 | Versements — calendrier/éligibilité | §3.9 | `lib/payments/*` | ✅ | v1.43.0, 30 tests | Retenue de 24 h sur un compte fraîchement enregistré : sans elle, un compte détourné voit ses versements repartir ailleurs au cycle suivant, sans qu'aucune autre garde ne le voie. Non levable à la main |
