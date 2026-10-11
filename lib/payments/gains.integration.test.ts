@@ -57,7 +57,6 @@ async function vendre(prix: number, ilYaJours: number) {
 
   const { frais } = await encaisserLigne({
     orderItemId: o.items[0]!.id,
-    regime: "DIRECT",
     date: new Date(MAINTENANT.getTime() - ilYaJours * JOUR),
   });
   return frais.sellerNet;
@@ -167,7 +166,7 @@ describe("les trois sommes", () => {
       select: { items: { select: { id: true } } },
     });
     const ligne = o.items[0]!.id;
-    await encaisserLigne({ orderItemId: ligne, regime: "DIRECT", date: new Date(MAINTENANT.getTime() - 20 * JOUR) });
+    await encaisserLigne({ orderItemId: ligne, date: new Date(MAINTENANT.getTime() - 20 * JOUR) });
     await enregistrerCompte();
     await preparerVersement({
       userId: createur,
@@ -249,14 +248,14 @@ describe("ce que l'écran affiche", () => {
     // La maquette annonçait « 80 % » : un taux que la lecture du dépôt de
     // référence a fait abandonner. Puis l'écran a dit « 90 % », en oubliant
     // les frais d'opérateur (mesuré le 25/09 : 8 850 F pour 10 000 F).
-    // Et plus de part \u00ab d\u00e9couverte \u00bb annonc\u00e9e : aucune vente ne la suit.
-    expect(g.partCreateur).toEqual({ directe: "88,5\u00a0%" });
+    // Et plus de part « découverte » : retirée du barème le 10/10/2026.
+    expect(g.partCreateur).toBe("88,5\u00a0%");
   });
 
-  it("annonce la part qu'une vente directe crédite vraiment", async () => {
+  it("annonce la part qu'une vente crédite vraiment", async () => {
     const net = await vendre(10_000, 2);
     const g = await gainsDe(createur, MAINTENANT);
-    expect(g.partCreateur.directe).toBe(`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(net / 100)}\u00a0%`);
+    expect(g.partCreateur).toBe(`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(net / 100)}\u00a0%`);
   });
 
   it("masque le numéro du compte", async () => {

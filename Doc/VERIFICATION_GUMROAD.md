@@ -119,6 +119,11 @@ jusqu'à 300** — `DEFAULT_BOOSTED_DISCOVER_FEE_PER_THOUSAND = 300`. Il accepte
 donc de céder 30 % au lieu de 10 % **sur les ventes issues du feed**. Aucune
 impression n'est vendue, aucun budget n'est avancé.
 
+> Note du 10/10/2026 : ce constat sur Gumroad reste exact. Baobart a pourtant
+> décidé de ne prendre qu'une seule commission, que la plateforme apporte
+> l'acheteur ou non (`lib/domain/fees.ts`) : la conséquence ci-dessous est en
+> suspens, pas appliquée.
+
 **Conséquence pour Baobart** : c'est un bien meilleur modèle que le CPM pour
 l'Afrique de l'Ouest. Vendre des impressions à des créateurs sans trésorerie
 revient à leur vendre du risque ; ici le créateur ne paie que s'il a vendu.

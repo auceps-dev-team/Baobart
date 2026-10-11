@@ -14,7 +14,7 @@ export default async function InscriptionPage() {
   if (await sessionCourante()) redirect("/dashboard");
 
   // Le même chiffre que l'accueil et l'écran des gains : `partDuCreateur`.
-  const partCreateur = partDuCreateur().directe;
+  const partCreateur = partDuCreateur();
 
   return (
     <AuthShell

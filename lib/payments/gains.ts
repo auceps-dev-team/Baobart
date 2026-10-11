@@ -72,7 +72,7 @@ export interface Gains {
    * Part du prix qui revient au créateur, dérivée du barème réel :
    * commission et frais d'opérateur déduits (`partDuCreateur`).
    */
-  partCreateur: { directe: string };
+  partCreateur: string;
   /** Prochaine date de versement, ou `null` si rien ne part. */
   prochainVersement: Date | null;
   /** Pourquoi rien ne part, le cas échéant. */

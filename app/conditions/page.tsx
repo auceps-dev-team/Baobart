@@ -83,7 +83,7 @@ export default async function ConditionsPage() {
       <DocSection titre="Vendre">
         <DocListe
           elements={[
-            `Tu gardes ${part.directe} du prix de chaque vente : Baobart retient ${BAREME_XOF.directRateBp / 100} % de commission, et les frais de l'opérateur de paiement (${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(BAREME_XOF.processorRateBp / 100)} %) restent à ta charge. Une ressource offerte ne coûte rien à personne.`,
+            `Tu gardes ${part} du prix de chaque vente : Baobart retient ${BAREME_XOF.commissionBp / 100} % de commission, et les frais de l'opérateur de paiement (${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(BAREME_XOF.processorRateBp / 100)} %) restent à ta charge. Une ressource offerte ne coûte rien à personne.`,
             "Tu publies sans exclusivité : tes ressources t'appartiennent, et tu peux les vendre ailleurs.",
             "Une ressource ne se publie qu'avec au moins un fichier : l'acheteur doit avoir quelque chose à télécharger.",
             `Ton solde t'est versé une fois par semaine, selon le moyen choisi — ${versements.join(", ")}. En dessous du minimum de versement, il roule sur l'échéance suivante.`,

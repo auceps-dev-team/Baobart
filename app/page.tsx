@@ -73,7 +73,7 @@ export default async function AccueilPage() {
 
   // « 90 % », calculé ici comme `100 − commission` : les frais d'opérateur
   // manquaient. La phrase vit dans `partDuCreateur`, avec le barème.
-  const partCreateur = partDuCreateur().directe;
+  const partCreateur = partDuCreateur();
 
   return (
     <>

@@ -57,7 +57,7 @@ async function venteDe(prix: number) {
   });
 
   const ligneId = commande.items[0]!.id;
-  await encaisserLigne({ orderItemId: ligneId, regime: "DIRECT" });
+  await encaisserLigne({ orderItemId: ligneId });
 
   return { vendeurId: vendeur.id, ligneId };
 }
@@ -73,7 +73,7 @@ async function soldeInscrit(userId: string) {
 
 describe("trajet des fonds sur une vente à 5 000", () => {
   const PRIX = 5_000;
-  const frais = computeFees({ unitPrice: PRIX, quantity: 1, regime: "DIRECT" });
+  const frais = computeFees({ unitPrice: PRIX, quantity: 1 });
 
   it("crédite le créateur du net, et de lui seul", async () => {
     const { vendeurId } = await venteDe(PRIX);
@@ -101,7 +101,7 @@ describe("trajet des fonds sur une vente à 5 000", () => {
 
 describe("remboursement intégral", () => {
   const PRIX = 5_000;
-  const frais = computeFees({ unitPrice: PRIX, quantity: 1, regime: "DIRECT" });
+  const frais = computeFees({ unitPrice: PRIX, quantity: 1 });
 
   it("débite le vendeur du brut, pas de son net", async () => {
     // Décision commerciale d'août 2026 : la commission n'est pas rendue, et
@@ -153,7 +153,7 @@ describe("remboursement intégral", () => {
 describe("remboursements partiels empilés", () => {
   it("débite au total exactement le brut remboursé", async () => {
     const { vendeurId, ligneId } = await venteDe(100);
-    const frais = computeFees({ unitPrice: 100, quantity: 1, regime: "DIRECT" });
+    const frais = computeFees({ unitPrice: 100, quantity: 1 });
 
     let debite = 0;
     for (let i = 0; i < 100; i += 1) {
@@ -169,7 +169,7 @@ describe("remboursements partiels empilés", () => {
     // Cent remboursements d'un franc : arrondir chacun isolément ferait
     // conserver à la plateforme plus, ou moins, que sa commission entière.
     const { ligneId } = await venteDe(100);
-    const frais = computeFees({ unitPrice: 100, quantity: 1, regime: "DIRECT" });
+    const frais = computeFees({ unitPrice: 100, quantity: 1 });
 
     let retenuCumule = 0;
     for (let i = 0; i < 100; i += 1) {

@@ -1329,6 +1329,8 @@ model Product {
   isStaffPicked          Boolean   @default(false) // sélection éditoriale §3.10-A
   staffPickedAt          DateTime?
   isBoosted              Boolean   @default(false) // boost payant §10.9
+  // Sans lecteur : le régime « découverte » qu'elle réglait a quitté le
+  // barème le 10/10/2026 (lib/domain/fees.ts). À retirer par une migration.
   discoverFeePerThousand Int?
 
   // compteurs dénormalisés

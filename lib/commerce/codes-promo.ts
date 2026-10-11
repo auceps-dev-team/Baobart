@@ -124,25 +124,21 @@ export const MESSAGES_CODE: Record<MotifRefusCode, string> = {
 const PRIX_MINIMUM_VENTE = 1;
 
 /**
- * Le prix plancher, tous régimes confondus.
+ * Le prix plancher.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * ON PREND LE PLUS EXIGEANT, ET ON LE CALCULE
  *
- * Le régime d'une vente — DIRECT ou DECOUVERTE — se décide au règlement, pas
- * ici. Choisir le mauvais laisserait passer une remise qui échouerait plus
- * tard, au pire moment.
- *
  * Calculé à partir du barème plutôt que recopié : le jour où les parts fixes
  * recevront des valeurs mesurées, ce seuil montera tout seul. Un nombre écrit
  * en dur resterait juste jusqu'au jour où il ne le serait plus, en silence.
+ *
+ * Jusqu'en v1.88.1, il prenait aussi le maximum sur le régime « découverte » :
+ * une seule commission depuis le 10/10/2026 (`lib/domain/fees.ts`), donc un
+ * seul calcul. Sans effet aujourd'hui, les parts fixes valant 0.
  */
 export function prixPlancher(): number {
-  return Math.max(
-    PRIX_MINIMUM_VENTE,
-    minimumViablePrice("DIRECT", BAREME_XOF),
-    minimumViablePrice("DECOUVERTE", BAREME_XOF),
-  );
+  return Math.max(PRIX_MINIMUM_VENTE, minimumViablePrice(BAREME_XOF));
 }
 
 /**

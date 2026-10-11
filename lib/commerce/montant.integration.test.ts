@@ -435,7 +435,6 @@ describe("l'achat", () => {
     const attendu = computeFees({
       unitPrice: 5_000,
       quantity: 1,
-      regime: "DIRECT",
       tipAmount: 2_000,
     });
     expect(attendu.gross).toBe(7_000);

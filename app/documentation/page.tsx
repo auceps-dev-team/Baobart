@@ -30,7 +30,7 @@ export default async function DocumentationPage() {
       {texte}
     </Link>
   );
-  const part = partDuCreateur().directe;
+  const part = partDuCreateur();
   const versements = Object.values(RAILS_BAOBART).map((r) => `${r.label} le ${JOURS[r.weekday]}`);
 
   return (
@@ -61,7 +61,7 @@ export default async function DocumentationPage() {
       <DocSection titre="Vendre et être payé" id="vendre">
         <DocListe
           elements={[
-            `Tu gardes ${part} de chaque vente : ${BAREME_XOF.directRateBp / 100} % de commission, et les frais de l'opérateur de paiement.`,
+            `Tu gardes ${part} de chaque vente : ${BAREME_XOF.commissionBp / 100} % de commission, et les frais de l'opérateur de paiement.`,
             <>Renseigne ton compte de versement dans {vers("/dashboard/versements", "Versements")} : mobile money ou virement. {vers("/dashboard/gains", "Gains")} dit ce qui est disponible et quand il part.</>,
             `Ton solde part une fois par semaine, le jour de ton moyen — ${versements.join(", ")} —, dès qu'il atteint le minimum.`,
             <>Ton délai de remboursement se règle dans {vers("/dashboard/ventes/remboursements", "Demandes de remboursement")}, où arrivent les demandes : réponds sous sept jours, sinon l&apos;équipe tranche.</>,

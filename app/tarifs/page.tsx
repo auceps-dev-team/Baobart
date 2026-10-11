@@ -37,7 +37,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function TarifsPage() {
   const [visiteur, plans] = await Promise.all([sessionCourante(), lirePlans()]);
-  const part = partDuCreateur().directe;
+  const part = partDuCreateur();
   const ouverts = plans.filter((p) => p.openForSubscription);
   const grises = plans.filter((p) => !p.openForSubscription).sort((a, b) => a.priceMonthly - b.priceMonthly);
   const enCours = visiteur

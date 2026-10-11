@@ -269,9 +269,10 @@ export default async function GainsPage() {
  * le virement.
  */
 function introDe(gains: Awaited<ReturnType<typeof gainsDe>>): string {
-  // « 70 % quand l'acheteur te trouve par l'exploration » : aucune vente ne
-  // suit ce régime aujourd'hui (`partDuCreateur`, lu le 04/10).
-  const part = `${gains.partCreateur.directe} du prix de chaque vente te reviennent.`;
+  // L'écran a dit « 70 % quand l'acheteur te trouve par l'exploration » : ce
+  // régime n'a jamais été appliqué, et il est retiré du barème depuis le
+  // 10/10/2026 — une seule commission (`lib/domain/fees.ts`).
+  const part = `${gains.partCreateur} du prix de chaque vente te reviennent.`;
   if (gains.aDeduire > 0) {
     return `${part} Tu dois ${formatMoney(gains.aDeduire)} : des remboursements sont arrivés après ton dernier versement. Ils seront retenus sur tes prochaines ventes.`;
   }
