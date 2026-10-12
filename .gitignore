@@ -38,3 +38,11 @@ Thumbs.db
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Maquettes & exports de conception locaux
+Baobart Design/posts/
+Baobart Design/profil/
+Baobart Design/video/
+
+# Mémoire agent locale
+memory-bank/
