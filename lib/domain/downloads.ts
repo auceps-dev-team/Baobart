@@ -35,9 +35,20 @@ export interface TelechargementInput {
 
 export interface TelechargementResultat {
   decision: DecisionAcces;
-  /** Durée de validité de l'URL signée à générer, en secondes. */
+  /** Durée de validité de l'URL signée à générer, en secondes. Nulle pour un lien externe : rien à signer. */
   dureeUrlSecondes: number | null;
-  fichier: { id: string; filename: string; sizeBytes: number } | null;
+  fichier: {
+    id: string;
+    filename: string;
+    sizeBytes: number | null;
+    /** Le lien d'un fichier hébergé ailleurs : la route y redirige au lieu de signer. */
+    externalUrl: string | null;
+  } | null;
+}
+
+/** Un lien externe n'a pas d'URL à signer, donc pas de durée. */
+function dureeDe(fichier: { sizeBytes: number | null; externalUrl: string | null }): number | null {
+  return fichier.externalUrl !== null || fichier.sizeBytes === null ? null : dureeUrlSignee(fichier.sizeBytes);
 }
 
 /**
@@ -124,11 +135,12 @@ export async function autoriserTelechargement(
 
       return {
         decision,
-        dureeUrlSecondes: dureeUrlSignee(fichier.sizeBytes),
+        dureeUrlSecondes: dureeDe(fichier),
         fichier: {
           id: fichier.id,
           filename: fichier.filename,
           sizeBytes: fichier.sizeBytes,
+          externalUrl: fichier.externalUrl,
         },
       };
     }
@@ -263,11 +275,12 @@ export async function autoriserTelechargement(
 
     return {
       decision,
-      dureeUrlSecondes: dureeUrlSignee(fichier.sizeBytes),
+      dureeUrlSecondes: dureeDe(fichier),
       fichier: {
         id: fichier.id,
         filename: fichier.filename,
         sizeBytes: fichier.sizeBytes,
+        externalUrl: fichier.externalUrl,
       },
     };
   }, { isolationLevel: "Serializable" });

@@ -46,7 +46,7 @@ export default async function HistoriqueDesTelechargementsPage({
     // commande a été remboursée depuis.
     action: r.fichierId
       ? {
-          label: "Télécharger",
+          label: r.fichierExterne ? `Ouvrir sur ${r.fichierExterne}` : "Télécharger",
           href: `/api/telechargement/${r.fichierId}`,
           telecharger: true,
         }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { estOfferte } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
+import { hoteDuLien } from "@/lib/products/lien-externe";
 import {
   debutDuMois,
   etatCommande,
@@ -160,6 +161,8 @@ export interface RessourceTelechargee {
   visuel: string | null;
   /** Fichier proposé au re-téléchargement, ou `null` s'il n'y en a plus. */
   fichierId: string | null;
+  /** L'hôte de ce fichier quand il est hébergé ailleurs : le bouton dit où il mène. */
+  fichierExterne: string | null;
 }
 
 export interface Telechargements {
@@ -206,7 +209,7 @@ export async function historiqueDesTelechargements(
       files: {
         where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
-        select: { id: true, filename: true },
+        select: { id: true, filename: true, externalUrl: true },
       },
     },
   });
@@ -241,6 +244,7 @@ export async function historiqueDesTelechargements(
       gratuite: estOfferte(produit),
       visuel: produit.coverUrl,
       fichierId: produit.files[0]?.id ?? null,
+      fichierExterne: produit.files[0]?.externalUrl ? hoteDuLien(produit.files[0].externalUrl) : null,
     });
   }
 

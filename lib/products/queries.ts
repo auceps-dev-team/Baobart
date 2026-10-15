@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
+import { hoteDuLien } from "@/lib/products/lien-externe";
+import { formatDe } from "@/lib/upload/formats";
 import { libelleDelai } from "@/lib/remboursements/regles";
 
 /**
@@ -60,12 +62,22 @@ export interface FicheProduit {
     role: string;
     verifie: boolean;
   };
-  /** Détails techniques : format, dimensions, poids du plus gros fichier. */
+  /**
+   * Détails techniques : format, dimensions, poids du plus gros fichier
+   * hébergé. Un lien externe n'a ni poids ni dimensions mesurés : nuls, et la
+   * fiche affiche un tiret plutôt qu'un zéro qui passerait pour une mesure.
+   */
   fichier: {
     format: string;
     dimensions: string | null;
-    poids: number;
+    poids: number | null;
   } | null;
+  /**
+   * Où vivent les fichiers hébergés ailleurs, dits avant l'achat. Vide pour
+   * une ressource entièrement chez nous — la fiche reste alors celle de la
+   * maquette, sans ligne de plus.
+   */
+  hebergeSur: string[];
   /** Autres ressources du même créateur, pour la bande de vignettes. */
   duMemeCreateur: Array<{ slug: string; titre: string; coverUrl: string | null }>;
 }
@@ -74,7 +86,8 @@ export interface FicheProduit {
 export type DroitTelechargement =
   | {
       etat: "TELECHARGEABLE";
-      fichiers: Array<{ id: string; nom: string }>;
+      /** `externe` : l'hôte d'un fichier hébergé ailleurs, pour que le bouton dise où il mène. */
+      fichiers: Array<{ id: string; nom: string; externe: string | null }>;
       /**
        * La licence de l'achat, quand l'accès vient d'un achat. Créée à chaque
        * vente depuis longtemps (`tx.licenseKey.create`), elle n'était montrée
@@ -121,7 +134,7 @@ export async function droitDeTelecharger(
       files: {
         where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
-        select: { id: true, filename: true },
+        select: { id: true, filename: true, externalUrl: true },
       },
     },
   });
@@ -151,7 +164,11 @@ export async function droitDeTelecharger(
 
   if (produit.files.length === 0) return aAcheter(false);
 
-  const fichiers = produit.files.map((f) => ({ id: f.id, nom: f.filename }));
+  const fichiers = produit.files.map((f) => ({
+    id: f.id,
+    nom: f.filename,
+    externe: f.externalUrl ? hoteDuLien(f.externalUrl) : null,
+  }));
 
   // Une ressource offerte se retire dès qu'on est connecté : demander de
   // « l'acheter » à 0 F n'aurait aucun sens.
@@ -248,12 +265,19 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
       files: {
         // Le format et les dimensions annoncés décrivent ce que l'acheteur
         // reçoit : l'aperçu n'a rien à y faire.
+        //
+        // Tous les fichiers sources, et plus seulement le plus gros : il faut
+        // aussi savoir où vivent les liens externes. Vingt au plus.
+        //
+        // `nulls: "last"` : en ordre décroissant, PostgreSQL met les NULL en
+        // tête. Sans lui, le « plus gros fichier » serait un lien externe,
+        // dont on ne connaît pas la taille.
         where: { role: "SOURCE", deletedAt: null },
-        orderBy: { sizeBytes: "desc" },
-        take: 1,
+        orderBy: { sizeBytes: { sort: "desc", nulls: "last" } },
         select: {
           filename: true,
           sizeBytes: true,
+          externalUrl: true,
           media: { select: { contentType: true, width: true, height: true } },
         },
       },
@@ -276,6 +300,9 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
   });
 
   const fichier = p.files[0];
+  const hebergeSur = [
+    ...new Set(p.files.flatMap((f) => (f.externalUrl ? [hoteDuLien(f.externalUrl)] : []))),
+  ];
 
   return {
     id: p.id,
@@ -304,14 +331,20 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
     },
     fichier: fichier
       ? {
-          format: formatDeContenu(fichier.media.contentType, fichier.filename),
+          // Un lien externe n'a pas de type mesuré : on ne croit son nom que
+          // s'il porte un format que l'envoi accepte. Sans ça, le nom par
+          // défaut « Fichier sur drive.google.com » s'annoncerait en « COM ».
+          format: fichier.media
+            ? formatDeContenu(fichier.media.contentType, fichier.filename)
+            : (formatDe(fichier.filename)?.extension.toUpperCase() ?? "Lien externe"),
           dimensions:
-            fichier.media.width && fichier.media.height
+            fichier.media?.width && fichier.media.height
               ? `${fichier.media.width} × ${fichier.media.height}`
               : null,
           poids: fichier.sizeBytes,
         }
       : null,
+    hebergeSur,
     duMemeCreateur: autres.map((a) => ({
       slug: a.slug,
       titre: a.name,

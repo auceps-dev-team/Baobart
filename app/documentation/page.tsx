@@ -51,6 +51,7 @@ export default async function DocumentationPage() {
           elements={[
             <>Depuis {vers("/dashboard/produits/nouveau", "Publier une ressource")} : un titre, une famille, un prix — fixe, offert, ou libre au-dessus d&apos;un minimum —, une description et des mots-clés. La recherche de l&apos;en-tête lit le titre, puis les mots-clés : choisis ceux qu&apos;on taperait pour te trouver.</>,
             `Dépose tes fichiers, ${formatPoids(TAILLE_MAX)} au plus chacun, et un aperçu si le fichier ne se montre pas tout seul (une police, un PSD, une archive).`,
+            "Ton fichier est déjà en ligne — Drive, Dropbox, ton site ? Colle son lien à la place : l'acheteur le reçoit après paiement, et ta fiche dit où il est hébergé. Ce lien ne s'éteint pas, et c'est à toi de le garder en ligne.",
             "Choisis la licence sur l'écran de la ressource ; sans choix, c'est la licence commerciale.",
             "Publie : la ressource paraît aussitôt, pourvu qu'elle porte un fichier. Tu peux la dépublier à tout moment.",
             <>Les formats acceptés et ce qu&apos;on attend de toi : les {vers("/regles-de-publication", "règles de publication")}.</>,

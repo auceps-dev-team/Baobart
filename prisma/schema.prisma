@@ -1373,13 +1373,26 @@ enum ProductFileRole {
   PREVIEW
 }
 
+/// Un fichier vendu vit chez nous (`mediaId`) OU ailleurs (`externalUrl`),
+/// jamais les deux, jamais aucun. Décidé le 15/10/2026 : le créateur peut
+/// héberger son fichier lui-même — son Drive, son Dropbox, son site — et
+/// Baobart ne fait que garder la porte. Les deux contraintes CHECK de la
+/// migration `20261015090000_ressources_externes` tiennent la règle, que
+/// Prisma ne sait pas écrire ici.
 model ProductFile {
-  id        String          @id @default(cuid())
-  productId String
-  mediaId   String
-  filename  String
-  sizeBytes Int
-  role      ProductFileRole @default(SOURCE)
+  id          String          @id @default(cuid())
+  productId   String
+  mediaId     String?
+  /// Le lien externe, en https. Servi par redirection, après les mêmes
+  /// contrôles qu'un fichier hébergé : achat, remboursement, litige, retrait.
+  /// Il ne se montre qu'une fois la porte passée, mais il ne s'éteint pas :
+  /// qui l'a reçu peut le transmettre.
+  externalUrl String?
+  filename    String
+  /// Inconnu pour un lien externe : on ne va pas chercher le fichier, et
+  /// recopier une taille annoncée par le créateur la ferait passer pour mesurée.
+  sizeBytes   Int?
+  role        ProductFileRole @default(SOURCE)
   position  Int             @default(0)
   /// Retiré d'une ressource **déjà vendue** : la ligne et l'objet au stockage
   /// restent. Un retrait par erreur serait sinon irrécupérable, et ce sont des
@@ -1389,8 +1402,12 @@ model ProductFile {
   deletedAt DateTime?
   createdAt DateTime        @default(now())
 
-  product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  media   MediaAsset @relation(fields: [mediaId], references: [id])
+  product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// `Restrict` écrit en toutes lettres : c'était la règle quand la relation
+  /// était obligatoire, et Prisma passe à `SetNull` dès qu'elle devient
+  /// facultative. Un média supprimé viderait alors `mediaId` en silence, et
+  /// laisserait un fichier vendu qui ne pointe sur rien.
+  media   MediaAsset? @relation(fields: [mediaId], references: [id], onDelete: Restrict)
 
   @@index([productId, role, deletedAt])
   @@index([mediaId])
