@@ -17,6 +17,8 @@ import {
 } from "@/lib/upload/actions";
 import type { RoleFichier } from "@/lib/upload/types";
 
+import { LienExterne } from "./lien-externe";
+
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
@@ -29,7 +31,10 @@ const TRAME = `repeating-linear-gradient(135deg,${BLANC} 0 8px,${ENCRE} 8px 18px
 export interface FichierAttache {
   id: string;
   nom: string;
-  taille: number;
+  /** Nulle pour un lien externe : on ne l'a pas mesurée. */
+  taille: number | null;
+  /** L'hôte d'un fichier hébergé ailleurs. */
+  externe?: string | null;
 }
 
 export interface Extrait {
@@ -210,7 +215,8 @@ export function FileUploader({
     });
   }
 
-  const poidsTotal = fichiers.reduce((somme, f) => somme + f.taille, 0);
+  const poidsTotal = fichiers.reduce((somme, f) => somme + (f.taille ?? 0), 0);
+  const liens = fichiers.filter((f) => f.externe).length;
 
   return (
     <div style={{ maxWidth: 640 }}>
@@ -275,6 +281,17 @@ export function FileUploader({
             : `${EXTENSIONS_ANNONCEES.join(" · ")} — 200 Mo max`}
         </div>
       </div>
+
+      {!apercu ? (
+        <LienExterne
+          produitId={produitId}
+          onAjoute={(lien) => {
+            setErreurs([]);
+            setFichiers((liste) => [...liste, lien]);
+            rafraichirLeRecapitulatif();
+          }}
+        />
+      ) : null}
 
       <input
         ref={champ}
@@ -441,7 +458,7 @@ export function FileUploader({
                       opacity: 0.6,
                     }}
                   >
-                    {formatPoids(f.taille)}
+                    {f.externe ? `lien externe · ${f.externe}` : formatPoids(f.taille ?? 0)}
                   </span>
                 </span>
 
@@ -475,7 +492,10 @@ export function FileUploader({
             }}
           >
             {fichiers.length} fichier{fichiers.length > 1 ? "s" : ""} ·{" "}
-            {formatPoids(poidsTotal)}
+            {liens === fichiers.length
+              ? `hébergé${fichiers.length > 1 ? "s" : ""} ailleurs`
+              : formatPoids(poidsTotal)}
+            {liens > 0 && liens < fichiers.length ? ` + ${liens} lien${liens > 1 ? "s" : ""} externe${liens > 1 ? "s" : ""}` : ""}
             {apercu || couverture ? "" : " · aucun aperçu"}
           </p>
         </>

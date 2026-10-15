@@ -8,11 +8,15 @@
  * produirait jamais à la demande.
  */
 
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DELAI_MINIMUM_MS,
   SEUIL_SCORE,
+  UN_FORMULAIRE_TRANSMET_LE_JETON,
   etatAntiBot,
   evaluerUnGeste,
 } from "@/lib/securite/antibot";
@@ -235,12 +239,68 @@ describe("le score du tiers", () => {
 });
 
 describe("l'état affiché à la configuration", () => {
-  it("dit franchement quand aucun tiers n'est branché", () => {
-    expect(etatAntiBot().tiers).toBe(false);
+  it("dit franchement quand aucune clé n'est posée", () => {
+    expect(etatAntiBot().tiers).toBe("absent");
   });
 
-  it("le dit quand il l'est", () => {
+  it("ne compte pas une clé seule comme un tiers branché", () => {
     process.env.RECAPTCHA_SECRET = "clé-de-test";
-    expect(etatAntiBot().tiers).toBe(true);
+    expect(etatAntiBot(false).tiers).toBe("sans_jeton");
+  });
+
+  it("dit actif quand la clé est posée et qu'un formulaire transmet le jeton", () => {
+    process.env.RECAPTCHA_SECRET = "clé-de-test";
+    expect(etatAntiBot(true).tiers).toBe("actif");
+  });
+
+  it("aujourd'hui, une clé posée reste sans jeton", () => {
+    process.env.RECAPTCHA_SECRET = "clé-de-test";
+    expect(etatAntiBot().tiers).toBe(
+      UN_FORMULAIRE_TRANSMET_LE_JETON ? "actif" : "sans_jeton",
+    );
+  });
+});
+
+/**
+ * La constante `UN_FORMULAIRE_TRANSMET_LE_JETON` décrit ce que font d'autres
+ * modules. Sans ce test, elle ne serait qu'un souvenir : on relit donc chaque
+ * appel à `evaluerUnGeste` hors de ce dossier, et l'on vérifie qu'elle dit vrai.
+ */
+describe("la constante dit ce que font les appelants", () => {
+  const racine = process.cwd();
+
+  function sources(dossier: string): string[] {
+    return readdirSync(dossier).flatMap((nom) => {
+      const chemin = join(dossier, nom);
+      if (statSync(chemin).isDirectory()) return sources(chemin);
+      return /\.tsx?$/.test(nom) && !/\.test\.tsx?$/.test(nom) ? [chemin] : [];
+    });
+  }
+
+  const appels = ["lib", "app", "components"]
+    .flatMap((d) => sources(join(racine, d)))
+    .filter((f) => !f.endsWith(join("securite", "antibot.ts")))
+    .flatMap((f) => {
+      const texte = readFileSync(f, "utf8");
+      return [...texte.matchAll(/evaluerUnGeste\(\{([\s\S]*?)\}\)/g)].map(
+        (m) => ({ fichier: relative(racine, f), corps: m[1] }),
+      );
+    });
+
+  it("trouve les appelants connus", () => {
+    // Si ce nombre baisse, l'expression ne lit plus les appels : le test
+    // suivant passerait alors sans rien vérifier.
+    expect(appels.map((a) => a.fichier).sort()).toEqual(
+      [
+        join("lib", "auth", "gestes.ts"),
+        join("lib", "contact", "actions.ts"),
+        join("lib", "infolettre", "actions.ts"),
+      ].sort(),
+    );
+  });
+
+  it("concorde avec la présence d'un jeton dans les appels", () => {
+    const avecJeton = appels.filter((a) => /\bjeton\b/.test(a.corps ?? ""));
+    expect(avecJeton.length > 0).toBe(UN_FORMULAIRE_TRANSMET_LE_JETON);
   });
 });

@@ -142,6 +142,9 @@ function BoutonTelechargement({
           <a
             key={f.id}
             href={`/api/telechargement/${f.id}`}
+            // Un lien externe mène sur le site d'un autre — le Drive du
+            // créateur, pas un téléchargement : un nouvel onglet garde la fiche.
+            {...(f.externe ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             /*
               Pas d'attribut `download`, et c'est délibéré.
 
@@ -165,7 +168,13 @@ function BoutonTelechargement({
               boxShadow: `4px 4px 0 ${ORANGE}`,
             }}
           >
-            {droit.fichiers.length === 1 ? "Télécharger" : `Télécharger ${f.nom}`}
+            {f.externe
+              ? droit.fichiers.length === 1
+                ? `Ouvrir sur ${f.externe}`
+                : `${f.nom} — sur ${f.externe}`
+              : droit.fichiers.length === 1
+                ? "Télécharger"
+                : `Télécharger ${f.nom}`}
           </a>
         ))}
         {droit.licence ? (
@@ -673,8 +682,14 @@ export function DetailProduit({
               ["Dimensions", produit.fichier?.dimensions ?? "—"],
               [
                 "Poids",
-                produit.fichier ? formatPoids(produit.fichier.poids) : "—",
+                produit.fichier?.poids != null ? formatPoids(produit.fichier.poids) : "—",
               ],
+              // Hors maquette, et seulement quand c'est vrai : l'acheteur doit
+              // savoir AVANT de payer qu'il recevra un lien vers un autre site,
+              // et non un fichier gardé par Baobart.
+              ...(produit.hebergeSur.length > 0
+                ? [["Hébergé sur", produit.hebergeSur.join(", ")]]
+                : []),
               ["Téléchargements", formatCount(produit.telechargements)],
               [
                 "Ajouté le",

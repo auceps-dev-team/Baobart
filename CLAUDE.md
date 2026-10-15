@@ -221,6 +221,7 @@ Le coût réel a été d'une dizaine de minutes — tout se resème :
 ```sh
 npm run db:seed && npm run db:seed:demo
 npm run db:demo:catalogue        # 90 produits, suppose MinIO déjà rempli
+pnpm apercus:regenerer -- --appliquer   # couvertures filigranées : sans lui, elles restent vides
 npm run comptes:test             # les quatre comptes, mot de passe Baobart2026!
 ```
 

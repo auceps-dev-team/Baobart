@@ -28,6 +28,7 @@
     "push:cles": "node scripts/cles-push.mjs",
     "versements": "tsx --conditions=react-server --env-file=.env scripts/versements-du-cycle.ts",
     "apercus:regenerer": "tsx --conditions=react-server --env-file=.env scripts/regenerer-apercus.ts",
+    "stockage:verifier": "tsx --conditions=react-server --env-file=.env scripts/verifier-stockage.ts",
     "comptes:test": "tsx --conditions=react-server --env-file=.env scripts/comptes-de-test.ts",
     "db:e2e:setup": "node scripts/setup-test-db.mjs e2e",
     "test:e2e": "playwright test",

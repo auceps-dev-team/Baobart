@@ -16,6 +16,9 @@ import { signerTelechargement, stockageConfigure } from "@/lib/upload/storage";
  * deux cents mégaoctets par le serveur pour finir au même endroit coûterait la
  * bande passante deux fois, et bloquerait un processus pendant toute la durée.
  *
+ * Un fichier hébergé ailleurs (lien externe) passe par la même porte et la
+ * même inscription, puis la route y redirige au lieu de signer.
+ *
  * L'ordre compte : la consommation est inscrite **avant** que le lien parte.
  * L'inverse laisserait passer des téléchargements non comptés à la moindre
  * erreur, ce qui fausse à la fois la facture du créateur et le quota de
@@ -59,19 +62,21 @@ export async function GET(
     return rediriger("/connexion", 307);
   }
 
-  if (!stockageConfigure()) {
-    return refus("Le téléchargement n'est pas disponible pour le moment.", 503);
-  }
-
   const { fichierId } = await params;
 
   const existe = await db.productFile.findUnique({
     where: { id: fichierId },
-    select: { id: true, media: { select: { s3Key: true } } },
+    select: { id: true, externalUrl: true, media: { select: { s3Key: true } } },
   });
 
   if (!existe) {
     return refus("Ce fichier n'existe pas.", 404);
+  }
+
+  // Un lien externe ne passe pas par notre stockage : une panne de celui-ci
+  // n'a pas à le fermer.
+  if (existe.externalUrl === null && !stockageConfigure()) {
+    return refus("Le téléchargement n'est pas disponible pour le moment.", 503);
   }
 
   const resultat = await autoriserTelechargement({
@@ -91,6 +96,25 @@ export async function GET(
       ? "COMMANDE_NON_PAYEE"
       : resultat.decision.raison;
     return refus(MESSAGES[raison] ?? "Téléchargement refusé.", 403);
+  }
+
+  // Un fichier hébergé ailleurs (décidé le 15/10/2026, voir
+  // lib/products/lien-externe.ts) : la porte est passée, on y envoie. Le lien
+  // vient de la transaction qui a décidé, pas de la lecture ci-dessus — un lien
+  // changé entre les deux mènerait sinon là où la décision n'a pas regardé.
+  //
+  // `no-store` : cette réponse ne vaut que pour cette personne. Un cache
+  // partagé qui la garderait servirait l'adresse au suivant, sans contrôle.
+  if (resultat.fichier.externalUrl !== null) {
+    const reponse = rediriger(resultat.fichier.externalUrl, 302);
+    reponse.headers.set("Cache-Control", "private, no-store");
+    return reponse;
+  }
+
+  // Impossible par la contrainte `ProductFile_un_seul_emplacement` ; dit ici
+  // plutôt que d'appeler le stockage avec une clé vide.
+  if (!existe.media) {
+    return refus("Ce fichier n'existe pas.", 404);
   }
 
   const url = await signerTelechargement({

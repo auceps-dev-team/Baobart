@@ -16,7 +16,9 @@ import { entetesDeSecurite } from "./lib/securite/entetes";
  * casserait l'une des trois.
  */
 function hotesDesApercus(): NonNullable<NextConfig["images"]>["remotePatterns"] {
-  const brut = process.env.S3_PUBLIC_URL ?? process.env.S3_ENDPOINT;
+  // `||` et non `??` : `.env.example` livre `S3_PUBLIC_URL=` vide, et une
+  // chaîne vide doit retomber sur l'endpoint comme une variable absente.
+  const brut = process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT;
   if (!brut) return [];
 
   try {

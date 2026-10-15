@@ -8,10 +8,13 @@ import { estOuverte } from "@/lib/config/fonctionnalites";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
+  ajouterLienExterneDe,
   confirmerFichierDe,
+  FICHIERS_MAX,
   prefixePour,
   produitDe,
   retirerFichierDe,
+  type AjoutLien,
 } from "@/lib/upload/service";
 import type {
   Confirmation,
@@ -41,9 +44,6 @@ import {
  * Sans le second temps, n'importe qui pourrait annoncer un PNG de 2 Ko et
  * déposer autre chose : la signature contraint le type, pas le contenu.
  */
-
-/** Au-delà, ce n'est plus une ressource mais une bibliothèque. */
-const FICHIERS_MAX = 20;
 
 /** Une image de grille, un extrait vidéo, un extrait audio : trois suffisent. */
 const APERCUS_MAX = 3;
@@ -214,4 +214,29 @@ export async function retirerFichier(
   revalidatePath("/explore");
 
   return { ok: true };
+}
+
+/**
+ * Attache un fichier hébergé ailleurs — voir `lib/products/lien-externe.ts`.
+ *
+ * Pas d'interrupteur `envoi_fichiers` ni de `stockageConfigure` : rien ne
+ * part au stockage. Fermer l'envoi pour un incident de stockage n'a pas de
+ * raison de fermer aussi les liens.
+ */
+export async function ajouterLienExterne(
+  produitId: string,
+  saisie: { url: string; nom: string },
+): Promise<AjoutLien> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) return { ok: false, message: "Connecte-toi pour continuer." };
+
+  const resultat = await ajouterLienExterneDe({
+    userId: utilisateur.id,
+    produitId,
+    url: String(saisie.url ?? ""),
+    nom: String(saisie.nom ?? ""),
+  });
+
+  if (resultat.ok) revalidatePath(`/dashboard/produits/${produitId}`);
+  return resultat;
 }

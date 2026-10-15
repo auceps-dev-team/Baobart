@@ -4,6 +4,7 @@ import {
   anciennesClesDApercu,
   cleDApercu,
   cleDeVignette,
+  estApercuCourant,
   mediaDUneClePerimee,
   toutesLesClesDApercu,
   VERSION_APERCU,
@@ -54,5 +55,26 @@ describe("la vignette du fil", () => {
     "/img/demo/neon-02.png",
   ])("garde telle quelle une adresse hors convention : %s", (url) => {
     expect(vignetteDe(url)).toBe(url);
+  });
+});
+
+describe("une couverture protégée", () => {
+  it("est un aperçu de la recette courante, et rien d'autre", () => {
+    expect(estApercuCourant(`https://cdn.baobart.test/${cleDApercu("m1")}`)).toBe(true);
+    expect(estApercuCourant(`http://localhost:9000/baobart-media/${cleDApercu("m1")}`)).toBe(true);
+  });
+
+  it.each([
+    // Les trois formes mesurées le 15/10 sur la base de développement, et
+    // servies sans filigrane : rien ne les distinguait d'une couverture
+    // protégée tant qu'on ne les comptait pas.
+    ["image de démonstration du dépôt", "/img/demo/neon-03.png"],
+    ["dérivée du catalogue de démonstration", "http://localhost:9000/baobart-media/demo/apercu/visuel.jpg"],
+    ["aperçu d'avant le filigrane", "http://localhost:9000/baobart-media/public/apercus/m1.webp"],
+    ["aperçu de v1.86.0", "http://localhost:9000/baobart-media/public/apercus/m1-v2.webp"],
+    ["vignette du fil, pas un aperçu", `https://cdn.baobart.test/${cleDeVignette("m1")}`],
+    ["adresse externe", "https://exemple.com/m1-v3.webp"],
+  ])("ne l'est pas : %s", (_cas, url) => {
+    expect(estApercuCourant(url)).toBe(false);
   });
 });

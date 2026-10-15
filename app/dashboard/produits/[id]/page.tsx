@@ -10,7 +10,8 @@ import { db } from "@/lib/db";
 import { dossiersQuiRetiennent } from "@/lib/juridique/retrait";
 import { LIBELLE_PAR_FAMILLE } from "@/lib/feed/types";
 import { formatPrice } from "@/lib/i18n/money";
-import { extensionDe, formatPoids } from "@/lib/upload/formats";
+import { hoteDuLien } from "@/lib/products/lien-externe";
+import { extensionDe, formatDe, formatPoids } from "@/lib/upload/formats";
 import {
   depublierRessource,
   modifierRessource,
@@ -125,6 +126,7 @@ export default async function ProduitDuTableauDeBord({
           filename: true,
           sizeBytes: true,
           role: true,
+          externalUrl: true,
           media: { select: { width: true, height: true } },
         },
       },
@@ -159,16 +161,33 @@ export default async function ProduitDuTableauDeBord({
     [
       ...new Set(
         fichiersSources
-          .map((f) => extensionDe(f.filename).toUpperCase())
+          // Un lien n'annonce un format que s'il porte une extension connue :
+          // « Fichier sur drive.google.com » ne doit pas s'afficher « COM ».
+          .map((f) =>
+            f.externalUrl
+              ? (formatDe(f.filename)?.extension ?? "lien").toUpperCase()
+              : extensionDe(f.filename).toUpperCase(),
+          )
           .filter((e) => e.length > 0),
       ),
     ].join(", ") || "—";
 
-  const poidsTotal = fichiersSources.reduce((somme, f) => somme + f.sizeBytes, 0);
+  // Le poids ne compte que ce qu'on a mesuré. Un lien externe se dit à part :
+  // l'additionner à zéro ferait passer « 12 Mo » pour le poids de tout.
+  const poidsTotal = fichiersSources.reduce((somme, f) => somme + (f.sizeBytes ?? 0), 0);
+  const liensExternes = fichiersSources.filter((f) => f.externalUrl !== null).length;
+  const heberges = fichiersSources.length - liensExternes;
+  const libelleLiens = `${liensExternes} lien${liensExternes > 1 ? "s" : ""} externe${liensExternes > 1 ? "s" : ""}`;
+  const poidsAffiche = sansFichier
+    ? "—"
+    : heberges === 0
+      ? libelleLiens
+      : liensExternes > 0
+        ? `${formatPoids(poidsTotal)} + ${libelleLiens}`
+        : formatPoids(poidsTotal);
 
   const plusGrande = fichiersSources
-    .map((f) => f.media)
-    .filter((m) => m.width !== null && m.height !== null)
+    .flatMap((f) => (f.media && f.media.width !== null && f.media.height !== null ? [f.media] : []))
     .sort((a, b) => (b.width ?? 0) * (b.height ?? 0) - (a.width ?? 0) * (a.height ?? 0))[0];
 
   const dimensions = plusGrande
@@ -324,7 +343,7 @@ export default async function ProduitDuTableauDeBord({
             ["Prix affiché", formatPrice(produit.price, produit.currency)],
             ["Fichiers sources", sources],
             ["Dimensions", dimensions],
-            ["Poids total", sansFichier ? "—" : formatPoids(poidsTotal)],
+            ["Poids total", poidsAffiche],
           ].map(([cle, valeur]) => (
             <div
               key={cle}
@@ -368,6 +387,7 @@ export default async function ProduitDuTableauDeBord({
             id: f.id,
             nom: f.filename,
             taille: f.sizeBytes,
+            externe: f.externalUrl ? hoteDuLien(f.externalUrl) : null,
           }))}
         />
 

@@ -16,6 +16,7 @@ import {
   constatAdressePublique,
   constatBase,
   constatAntiBot,
+  constatCouvertures,
   constatLimitation,
   constatPlafondPub,
   constatPush,
@@ -28,9 +29,10 @@ import {
   type Constat,
   type Gravite,
 } from "@/lib/systeme/diagnostic";
-import { stockageConfigure } from "@/lib/upload/storage";
+import { bucketPublicSepare, stockageConfigure } from "@/lib/upload/storage";
 import { etatAntiBot } from "@/lib/securite/antibot";
 import { secretDuPlafond } from "@/lib/publicites/plafond";
+import { FILTRE_APERCU_COURANT } from "@/lib/upload/vignette";
 
 /**
  * Collecte les faits que `diagnostic.ts` interprète.
@@ -109,12 +111,17 @@ const A_VENIR = [
 export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
   const production = process.env.NODE_ENV === "production";
 
-  const [etatMigrations, duDepot, appareilsPush] = await Promise.all([
+  const [etatMigrations, duDepot, appareilsPush, couverturesNonProtegees] = await Promise.all([
     migrations(),
     migrationsDuDepot(),
     // Un simple compte. C'est lui qui distingue « canal absent » de
     // « notifications muettes » — des gens qui croient être prévenus.
     db.pushSubscription.count(),
+    // Une couverture publiée qui n'est pas un aperçu courant se télécharge
+    // sans filigrane — et rien d'autre ne le dit (`constatCouvertures`).
+    db.product.count({
+      where: { status: "PUBLISHED", coverUrl: { not: null }, NOT: { coverUrl: FILTRE_APERCU_COURANT } },
+    }),
   ]);
 
   const joignable = etatMigrations !== null;
@@ -134,6 +141,8 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       configure: stockageConfigure(),
       urlPublique: process.env.S3_PUBLIC_URL ?? null,
       production,
+      endpoint: process.env.S3_ENDPOINT ?? null,
+      bucketPublicSepare: bucketPublicSepare(),
     }),
     constatConnexion({
       actifs: fournisseurs
@@ -150,6 +159,7 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
     constatLimitation({ pilote: piloteLimite().nom, production }),
     constatAntiBot({ tiers: etatAntiBot().tiers, production }),
     constatPlafondPub({ secret: secretDuPlafond() !== null, production }),
+    constatCouvertures({ nonProtegees: couverturesNonProtegees, production }),
     constatSms({ pilote: piloteSms().nom, production }),
     constatPush({ pilote: pilotePush(), appareils: appareilsPush, production }),
     constatSimulation({ ouverte: simulationOuverte(process.env), production }),

@@ -2,6 +2,10 @@
  * Téléverse les visuels de démonstration dans MinIO.
  *
  *   node --env-file=.env scripts/medias-demo.mjs "C:/chemin/vers/le/dossier"
+ *   node --env-file=.env scripts/medias-demo.mjs --fermer   → retire seulement
+ *                                                            l'ancienne lecture anonyme
+ *
+ * Puis, pour les couvertures : `pnpm apercus:regenerer -- --appliquer`.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * POURQUOI MINIO ET NON `public/img/demo/`
@@ -21,18 +25,28 @@
  * qu'il tient en une commande.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * IL OUVRE LE BUCKET EN LECTURE PUBLIQUE, ET C'EST UN CHOIX DE DÉVELOPPEMENT
+ * IL N'OUVRE PLUS RIEN EN LECTURE PUBLIQUE (corrigé le 15/10/2026)
  *
- * Une couverture est affichée par le navigateur dans un `background: url(…)` :
- * elle doit être joignable sans signature. MinIO refuse par défaut (403), donc
- * le script pose une politique de lecture anonyme sur le préfixe `demo/`.
+ * Jusqu'au 15/10, il posait une lecture anonyme sur `demo/`, pour que les
+ * couvertures s'affichent sans signature. L'en-tête disait que les fichiers
+ * vendus vivaient ailleurs : c'était vrai pour les vrais téléversements, faux
+ * pour ce catalogue, dont les fichiers vendus SONT les originaux de `demo/`.
  *
- * **Sur le préfixe, pas sur le bucket entier.** Les fichiers vendus, les CV de
- * candidature et les pièces jointes vivent dans le même bucket : les ouvrir
- * tous transformerait une commodité de démonstration en fuite de documents.
+ * Mesuré ce jour-là : trois fichiers vendus de 8 à 9,6 Mo répondaient HTTP 200
+ * sans connexion, à une adresse qui se devine depuis la couverture (on retire
+ * `apercu/`, on change l'extension). Et les couvertures elles-mêmes — des
+ * dérivées de 1 400 px — n'avaient ni filigrane ni réserve XMP : une extension
+ * de navigateur les a toutes téléchargées.
  *
- * En production, la politique est posée par l'infrastructure, pas par un
- * script — et ce script refuse de tourner ailleurs qu'en local.
+ * Désormais `demo/` reste privé, comme `produits/` : les couvertures sont
+ * fabriquées par `pnpm apercus:regenerer -- --appliquer`, qui tire de chaque
+ * fichier un aperçu filigrané sous `public/apercus/` — le même chemin que les
+ * vrais téléversements. Ce script retire l'ancienne déclaration s'il la trouve.
+ *
+ * Ce qu'on y perd, dit franchement : un extrait vidéo du catalogue était le
+ * fichier vendu lui-même. Il n'est plus servi ; la fiche montre la trame.
+ *
+ * Ce script refuse toujours de tourner ailleurs qu'en local.
  */
 
 import { createReadStream } from "node:fs";
@@ -73,18 +87,14 @@ const PREFIXE = "demo/";
 const APERCU_LARGEUR = 1400;
 const PREFIXE_APERCU = "demo/apercu/";
 
-/** Le préfixe `demo/` seulement — voir l'en-tête. */
-const DECLARATION = {
-  Sid: "LectureAnonymeDesVisuelsDeDemonstration",
-  Effect: "Allow",
-  Principal: { AWS: ["*"] },
-  Action: ["s3:GetObject"],
-  // `demo/*` couvre aussi `demo/apercu/*`.
-  Resource: [`arn:aws:s3:::${BUCKET}/${PREFIXE}*`],
-};
+/**
+ * L'identifiant de l'ancienne déclaration de lecture anonyme sur `demo/` —
+ * conservé pour la retrouver et la retirer. Voir l'en-tête.
+ */
+const SID_ANCIENNE_LECTURE = "LectureAnonymeDesVisuelsDeDemonstration";
 
 /**
- * Ajoute notre déclaration sans effacer celles des autres.
+ * Retire notre ancienne déclaration sans toucher à celles des autres.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * POURQUOI ON RELIT AVANT D'ÉCRIRE
@@ -101,25 +111,24 @@ const DECLARATION = {
  * Aucun des deux écrivains ne s'en plaignait : les vignettes devenaient
  * vides, et c'est tout.
  */
-async function fusionnerLaPolitique(client) {
+async function fermerLaLectureAnonyme(client) {
   const enPlace = await client
     .send(new GetBucketPolicyCommand({ Bucket: BUCKET }))
     .then((r) => JSON.parse(r.Policy ?? "{}"))
     .catch(() => ({ Statement: [] }));
 
-  const dAutrui = (enPlace.Statement ?? []).filter((d) => d.Sid !== DECLARATION.Sid);
+  const toutes = enPlace.Statement ?? [];
+  const dAutrui = toutes.filter((d) => d.Sid !== SID_ANCIENNE_LECTURE);
+  if (dAutrui.length === toutes.length) return { retiree: false, gardees: dAutrui.length };
 
   await client.send(
     new PutBucketPolicyCommand({
       Bucket: BUCKET,
-      Policy: JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [...dAutrui, DECLARATION],
-      }),
+      Policy: JSON.stringify({ Version: "2012-10-17", Statement: dAutrui }),
     }),
   );
 
-  return dAutrui.length;
+  return { retiree: true, gardees: dAutrui.length };
 }
 
 const TYPES = {
@@ -166,17 +175,17 @@ function local() {
 async function main() {
   const dossier = process.argv[2];
   if (!dossier) {
-    console.error("Usage : node --env-file=.env scripts/medias-demo.mjs <dossier>");
+    console.error("Usage : node --env-file=.env scripts/medias-demo.mjs <dossier> | --fermer");
     process.exit(1);
   }
 
   if (!local()) {
-    // La garde qui compte. Ce script ouvre un préfixe en lecture anonyme :
-    // le laisser s'exécuter contre un stockage distant rendrait publics des
-    // objets que personne n'a décidé de publier.
+    // La garde qui compte. Ce script réécrit la politique du bucket et y
+    // dépose 985 Mo : le laisser s'exécuter contre un stockage distant
+    // toucherait une infrastructure que personne ne lui a confiée.
     console.error(
       `S3_ENDPOINT vaut « ${process.env.S3_ENDPOINT} » — ce script ne tourne ` +
-        `qu'en local. Il ouvre un préfixe en lecture anonyme, et ce n'est pas ` +
+        `qu'en local. Il réécrit la politique du bucket, et ce n'est pas ` +
         `une décision qu'un script prend sur une infrastructure distante.`,
     );
     process.exit(1);
@@ -192,9 +201,16 @@ async function main() {
     },
   });
 
-  console.log(`Ouverture du préfixe « ${PREFIXE} » en lecture anonyme…`);
-  const gardees = await fusionnerLaPolitique(client);
-  console.log(`  ${gardees} déclaration(s) d'autrui conservée(s).`);
+  const { retiree, gardees } = await fermerLaLectureAnonyme(client);
+  console.log(
+    retiree
+      ? `Lecture anonyme de « ${PREFIXE} » retirée (${gardees} déclaration(s) d'autrui conservée(s)).`
+      : `« ${PREFIXE} » n'était pas en lecture anonyme.`,
+  );
+  if (dossier === "--fermer") {
+    console.log("Couvertures : lance maintenant `pnpm apercus:regenerer -- --appliquer`.");
+    return;
+  }
 
   /*
     ══════════════════════════════════════════════════════════════════════════
@@ -203,7 +219,7 @@ async function main() {
 
     Ce script prenait le dossier entier, par extension. `ECARTES` ne servait
     qu'au catalogue : les visuels refusés étaient téléversés quand même, et le
-    préfixe `demo/` est en lecture anonyme.
+    préfixe `demo/` était alors en lecture anonyme (jusqu'au 15/10/2026).
 
     Mesuré le 24 septembre 2026, sur la MinIO locale : les trois packshots
     CeraVe et la fresque Campbell's répondaient HTTP 200, original et aperçu,
@@ -351,7 +367,9 @@ Génération des aperçus (${APERCU_LARGEUR} px)…`);
 
   console.log(
     `\nFait : ${poses} téléversés, ${deja} déjà en place.\n` +
-      `Vérification : ${process.env.S3_PUBLIC_URL ?? process.env.S3_ENDPOINT}/${BUCKET}/${cleDe(fichiers[0])}`,
+      `Cette adresse doit répondre 403 — un fichier vendu ne se lit pas sans signature :\n` +
+      `  ${process.env.S3_PUBLIC_URL ?? process.env.S3_ENDPOINT}/${BUCKET}/${cleDe(fichiers[0])}\n` +
+      `Couvertures : lance maintenant \`pnpm apercus:regenerer -- --appliquer\`.`,
   );
 }
 

@@ -75,6 +75,19 @@ export interface FaitsStockage {
   /** `S3_PUBLIC_URL`, telle quelle — jamais les clés d'accès. */
   urlPublique: string | null;
   production: boolean;
+  /** `S3_ENDPOINT`, tel quel : seul son hôte sert, pour reconnaître R2. */
+  endpoint?: string | null;
+  /** `S3_BUCKET_PUBLIC` posé, et distinct de `S3_BUCKET`. */
+  bucketPublicSepare?: boolean;
+}
+
+function hoteDe(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
 }
 
 function estLocale(hote: string): boolean {
@@ -137,6 +150,36 @@ export function constatStockage(faits: FaitsStockage): Constat {
       gravite: "panne",
       detail: `S3_PUBLIC_URL pointe sur « ${hote} », que personne d'autre n'atteint.`,
       remede: "MinIO local ne convient pas en production : passe sur R2, S3 ou équivalent.",
+    };
+  }
+
+  // R2 n'ouvre l'accès public que par bucket entier (lu le 15/10/2026, voir
+  // `bucketDe` dans lib/upload/storage.ts). Un seul bucket servi en public
+  // laisse lire les fichiers vendus à leur adresse. On ne peut pas savoir
+  // d'ici si une règle WAF restreint le domaine à /public/* : attention, et
+  // non panne — mais c'est la seule configuration R2 qu'on ne voie pas.
+  if (faits.production && hoteDe(faits.endpoint)?.endsWith(".r2.cloudflarestorage.com") && !faits.bucketPublicSepare) {
+    return {
+      cle: "stockage",
+      libelle: "Stockage des fichiers",
+      gravite: "attention",
+      detail: "R2 avec un seul bucket : l'accès public y ouvre aussi les fichiers vendus.",
+      remede:
+        "Crée un second bucket pour les aperçus, rends-le seul public et pose S3_BUCKET_PUBLIC. " +
+        "À défaut, une règle WAF doit limiter le domaine public à /public/*.",
+    };
+  }
+
+  // Lu le 15/10/2026 (developers.cloudflare.com/r2/buckets/public-buckets/) :
+  // r2.dev est « rate-limited and should only be used for development
+  // purposes ». Les vignettes de la grille sont le gros du trafic.
+  if (faits.production && hote.endsWith(".r2.dev")) {
+    return {
+      cle: "stockage",
+      libelle: "Stockage des fichiers",
+      gravite: "attention",
+      detail: `Aperçus servis par ${hote}, que Cloudflare limite en débit.`,
+      remede: "Rattache un domaine personnalisé au bucket public et pose-le dans S3_PUBLIC_URL.",
     };
   }
 
@@ -320,8 +363,11 @@ export function constatLimitation(faits: FaitsLimitation): Constat {
 }
 
 export interface FaitsAntiBot {
-  /** Une clé reCAPTCHA est-elle configurée ? */
-  tiers: boolean;
+  /**
+   * Où en est reCAPTCHA : pas de clé, une clé sans formulaire qui produise de
+   * jeton, ou un score réellement demandé. Voir `etatAntiBot`.
+   */
+  tiers: "absent" | "sans_jeton" | "actif";
   production: boolean;
 }
 
@@ -343,14 +389,38 @@ export interface FaitsAntiBot {
  * Afficher « ok » sans tiers laisserait croire à une protection complète ;
  * afficher « panne » laisserait croire qu'il n'y a rien. Les deux mentiraient,
  * et c'est pourquoi l'état est « attention » en production et « ok » ailleurs.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * UNE CLÉ SANS JETON N'EST PAS UN TIERS BRANCHÉ
+ *
+ * Jusqu'au 08/10/2026, la seule présence de `RECAPTCHA_SECRET` affichait
+ * « score du tiers » en vert — alors qu'aucun formulaire ne produisait de
+ * jeton et qu'aucun score n'était jamais demandé. Et le remède conseillait de
+ * poser la clé : le suivre faisait passer le voyant au vert sans rien
+ * protéger de plus.
+ *
+ * Une clé sans jeton est donc dite telle quelle, et en « attention » partout,
+ * développement compris : c'est une configuration qui ment, pas un manque.
  */
 export function constatAntiBot(faits: FaitsAntiBot): Constat {
-  if (faits.tiers) {
+  if (faits.tiers === "actif") {
     return {
       cle: "antibot",
       libelle: "Anti-bot",
       gravite: "ok",
       detail: "Leurre, plancher de temps et score du tiers.",
+    };
+  }
+
+  if (faits.tiers === "sans_jeton") {
+    return {
+      cle: "antibot",
+      libelle: "Anti-bot",
+      gravite: "attention",
+      detail:
+        "RECAPTCHA_SECRET est posée, mais aucun formulaire ne produit de jeton : aucun score n'est jamais demandé. Seuls le leurre et le plancher de temps protègent.",
+      remede:
+        "La clé ne suffit pas : il faut charger reCAPTCHA sur les formulaires et transmettre le jeton jusqu'à evaluerUnGeste. Tant que ce n'est pas fait, la clé peut être retirée sans rien perdre.",
     };
   }
 
@@ -362,7 +432,7 @@ export function constatAntiBot(faits: FaitsAntiBot): Constat {
       ? "Leurre et plancher de temps seulement — aucun score de risque."
       : "Leurre et plancher de temps (développement).",
     remede: faits.production
-      ? "Pose RECAPTCHA_SECRET. Sans score, un robot écrit pour ce site — qui saute le champ caché et attend trois secondes — passe sans être gêné."
+      ? "Aucun score de risque n'est branché : un robot écrit pour ce site — qui saute le champ caché et attend trois secondes — passe sans être gêné. Poser RECAPTCHA_SECRET ne suffit pas tant qu'aucun formulaire ne transmet de jeton."
       : undefined,
   };
 }
@@ -409,6 +479,50 @@ export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
     remede: faits.production
       ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour ; absent, il bloque aussi l'envoi de la lettre d'information."
       : undefined,
+  };
+}
+
+export interface FaitsCouvertures {
+  /** Ressources publiées dont la couverture n'est pas un aperçu courant. */
+  nonProtegees: number;
+  production: boolean;
+}
+
+/**
+ * Les couvertures servies sans filigrane.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LE DÉFAUT QUI RÉUSSISSAIT EN SILENCE
+ *
+ * Mesuré le 15/10/2026 sur la base de développement : 102 couvertures publiées
+ * sur 102 étaient des images brutes — démonstration du dépôt, dérivées de
+ * 1 400 px — et aucun aperçu filigrané n'existait. Une extension de navigateur
+ * les a toutes téléchargées. Rien n'a échoué : la page s'affichait, l'écran
+ * Système était vert, et la fabrique d'aperçus fonctionnait parfaitement pour
+ * les images qu'on ne lui donnait jamais.
+ *
+ * Panne en production et non simple avertissement : la promesse faite aux
+ * créateurs — on ne publie qu'un aperçu réduit et marqué — est fausse pour
+ * ces fiches, et une image partie ne se rattrape pas. En développement, le jeu
+ * de démonstration en produit ; on le dit sans crier.
+ */
+export function constatCouvertures(faits: FaitsCouvertures): Constat {
+  if (faits.nonProtegees === 0) {
+    return {
+      cle: "couvertures",
+      libelle: "Couvertures filigranées",
+      gravite: "ok",
+      detail: "Toutes les couvertures publiées sont des aperçus réduits et marqués.",
+    };
+  }
+
+  return {
+    cle: "couvertures",
+    libelle: "Couvertures filigranées",
+    gravite: faits.production ? "panne" : "attention",
+    detail: `${faits.nonProtegees} ressource(s) publiée(s) affichent une image qui n'est pas un aperçu filigrané : elle se télécharge en l'état.`,
+    remede:
+      "Lance `pnpm apercus:regenerer` pour voir lesquelles, puis `pnpm apercus:regenerer -- --appliquer` : chaque couverture reçoit un aperçu tiré du fichier de sa ressource. Celles qu'il ne sait pas refaire sont nommées.",
   };
 }
 

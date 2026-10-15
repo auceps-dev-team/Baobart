@@ -4,6 +4,7 @@ import {
   constatAdressePublique,
   constatBase,
   constatAntiBot,
+  constatCouvertures,
   constatLimitation,
   constatPlafondPub,
   constatSms,
@@ -103,6 +104,37 @@ describe("diagnostic de la plateforme", () => {
       const c = constatStockage({ ...base, urlPublique: "https://media.exemple.com" });
       expect(c.gravite).toBe("ok");
       expect(c.detail).toContain("media.exemple.com");
+    });
+
+    describe("sur R2", () => {
+      const r2 = { ...base, urlPublique: "https://media.baobart.ci", endpoint: "https://abc123.r2.cloudflarestorage.com" };
+
+      it("avertit quand un seul bucket porte aussi les fichiers vendus", () => {
+        // R2 ouvre un bucket entier, pas un préfixe : rendre les aperçus
+        // publics y rend aussi publics les fichiers vendus.
+        const c = constatStockage({ ...r2, bucketPublicSepare: false });
+        expect(c.gravite).toBe("attention");
+        expect(c.remede).toContain("S3_BUCKET_PUBLIC");
+      });
+
+      it("est verte quand les aperçus ont leur bucket", () => {
+        expect(constatStockage({ ...r2, bucketPublicSepare: true }).gravite).toBe("ok");
+      });
+
+      it("ne dit rien hors production", () => {
+        expect(constatStockage({ ...r2, production: false, bucketPublicSepare: false }).gravite).toBe("ok");
+      });
+
+      it("avertit quand les aperçus passent par r2.dev, limité en débit", () => {
+        const c = constatStockage({ ...r2, urlPublique: "https://pub-0123.r2.dev", bucketPublicSepare: true });
+        expect(c.gravite).toBe("attention");
+        expect(c.detail).toContain("r2.dev");
+      });
+
+      it("ne prend pas un autre fournisseur pour R2", () => {
+        const c = constatStockage({ ...base, urlPublique: "https://media.exemple.com", endpoint: "https://s3.eu-west-3.amazonaws.com", bucketPublicSepare: false });
+        expect(c.gravite).toBe("ok");
+      });
     });
   });
 
@@ -228,19 +260,33 @@ describe("l'anti-bot", () => {
     // Ni « ok » ni « panne » : le leurre et le plancher de temps protègent
     // réellement, mais pas contre un robot écrit pour ce site-ci. Les deux
     // extrêmes mentiraient, chacun dans un sens.
-    const c = constatAntiBot({ tiers: false, production: true });
+    const c = constatAntiBot({ tiers: "absent", production: true });
     expect(c.gravite).toBe("attention");
     expect(c.remede).toContain("RECAPTCHA_SECRET");
+    // Le remède ne doit plus laisser croire que la clé suffit.
+    expect(c.remede).toContain("ne suffit pas");
   });
 
   it("ne dit rien en développement", () => {
-    const c = constatAntiBot({ tiers: false, production: false });
+    const c = constatAntiBot({ tiers: "absent", production: false });
     expect(c.gravite).toBe("ok");
     expect(c.remede).toBeUndefined();
   });
 
+  it("ne prend pas une clé sans jeton pour un tiers branché", () => {
+    // Le succès silencieux constaté le 08/10/2026 : la clé posée affichait
+    // « score du tiers » en vert, sans qu'aucun score soit jamais demandé.
+    for (const production of [true, false]) {
+      const c = constatAntiBot({ tiers: "sans_jeton", production });
+      expect(c.gravite).toBe("attention");
+      expect(c.detail).not.toContain("score du tiers");
+      expect(c.detail).toContain("aucun formulaire ne produit de jeton");
+      expect(c.remede).toBeDefined();
+    }
+  });
+
   it("se tait quand le tiers est branché", () => {
-    const c = constatAntiBot({ tiers: true, production: true });
+    const c = constatAntiBot({ tiers: "actif", production: true });
     expect(c.gravite).toBe("ok");
     expect(c.remede).toBeUndefined();
   });
@@ -321,5 +367,26 @@ describe("le canal SMS", () => {
 
   it("se tait quand un opérateur envoie pour de vrai", () => {
     expect(constatSms({ pilote: "twilio", production: true }).gravite).toBe("ok");
+  });
+});
+
+describe("les couvertures filigranées", () => {
+  it("est une panne en production dès qu'une couverture publiée n'est pas un aperçu", () => {
+    // Le défaut mesuré le 15/10 : 102 couvertures sur 102 sans filigrane, un
+    // écran Système vert, et une extension qui les a toutes téléchargées.
+    const c = constatCouvertures({ nonProtegees: 3, production: true });
+    expect(c.gravite).toBe("panne");
+    expect(c.detail).toContain("3");
+    expect(c.remede).toContain("apercus:regenerer");
+  });
+
+  it("avertit en développement, où le jeu de démonstration en produit", () => {
+    expect(constatCouvertures({ nonProtegees: 102, production: false }).gravite).toBe("attention");
+  });
+
+  it("se tait quand toutes sont protégées", () => {
+    const c = constatCouvertures({ nonProtegees: 0, production: true });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
   });
 });

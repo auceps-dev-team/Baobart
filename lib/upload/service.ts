@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { nomDuLien, verifierLienExterne } from "@/lib/products/lien-externe";
 import { produireApercu } from "@/lib/upload/apercu";
 import { anciennesClesDApercu, cleDApercu, toutesLesClesDApercu } from "@/lib/upload/vignette";
 import {
@@ -80,6 +81,9 @@ export async function retirerFichierDe(input: {
 
   const dejaVendue = produit._count.orderItems > 0;
 
+  // Un lien externe suit le même régime : retiré d'une ressource vendue, la
+  // ligne reste — c'est elle qui dit, après coup, vers où les acheteurs ont
+  // été envoyés. Il n'a ni média ni objet à effacer chez nous.
   if (dejaVendue) {
     await db.productFile.update({
       where: { id: fichier.id },
@@ -90,11 +94,11 @@ export async function retirerFichierDe(input: {
 
     // Le média ne part que s'il ne sert plus à rien d'autre : le même fichier
     // peut être attaché ailleurs.
-    const encoreUtilise = await db.productFile.count({
-      where: { mediaId: fichier.media.id },
-    });
+    const encoreUtilise = fichier.media
+      ? await db.productFile.count({ where: { mediaId: fichier.media.id } })
+      : 1;
 
-    if (encoreUtilise === 0) {
+    if (fichier.media && encoreUtilise === 0) {
       await db.mediaAsset.delete({ where: { id: fichier.media.id } });
       await supprimerObjet(fichier.media.s3Key);
       // L'aperçu, sa vignette, et ceux des recettes précédentes s'ils n'ont
@@ -103,14 +107,63 @@ export async function retirerFichierDe(input: {
     }
   }
 
-  await rendreLaVitrineCoherente({
-    produitId: input.produitId,
-    coverUrl: produit.coverUrl,
-    previewUrl: produit.previewUrl,
-    mediaRetire: fichier.media,
-  });
+  // Un lien externe n'a jamais produit de couverture ni d'extrait.
+  if (fichier.media) {
+    await rendreLaVitrineCoherente({
+      produitId: input.produitId,
+      coverUrl: produit.coverUrl,
+      previewUrl: produit.previewUrl,
+      mediaRetire: fichier.media,
+    });
+  }
 
   return { ok: true, efface: !dejaVendue };
+}
+
+/** Au-delà, ce n'est plus une ressource mais une bibliothèque. Liens compris. */
+export const FICHIERS_MAX = 20;
+
+export type AjoutLien =
+  | { ok: true; fichier: { id: string; nom: string; taille: null; externe: string } }
+  | { ok: false; message: string };
+
+/**
+ * Attache à une ressource un fichier hébergé ailleurs.
+ *
+ * Il compte parmi les fichiers sources, comme un fichier déposé : même plafond,
+ * même position dans la liste, même régime de retrait. Il ne passe pas par le
+ * stockage, et ne dépend donc pas de lui — une ressource peut se vendre tout
+ * entière en liens externes.
+ */
+export async function ajouterLienExterneDe(input: {
+  userId: string;
+  produitId: string;
+  url: string;
+  nom: string;
+}): Promise<AjoutLien> {
+  const contexte = await produitDe(input.produitId, input.userId);
+  if (!contexte) return { ok: false, message: "Ressource introuvable." };
+
+  if (contexte.sources >= FICHIERS_MAX) {
+    return { ok: false, message: `Une ressource ne peut pas dépasser ${FICHIERS_MAX} fichiers, liens compris.` };
+  }
+
+  const lien = verifierLienExterne(input.url);
+  if (!lien.ok) return lien;
+
+  const fichier = await db.productFile.create({
+    data: {
+      productId: input.produitId,
+      externalUrl: lien.url,
+      filename: nomDuLien(input.nom, lien.hote),
+      sizeBytes: null,
+      role: "SOURCE",
+      position: contexte.sources,
+    },
+    select: { id: true, filename: true },
+  });
+
+  return { ok: true, fichier: { id: fichier.id, nom: fichier.filename, taille: null, externe: lien.hote } };
 }
 
 /**
@@ -152,13 +205,14 @@ async function rendreLaVitrineCoherente(input: {
     select: { media: { select: { id: true } } },
   });
 
+  // Le filtre sur la largeur écarte déjà les liens externes, qui n'ont pas de
+  // média ; `?.` le redit pour le typage.
+  const suivantId = suivant?.media?.id ?? null;
   await db.product.update({
     where: { id: input.produitId },
     data: {
-      coverUrl: suivant
-        ? urlPublique(cleDApercu(suivant.media.id))
-        : null,
-      coverImageId: suivant?.media.id ?? null,
+      coverUrl: suivantId ? urlPublique(cleDApercu(suivantId)) : null,
+      coverImageId: suivantId,
     },
   });
 }
@@ -363,7 +417,9 @@ export async function confirmerFichierDe(
     fichier: {
       id: fichier.id,
       nom: fichier.filename,
-      taille: fichier.sizeBytes,
+      // La taille relue au stockage, celle qu'on vient d'enregistrer : un
+      // fichier déposé en a toujours une.
+      taille: depose.taille,
       role,
     },
     couverture,

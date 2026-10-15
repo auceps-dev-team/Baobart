@@ -370,7 +370,11 @@ async function main() {
 
   console.log(
     `\n${crees} produits créés, ${dejaLa} déjà présents.\n` +
-      `${fichiers} fichiers rattachés · ${ECARTES.length} visuels écartés — voir ECARTES pour la raison de chacun.`,
+      `${fichiers} fichiers rattachés · ${ECARTES.length} visuels écartés — voir ECARTES pour la raison de chacun.\n` +
+      // Les couvertures posées ici sont des dérivées sans filigrane, sous un
+      // préfixe privé depuis le 15/10/2026 : elles ne s'affichent pas tant que
+      // la fabrique d'aperçus n'est pas passée (voir scripts/medias-demo.mjs).
+      `Couvertures : lance maintenant \`pnpm apercus:regenerer -- --appliquer\`.`,
   );
 }
 
