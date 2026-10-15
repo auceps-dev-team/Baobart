@@ -4,6 +4,7 @@ import {
   constatAdressePublique,
   constatBase,
   constatAntiBot,
+  constatCouvertures,
   constatLimitation,
   constatPlafondPub,
   constatSms,
@@ -321,5 +322,26 @@ describe("le canal SMS", () => {
 
   it("se tait quand un opérateur envoie pour de vrai", () => {
     expect(constatSms({ pilote: "twilio", production: true }).gravite).toBe("ok");
+  });
+});
+
+describe("les couvertures filigranées", () => {
+  it("est une panne en production dès qu'une couverture publiée n'est pas un aperçu", () => {
+    // Le défaut mesuré le 15/10 : 102 couvertures sur 102 sans filigrane, un
+    // écran Système vert, et une extension qui les a toutes téléchargées.
+    const c = constatCouvertures({ nonProtegees: 3, production: true });
+    expect(c.gravite).toBe("panne");
+    expect(c.detail).toContain("3");
+    expect(c.remede).toContain("apercus:regenerer");
+  });
+
+  it("avertit en développement, où le jeu de démonstration en produit", () => {
+    expect(constatCouvertures({ nonProtegees: 102, production: false }).gravite).toBe("attention");
+  });
+
+  it("se tait quand toutes sont protégées", () => {
+    const c = constatCouvertures({ nonProtegees: 0, production: true });
+    expect(c.gravite).toBe("ok");
+    expect(c.remede).toBeUndefined();
   });
 });
