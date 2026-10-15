@@ -105,6 +105,37 @@ describe("diagnostic de la plateforme", () => {
       expect(c.gravite).toBe("ok");
       expect(c.detail).toContain("media.exemple.com");
     });
+
+    describe("sur R2", () => {
+      const r2 = { ...base, urlPublique: "https://media.baobart.ci", endpoint: "https://abc123.r2.cloudflarestorage.com" };
+
+      it("avertit quand un seul bucket porte aussi les fichiers vendus", () => {
+        // R2 ouvre un bucket entier, pas un préfixe : rendre les aperçus
+        // publics y rend aussi publics les fichiers vendus.
+        const c = constatStockage({ ...r2, bucketPublicSepare: false });
+        expect(c.gravite).toBe("attention");
+        expect(c.remede).toContain("S3_BUCKET_PUBLIC");
+      });
+
+      it("est verte quand les aperçus ont leur bucket", () => {
+        expect(constatStockage({ ...r2, bucketPublicSepare: true }).gravite).toBe("ok");
+      });
+
+      it("ne dit rien hors production", () => {
+        expect(constatStockage({ ...r2, production: false, bucketPublicSepare: false }).gravite).toBe("ok");
+      });
+
+      it("avertit quand les aperçus passent par r2.dev, limité en débit", () => {
+        const c = constatStockage({ ...r2, urlPublique: "https://pub-0123.r2.dev", bucketPublicSepare: true });
+        expect(c.gravite).toBe("attention");
+        expect(c.detail).toContain("r2.dev");
+      });
+
+      it("ne prend pas un autre fournisseur pour R2", () => {
+        const c = constatStockage({ ...base, urlPublique: "https://media.exemple.com", endpoint: "https://s3.eu-west-3.amazonaws.com", bucketPublicSepare: false });
+        expect(c.gravite).toBe("ok");
+      });
+    });
   });
 
   describe("connexion", () => {

@@ -29,7 +29,7 @@ import {
   type Constat,
   type Gravite,
 } from "@/lib/systeme/diagnostic";
-import { stockageConfigure } from "@/lib/upload/storage";
+import { bucketPublicSepare, stockageConfigure } from "@/lib/upload/storage";
 import { etatAntiBot } from "@/lib/securite/antibot";
 import { secretDuPlafond } from "@/lib/publicites/plafond";
 import { FILTRE_APERCU_COURANT } from "@/lib/upload/vignette";
@@ -141,6 +141,8 @@ export async function etatDeLaPlateforme(): Promise<EtatPlateforme> {
       configure: stockageConfigure(),
       urlPublique: process.env.S3_PUBLIC_URL ?? null,
       production,
+      endpoint: process.env.S3_ENDPOINT ?? null,
+      bucketPublicSepare: bucketPublicSepare(),
     }),
     constatConnexion({
       actifs: fournisseurs

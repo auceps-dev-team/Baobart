@@ -75,6 +75,19 @@ export interface FaitsStockage {
   /** `S3_PUBLIC_URL`, telle quelle — jamais les clés d'accès. */
   urlPublique: string | null;
   production: boolean;
+  /** `S3_ENDPOINT`, tel quel : seul son hôte sert, pour reconnaître R2. */
+  endpoint?: string | null;
+  /** `S3_BUCKET_PUBLIC` posé, et distinct de `S3_BUCKET`. */
+  bucketPublicSepare?: boolean;
+}
+
+function hoteDe(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
 }
 
 function estLocale(hote: string): boolean {
@@ -137,6 +150,36 @@ export function constatStockage(faits: FaitsStockage): Constat {
       gravite: "panne",
       detail: `S3_PUBLIC_URL pointe sur « ${hote} », que personne d'autre n'atteint.`,
       remede: "MinIO local ne convient pas en production : passe sur R2, S3 ou équivalent.",
+    };
+  }
+
+  // R2 n'ouvre l'accès public que par bucket entier (lu le 15/10/2026, voir
+  // `bucketDe` dans lib/upload/storage.ts). Un seul bucket servi en public
+  // laisse lire les fichiers vendus à leur adresse. On ne peut pas savoir
+  // d'ici si une règle WAF restreint le domaine à /public/* : attention, et
+  // non panne — mais c'est la seule configuration R2 qu'on ne voie pas.
+  if (faits.production && hoteDe(faits.endpoint)?.endsWith(".r2.cloudflarestorage.com") && !faits.bucketPublicSepare) {
+    return {
+      cle: "stockage",
+      libelle: "Stockage des fichiers",
+      gravite: "attention",
+      detail: "R2 avec un seul bucket : l'accès public y ouvre aussi les fichiers vendus.",
+      remede:
+        "Crée un second bucket pour les aperçus, rends-le seul public et pose S3_BUCKET_PUBLIC. " +
+        "À défaut, une règle WAF doit limiter le domaine public à /public/*.",
+    };
+  }
+
+  // Lu le 15/10/2026 (developers.cloudflare.com/r2/buckets/public-buckets/) :
+  // r2.dev est « rate-limited and should only be used for development
+  // purposes ». Les vignettes de la grille sont le gros du trafic.
+  if (faits.production && hote.endsWith(".r2.dev")) {
+    return {
+      cle: "stockage",
+      libelle: "Stockage des fichiers",
+      gravite: "attention",
+      detail: `Aperçus servis par ${hote}, que Cloudflare limite en débit.`,
+      remede: "Rattache un domaine personnalisé au bucket public et pose-le dans S3_PUBLIC_URL.",
     };
   }
 

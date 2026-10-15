@@ -26,7 +26,67 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
  * raison de traverser Next pour finir au même endroit.
  */
 
-const BUCKET = process.env.S3_BUCKET ?? "baobart-media";
+/**
+ * Préfixe des objets lisibles sans signature.
+ *
+ * Tout ce qui n'est pas sous ce préfixe est privé. C'est la ligne qui sépare
+ * l'aperçu — fait pour être vu par tout le monde — du fichier vendu, qui ne se
+ * délivre que contre une URL signée et une commande payée.
+ */
+export const PREFIXE_PUBLIC = "public/";
+
+/**
+ * Ce que lisent les variantes `…Selon` : un objet dans les tests.
+ *
+ * L'environnement vient en PREMIER argument, jamais en second avec une valeur
+ * par défaut. Mesuré le 15/10/2026 : `urlPublique` est passée telle quelle à
+ * `.map()` (lib/upload/service.ts, lib/upload/regeneration.ts), qui lui donne
+ * l'indice en second argument. Un `env` placé là aurait reçu 0, 1, 2… et
+ * rendu des adresses sans hôte, sans une erreur — c'est `tsc` qui l'a vu.
+ */
+type Environnement = Record<string, string | undefined>;
+
+/**
+ * Le bucket où vit un objet, d'après sa clé.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * UN BUCKET, OU DEUX
+ *
+ * Sur MinIO et sur S3, un seul bucket suffit : une politique ouvre le seul
+ * préfixe `public/` à la lecture anonyme (`preparerBucket`), et le reste
+ * demande une signature.
+ *
+ * R2 ne sait pas faire ça. Lu le 15/10/2026 dans sa documentation :
+ * `PutBucketPolicy` figure sous « Unimplemented bucket-level operations »
+ * (developers.cloudflare.com/r2/api/s3/api/), et l'accès public — sous-domaine
+ * r2.dev ou domaine personnalisé — rend disponible « the contents of this R2
+ * bucket », tout entier (developers.cloudflare.com/r2/buckets/public-buckets/).
+ * Avec un seul bucket rendu public pour les aperçus, un fichier vendu se lirait
+ * donc à `S3_PUBLIC_URL/produits/<id>/…`, sans payer.
+ *
+ * D'où `S3_BUCKET_PUBLIC` : quand il est posé, ce qui commence par `public/` y
+ * va, et `S3_BUCKET` ne reçoit plus que le privé. Ce bucket-là n'a alors aucun
+ * accès public à ouvrir — la propriété tient par construction, pas par une
+ * règle qu'on pourrait oublier. Les clés ne changent pas : un aperçu garde son
+ * `public/` en tête, dans un bucket comme dans l'autre.
+ *
+ * Lu à chaque appel, pas figé au chargement du module : les tests changent
+ * l'environnement d'un cas à l'autre.
+ */
+export function bucketDe(cle: string): string {
+  return bucketSelon(process.env, cle);
+}
+
+export function bucketSelon(env: Environnement, cle: string): string {
+  const prive = env.S3_BUCKET || "baobart-media";
+  const publique = env.S3_BUCKET_PUBLIC?.trim();
+  return publique && cle.startsWith(PREFIXE_PUBLIC) ? publique : prive;
+}
+
+/** Les aperçus ont-ils un bucket à eux ? Sert au diagnostic, jamais au routage. */
+export function bucketPublicSepare(env: Environnement = process.env): boolean {
+  return bucketSelon(env, PREFIXE_PUBLIC) !== bucketSelon(env, "produits/");
+}
 
 /** Une URL signée pour déposer vaut quinze minutes : le temps de choisir et d'envoyer. */
 const VALIDITE_DEPOT_SECONDES = 15 * 60;
@@ -59,19 +119,10 @@ export function stockageConfigure(): boolean {
   );
 }
 
-/**
- * Préfixe des objets lisibles sans signature.
- *
- * Tout ce qui n'est pas sous ce préfixe est privé. C'est la ligne qui sépare
- * l'aperçu — fait pour être vu par tout le monde — du fichier vendu, qui ne se
- * délivre que contre une URL signée et une commande payée.
- */
-export const PREFIXE_PUBLIC = "public/";
-
 let bucketPret: Promise<void> | null = null;
 
 /**
- * Crée le bucket au premier usage, pour qu'un dev n'ait rien à préparer.
+ * Crée le ou les buckets au premier usage, pour qu'un dev n'ait rien à préparer.
  *
  * Mémoïsé : une fois par processus, pas une fois par envoi.
  */
@@ -85,12 +136,45 @@ export async function assurerBucket(): Promise<void> {
   return bucketPret;
 }
 
-async function preparerBucket(): Promise<void> {
+/**
+ * Le stockage refuse-t-il de créer parce que le bucket existe, ou parce que la
+ * clé n'en a pas le droit ?
+ *
+ * Les deux veulent dire « quelqu'un d'autre s'en occupe ». Sur R2, un jeton
+ * « Object Read & Write » ne crée pas de bucket : on les crée au tableau de
+ * bord. Faire échouer chaque envoi pour une création qu'on n'avait pas à faire
+ * fermerait le dépôt de fichiers pour rien. Si le bucket manque vraiment, le
+ * dépôt lui-même le dira, avec son propre refus.
+ */
+function creationDejaReglee(erreur: unknown): boolean {
+  const e = erreur as { name?: string; $metadata?: { httpStatusCode?: number } };
+  return (
+    e.name === "AccessDenied" ||
+    e.name === "BucketAlreadyExists" ||
+    e.name === "BucketAlreadyOwnedByYou" ||
+    e.$metadata?.httpStatusCode === 403 ||
+    e.$metadata?.httpStatusCode === 409
+  );
+}
+
+async function assurerExistence(bucket: string): Promise<void> {
   try {
-    await s3().send(new HeadBucketCommand({ Bucket: BUCKET }));
+    await s3().send(new HeadBucketCommand({ Bucket: bucket }));
   } catch {
-    await s3().send(new CreateBucketCommand({ Bucket: BUCKET }));
+    try {
+      await s3().send(new CreateBucketCommand({ Bucket: bucket }));
+    } catch (erreur) {
+      if (!creationDejaReglee(erreur)) throw erreur;
+    }
   }
+}
+
+async function preparerBucket(): Promise<void> {
+  const prive = bucketDe("produits/");
+  const publique = bucketDe(PREFIXE_PUBLIC);
+
+  await assurerExistence(prive);
+  if (publique !== prive) await assurerExistence(publique);
 
   // Ouvre la lecture anonyme **du seul préfixe public**. Rejouée même quand le
   // bucket existait déjà : sinon un bucket créé avant cette règle n'aurait
@@ -115,8 +199,12 @@ async function preparerBucket(): Promise<void> {
   // On relit donc la politique en place et on n'y remplace que notre propre
   // `Sid`. Ce qui appartient à quelqu'un d'autre reste. Le coût est d'un
   // aller-retour de plus, une fois par processus.
+  //
+  // Avec deux buckets, la politique ne se pose que sur le public : le privé
+  // n'a rien à ouvrir. Sur R2, elle échoue de toute façon (voir `bucketDe`) —
+  // l'accès public s'ouvre alors au tableau de bord, sur le bucket public seul.
   const enPlace = await s3()
-    .send(new GetBucketPolicyCommand({ Bucket: BUCKET }))
+    .send(new GetBucketPolicyCommand({ Bucket: publique }))
     .then((r) => JSON.parse(r.Policy ?? "{}") as { Statement?: unknown[] })
     .catch(() => ({ Statement: [] as unknown[] }));
 
@@ -127,7 +215,7 @@ async function preparerBucket(): Promise<void> {
   await s3()
     .send(
       new PutBucketPolicyCommand({
-        Bucket: BUCKET,
+        Bucket: publique,
         Policy: JSON.stringify({
           Version: "2012-10-17",
           Statement: [
@@ -137,7 +225,7 @@ async function preparerBucket(): Promise<void> {
               Effect: "Allow",
               Principal: { AWS: ["*"] },
               Action: ["s3:GetObject"],
-              Resource: [`arn:aws:s3:::${BUCKET}/${PREFIXE_PUBLIC}*`],
+              Resource: [`arn:aws:s3:::${publique}/${PREFIXE_PUBLIC}*`],
             },
           ],
         }),
@@ -171,7 +259,7 @@ export async function signerDepot(input: {
   const url = await getSignedUrl(
     s3(),
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: bucketDe(input.cle),
       Key: input.cle,
       ContentType: input.contentType,
     }),
@@ -202,7 +290,7 @@ export async function signerTelechargement(input: {
   return getSignedUrl(
     s3(),
     new GetObjectCommand({
-      Bucket: BUCKET,
+      Bucket: bucketDe(input.cle),
       Key: input.cle,
       ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(
         input.nomFichier,
@@ -228,7 +316,7 @@ export interface ObjetDepose {
 export async function lireObjet(cle: string): Promise<ObjetDepose | null> {
   try {
     const tete = await s3().send(
-      new HeadObjectCommand({ Bucket: BUCKET, Key: cle }),
+      new HeadObjectCommand({ Bucket: bucketDe(cle), Key: cle }),
     );
 
     return {
@@ -254,7 +342,7 @@ export async function telechargerObjet(
 ): Promise<Buffer | null> {
   try {
     const objet = await s3().send(
-      new GetObjectCommand({ Bucket: BUCKET, Key: cle }),
+      new GetObjectCommand({ Bucket: bucketDe(cle), Key: cle }),
     );
 
     if ((objet.ContentLength ?? 0) > maxOctets) return null;
@@ -276,7 +364,7 @@ export async function deposerObjet(input: {
 
   await s3().send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: bucketDe(input.cle),
       Key: input.cle,
       Body: input.corps,
       ContentType: input.contentType,
@@ -305,7 +393,9 @@ export async function listerObjets(prefixe: string): Promise<ObjetListe[]> {
   let jeton: string | undefined;
   do {
     const page = await s3().send(
-      new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefixe, ContinuationToken: jeton }),
+      // Le préfixe décide du bucket comme une clé : `public/apercus/` se liste
+      // là où les aperçus ont été déposés.
+      new ListObjectsV2Command({ Bucket: bucketDe(prefixe), Prefix: prefixe, ContinuationToken: jeton }),
     );
     for (const o of page.Contents ?? []) {
       if (o.Key && o.LastModified) objets.push({ cle: o.Key, modifieLe: o.LastModified });
@@ -317,7 +407,7 @@ export async function listerObjets(prefixe: string): Promise<ObjetListe[]> {
 
 export async function supprimerObjet(cle: string): Promise<void> {
   await s3()
-    .send(new DeleteObjectCommand({ Bucket: BUCKET, Key: cle }))
+    .send(new DeleteObjectCommand({ Bucket: bucketDe(cle), Key: cle }))
     .catch(() => {});
 }
 
@@ -328,10 +418,16 @@ export async function supprimerObjet(cle: string): Promise<void> {
  * trafic et n'ont aucune raison de repasser par l'origine (PLAN §8.2).
  */
 export function urlPublique(cle: string): string {
-  const base = process.env.S3_PUBLIC_URL ?? process.env.S3_ENDPOINT ?? "";
+  return urlPubliqueSelon(process.env, cle);
+}
+
+export function urlPubliqueSelon(env: Environnement, cle: string): string {
+  // `||` et non `??` : `.env.example` livre `S3_PUBLIC_URL=` vide, et la
+  // chaîne vide faisait perdre son hôte à l'adresse.
+  const base = env.S3_PUBLIC_URL || env.S3_ENDPOINT || "";
   const racine = base.replace(/\/+$/, "");
 
-  return process.env.S3_FORCE_PATH_STYLE === "true"
-    ? `${racine}/${BUCKET}/${cle}`
+  return env.S3_FORCE_PATH_STYLE === "true"
+    ? `${racine}/${bucketSelon(env, cle)}/${cle}`
     : `${racine}/${cle}`;
 }

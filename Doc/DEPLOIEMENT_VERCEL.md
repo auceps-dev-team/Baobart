@@ -304,10 +304,71 @@ public/extraits/<id>/…     public — l'extrait audio ou vidéo
 Au premier envoi, l'application tente de poser une politique de lecture
 anonyme sur le seul préfixe `public/`. **R2 et certains fournisseurs refusent
 cette API** : la pose échoue en silence, par choix — un envoi ne doit pas
-échouer pour une politique. Il faut alors ouvrir l'accès public à la main, sur
-`public/*` uniquement.
+échouer pour une politique.
 
-Vérification, une fois déployé :
+Ce paragraphe disait ensuite « il faut alors ouvrir l'accès public à la main,
+sur `public/*` uniquement ». **Sur R2, ce n'est pas possible.** Lu le 15/10/2026
+dans la documentation de Cloudflare : `PutBucketPolicy` n'est pas implémenté
+([API S3 de R2](https://developers.cloudflare.com/r2/api/s3/api/)), et l'accès
+public — sous-domaine `r2.dev` ou domaine personnalisé — ouvre « the contents
+of this R2 bucket », tout entier
+([buckets publics](https://developers.cloudflare.com/r2/buckets/public-buckets/)).
+Suivre la consigne sur un bucket unique rendait donc publics les fichiers
+vendus.
+
+### Sur Cloudflare R2 : deux buckets
+
+| Bucket | Variable | Accès public | Contenu |
+| --- | --- | --- | --- |
+| `baobart-prive` | `S3_BUCKET` | **jamais** | `produits/…`, candidatures, tout ce qui ne commence pas par `public/` |
+| `baobart-public` | `S3_BUCKET_PUBLIC` | domaine personnalisé | `public/apercus/…`, `public/extraits/…`, `public/pubs/…`, `public/blog/…` |
+
+Depuis v1.89.0, l'application range d'elle-même ce qui commence par `public/`
+dans `S3_BUCKET_PUBLIC` quand il est posé. Les clés ne changent pas.
+
+1. Créer les deux buckets au tableau de bord R2.
+2. Sur **`baobart-public` seulement** : *Settings › Custom Domains*, rattacher
+   le domaine des médias (par exemple `media.baobart.ci`). Laisser `r2.dev`
+   désactivé : il est limité en débit et réservé au développement, selon la
+   même page.
+3. Créer un jeton d'API **Object Read & Write**, limité à ces deux buckets.
+   Il ne peut pas créer de bucket ; l'application le tolère depuis v1.89.0.
+4. Poser le CORS ci-dessous **sur les deux buckets** : le navigateur dépose les
+   fichiers vendus dans le privé et les extraits dans le public.
+5. Variables :
+
+```env
+S3_ENDPOINT=https://<ID_DU_COMPTE>.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_BUCKET=baobart-prive
+S3_BUCKET_PUBLIC=baobart-public
+S3_FORCE_PATH_STYLE=false
+S3_PUBLIC_URL=https://media.baobart.ci
+```
+
+Les URL signées passent par `S3_ENDPOINT` et jamais par le domaine public :
+R2 ne les accepte pas sur un domaine personnalisé (lu le 15/10/2026,
+[URL signées](https://developers.cloudflare.com/r2/api/s3/presigned-urls/)).
+
+L'écran **Système · Configuration** signale en ATTENTION un R2 à bucket unique
+et un `S3_PUBLIC_URL` en `r2.dev`.
+
+**Contrôle avant d'ouvrir les ventes** :
+
+```bash
+pnpm stockage:verifier
+```
+
+Il dépose un objet public et un objet privé, puis il vérifie que l'aperçu se lit, que le
+fichier vendu **ne se lit pas** à son adresse publique, que l'URL signée le
+livre avec son nom d'origine, et que le CORS laisse déposer dans chaque bucket.
+Puis il les retire. Mesuré le 15/10/2026 sur MinIO, à un et à deux buckets :
+tout passe. Sur un bucket ouvert en entier, comme le serait un R2 unique, le
+fichier vendu répond 200 et le contrôle échoue. **Il n'a pas encore tourné
+contre R2** : en particulier, que R2 honore `response-content-disposition`
+(le nom du fichier téléchargé) n'est écrit nulle part dans sa documentation.
+
+### Vérification manuelle, une fois déployé
 
 ```bash
 curl -o /dev/null -w "%{http_code}\n" "$S3_PUBLIC_URL/public/apercus/ID-v3.webp"
@@ -391,7 +452,8 @@ ressource à la fois, depuis sa fiche (`/acheter/[slug]`).
 ## 6. Ordre des opérations
 
 1. Créer la base (Neon, Supabase, Vercel Postgres) et relever **les deux** URL.
-2. Créer le bucket, ouvrir `public/*` en lecture, poser le CORS.
+2. Créer le bucket — **deux sur R2** (§3) —, ouvrir à la lecture le seul
+   préfixe ou bucket public, poser le CORS, puis `pnpm stockage:verifier`.
 3. Poser les variables dans Vercel — les trois environnements ont leurs
    propres valeurs ; ne faites pas pointer la préproduction sur la base de
    production.
@@ -603,7 +665,8 @@ Trois choses à faire dessus, dans cet ordre :
 
 1. **Ouvrir `public/*` en lecture anonyme**, et rien d'autre. L'application
    tente de poser la politique elle-même, mais certains fournisseurs refusent
-   cette API ; l'échec est silencieux par choix (§3).
+   cette API ; l'échec est silencieux par choix (§3). Sur R2, qui n'ouvre
+   qu'un bucket entier, cela veut dire deux buckets et `S3_BUCKET_PUBLIC` (§3).
 2. **Poser le CORS** (§3) : sans lui, le navigateur ne peut pas déposer les
    fichiers, et l'envoi échoue sans message clair.
 3. **Vérifier la frontière**, une fois déployé :
@@ -694,7 +757,7 @@ quelque chose.
 | ☐ | `CRON_SECRET` | Les routes d'ordonnanceur répondent 404 à Vercel : aucun versement préparé, aucune relance envoyée, aucun ménage — et rien ne le signale |
 | ☐ | `S3_PUBLIC_URL` en **https** | Les aperçus ne s'affichent pas, et le navigateur bloque le contenu mixte |
 | ☐ | `CHECKOUT_SIMULATION_ENABLED` **absent** | Les ressources payantes se prennent sans payer, et les créateurs sont crédités d'un argent qui n'est jamais entré |
-| ☐ | La frontière du bucket (§8.2) | Ce qui est vendu se télécharge gratuitement — la seule erreur de cette liste qui coûte de l'argent aux créateurs |
+| ☐ | La frontière du bucket (§8.2) — `pnpm stockage:verifier` sans échec ; sur R2, `S3_BUCKET_PUBLIC` posé | Ce qui est vendu se télécharge gratuitement — la seule erreur de cette liste qui coûte de l'argent aux créateurs |
 | ☐ | Un administrateur nommé (§7 ter) | Personne ne peut atteindre les écrans Système, y compris pour constater les points ci-dessus |
 
 L'écran **Système · Configuration** rend compte de la moitié de cette liste tout
