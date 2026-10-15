@@ -3413,6 +3413,14 @@ enum EmailTemplate {
   /// Ajouté le 08/10 : un numéro de la lettre d'information, avec son lien
   /// de désinscription.
   INFOLETTRE
+
+  /// Ajouté le 15/10 : l'alerte envoyée au créateur quand son compte de
+  /// versement change. C'est un avis de sécurité, pas un accusé de réception :
+  /// un compte détourné redirige l'argent, et le délai de 24 h avant le premier
+  /// départ (lib/payments/eligibilite.ts) ne protège que si le propriétaire est
+  /// prévenu à temps. Le courriel ne porte que le moyen et les quatre derniers
+  /// chiffres — jamais la référence entière.
+  COMPTE_VERSEMENT_MODIFIE
 }
 
 /// File d'attente des messages transactionnels.

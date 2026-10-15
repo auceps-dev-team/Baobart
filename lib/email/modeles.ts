@@ -84,6 +84,15 @@ export const MODELES = [
   // Le seul modèle dont le texte n'est pas écrit ici : l'équipe l'écrit. Le
   // pied, lui, l'est — et il porte toujours le lien de désinscription.
   "INFOLETTRE",
+
+  // ── Ajouté le 15/10 : l'alerte au changement de compte de versement ─────
+  //
+  // Un avis de sécurité, pas un accusé de réception. Il part à l'adresse du
+  // compte, pas au nouveau compte — tout l'intérêt est d'atteindre le vrai
+  // propriétaire si quelqu'un d'autre a changé sa destination de versement. Il
+  // ne porte que le moyen et les quatre derniers chiffres : la référence
+  // entière dans une boîte serait une fuite gratuite.
+  "COMPTE_VERSEMENT_MODIFIE",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -267,6 +276,13 @@ const SCHEMAS = {
     sujet: z.string().min(1).max(160),
     corps: z.string().min(1).max(20_000),
     desinscrire: lien,
+  }),
+  COMPTE_VERSEMENT_MODIFIE: z.object({
+    nom,
+    /** Le moyen lisible : « Orange Money », « Wave », « compte bancaire »… */
+    moyen: z.string().min(1).max(60),
+    /** La destination masquée : « ···· 4821 ». Jamais la référence entière. */
+    compte: z.string().min(1).max(60),
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
@@ -638,6 +654,44 @@ Répondre : ${c.lien}` : ""),
 ` +
       `Tu reçois ce message parce que tu l'as demandé — il est éteint par ` +
       `défaut.` +
+      SIGNATURE,
+  }),
+
+  /**
+   * L'alerte au changement de compte de versement.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * IL DIT CE QU'IL FAUT FAIRE SI CE N'EST PAS TOI
+   *
+   * Les autres avis rendent compte d'un fait et s'arrêtent là. Celui-ci est une
+   * alerte : son seul intérêt est d'atteindre le propriétaire si quelqu'un
+   * d'autre a redirigé ses versements. La phrase qui compte est donc
+   * « si ce n'est pas toi, écris-nous tout de suite » — et elle dit pourquoi
+   * c'est urgent : l'argent part à cette destination au prochain cycle.
+   *
+   * On ne donne aucun moyen d'annuler par simple clic dans le courriel : un lien
+   * d'action au porteur serait exactement ce qu'un attaquant ferait suivre. On
+   * renvoie vers l'écran, derrière la connexion.
+   */
+  COMPTE_VERSEMENT_MODIFIE: (c) => ({
+    sujet: "Ton compte de versement a été modifié",
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Le compte sur lequel tu reçois tes versements vient d'être modifié. ` +
+      `Désormais, ton argent partira vers :
+
+` +
+      `  ${c.moyen} — ${c.compte}
+
+` +
+      `Si c'est bien toi, tu n'as rien à faire.
+
+` +
+      `Si ce n'est PAS toi, écris-nous tout de suite : tant que ce compte est ` +
+      `en place, c'est là que partiront tes prochains versements. Change-le ` +
+      `depuis ton tableau de bord, rubrique « Versements », et préviens-nous.` +
       SIGNATURE,
   }),
 };

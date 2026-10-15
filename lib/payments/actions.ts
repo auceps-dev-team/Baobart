@@ -4,8 +4,25 @@ import { revalidatePath } from "next/cache";
 
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { deposer } from "@/lib/email/outbox";
 import { verifierCompte } from "@/lib/payments/comptes";
 import { cadenceValide } from "@/lib/payments/cadences";
+import { masquerCompte } from "@/lib/payments/gains";
+import { RAILS } from "@/lib/payments/rails";
+
+/**
+ * Le moyen de versement, en clair, pour l'alerte au propriétaire.
+ *
+ * On préfère le libellé du rail (« Orange Money », « Wave ») quand on le
+ * connaît : c'est ce que le créateur reconnaît. À défaut — un code inconnu, ou
+ * un virement bancaire qui n'est pas un rail — on retombe sur la nature, jamais
+ * sur un code brut qui n'apprendrait rien à qui relève sa boîte.
+ */
+function libelleDuMoyen(provider: string, method: "MOBILE_MONEY" | "BANK"): string {
+  const rail = RAILS.find((r) => r.code === provider);
+  if (rail) return rail.label;
+  return method === "BANK" ? "compte bancaire" : "mobile money";
+}
 
 /**
  * Enregistrer son compte de versement.
@@ -51,7 +68,7 @@ export async function enregistrerCompteDeVersement(
       data: { deletedAt: new Date() },
     });
 
-    await tx.payoutAccount.create({
+    const cree = await tx.payoutAccount.create({
       data: {
         userId: utilisateur.id,
         method: verdict.method!,
@@ -59,6 +76,7 @@ export async function enregistrerCompteDeVersement(
         accountRef: rejouable,
         holderName: titulaire.trim() || null,
       },
+      select: { id: true },
     });
 
     // Le rail décide du jour de la semaine où ce créateur est payé : il doit
@@ -67,6 +85,35 @@ export async function enregistrerCompteDeVersement(
       where: { id: utilisateur.id },
       data: { payoutRail: provider },
     });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // L'ALERTE PART DANS LA MÊME TRANSACTION QUE LE CHANGEMENT
+    //
+    // C'est le point entier de l'alerte : un compte de versement détourné
+    // redirige l'argent, et le délai de 24 h avant le premier départ
+    // (`lib/payments/eligibilite.ts`) ne protège que si le vrai propriétaire
+    // est prévenu dans cet intervalle. Déposée après la transaction, l'alerte
+    // pourrait manquer si le processus tombe entre les deux ; dedans, soit le
+    // changement ET son alerte tiennent, soit aucun des deux.
+    //
+    // La clé porte l'identifiant du nouveau compte : chaque changement crée une
+    // ligne neuve, donc une clé neuve — deux changements successifs alertent
+    // deux fois, un rejeu de la même écriture n'alerte qu'une.
+    await deposer(
+      {
+        cle: `compte-versement-modifie-${cree.id}`,
+        destinataire: utilisateur.email,
+        modele: "COMPTE_VERSEMENT_MODIFIE",
+        charge: {
+          nom: utilisateur.nom,
+          moyen: libelleDuMoyen(provider, verdict.method!),
+          // Masqué : « ···· 4821 ». La référence entière dans une boîte serait
+          // une fuite, et l'alerte n'en a pas besoin pour faire son travail.
+          compte: masquerCompte(rejouable),
+        },
+      },
+      tx,
+    );
   });
 
   revalidatePath("/dashboard/gains");
