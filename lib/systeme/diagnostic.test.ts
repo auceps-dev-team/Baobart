@@ -229,19 +229,33 @@ describe("l'anti-bot", () => {
     // Ni « ok » ni « panne » : le leurre et le plancher de temps protègent
     // réellement, mais pas contre un robot écrit pour ce site-ci. Les deux
     // extrêmes mentiraient, chacun dans un sens.
-    const c = constatAntiBot({ tiers: false, production: true });
+    const c = constatAntiBot({ tiers: "absent", production: true });
     expect(c.gravite).toBe("attention");
     expect(c.remede).toContain("RECAPTCHA_SECRET");
+    // Le remède ne doit plus laisser croire que la clé suffit.
+    expect(c.remede).toContain("ne suffit pas");
   });
 
   it("ne dit rien en développement", () => {
-    const c = constatAntiBot({ tiers: false, production: false });
+    const c = constatAntiBot({ tiers: "absent", production: false });
     expect(c.gravite).toBe("ok");
     expect(c.remede).toBeUndefined();
   });
 
+  it("ne prend pas une clé sans jeton pour un tiers branché", () => {
+    // Le succès silencieux constaté le 08/10/2026 : la clé posée affichait
+    // « score du tiers » en vert, sans qu'aucun score soit jamais demandé.
+    for (const production of [true, false]) {
+      const c = constatAntiBot({ tiers: "sans_jeton", production });
+      expect(c.gravite).toBe("attention");
+      expect(c.detail).not.toContain("score du tiers");
+      expect(c.detail).toContain("aucun formulaire ne produit de jeton");
+      expect(c.remede).toBeDefined();
+    }
+  });
+
   it("se tait quand le tiers est branché", () => {
-    const c = constatAntiBot({ tiers: true, production: true });
+    const c = constatAntiBot({ tiers: "actif", production: true });
     expect(c.gravite).toBe("ok");
     expect(c.remede).toBeUndefined();
   });

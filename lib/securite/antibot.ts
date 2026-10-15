@@ -30,8 +30,11 @@ import { journal } from "@/lib/observabilite/journal";
  * dizaines de secondes. Une soumission mille millisecondes après l'ouverture
  * n'a pas été tapée.
  *
- * **Le score d'un tiers.** reCAPTCHA Enterprise, quand la clé est configurée.
- * Il rend un nombre entre 0 et 1, et l'on refuse en dessous d'un seuil.
+ * **Le score d'un tiers.** reCAPTCHA, quand la clé est configurée ET qu'un
+ * formulaire transmet son jeton — ce qu'aucun ne fait encore, voir
+ * `UN_FORMULAIRE_TRANSMET_LE_JETON`. Il rend un nombre entre 0 et 1, et l'on
+ * refuse en dessous d'un seuil. L'appel vise `siteverify`, l'API de reCAPTCHA
+ * v3 ; la spécification dit « Enterprise », qui passe par une autre adresse.
  *
  * Les deux premiers fonctionnent sans clé, sans réseau, sans compte chez
  * personne. C'est délibéré : une protection qui ne marche qu'une fois la
@@ -237,12 +240,42 @@ async function scoreDuTiers(
   }
 }
 
+/**
+ * Un formulaire transmet-il le jeton du tiers jusqu'à `evaluerUnGeste` ?
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LA CLÉ SEULE NE PROTÈGE RIEN
+ *
+ * Constaté le 08/10/2026 : aucun appelant (inscription, connexion, infolettre,
+ * contact) ne passe de `jeton`, et aucune page ne charge reCAPTCHA. Avec
+ * `RECAPTCHA_SECRET` posé, `scoreDuTiers` rendait donc `null` à chaque appel —
+ * pendant que l'écran Système affichait le score comme actif.
+ *
+ * Cette constante n'est pas une opinion : `antibot.test.ts` relit les
+ * appelants et échoue si elle ne dit plus ce que fait le code. Le jour où un
+ * formulaire produit un jeton, le test l'exige à `true`.
+ */
+export const UN_FORMULAIRE_TRANSMET_LE_JETON = false;
+
+/**
+ * Où en est le tiers.
+ *
+ * - `absent` : pas de clé ;
+ * - `sans_jeton` : la clé est posée, mais aucun formulaire ne produit de
+ *   jeton — aucun score n'est jamais demandé ;
+ * - `actif` : la clé est posée et un formulaire au moins transmet son jeton.
+ */
+export type EtatTiers = "absent" | "sans_jeton" | "actif";
+
 /** Ce que l'écran de configuration affiche. */
-export function etatAntiBot(): { tiers: boolean; seuil: number; delai: number } {
+export function etatAntiBot(
+  jetonTransmis: boolean = UN_FORMULAIRE_TRANSMET_LE_JETON,
+): { tiers: EtatTiers; seuil: number; delai: number } {
   const secret = process.env.RECAPTCHA_SECRET;
+  const cle = Boolean(secret && secret.length > 0);
 
   return {
-    tiers: Boolean(secret && secret.length > 0),
+    tiers: !cle ? "absent" : jetonTransmis ? "actif" : "sans_jeton",
     seuil: SEUIL_SCORE,
     delai: DELAI_MINIMUM_MS,
   };
