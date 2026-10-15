@@ -12,6 +12,13 @@
  * migration — et une couverture qui ne suit pas la convention (catalogue de
  * démonstration, image externe) reste servie telle quelle.
  *
+ * ⚠️ Servie telle quelle veut dire SANS filigrane. Mesuré le 15/10/2026 sur la
+ * base de développement : 102 couvertures publiées sur 102 étaient dans ce cas
+ * (16 sous `/img/demo/`, 86 sous `demo/apercu/`), aucun aperçu `-v3` n'existait,
+ * et rien ne le signalait. La tolérance reste — une image vide serait pire —
+ * mais elle se compte (`estApercuCourant`, constat de l'écran Système) et se
+ * répare (`regenererApercus`, second passage).
+ *
  * ════════════════════════════════════════════════════════════════════════════
  * POURQUOI LA VERSION CHANGE AVEC LA RECETTE
  *
@@ -58,6 +65,24 @@ export function mediaDUneClePerimee(cle: string): string | null {
   const version = m[2] ? Number(m[2]) : 1;
   return version < VERSION_APERCU ? m[1]! : null;
 }
+
+/**
+ * Cette couverture est-elle un aperçu de la recette courante — donc filigranée,
+ * réduite, signée en XMP ?
+ *
+ * Seule la fabrique (`produireApercu`) écrit sous `public/apercus/<id>-vN`.
+ * Tout le reste — une image de démonstration, une adresse externe, un aperçu
+ * d'une recette plus ancienne — est servi tel qu'il a été déposé.
+ */
+export function estApercuCourant(url: string): boolean {
+  return new RegExp(`/${PREFIXE}[^/]+${SUFFIXE_APERCU.replace(".", "\\.")}$`).test(url);
+}
+
+/**
+ * Les mêmes adresses, en filtre de chaîne Prisma : pour les compter en base
+ * sans recopier la convention de nom ailleurs qu'ici.
+ */
+export const FILTRE_APERCU_COURANT = { contains: `/${PREFIXE}`, endsWith: SUFFIXE_APERCU } as const;
 
 /**
  * L'adresse de la vignette du fil, déduite de celle de l'aperçu.

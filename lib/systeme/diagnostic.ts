@@ -439,6 +439,50 @@ export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
   };
 }
 
+export interface FaitsCouvertures {
+  /** Ressources publiées dont la couverture n'est pas un aperçu courant. */
+  nonProtegees: number;
+  production: boolean;
+}
+
+/**
+ * Les couvertures servies sans filigrane.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LE DÉFAUT QUI RÉUSSISSAIT EN SILENCE
+ *
+ * Mesuré le 15/10/2026 sur la base de développement : 102 couvertures publiées
+ * sur 102 étaient des images brutes — démonstration du dépôt, dérivées de
+ * 1 400 px — et aucun aperçu filigrané n'existait. Une extension de navigateur
+ * les a toutes téléchargées. Rien n'a échoué : la page s'affichait, l'écran
+ * Système était vert, et la fabrique d'aperçus fonctionnait parfaitement pour
+ * les images qu'on ne lui donnait jamais.
+ *
+ * Panne en production et non simple avertissement : la promesse faite aux
+ * créateurs — on ne publie qu'un aperçu réduit et marqué — est fausse pour
+ * ces fiches, et une image partie ne se rattrape pas. En développement, le jeu
+ * de démonstration en produit ; on le dit sans crier.
+ */
+export function constatCouvertures(faits: FaitsCouvertures): Constat {
+  if (faits.nonProtegees === 0) {
+    return {
+      cle: "couvertures",
+      libelle: "Couvertures filigranées",
+      gravite: "ok",
+      detail: "Toutes les couvertures publiées sont des aperçus réduits et marqués.",
+    };
+  }
+
+  return {
+    cle: "couvertures",
+    libelle: "Couvertures filigranées",
+    gravite: faits.production ? "panne" : "attention",
+    detail: `${faits.nonProtegees} ressource(s) publiée(s) affichent une image qui n'est pas un aperçu filigrané : elle se télécharge en l'état.`,
+    remede:
+      "Lance `pnpm apercus:regenerer` pour voir lesquelles, puis `pnpm apercus:regenerer -- --appliquer` : chaque couverture reçoit un aperçu tiré du fichier de sa ressource. Celles qu'il ne sait pas refaire sont nommées.",
+  };
+}
+
 export interface FaitsSms {
   /** Le pilote actif : « aucun », « console » ou le nom d'un opérateur. */
   pilote: string;

@@ -155,6 +155,11 @@ async function main() {
         price: r.price,
         currency: "XOF",
         status: "PUBLISHED",
+        // Image brute, sans filigrane — et c'est voulu (décision du
+        // 15/10/2026) : ces seize fiches montrent en démonstration ce que
+        // Baobart Shield change, à côté des 86 du catalogue qui passent par la
+        // fabrique d'aperçus. L'écran Système les compte (« attention » en
+        // développement). Ne pas « corriger » sans reprendre la décision.
         coverUrl: r.cover ? `/img/demo/${r.cover}` : null,
         isStaffPicked: r.staffPicked ?? false,
         staffPickedAt: r.staffPicked ? createdAt : null,
