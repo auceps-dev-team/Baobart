@@ -320,8 +320,11 @@ export function constatLimitation(faits: FaitsLimitation): Constat {
 }
 
 export interface FaitsAntiBot {
-  /** Une clé reCAPTCHA est-elle configurée ? */
-  tiers: boolean;
+  /**
+   * Où en est reCAPTCHA : pas de clé, une clé sans formulaire qui produise de
+   * jeton, ou un score réellement demandé. Voir `etatAntiBot`.
+   */
+  tiers: "absent" | "sans_jeton" | "actif";
   production: boolean;
 }
 
@@ -343,14 +346,38 @@ export interface FaitsAntiBot {
  * Afficher « ok » sans tiers laisserait croire à une protection complète ;
  * afficher « panne » laisserait croire qu'il n'y a rien. Les deux mentiraient,
  * et c'est pourquoi l'état est « attention » en production et « ok » ailleurs.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * UNE CLÉ SANS JETON N'EST PAS UN TIERS BRANCHÉ
+ *
+ * Jusqu'au 08/10/2026, la seule présence de `RECAPTCHA_SECRET` affichait
+ * « score du tiers » en vert — alors qu'aucun formulaire ne produisait de
+ * jeton et qu'aucun score n'était jamais demandé. Et le remède conseillait de
+ * poser la clé : le suivre faisait passer le voyant au vert sans rien
+ * protéger de plus.
+ *
+ * Une clé sans jeton est donc dite telle quelle, et en « attention » partout,
+ * développement compris : c'est une configuration qui ment, pas un manque.
  */
 export function constatAntiBot(faits: FaitsAntiBot): Constat {
-  if (faits.tiers) {
+  if (faits.tiers === "actif") {
     return {
       cle: "antibot",
       libelle: "Anti-bot",
       gravite: "ok",
       detail: "Leurre, plancher de temps et score du tiers.",
+    };
+  }
+
+  if (faits.tiers === "sans_jeton") {
+    return {
+      cle: "antibot",
+      libelle: "Anti-bot",
+      gravite: "attention",
+      detail:
+        "RECAPTCHA_SECRET est posée, mais aucun formulaire ne produit de jeton : aucun score n'est jamais demandé. Seuls le leurre et le plancher de temps protègent.",
+      remede:
+        "La clé ne suffit pas : il faut charger reCAPTCHA sur les formulaires et transmettre le jeton jusqu'à evaluerUnGeste. Tant que ce n'est pas fait, la clé peut être retirée sans rien perdre.",
     };
   }
 
@@ -362,7 +389,7 @@ export function constatAntiBot(faits: FaitsAntiBot): Constat {
       ? "Leurre et plancher de temps seulement — aucun score de risque."
       : "Leurre et plancher de temps (développement).",
     remede: faits.production
-      ? "Pose RECAPTCHA_SECRET. Sans score, un robot écrit pour ce site — qui saute le champ caché et attend trois secondes — passe sans être gêné."
+      ? "Aucun score de risque n'est branché : un robot écrit pour ce site — qui saute le champ caché et attend trois secondes — passe sans être gêné. Poser RECAPTCHA_SECRET ne suffit pas tant qu'aucun formulaire ne transmet de jeton."
       : undefined,
   };
 }
