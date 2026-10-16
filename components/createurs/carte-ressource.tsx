@@ -2,12 +2,18 @@ import Link from "next/link";
 import type { Route } from "next";
 
 import type { CarteRessource } from "@/lib/feed/types";
-import { formatCount } from "@/lib/i18n/money";
-import { BLANC, CADRE, ENCRE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE } from "@/lib/systeme/charte";
 import { vignetteDe } from "@/lib/upload/vignette";
 
 /**
  * Une ressource, sur la vitrine de son créateur.
+ *
+ * Traduite de `Baobart Accueil.dc.html`, section `PROFIL CREATEUR`, liste
+ * `profilWork` : une carte de mosaïque (`columns: 250px`) dont le visuel a la
+ * hauteur de la ressource (`r.h`), le titre, « par … dans … », et le prix dans
+ * une pastille — jaune quand la ressource est offerte (`priceBg`). Jusqu'au
+ * 16/10, la vitrine montrait une grille de cartes 4:3 qui ne venait pas de la
+ * maquette.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * POURQUOI PAS `CarteMosaique`
@@ -29,7 +35,10 @@ export function CarteRessourceLien({ ressource }: { ressource: CarteRessource })
       href={`/products/${ressource.slug}` as Route}
       className="sticker-press"
       style={{
-        display: "block",
+        breakInside: "avoid",
+        marginBottom: 20,
+        display: "inline-block",
+        width: "100%",
         border: CADRE,
         borderRadius: 20,
         background: BLANC,
@@ -40,50 +49,64 @@ export function CarteRessourceLien({ ressource }: { ressource: CarteRessource })
     >
       <div
         style={{
-          aspectRatio: "4 / 3",
+          height: ressource.visualHeight,
           borderBottom: CADRE,
+          display: "grid",
+          placeItems: "center",
           background: ressource.coverUrl
             ? `center / cover no-repeat url(${vignetteDe(ressource.coverUrl)})`
             : "repeating-linear-gradient(135deg,#EADFF9 0 9px,#FFFFFF 9px 18px)",
         }}
-      />
-      <div style={{ padding: 14 }}>
-        <div
-          style={{
-            fontSize: 14.5,
-            fontWeight: 800,
-            lineHeight: 1.3,
-            // Un titre long ne doit pas pousser la grille : deux lignes, puis
-            // les points de suspension.
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {ressource.title}
+      >
+        {ressource.coverUrl ? null : (
+          <span
+            style={{
+              padding: "6px 12px",
+              border: `2px solid ${ENCRE}`,
+              borderRadius: 999,
+              background: BLANC,
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+            }}
+          >
+            {ressource.famille ?? "Ressource"}
+          </span>
+        )}
+      </div>
+      <div style={{ padding: "12px 13px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 800,
+              lineHeight: 1.25,
+              // Un titre long ne doit pas étirer la carte : deux lignes, puis
+              // les points de suspension.
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {ressource.title}
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.6 }}>
+            par {ressource.author}
+            {ressource.famille ? ` dans ${ressource.famille}` : ""}
+          </div>
         </div>
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 10,
-            marginTop: 8,
+            padding: "5px 10px",
+            border: `2px solid ${ENCRE}`,
+            borderRadius: 9,
+            fontSize: 11,
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+            background: ressource.offerte ? JAUNE : BLANC,
           }}
         >
-          <span style={{ fontSize: 13.5, fontWeight: 800 }}>
-            {ressource.offerte ? "Offert" : ressource.prixAffiche}
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
-              opacity: 0.6,
-            }}
-          >
-            {formatCount(ressource.downloadsCount)} téléch.
-          </span>
+          {ressource.offerte ? "Offert" : ressource.prixAffiche}
         </div>
       </div>
     </Link>

@@ -16,7 +16,9 @@
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { famillesDuCreateur, pageDeLaVitrine } from "@/lib/feed/queries";
 import {
+  collectionsPubliquesDe,
   famillesDesCreateurs,
   listerCreateurs,
   profilPublic,
@@ -298,5 +300,91 @@ describe("l'annuaire, par famille et avec ses travaux", () => {
     await publier(suspendu.id, 0, "AUDIO");
 
     expect(await famillesDesCreateurs()).toEqual(["ILLUSTRATION"]);
+  });
+});
+
+describe("le portfolio, page par page", () => {
+  async function produit(vendeurId: string, champs: { nom: string; prix?: number; famille?: ProductFamily; description?: string; statut?: "PUBLISHED" | "DRAFT" }) {
+    n += 1;
+    return db.product.create({
+      data: {
+        sellerId: vendeurId,
+        name: champs.nom,
+        description: champs.description ?? null,
+        slug: `portfolio-${n}`,
+        price: champs.prix ?? 1_000,
+        currency: "XOF",
+        status: champs.statut ?? "PUBLISHED",
+        family: champs.famille ?? null,
+        createdAt: new Date(Date.UTC(2026, 1, 1) + n * 1_000),
+      },
+      select: { id: true },
+    });
+  }
+
+  it("se pagine, et ramène une page trop loin à la dernière", async () => {
+    const c = await compte();
+    for (const nom of ["A", "B", "C", "D", "E"]) await produit(c.id, { nom });
+
+    const p3 = await pageDeLaVitrine({ auteurId: c.id, page: 3, parPage: 2 });
+    expect(p3).toMatchObject({ total: 5, pages: 3, page: 3 });
+    expect(p3.items.map((r) => r.title)).toEqual(["A"]);
+    expect((await pageDeLaVitrine({ auteurId: c.id, page: 99, parPage: 2 })).page).toBe(3);
+  });
+
+  it("cherche dans le titre et la description, sans tenir compte de la casse", async () => {
+    const c = await compte();
+    await produit(c.id, { nom: "Motifs wax" });
+    await produit(c.id, { nom: "Police", description: "Inspirée du WAX ghanéen" });
+    await produit(c.id, { nom: "Brouillon wax", statut: "DRAFT" });
+
+    const r = await pageDeLaVitrine({ auteurId: c.id, recherche: "Wax" });
+    expect(r.items.map((x) => x.title).sort()).toEqual(["Motifs wax", "Police"]);
+  });
+
+  it("filtre par catégorie, et ne propose que celles où il publie", async () => {
+    const c = await compte();
+    await produit(c.id, { nom: "Une police", famille: "FONT" });
+    await produit(c.id, { nom: "Une photo", famille: "PHOTO" });
+    await produit(c.id, { nom: "Une illustration en brouillon", famille: "ILLUSTRATION", statut: "DRAFT" });
+
+    expect((await famillesDuCreateur(c.id)).map((f) => f.famille).sort()).toEqual(["FONT", "PHOTO"]);
+    const r = await pageDeLaVitrine({ auteurId: c.id, famille: "PHOTO" });
+    expect(r.items.map((x) => x.title)).toEqual(["Une photo"]);
+  });
+
+  it("trie par prix", async () => {
+    const c = await compte();
+    await produit(c.id, { nom: "Cher", prix: 9_000 });
+    await produit(c.id, { nom: "Offert", prix: 0 });
+    await produit(c.id, { nom: "Moyen", prix: 3_000 });
+
+    const r = await pageDeLaVitrine({ auteurId: c.id, tri: "prix-croissant" });
+    expect(r.items.map((x) => x.title)).toEqual(["Offert", "Moyen", "Cher"]);
+  });
+});
+
+describe("les collections de la vitrine", () => {
+  it("ne montrent que les publiques qui rangent des ressources publiées", async () => {
+    const c = await compte();
+    const publiee = await publier(c.id);
+    n += 1;
+    const brouillon = await db.product.create({
+      data: { sellerId: c.id, name: "Brouillon", slug: `brouillon-col-${n}`, price: 1_000, currency: "XOF", status: "DRAFT" },
+      select: { id: true },
+    });
+    const ouverte = await db.board.create({ data: { ownerId: c.id, title: "Ouverte", isPublic: true } });
+    const privee = await db.board.create({ data: { ownerId: c.id, title: "Privée", isPublic: false } });
+    await db.board.create({ data: { ownerId: c.id, title: "Vide", isPublic: true } });
+    await db.save.createMany({
+      data: [
+        { boardId: ouverte.id, productId: publiee.id },
+        { boardId: ouverte.id, productId: brouillon.id },
+        { boardId: privee.id, productId: publiee.id },
+      ],
+    });
+
+    const liste = await collectionsPubliquesDe(c.id);
+    expect(liste.map((x) => [x.titre, x.ressources])).toEqual([["Ouverte", 1]]);
   });
 });

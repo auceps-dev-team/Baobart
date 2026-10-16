@@ -362,3 +362,62 @@ export async function suitCeCreateur(
 
   return suivi !== null;
 }
+
+export interface CollectionEnVitrine {
+  id: string;
+  titre: string;
+  description: string | null;
+  /** Les ressources publiées qu'elle range — pas les brouillons ni les retirées. */
+  ressources: number;
+  couvertures: string[];
+}
+
+/**
+ * Les collections publiques d'un créateur — onglet « Collections ».
+ *
+ * `Doc/MAQUETTES_A_FAIRE.md` §F.3 notait le 02/09 que « Collections publiques
+ * n'existe pas ». Elles existent depuis v1.74.0 (`Board.isPublic`). Une
+ * collection partagée avec une communauté seulement n'y figure pas : son
+ * propriétaire l'a ouverte à ce cercle, pas au public.
+ */
+export async function collectionsPubliquesDe(
+  createurId: string,
+  limite = 12,
+): Promise<CollectionEnVitrine[]> {
+  const publiees = { product: { status: "PUBLISHED" as const } };
+  const lignes = await db.board.findMany({
+    where: { ownerId: createurId, isPublic: true },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limite,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      _count: { select: { saves: { where: publiees } } },
+      saves: {
+        where: publiees,
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: { product: { select: { coverUrl: true } } },
+      },
+    },
+  });
+
+  // Une collection vide ne montre rien à personne.
+  return lignes
+    .filter((b) => b._count.saves > 0)
+    .map((b) => ({
+      id: b.id,
+      titre: b.title,
+      description: b.description,
+      ressources: b._count.saves,
+      couvertures: b.saves
+        .map((s) => s.product?.coverUrl ?? null)
+        .filter((c): c is string => c !== null),
+    }));
+}
+
+/** Combien d'offres publiées : l'onglet « Services » ne paraît que s'il y en a. */
+export async function nombreDeServices(createurId: string): Promise<number> {
+  return db.serviceOffer.count({ where: { creatorId: createurId, state: "PUBLIE" } });
+}

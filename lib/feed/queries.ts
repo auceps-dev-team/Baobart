@@ -94,6 +94,56 @@ function extraitDe(
   return { url, nature };
 }
 
+/** Ce qu'une carte lit d'un produit — le même partout où l'on en montre. */
+const SELECTION_CARTE = {
+  id: true,
+  slug: true,
+  name: true,
+  type: true,
+  family: true,
+  price: true,
+  pricingMode: true,
+  minPrice: true,
+  currency: true,
+  coverUrl: true,
+  previewUrl: true,
+  previewKind: true,
+  downloadsCount: true,
+  salesCount: true,
+  isStaffPicked: true,
+  createdAt: true,
+  seller: {
+    select: { profile: { select: { displayName: true, username: true } } },
+  },
+} as const;
+
+function versCarte(
+  p: ProduitFeed,
+  hauteur = hauteurPour(p.id),
+): import("@/lib/feed/types").CarteRessource {
+  return {
+    id: p.id,
+    slug: p.slug,
+    title: p.name,
+    author: p.seller.profile?.displayName ?? "Créateur Baobart",
+    authorUsername: p.seller.profile?.username ?? null,
+    type: p.type,
+    famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
+    price: p.price,
+    currency: p.currency,
+    prixAffiche: libelleDuPrix(p),
+    offerte: estOfferte(p),
+    coverUrl: p.coverUrl,
+
+    extrait: extraitDe(p.previewUrl, p.previewKind),
+    downloadsCount: p.downloadsCount,
+    salesCount: p.salesCount,
+    visualHeight: hauteur,
+    isStaffPicked: p.isStaffPicked,
+    createdAt: p.createdAt,
+  };
+}
+
 function encoderCurseur(item: { createdAt: Date; id: string }): string {
   return Buffer.from(`${item.createdAt.toISOString()}|${item.id}`).toString(
     "base64url",
@@ -161,54 +211,14 @@ export async function listerFeed(
     // Un de plus que demandé : sa seule présence dit qu'il reste une page,
     // sans avoir à compter le total.
     take: limit + 1,
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      type: true,
-      family: true,
-      price: true,
-      pricingMode: true,
-      minPrice: true,
-      currency: true,
-      coverUrl: true,
-      previewUrl: true,
-      previewKind: true,
-      downloadsCount: true,
-      salesCount: true,
-      isStaffPicked: true,
-      createdAt: true,
-      seller: {
-        select: { profile: { select: { displayName: true, username: true } } },
-      },
-    },
+    select: SELECTION_CARTE,
   });
 
   const aUneSuite = lignes.length > limit;
   const page = aUneSuite ? lignes.slice(0, limit) : lignes;
 
   return {
-    items: page.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      title: p.name,
-      author: p.seller.profile?.displayName ?? "Créateur Baobart",
-      authorUsername: p.seller.profile?.username ?? null,
-      type: p.type,
-      famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
-      price: p.price,
-      currency: p.currency,
-      prixAffiche: libelleDuPrix(p),
-      offerte: estOfferte(p),
-      coverUrl: p.coverUrl,
-
-      extrait: extraitDe(p.previewUrl, p.previewKind),
-      downloadsCount: p.downloadsCount,
-      salesCount: p.salesCount,
-      visualHeight: hauteurPour(p.id),
-      isStaffPicked: p.isStaffPicked,
-      createdAt: p.createdAt,
-    })),
+    items: page.map((p) => versCarte(p)),
     nextCursor: aUneSuite ? encoderCurseur(page[page.length - 1]!) : null,
   };
 }
@@ -225,50 +235,106 @@ export async function listerAlaUne(
     where: { status: "PUBLISHED", isStaffPicked: true },
     orderBy: [{ staffPickedAt: "desc" }, { id: "desc" }],
     take: limit,
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      type: true,
-      family: true,
-      price: true,
-      pricingMode: true,
-      minPrice: true,
-      currency: true,
-      coverUrl: true,
-      previewUrl: true,
-      previewKind: true,
-      downloadsCount: true,
-      salesCount: true,
-      isStaffPicked: true,
-      createdAt: true,
-      seller: {
-        select: { profile: { select: { displayName: true, username: true } } },
-      },
-    },
+    select: SELECTION_CARTE,
   });
 
-  return lignes.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    title: p.name,
-    author: p.seller.profile?.displayName ?? "Créateur Baobart",
-    authorUsername: p.seller.profile?.username ?? null,
-    type: p.type,
-    famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
-    price: p.price,
-    currency: p.currency,
-    prixAffiche: libelleDuPrix(p),
-    offerte: estOfferte(p),
-    coverUrl: p.coverUrl,
+  // Une hauteur fixe : les deux cartes à la une sont côte à côte.
+  return lignes.map((p) => versCarte(p, 280));
+}
 
-    extrait: extraitDe(p.previewUrl, p.previewKind),
-    downloadsCount: p.downloadsCount,
-    salesCount: p.salesCount,
-    visualHeight: 280,
-    isStaffPicked: p.isStaffPicked,
-    createdAt: p.createdAt,
-  }));
+export type TriVitrine = "recent" | "populaires" | "prix-croissant" | "prix-decroissant";
+
+/** Le menu « Récent ▼ » de la maquette (`PROFIL CREATEUR`). */
+export const TRIS_VITRINE: ReadonlyArray<{ valeur: TriVitrine; libelle: string }> = [
+  { valeur: "recent", libelle: "Récent" },
+  { valeur: "populaires", libelle: "Populaires" },
+  { valeur: "prix-croissant", libelle: "Prix croissant" },
+  { valeur: "prix-decroissant", libelle: "Prix décroissant" },
+];
+
+const ORDRES_VITRINE = {
+  recent: [{ createdAt: "desc" }, { id: "desc" }],
+  // Ce qui s'est vendu, puis ce qui s'est téléchargé : une ressource gratuite
+  // n'a pas de ventes, elle a des retraits.
+  populaires: [{ salesCount: "desc" }, { downloadsCount: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+  "prix-croissant": [{ price: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+  "prix-decroissant": [{ price: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+} as const;
+
+export interface PageVitrine {
+  items: import("@/lib/feed/types").CarteRessource[];
+  total: number;
+  /** La page rendue — ramenée dans les bornes si on en demandait une au-delà. */
+  page: number;
+  pages: number;
+}
+
+/** Vingt-quatre par page : une grille de quatre colonnes, six rangées. */
+export const PAR_PAGE_VITRINE = 24;
+
+/**
+ * Le portfolio d'un créateur, page par page — onglet « Ressources » du profil.
+ *
+ * La maquette dessine des pages numérotées (« 1 2 3 … 6 Suivant → »), une
+ * recherche « Chercher dans le portfolio… », un filtre de catégorie et un tri.
+ * Le curseur de `listerFeed` ne sait pas sauter à la page 3 : c'est une autre
+ * pagination, par décalage, qui convient à un portfolio de quelques dizaines
+ * de ressources. La sélection et la forme de sortie, elles, sont les mêmes
+ * (`SELECTION_CARTE`, `versCarte`) — c'était la crainte du commentaire de
+ * `ListerFeedInput`, et elle est tenue.
+ */
+export async function pageDeLaVitrine(input: {
+  auteurId: string;
+  recherche?: string;
+  famille?: ProductFamily | null;
+  tri?: TriVitrine;
+  page?: number;
+  parPage?: number;
+}): Promise<PageVitrine> {
+  const parPage = input.parPage ?? PAR_PAGE_VITRINE;
+  const mots = (input.recherche ?? "").trim().slice(0, 80);
+  const where = {
+    status: "PUBLISHED" as const,
+    sellerId: input.auteurId,
+    ...(input.famille ? { family: input.famille } : {}),
+    ...(mots
+      ? {
+          OR: [
+            { name: { contains: mots, mode: "insensitive" as const } },
+            { description: { contains: mots, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const total = await db.product.count({ where });
+  const pages = Math.max(1, Math.ceil(total / parPage));
+  const page = Math.min(Math.max(1, Math.floor(input.page ?? 1)), pages);
+
+  const lignes: ProduitFeed[] = await db.product.findMany({
+    where,
+    orderBy: [...ORDRES_VITRINE[input.tri ?? "recent"]],
+    skip: (page - 1) * parPage,
+    take: parPage,
+    select: SELECTION_CARTE,
+  });
+
+  return { items: lignes.map((p) => versCarte(p)), total, page, pages };
+}
+
+/** Les familles où ce créateur publie — le menu « Toutes les catégories ». */
+export async function famillesDuCreateur(
+  auteurId: string,
+): Promise<Array<{ famille: ProductFamily; libelle: Filtre }>> {
+  const groupes = await db.product.groupBy({
+    by: ["family"],
+    where: { status: "PUBLISHED", sellerId: auteurId, family: { not: null } },
+  });
+  return groupes
+    .map((g) => g.family)
+    .filter((f): f is ProductFamily => f !== null)
+    .map((famille) => ({ famille, libelle: LIBELLE_PAR_FAMILLE[famille] }))
+    .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
 }
 
 /** Compteur affiché à droite du sélecteur de cartes. */

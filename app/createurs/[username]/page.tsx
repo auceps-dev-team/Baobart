@@ -6,13 +6,28 @@ import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { MenuPartage } from "@/components/anime/menu-partage";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
+import { FiltresPortfolio } from "@/components/createurs/filtres-portfolio";
+import {
+  APropos,
+  CarteCollection,
+  Onglets,
+  Pagination,
+  type Onglet,
+} from "@/components/createurs/vitrine";
 import { Tuile } from "@/components/reseaux/logos";
+import { CarteOffre } from "@/components/services/carte-offre";
 import { BoutonSuivre } from "@/components/social/boutons";
 import { sessionCourante } from "@/lib/auth/session";
 import { urlDuSite } from "@/lib/config/site";
 import { absolue } from "@/lib/reseaux/partage";
-import { profilPublic, suitCeCreateur } from "@/lib/createurs/queries";
-import { listerFeed } from "@/lib/feed/queries";
+import { collectionsPubliquesDe, profilPublic, suitCeCreateur } from "@/lib/createurs/queries";
+import {
+  TRIS_VITRINE,
+  famillesDuCreateur,
+  pageDeLaVitrine,
+  type TriVitrine,
+} from "@/lib/feed/queries";
+import { listerOffres } from "@/lib/services/queries";
 import { formatCount, formatMoney } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE } from "@/lib/systeme/charte";
 
@@ -67,10 +82,13 @@ export async function generateMetadata({
 
 export default async function ProfilCreateurPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ onglet?: string; q?: string; famille?: string; tri?: string; page?: string }>;
 }) {
   const { username } = await params;
+  const demande = await searchParams;
   const profil = await profilPublic(username);
 
   // 404 couvre trois cas très différents — inconnu, acheteur sans vitrine,
@@ -80,10 +98,47 @@ export default async function ProfilCreateurPage({
 
   const visiteur = await sessionCourante();
 
-  const [page, suivi] = await Promise.all([
-    listerFeed({ auteurId: profil.userId, limit: 24 }),
+  // Ce que l'adresse demande, ramené à ce qui existe : une valeur inconnue
+  // retombe sur le défaut au lieu de casser la page.
+  const recherche = (demande.q ?? "").trim().slice(0, 80);
+  const tri: TriVitrine = TRIS_VITRINE.some((t) => t.valeur === demande.tri)
+    ? (demande.tri as TriVitrine)
+    : "recent";
+  const numero = Number.parseInt(demande.page ?? "1", 10);
+
+  const [suivi, familles, services, collections] = await Promise.all([
     suitCeCreateur(visiteur?.id ?? null, profil.userId),
+    famillesDuCreateur(profil.userId),
+    listerOffres({ createurId: profil.userId, limite: 24 }),
+    collectionsPubliquesDe(profil.userId),
   ]);
+  const famille = familles.find((f) => f.famille === demande.famille)?.famille ?? null;
+
+  // Les onglets de la maquette, sauf ceux qui n'auraient rien à montrer :
+  // un onglet vide ferait croire à une page cassée (MAQUETTES_A_FAIRE §F.3).
+  const visibles: Onglet[] = [
+    "ressources",
+    ...(services.length > 0 ? (["services"] as const) : []),
+    ...(collections.length > 0 ? (["collections"] as const) : []),
+    "a-propos",
+  ];
+  const onglet: Onglet = visibles.find((o) => o === demande.onglet) ?? "ressources";
+
+  const page =
+    onglet === "ressources"
+      ? await pageDeLaVitrine({ auteurId: profil.userId, recherche, famille, tri, page: Number.isFinite(numero) ? numero : 1 })
+      : null;
+
+  const base = `/createurs/${profil.username}`;
+  const adressePage = (n: number) => {
+    const p = new URLSearchParams();
+    if (recherche) p.set("q", recherche);
+    if (famille) p.set("famille", famille);
+    if (tri !== "recent") p.set("tri", tri);
+    if (n > 1) p.set("page", String(n));
+    const chaine = p.toString();
+    return chaine ? `${base}?${chaine}` : base;
+  };
 
   const soiMeme = visiteur?.id === profil.userId;
 
@@ -303,41 +358,85 @@ export default async function ProfilCreateurPage({
             </div>
           </section>
 
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 22,
-              textTransform: "uppercase",
-              letterSpacing: "-.5px",
-              margin: "28px 0 18px",
-            }}
-          >
-            {formatCount(profil.ressourcesPubliees)} ressource
-            {profil.ressourcesPubliees > 1 ? "s" : ""}
-          </h2>
-
           {/*
-            Un seul onglet pour l'instant. La maquette en dessine quatre —
-            Ressources, Services, Collections, À propos — mais trois n'ont pas
-            de code : les Services attendent leur CMS, les Collections publiques
-            n'existent pas. Afficher des onglets vides ferait croire à une page
-            cassée plutôt qu'à une page en construction.
+            Les quatre onglets de la maquette (`profilTabs`). Jusqu'au 16/10,
+            un seul existait : les Services n'avaient pas de CMS, les
+            Collections publiques pas de code. Les deux existent désormais ;
+            un onglet ne paraît que s'il a quelque chose à montrer.
           */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
-              gap: 18,
-            }}
-          >
-            {page.items.map((r) => (
-              <CarteRessourceLien key={r.id} ressource={r} />
-            ))}
-          </div>
+          <Onglets base={base} actif={onglet} visibles={visibles} />
+
+          {onglet === "ressources" && page ? (
+            <>
+              <FiltresPortfolio
+                action={base}
+                recherche={recherche}
+                famille={famille ?? ""}
+                tri={tri}
+                familles={familles.map((f) => ({ valeur: f.famille, libelle: f.libelle }))}
+                tris={TRIS_VITRINE}
+              />
+              {page.items.length > 0 ? (
+                // La mosaïque de la maquette (`data-masonry`, colonnes de
+                // 250 px) : chaque carte garde la hauteur de son visuel.
+                <div data-masonry="1" style={{ columns: "250px", columnGap: 20 }}>
+                  {page.items.map((r) => (
+                    <CarteRessourceLien key={r.id} ressource={r} />
+                  ))}
+                </div>
+              ) : (
+                <Vide>
+                  Aucune ressource ne correspond
+                  {recherche ? ` à « ${recherche} »` : " à ce filtre"}.{" "}
+                  <Link href={base as Route} style={{ textDecoration: "underline" }}>
+                    Tout afficher
+                  </Link>
+                </Vide>
+              )}
+              <Pagination page={page.page} pages={page.pages} adresse={adressePage} />
+            </>
+          ) : null}
+
+          {onglet === "services" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 18 }}>
+              {services.map((o) => (
+                <CarteOffre key={o.id} offre={o} />
+              ))}
+            </div>
+          ) : null}
+
+          {onglet === "collections" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: 20 }}>
+              {collections.map((c) => (
+                <CarteCollection key={c.id} collection={c} connecte={visiteur !== null} />
+              ))}
+            </div>
+          ) : null}
+
+          {onglet === "a-propos" ? <APropos profil={profil} lieu={lieu} /> : null}
         </div>
       </main>
       <Footer />
     </>
+  );
+}
+
+function Vide({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        padding: 22,
+        border: "2.5px dashed #121212",
+        borderRadius: 20,
+        background: "#F4EEFC",
+        fontSize: 14,
+        fontWeight: 700,
+        textAlign: "center",
+        marginBottom: 20,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 

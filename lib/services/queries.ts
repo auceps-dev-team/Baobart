@@ -85,12 +85,15 @@ export async function categorieParSlug(
  */
 export async function listerOffres(input: {
   categoryId?: string;
+  /** Les offres d'un seul créateur — l'onglet « Services » de son profil. */
+  createurId?: string;
   limite?: number;
 } = {}): Promise<OffreEnListe[]> {
   const lignes = await db.serviceOffer.findMany({
     where: {
       state: "PUBLIE",
       ...(input.categoryId ? { categoryId: input.categoryId } : {}),
+      ...(input.createurId ? { creatorId: input.createurId } : {}),
     },
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     take: Math.min(input.limite ?? 40, 100),
