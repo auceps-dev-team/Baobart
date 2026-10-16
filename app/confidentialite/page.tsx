@@ -111,6 +111,8 @@ export default async function ConfidentialitePage() {
           elements={[
             "Les affichages et les clics des bannières, comptés par jour : un nombre, sans identifiant.",
             "Une empreinte de ton adresse IP par bannière, 26 heures, pour qu'une même connexion ne fasse pas compter des centaines de clics.",
+            "Les vues des profils de créateurs, comptées : un nombre par profil, sans identifiant.",
+            "Une empreinte de ton adresse IP et de ton navigateur (ou de ton compte, si tu es connecté) par profil visité, 26 heures, pour qu'une vitrine rafraîchie ne compte qu'une vue par jour. Elle change chaque jour : on ne peut pas te suivre d'un jour à l'autre.",
             `Ton adresse IP dans les compteurs qui freinent les essais répétés — ${dureeDesLimites().toLowerCase()} selon le geste.`,
           ]}
         />

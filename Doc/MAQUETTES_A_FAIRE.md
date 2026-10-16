@@ -175,7 +175,7 @@ De `Baobart Accueil.dc.html` :
 | Section | Route attendue | État |
 |---|---|---|
 | PAGE CATEGORIE | `/categories/[slug]` | Aucun code |
-| ~~PAGE CREATEURS · PROFIL CREATEUR~~ | `/createurs`, `/@[username]` | ✅ **câblé en v1.45.0** — voir §F pour ce qui reste |
+| ~~PAGE CREATEURS · PROFIL CREATEUR~~ | `/createurs`, `/@[username]` | ✅ **câblé en v1.45.0**, complété du 16/10 (v1.92.0–v1.96.0) — voir §F pour ce qui reste |
 | PANIER | `/panier` | Aucun code — l'achat se fait à l'unité |
 | ~~PAGE JOBS · FICHE MISSION~~ | `/jobs`, `/jobs/[id]` | ✅ **câblé en v1.46.0.** Trois blocs dessinés restent absents — voir §G |
 | PAGE SERVICES · FICHE SERVICE | `/services` | Aucun code (M3) |
@@ -352,9 +352,16 @@ et une phrase d'en-tête. Deux ne reposaient sur aucune donnée.
 | produits | ✅ câblé — ressources **publiées**, pas `workCount` qui compte les brouillons |
 | ventes à vie | ✅ câblé |
 | abonnés | ✅ câblé |
-| **vues de page** | 🔜 **à construire** — gardé, mais rien ne les compte encore |
+| ~~**vues de page**~~ | ✅ **câblé en v1.96.0** (16/10) — voir F.2 |
 | abonnements | retiré — renseigne sur la personne, pas sur son travail |
 | « répond en moyenne en 4 h » | ❌ **retiré de la maquette** |
+
+*Revu le 16 octobre 2026* (v1.92.0 à v1.96.0) : réseaux sociaux en tuiles et
+en liens avec identifiant (Design System « 05 · Logos réseaux »), bouton
+« Partager », photo et bannière téléversables, pays en toutes lettres, les
+quatre onglets avec recherche, catégorie, tri et pages, vues de page. Reste
+absent : le bouton **« Contact »** — arbitré le 15/10 : pas maintenant ; les
+réseaux en tiennent lieu.
 
 ### F.1 Le délai de réponse est abandonné
 
@@ -363,10 +370,20 @@ donnée **coûteuse à rendre honnête**. Répondre à quoi — un message, une
 commande, un litige ? Sur quelle fenêtre ? Et un créateur en vacances verrait sa
 moyenne s'effondrer sans avoir rien fait de mal.
 
-### F.2 Les vues de page sont gardées, et restent à construire
+### F.2 Les vues de page — construites en v1.96.0
+
+*Construites le 16/10 : `lib/createurs/vues.ts`. Les trois choix ci-dessous
+ont été faits ainsi — une vue par visiteur, par profil et par jour ; une
+écriture par visiteur et par jour, pas par page servie (un vrai regroupement
+dans le temps demanderait une file Redis vidée par un passage planifié, que les
+pilotes actuels ne savent pas tenir) ; le signal part du navigateur après
+l'affichage, les automates qui se nomment sont écartés, et une adresse ne fait
+pas compter plus de vingt visiteurs à un même profil par jour. Sans cookie :
+une empreinte au secret du site et au jour, 26 heures, comme pour les
+bannières.*
 
 C'est un indicateur qui parle au créateur autant qu'à l'acheteur. Trois choix
-seront à faire en l'écrivant, et aucun n'est neutre :
+étaient à faire en l'écrivant, et aucun n'est neutre :
 
 - **compter quoi.** Une vue par chargement gonfle le chiffre à chaque
   rafraîchissement. Une vue par visiteur et par jour dit quelque chose ;
@@ -379,11 +396,17 @@ Tant que ce n'est pas fait, **l'indicateur n'est pas affiché**. Un chiffre
 inventé sur un profil public est un mensonge que l'acheteur prend pour une
 mesure — et c'est précisément sur ces chiffres-là qu'il décide d'acheter.
 
-### F.3 Trois onglets sur quatre manquent
+### F.3 Les quatre onglets — câblés en v1.95.0
 
-Services attend son CMS, Collections publiques n'existe pas. Un seul onglet est
-affiché : des onglets vides feraient croire à une page cassée plutôt qu'à une
-page en construction.
+*Relevé le 2 septembre :* Services attend son CMS, Collections publiques
+n'existe pas. Un seul onglet est affiché : des onglets vides feraient croire à
+une page cassée plutôt qu'à une page en construction.
+
+*Revu le 16 octobre :* les deux existent (offres `PUBLIE`, `Board.isPublic`).
+Les quatre onglets sont câblés ; Services et Collections ne paraissent que
+s'ils ont quelque chose à montrer — la règle d'origine tient. Une collection
+publique se consulte connecté (`peutVoir`) : un visiteur anonyme est mené à la
+connexion.
 
 ---
 

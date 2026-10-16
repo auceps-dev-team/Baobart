@@ -6,6 +6,7 @@ import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { MenuPartage } from "@/components/anime/menu-partage";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
+import { CompteurDeVue } from "@/components/createurs/compteur-de-vue";
 import { FiltresPortfolio } from "@/components/createurs/filtres-portfolio";
 import {
   APropos,
@@ -44,11 +45,12 @@ export const dynamic = "force-dynamic";
  * l'explorateur faute de mieux.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * DEUX CHIFFRES DE LA MAQUETTE N'Y SONT PAS
+ * QUATRE CHIFFRES SUR CINQ
  *
- * Elle dessine cinq indicateurs, dont « vues de page », et annonce « répond en
- * moyenne en 4 h ». Nous ne mesurons ni l'un ni l'autre : aucune table ne les
- * porte. Les afficher demanderait de les inventer, et un chiffre inventé sur un
+ * La maquette dessine cinq indicateurs et annonce « répond en moyenne en
+ * 4 h ». Les « vues de page » sont comptées depuis v1.96.0
+ * (`lib/createurs/vues.ts`) ; « abonnements » et le délai de réponse ont été
+ * écartés le 02/09 (`Doc/MAQUETTES_A_FAIRE.md` §F). Un chiffre inventé sur un
  * profil public est un mensonge que l'acheteur prend pour une mesure.
  *
  * Traduit de « Baobart Accueil.dc.html », section `PROFIL CREATEUR`.
@@ -151,6 +153,7 @@ export default async function ProfilCreateurPage({
   return (
     <>
       <Header utilisateur={visiteur} />
+      <CompteurDeVue profilId={profil.profilId} />
 
       <main style={{ minHeight: "100vh", background: LAVANDE, paddingBottom: 72 }}>
         <div style={{ maxWidth: 1400, margin: "0 auto", padding: "44px 32px 0" }}>
@@ -310,9 +313,8 @@ export default async function ProfilCreateurPage({
             </div>
 
             {/*
-              Trois indicateurs, pas cinq. « Vues de page » et « délai de
-              réponse » sont dessinés par la maquette et ne reposent sur aucune
-              donnée : les afficher demanderait de les inventer.
+              L'ordre de la maquette (`profilStats`), « abonnements » en moins
+              (§F) et la note des avis en plus quand il y en a.
             */}
             <div
               style={{
@@ -323,6 +325,7 @@ export default async function ProfilCreateurPage({
             >
               <Indicateur valeur={formatCount(profil.ressourcesPubliees)} label="ressources" />
               <Indicateur valeur={formatCount(profil.ventes)} label="ventes à vie" />
+              <Indicateur valeur={formatCount(profil.vues)} label="vues de page" />
               <Indicateur valeur={formatCount(profil.abonnes)} label="abonnés" />
               {profil.nombreDAvis > 0 ? (
                 <Indicateur

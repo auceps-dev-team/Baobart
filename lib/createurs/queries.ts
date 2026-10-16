@@ -25,19 +25,20 @@ import {
  * moitié faite : c'est une promesse qui n'aboutit nulle part.
  *
  * ════════════════════════════════════════════════════════════════════════════
- * DEUX CHIFFRES DE LA MAQUETTE NE SONT PAS ICI, ET C'EST VOLONTAIRE
+ * CE QUE LA MAQUETTE DESSINE ET QUI N'EST PAS ICI
  *
  * `Baobart Accueil.dc.html` dessine cinq indicateurs : produits, ventes à vie,
- * **vues de page**, abonnés, abonnements. Elle affiche aussi *« répond en
- * moyenne en 4 h »*.
+ * vues de page, abonnés, abonnements. Elle affiche aussi *« répond en moyenne
+ * en 4 h »*.
  *
- * Nous ne comptons **ni les vues de page, ni le délai de réponse**. Aucune
- * table ne les porte, aucun code ne les alimente. Les afficher demanderait de
- * les inventer — et un chiffre inventé sur un profil public est un mensonge que
- * l'acheteur prend pour une mesure.
+ * Les **vues de page** sont comptées depuis v1.96.0 (16/10) — un visiteur, un
+ * profil, un jour, voir `lib/createurs/vues.ts`. Jusque-là elles étaient
+ * absentes, pour la raison qui vaut encore pour le reste : un chiffre inventé
+ * sur un profil public est un mensonge que l'acheteur prend pour une mesure.
  *
- * Ils sont donc absents, et signalés dans `Doc/MAQUETTES_A_FAIRE.md`. Le jour
- * où l'on compte vraiment, ils reviendront.
+ * **Abonnements** et **délai de réponse** ont été écartés le 02/09
+ * (`Doc/MAQUETTES_A_FAIRE.md` §F) : le premier renseigne sur la personne plutôt
+ * que sur son travail, le second est coûteux à rendre honnête.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * LES COMPTEURS SONT DÉNORMALISÉS, ET ON LES RELIT QUAND MÊME
@@ -78,10 +79,14 @@ export interface ProfilPublic {
   note: number;
   nombreDAvis: number;
 
-  /** Les trois indicateurs qu'on sait vraiment compter. */
+  /** Les indicateurs qu'on sait vraiment compter. */
   ressourcesPubliees: number;
   ventes: number;
   abonnes: number;
+  /** Depuis v1.96.0 : un visiteur, un profil, un jour (`lib/createurs/vues.ts`). */
+  vues: number;
+  /** L'identifiant du profil, que vise le signal de vue. */
+  profilId: string;
 }
 
 /**
@@ -104,10 +109,12 @@ export async function profilPublic(
   const profil = await db.profile.findUnique({
     where: { username: username.toLowerCase() },
     select: {
+      id: true,
       userId: true,
       username: true,
       displayName: true,
       bio: true,
+      viewCount: true,
       speciality: true,
       city: true,
       country: true,
@@ -157,6 +164,8 @@ export async function profilPublic(
     ressourcesPubliees: produits.length,
     ventes: produits.reduce((total, p) => total + p.salesCount, 0),
     abonnes: profil.followerCount,
+    vues: profil.viewCount,
+    profilId: profil.id,
   };
 }
 

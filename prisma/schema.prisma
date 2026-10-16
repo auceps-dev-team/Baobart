@@ -599,6 +599,9 @@ model Profile {
   ratingCount   Int     @default(0)
   workCount     Int     @default(0)
   followerCount Int     @default(0)
+  /// « Vues de page » : un visiteur, un profil, un jour — voir
+  /// `lib/createurs/vues.ts` pour ce qui compte et ce qui ne compte pas.
+  viewCount     Int     @default(0)
 
   /// Vitrine du créateur — écran « Profil public » du tableau de bord.
   /// Tous facultatifs : un acheteur n'a aucune raison de les remplir.

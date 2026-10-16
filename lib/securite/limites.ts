@@ -196,6 +196,16 @@ export const REGLES = {
   "pub.clic": { quota: 30, fenetreMs: 60_000 },
 
   /**
+   * Vues d'un profil public. Soixante envois par minute et par adresse.
+   *
+   * Un envoi par page de profil ouverte. Soixante en une minute, c'est un
+   * bureau entier qui parcourt l'annuaire — ou un script qui fait monter le
+   * compteur d'un créateur. Le second se heurte aussi au plafond par adresse,
+   * par profil et par jour (`lib/createurs/vues.ts`).
+   */
+  "vues.profil": { quota: 60, fenetreMs: 60_000 },
+
+  /**
    * Vérification de clé de licence. Soixante par minute et par adresse.
    *
    * Le programme d'un créateur vérifie la clé au démarrage : un poste, une
