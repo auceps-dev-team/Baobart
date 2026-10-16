@@ -301,6 +301,9 @@ describe("le plafond des bannières", () => {
     expect(c.gravite).toBe("attention");
     expect(c.remede).toContain("AUTH_SECRET");
     expect(c.remede).toContain("lettre d'information");
+    // Depuis v1.96.0, les vues des profils passent par le même secret
+    // (lib/createurs/vues.ts) : sans lui, elles ne sont pas comptées du tout.
+    expect(c.remede).toContain("vues des profils");
   });
 
   it("ne dit rien en développement", () => {

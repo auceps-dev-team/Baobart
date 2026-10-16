@@ -458,6 +458,11 @@ export interface FaitsPlafondPub {
  * de partir sans `AUTH_SECRET` (lib/infolettre/envoi.ts) — mais seulement au
  * moment où quelqu'un clique « Envoyer », et seulement s'il manque : un secret
  * trop court pour le plafond lui suffit. D'où la mention dans le remède.
+ *
+ * Depuis v1.96.0, les vues des profils (`lib/createurs/vues.ts`) passent par
+ * le même secret (`secretDuPlafond`). Sans lui, elles ne sont pas comptées du
+ * tout — et cela ne se voit nulle part ailleurs : l'indicateur reste à zéro,
+ * ce qui ressemble à une vitrine que personne ne visite.
  */
 export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
   if (faits.secret) {
@@ -477,7 +482,7 @@ export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
       ? "AUTH_SECRET absent ou trop court : seul le débit à la minute s'applique."
       : "Non appliqué sans AUTH_SECRET (développement).",
     remede: faits.production
-      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour ; absent, il bloque aussi l'envoi de la lettre d'information."
+      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour, et les vues des profils ne sont pas comptées du tout ; absent, il bloque aussi l'envoi de la lettre d'information."
       : undefined,
   };
 }
