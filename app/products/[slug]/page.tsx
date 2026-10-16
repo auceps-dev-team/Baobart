@@ -4,6 +4,8 @@ import { DetailProduit, EnTeteFiche, RetourAchat } from "@/components/product/de
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
+import { urlDuSite } from "@/lib/config/site";
+import { absolue } from "@/lib/reseaux/partage";
 import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
 import { commentairesDe, etatSocial } from "@/lib/social/queries";
 
@@ -18,11 +20,31 @@ export async function generateMetadata({
   const produit = await obtenirProduit(slug);
   if (!produit) return { title: "Ressource introuvable — Baobart." };
 
+  const description =
+    produit.description ??
+    `${produit.famille ?? "Ressource"} par ${produit.auteur.nom} sur Baobart.`;
+  const base = urlDuSite();
+  const image = produit.coverUrl && base ? absolue(produit.coverUrl, base) : produit.coverUrl;
+
   return {
     title: `${produit.titre} — Baobart.`,
-    description:
-      produit.description ??
-      `${produit.famille ?? "Ressource"} par ${produit.auteur.nom} sur Baobart.`,
+    description,
+    // L'aperçu d'un lien partagé montre la ressource, plus l'image du site.
+    // Le bloc `openGraph` porte son propre titre : déclaré ici sans titre,
+    // il remplacerait celui que Next tirait de la page (voir l'avertissement
+    // de `app/layout.tsx`). L'image est la couverture que la fiche affiche
+    // déjà à tout visiteur : l'aperçu n'en montre pas davantage.
+    ...(image
+      ? {
+          openGraph: {
+            type: "website",
+            title: produit.titre,
+            description,
+            images: [image],
+          },
+          twitter: { card: "summary_large_image" },
+        }
+      : {}),
   };
 }
 

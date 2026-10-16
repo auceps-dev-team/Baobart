@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { BarreLecture } from "@/components/anime/defilement";
 import { CorpsArticle } from "@/components/cms/corps";
+import { BarrePartage } from "@/components/reseaux/barre-partage";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
@@ -210,6 +211,17 @@ export default async function ArticlePage({
             }}
           >
             <CorpsArticle corps={a.corps} />
+          </div>
+
+          {/* Sous l'article, comme sous un billet WordPress. */}
+          <div style={{ marginTop: 22 }}>
+            <BarrePartage
+              chemin={`/blog/${a.slug}`}
+              titre={a.titre}
+              image={a.couvertureUrl}
+              intitule="Partager cet article"
+              origineConfiguree={base}
+            />
           </div>
         </article>
       </main>

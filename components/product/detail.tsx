@@ -14,6 +14,8 @@ import type { MotifRefus } from "@/lib/checkout/achat";
 import { texteDuRetour } from "@/lib/checkout/retour";
 import { formatCount } from "@/lib/i18n/money";
 import { MenuPartage } from "@/components/anime/menu-partage";
+import { BarrePartage } from "@/components/reseaux/barre-partage";
+import { urlDuSite } from "@/lib/config/site";
 import { BoutonCollection } from "@/components/collections/bouton-collection";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
 import { Commentaires } from "@/components/social/commentaires";
@@ -506,6 +508,19 @@ export function DetailProduit({
           </div>
         ) : null}
 
+        {/*
+          La rangée de partage, là où WordPress la pose : après ce qu'on est
+          venu voir, avant la discussion (demandé le 15/10). Le bouton
+          « Partager ↗ » de la carte de prix reste celui de la maquette.
+        */}
+        <BarrePartage
+          chemin={`/products/${produit.slug}`}
+          titre={produit.titre}
+          image={produit.coverUrl}
+          intitule="Partager cette ressource"
+          origineConfiguree={urlDuSite()}
+        />
+
         <Commentaires
           produitId={produit.id}
           commentaires={commentaires}
@@ -646,7 +661,12 @@ export function DetailProduit({
           </div>
           {/* Le lien se partage où sont les clients (/a-propos : « WhatsApp,
               Instagram, ton site ») — 09/10, labo « explorations ». */}
-          <MenuPartage slug={produit.slug} titre={produit.titre} />
+          <MenuPartage
+            chemin={`/products/${produit.slug}`}
+            titre={produit.titre}
+            image={produit.coverUrl}
+            cle={produit.slug}
+          />
         </div>
 
         <div

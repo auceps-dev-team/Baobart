@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
+import { MenuPartage } from "@/components/anime/menu-partage";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
 import { Tuile } from "@/components/reseaux/logos";
 import { BoutonSuivre } from "@/components/social/boutons";
 import { sessionCourante } from "@/lib/auth/session";
+import { urlDuSite } from "@/lib/config/site";
+import { absolue } from "@/lib/reseaux/partage";
 import { profilPublic, suitCeCreateur } from "@/lib/createurs/queries";
 import { listerFeed } from "@/lib/feed/queries";
 import { formatCount, formatMoney } from "@/lib/i18n/money";
@@ -44,11 +47,21 @@ export async function generateMetadata({
   const profil = await profilPublic(username);
   if (!profil) return { title: "Créateur introuvable — Baobart." };
 
+  const description =
+    profil.bio ??
+    `Les ressources de ${profil.nom} sur Baobart, la place de marché des créateurs africains.`;
+  const base = urlDuSite();
+  const visuel = profil.bannerUrl ?? profil.avatarUrl;
+  const image = visuel && base ? absolue(visuel, base) : visuel;
+
   return {
     title: `${profil.nom} — Baobart.`,
-    description:
-      profil.bio ??
-      `Les ressources de ${profil.nom} sur Baobart, la place de marché des créateurs africains.`,
+    description,
+    // Avec son propre titre, pour la raison dite dans `app/layout.tsx`. Sans
+    // bannière ni photo, l'image du site reste celle de l'aperçu.
+    ...(image
+      ? { openGraph: { type: "profile", title: profil.nom, description, images: [image] } }
+      : {}),
   };
 }
 
@@ -227,6 +240,17 @@ export default async function ProfilCreateurPage({
                     Portfolio
                   </a>
                 ) : null}
+                {/*
+                  « Partager » de la maquette : blanc, sans ombre. L'adresse
+                  partagée est l'adresse courte, `/@nom` — celle qu'on cite.
+                */}
+                <MenuPartage
+                  chemin={`/@${profil.username}`}
+                  titre={`${profil.nom} sur Baobart`}
+                  image={profil.bannerUrl ?? profil.avatarUrl}
+                  cle={`profil-${profil.username}`}
+                  bouton="profil"
+                />
               </div>
             </div>
 

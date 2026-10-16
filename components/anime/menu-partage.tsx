@@ -2,8 +2,12 @@
 
 import { type CSSProperties, useEffect, useState } from "react";
 
+import { Glyphe } from "@/components/reseaux/logos";
+import { absolue, courrielDePartage, destinationsDePartage } from "@/lib/reseaux/partage";
+import { nomDuReseau } from "@/lib/reseaux/reseaux";
+
 /**
- * Le menu « Partager » d'une fiche : il se pose en douceur sous son bouton.
+ * Le menu « Partager » : il se pose en douceur sous son bouton.
  *
  * Repris de `components/labo/explorations/menu-partage.tsx` (hors Animata).
  * L'ouverture, la fermeture au clic dehors et à Échap, la mise au premier
@@ -11,47 +15,57 @@ import { type CSSProperties, useEffect, useState } from "react";
  * (`@starting-style`, `.pop` dans globals.css), le placement sous le bouton
  * par l'ancrage CSS quand il est pris en charge.
  *
- * Ce qui change par rapport au labo : les entrées font quelque chose.
  * « Copier le lien » demande du JavaScript (le presse-papiers) — d'où
- * `"use client"` ; les autres sont de simples liens vers la page de partage
- * de chaque service, ouverts dans un nouvel onglet. L'adresse est celle de la
- * page, lue dans le navigateur : la fiche s'ouvre aussi en modale, et c'est
- * bien l'adresse de la fiche qu'on partage. Le partage du système
- * (`navigator.share`, surtout sur téléphone) s'ajoute quand il existe.
+ * `"use client"` ; les autres entrées sont de simples liens vers la page de
+ * partage de chaque service, ouverts dans un nouvel onglet. L'adresse est
+ * celle de la page, lue dans le navigateur : la fiche s'ouvre aussi en
+ * modale, et c'est bien l'adresse de la fiche qu'on partage. Le partage du
+ * système (`navigator.share`, surtout sur téléphone) s'ajoute quand il existe.
  *
  * Sans l'API Popover, le menu n'est pas masqué : il s'affiche sous le bouton,
  * toujours utilisable.
  *
- * Ce que ça ne règle pas : l'aperçu que montrera le service. Lu le 09/10,
- * après la fusion de v1.87.0 : `generateMetadata` de
- * `app/products/[slug]/page.tsx` pose le titre et la description de la
- * fiche, sans image propre ; la seule image d'aperçu est celle du site
- * (`app/opengraph-image.tsx`, voir le commentaire de `app/layout.tsx`). Un
- * lien de fiche montrera donc au mieux l'image du site, pas la couverture de
- * la ressource — lu dans le code, non vérifié dans un aperçu réel.
+ * Depuis v1.93.0 (16/10), il sert deux boutons de la maquette : « Partager ↗ »
+ * dans la carte de prix de la fiche, et « Partager » dans l'en-tête du profil
+ * (`Baobart Accueil.dc.html`, section `PROFIL CREATEUR`). Les adresses de
+ * partage viennent de `lib/reseaux/partage.ts`, les mêmes que la rangée
+ * `BarrePartage` ; avant, ce menu tenait sa propre liste.
+ *
+ * L'aperçu qu'affichera le service : la fiche déclare depuis v1.93.0 sa
+ * couverture en `og:image` (`app/products/[slug]/page.tsx`). Avant, un lien
+ * de fiche montrait l'image du site.
  */
-export function MenuPartage({ slug, titre }: { slug: string; titre: string }) {
-  const chemin = `/products/${slug}`;
+export function MenuPartage({
+  chemin,
+  titre,
+  image = null,
+  cle,
+  bouton = "fiche",
+}: {
+  /** Le chemin de la page partagée : `/products/pack-wax`, `/@awa`. */
+  chemin: string;
+  titre: string;
+  image?: string | null;
+  /** Unique sur la page : il nomme le popover et son ancre. */
+  cle: string;
+  /** Le bouton de la carte de prix, ou celui de l'en-tête du profil. */
+  bouton?: "fiche" | "profil";
+}) {
   const [url, setUrl] = useState(chemin);
+  const [origine, setOrigine] = useState<string | null>(null);
   const [natif, setNatif] = useState(false);
   const [copie, setCopie] = useState<"" | "ok" | "echec">("");
-  const id = `partage-${slug}`;
-  const ancre = `--partage-${slug}`;
+  const id = `partage-${cle}`;
+  const ancre = `--partage-${cle}`;
 
   // L'origine n'est connue que dans le navigateur.
   useEffect(() => {
+    setOrigine(window.location.origin);
     setUrl(`${window.location.origin}${chemin}`);
     setNatif(typeof navigator.share === "function");
   }, [chemin]);
 
-  const e = encodeURIComponent;
-  const services: Array<[string, string]> = [
-    ["WhatsApp", `https://wa.me/?text=${e(`${titre} — ${url}`)}`],
-    ["Facebook", `https://www.facebook.com/sharer/sharer.php?u=${e(url)}`],
-    ["X", `https://twitter.com/intent/tweet?text=${e(titre)}&url=${e(url)}`],
-    ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${e(url)}`],
-    ["Par courriel", `mailto:?subject=${e(titre)}&body=${e(url)}`],
-  ];
+  const page = { url, titre, image: origine ? absolue(image, origine) : null };
 
   const copier = async () => {
     try {
@@ -64,18 +78,30 @@ export function MenuPartage({ slug, titre }: { slug: string; titre: string }) {
   };
 
   const ligne =
-    "block w-full cursor-pointer rounded-sticker-sm px-3 py-2 text-left text-[13.5px] font-semibold text-encre hover:bg-lavande-clair focus-visible:bg-lavande-clair";
+    "flex w-full cursor-pointer items-center gap-2.5 rounded-sticker-sm px-3 py-2 text-left text-[13.5px] font-semibold text-encre hover:bg-lavande-clair focus-visible:bg-lavande-clair";
 
   return (
-    <div style={{ marginTop: 10 }}>
-      <button
-        type="button"
-        popoverTarget={id}
-        className="sticker-press w-full cursor-pointer rounded-[13px] border-[2.5px] border-encre bg-blanc p-[11px] text-center text-[13px] font-extrabold text-encre"
-        style={{ anchorName: ancre } as CSSProperties}
-      >
-        Partager ↗
-      </button>
+    <div style={bouton === "fiche" ? { marginTop: 10 } : undefined}>
+      {bouton === "fiche" ? (
+        <button
+          type="button"
+          popoverTarget={id}
+          className="sticker-press w-full cursor-pointer rounded-[13px] border-[2.5px] border-encre bg-blanc p-[11px] text-center text-[13px] font-extrabold text-encre"
+          style={{ anchorName: ancre } as CSSProperties}
+        >
+          Partager ↗
+        </button>
+      ) : (
+        // La maquette du profil : blanc, sans ombre, à côté de « Suivre ».
+        <button
+          type="button"
+          popoverTarget={id}
+          className="cursor-pointer rounded-[14px] border-[2.5px] border-encre bg-blanc px-5 py-3 text-[13.5px] font-extrabold text-encre"
+          style={{ anchorName: ancre, fontFamily: "inherit" } as CSSProperties}
+        >
+          Partager
+        </button>
+      )}
       <div
         id={id}
         popover="auto"
@@ -101,13 +127,19 @@ export function MenuPartage({ slug, titre }: { slug: string; titre: string }) {
               </button>
             </li>
           ) : null}
-          {services.map(([nom, lien]) => (
-            <li key={nom}>
-              <a href={lien} target="_blank" rel="noopener noreferrer" className={ligne}>
-                {nom}
+          {destinationsDePartage(page).map((d) => (
+            <li key={d.reseau}>
+              <a href={d.href} target="_blank" rel="noopener noreferrer" className={ligne}>
+                <Glyphe reseau={d.reseau} taille={16} />
+                {nomDuReseau(d.reseau)}
               </a>
             </li>
           ))}
+          <li>
+            <a href={courrielDePartage(page)} className={ligne}>
+              Par courriel
+            </a>
+          </li>
         </ul>
         {/* Annonce polie du résultat de la copie : le focus ne bouge pas. */}
         <span role="status" className="sr-only">
