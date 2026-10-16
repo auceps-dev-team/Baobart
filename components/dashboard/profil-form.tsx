@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 
+import { VisuelsProfil } from "@/components/dashboard/visuels-profil";
 import { Medaillon } from "@/components/reseaux/logos";
 import { enregistrerProfil, type EtatProfil } from "@/lib/profil/actions";
 import type { Saisie } from "@/lib/profil/validation";
@@ -25,7 +26,13 @@ import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
  * cette adresse partout où on la cite — mais cela se découvre mal après coup.
  * L'avertissement n'apparaît donc qu'au moment où le champ change vraiment.
  */
-export function FormulaireProfil({ depart }: { depart: Saisie }) {
+export function FormulaireProfil({
+  depart,
+  visuels,
+}: {
+  depart: Saisie;
+  visuels: { avatarUrl: string | null; bannerUrl: string | null };
+}) {
   const [etat, envoyer, enCours] = useActionState<EtatProfil | null, FormData>(
     enregistrerProfil,
     null,
@@ -76,6 +83,8 @@ export function FormulaireProfil({ depart }: { depart: Saisie }) {
       ) : null}
 
       <Bloc titre="Qui tu es">
+        <VisuelsProfil avatarUrl={visuels.avatarUrl} bannerUrl={visuels.bannerUrl} />
+
         <Champ label="Nom affiché" pour="nomAffiche">
           <input
             id="nomAffiche"

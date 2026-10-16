@@ -130,7 +130,10 @@ export default async function ProfilPage() {
         ) : undefined
       }
     >
-      <FormulaireProfil depart={depart} />
+      <FormulaireProfil
+        depart={depart}
+        visuels={{ avatarUrl: p?.avatarUrl ?? null, bannerUrl: p?.bannerUrl ?? null }}
+      />
 
       <div style={{ marginTop: 20, maxWidth: 900 }}>
         <DashboardPanel titre="Double authentification">

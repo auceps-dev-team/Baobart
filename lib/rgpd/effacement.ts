@@ -4,6 +4,8 @@ import type { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
+import { clesDesVisuels } from "@/lib/profil/visuels-service";
+import { supprimerObjet } from "@/lib/upload/storage";
 
 /**
  * Droit à l'effacement — article 17 du RGPD, article 12 de la loi ivoirienne
@@ -159,6 +161,14 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
   const adresseFinale = `efface-${userId}@baobart.invalid`;
   const supprimees: Record<string, number> = {};
 
+  // La photo et la bannière vivent au stockage : la ligne `Profile` qui part
+  // ne les emporte pas. Lues avant la transaction, supprimées après — si la
+  // transaction échoue, le profil garde ses images.
+  const visuels = clesDesVisuels(
+    userId,
+    await db.profile.findUnique({ where: { userId }, select: { avatarUrl: true, bannerUrl: true } }),
+  );
+
   await db.$transaction(
     async (tx) => {
       // ── Rendre les places avant de supprimer les inscriptions ────────────
@@ -278,6 +288,11 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
       maxWait: 15_000,
     },
   );
+
+  // `supprimerObjet` ne lève pas : un objet déjà absent n'arrête pas
+  // l'effacement, qui a déjà eu lieu en base.
+  await Promise.all(visuels.map((cle) => supprimerObjet(cle)));
+  if (visuels.length > 0) supprimees["profil (images)"] = visuels.length;
 
   journal.info("compte effacé", {
     userId,
