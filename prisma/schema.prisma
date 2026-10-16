@@ -412,17 +412,17 @@ enum Plateforme {
 // ============================================================================
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  emailVerified DateTime?
-  phone         String?       @unique // mobile money (OTP = mode principal en Afrique)
+  id              String        @id @default(cuid())
+  email           String        @unique
+  emailVerified   DateTime?
+  phone           String?       @unique // mobile money (OTP = mode principal en Afrique)
   /// Quand ce numéro a été prouvé par un code SMS (`lib/auth/telephone.ts`).
   /// Seul un numéro vérifié ouvre la connexion par téléphone : un numéro
   /// saisi sans preuve laisserait n'importe qui entrer chez celui qui l'a tapé.
   phoneVerifiedAt DateTime?
-  passwordHash  String?
-  riskState     UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
-  kycStatus     KycStatus     @default(NONE)
+  passwordHash    String?
+  riskState       UserRiskState @default(NOT_REVIEWED) // machine à états §3.8
+  kycStatus       KycStatus     @default(NONE)
 
   /// Accès à l'administration de la plateforme.
   ///
@@ -430,17 +430,17 @@ model User {
   /// passe par `pnpm admin:promouvoir`, donc par quelqu'un qui a déjà la main
   /// sur la base. Une faille dans un formulaire de profil ne doit jamais
   /// pouvoir se terminer en accès administrateur.
-  platformRole    PlatformRole @default(MEMBER)
+  platformRole     PlatformRole @default(MEMBER)
   /// Coupé automatiquement quand le solde passe sous le seuil bas : un vendeur
   /// criblé de litiges ne peut plus creuser son déficit. Voir lib/domain/trust.ts.
-  refundsDisabled Boolean      @default(false)
+  refundsDisabled  Boolean      @default(false)
   /// Le délai pendant lequel un acheteur peut demander un remboursement, en
   /// jours : 0 (aucun), 7, 14 ou 30. Décidé le 05/10, comme Gumroad
   /// (`RefundPolicy::ALLOWED_REFUND_PERIODS_IN_DAYS`, 30 par défaut). Figé sur
   /// chaque vente (`OrderItem.refundWindowDays`) : le changer ne retire rien
   /// à qui a déjà acheté.
-  refundWindowDays Int         @default(30)
-  defaultCurrency Currency     @default(XOF)
+  refundWindowDays Int          @default(30)
+  defaultCurrency  Currency     @default(XOF)
 
   /// Cadence et rail de versement. Le rail (`wave`, `om`, `mtn`, `bank`…)
   /// détermine le JOUR de la semaine où ce créateur est payé — voir
@@ -542,12 +542,12 @@ model User {
   badges        UserBadge[]
 
   // médias & notifications
-  mediaAssets   MediaAsset[]
-  notifications Notification[]
-  blogPosts     BlogPost[]
-  testimonial   Testimonial?
-  messagesEnvoyes ContactMessage[] @relation("MessagesEnvoyes")
-  demandesDeRemboursement RefundRequest[] @relation("DemandesDeRemboursement")
+  mediaAssets             MediaAsset[]
+  notifications           Notification[]
+  blogPosts               BlogPost[]
+  testimonial             Testimonial?
+  messagesEnvoyes         ContactMessage[] @relation("MessagesEnvoyes")
+  demandesDeRemboursement RefundRequest[]  @relation("DemandesDeRemboursement")
 
   /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
   /// `CommunityChatMessage` sont NOMMÉES : sans nom, Prisma ne saurait pas
@@ -604,8 +604,6 @@ model Profile {
   /// Tous facultatifs : un acheteur n'a aucune raison de les remplir.
   speciality        String?
   portfolioUrl      String?
-  instagram         String?
-  behance           String?
   /// Texte libre plutôt qu'un booléen : la maquette attend « Oui, sous
   /// 2 semaines », qui dit à la fois la disponibilité et le délai.
   openToCommissions String?
@@ -614,9 +612,49 @@ model Profile {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Les réseaux sociaux — `instagram` et `behance` étaient deux colonnes,
+  /// la maquette en dessine douze (migration 20261016090000).
+  links ProfileLink[]
 
   @@index([username])
+}
+
+/// Les douze réseaux de la maquette (Design System, « 05 · Logos réseaux »),
+/// dans son ordre. `lib/reseaux/reseaux.ts` les connaît en minuscules.
+enum SocialNetwork {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  DRIBBBLE
+  FIGMA
+  TIKTOK
+  BEHANCE
+  YOUTUBE
+  X
+  PINTEREST
+  WHATSAPP
+  THREADS
+}
+
+/// Un lien de la vitrine vers un réseau social — un par réseau au plus.
+///
+/// On range l'adresse complète, pas le pseudo : LinkedIn distingue `/in/` de
+/// `/company/`, YouTube `@chaine` de `/channel/`. L'identifiant affiché se
+/// recalcule depuis l'adresse (`identifiant()`), pour ne jamais diverger.
+/// Le domaine est vérifié par l'application, qui seule connaît ceux de chaque
+/// réseau ; la base garde le `https://` (CHECK de la migration).
+model ProfileLink {
+  id        String        @id @default(cuid())
+  profileId String
+  network   SocialNetwork
+  url       String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, network])
 }
 
 /// Informations de facturation.
@@ -1242,33 +1280,33 @@ model Follow {
 // ============================================================================
 
 model Product {
-  id            String         @id @default(cuid())
-  sellerId      String
-  workItemId    String?        @unique // le shot devient vendable
-  slug          String         @unique
-  name          String
-  description   String?        @db.Text
-  coverImageId  String?
-  type          ProductType    @default(DIGITAL)
+  id               String         @id @default(cuid())
+  sellerId         String
+  workItemId       String?        @unique // le shot devient vendable
+  slug             String         @unique
+  name             String
+  description      String?        @db.Text
+  coverImageId     String?
+  type             ProductType    @default(DIGITAL)
   /// Famille affichée dans la barre de filtres du feed.
-  family        ProductFamily?
-  status        ProductStatus  @default(DRAFT)
+  family           ProductFamily?
+  status           ProductStatus  @default(DRAFT)
   /// Posé quand une suspension de compte archive la ressource, effacé quand la
   /// levée la remet en vente. C'est ce qui permet de rendre ce que la sanction
   /// a retiré sans republier ce que le créateur avait archivé lui-même.
   archivedByRiskAt DateTime?
   /// URL CDN de la couverture, dénormalisée : le feed en affiche des dizaines
   /// par page et ne doit pas résoudre un MediaAsset par carte (PLAN §8.2).
-  coverUrl      String?
+  coverUrl         String?
   /// Extrait public écoutable ou visionnable, pour ce qu'une image ne montre
   /// pas : une nappe sonore, un motion design. Déposé par le créateur — on ne
   /// transcode rien.
-  previewUrl    String?
+  previewUrl       String?
   /// « audio » ou « video » : décide du lecteur à poser sur la fiche.
-  previewKind   String?
-  price         Int // unité mineure — voir lib/i18n/money.ts
-  currency      Currency       @default(XOF)
-  licenseTypeId String?
+  previewKind      String?
+  price            Int // unité mineure — voir lib/i18n/money.ts
+  currency         Currency       @default(XOF)
+  licenseTypeId    String?
 
   // ── Montant choisi par l'acheteur (§3.4-B, §3.4-D) ──────────────────────
 
@@ -1393,14 +1431,14 @@ model ProductFile {
   /// recopier une taille annoncée par le créateur la ferait passer pour mesurée.
   sizeBytes   Int?
   role        ProductFileRole @default(SOURCE)
-  position  Int             @default(0)
+  position    Int             @default(0)
   /// Retiré d'une ressource **déjà vendue** : la ligne et l'objet au stockage
   /// restent. Un retrait par erreur serait sinon irrécupérable, et ce sont des
   /// acheteurs qui auraient payé pour rien. Reprend le `Deletable` de Gumroad —
   /// qui ne sert pas non plus un fichier retiré, mais n'en détruit jamais les
   /// octets. Sur un brouillon jamais vendu, la ligne part pour de bon.
-  deletedAt DateTime?
-  createdAt DateTime        @default(now())
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
 
   product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   /// `Restrict` écrit en toutes lettres : c'était la règle quand la relation
@@ -1479,11 +1517,11 @@ enum AdMediaKind {
 }
 
 model Ad {
-  id        String      @id @default(cuid())
+  id          String      @id @default(cuid())
   /// Le nom de la campagne. Il sert aussi de texte de remplacement à l'image,
   /// pour qui lit la page avec un lecteur d'écran : le formulaire le dit.
-  title     String
-  mediaKind AdMediaKind @default(IMAGE)
+  title       String
+  mediaKind   AdMediaKind @default(IMAGE)
   /// L'image ou le GIF ; pour une vidéo, son affiche.
   imageUrl    String
   /// Lues au dépôt : la grille place la bannière avant de l'avoir chargée.
@@ -1491,22 +1529,22 @@ model Ad {
   imageHeight Int
   /// Une vidéo MP4 déposée chez nous. Pas d'iframe YouTube : elle chargerait
   /// un traceur tiers dans la mosaïque de chaque visiteur.
-  videoUrl  String?
+  videoUrl    String?
   /// Un chemin du site (« /products/… ») ou une adresse https.
-  linkUrl   String
+  linkUrl     String
   /// Une bannière tous les N produits.
-  frequency Int
-  startsAt  DateTime?
-  endsAt    DateTime?
-  pausedAt  DateTime?
+  frequency   Int
+  startsAt    DateTime?
+  endsAt      DateTime?
+  pausedAt    DateTime?
   /// Archivée : hors de la mosaïque et de la liste active, chiffres gardés.
   /// Il n'y a pas de suppression depuis l'écran — elle effaçait les
   /// affichages et les clics, que rien ne recrée.
-  archivedAt DateTime?
+  archivedAt  DateTime?
   /// Qui l'a créée. Sans relation : effacer ce compte ne doit pas effacer la pub.
   createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   stats  AdDailyStat[]
   orders Order[]
@@ -1529,10 +1567,10 @@ model AdDailyStat {
 
 /// Les réglages de l'ADS manager : une seule ligne, `global`.
 model AdSettings {
-  id        String   @id @default("global")
-  enabled   Boolean  @default(true)
+  id      String  @id @default("global")
+  enabled Boolean @default(true)
   /// L'écart minimal entre deux bannières, en produits.
-  minGap    Int      @default(4)
+  minGap  Int     @default(4)
 
   /// Les limites contre le gonflage des compteurs, réglables depuis l'écran
   /// (demandé le 03/10). Les deux premières bornent le DÉBIT par adresse ;
@@ -1563,22 +1601,22 @@ enum TestimonialStatus {
 }
 
 model Testimonial {
-  id       String @id @default(cuid())
+  id            String            @id @default(cuid())
   /// Un témoignage par membre : le corriger le renvoie en relecture.
-  authorId String @unique
-  body     String @db.Text
+  authorId      String            @unique
+  body          String            @db.Text
   /// Comment l'auteur se présente sous son nom (« Typographe, Abidjan »).
-  role     String?
-  status   TestimonialStatus @default(PENDING)
+  role          String?
+  status        TestimonialStatus @default(PENDING)
   /// Le motif d'un refus, montré à l'auteur.
   refusedReason String?
   moderatorId   String?
   moderatedAt   DateTime?
   /// L'accord de l'auteur pour paraître sur l'accueil, nom et avatar compris.
-  consentAt   DateTime
-  publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  consentAt     DateTime
+  publishedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -1604,18 +1642,18 @@ enum RefundRequestStatus {
 }
 
 model RefundRequest {
-  id          String @id @default(cuid())
-  orderItemId String @unique
-  buyerId     String
-  reason      String @db.Text
-  status      RefundRequestStatus @default(PENDING)
+  id               String              @id @default(cuid())
+  orderItemId      String              @unique
+  buyerId          String
+  reason           String              @db.Text
+  status           RefundRequestStatus @default(PENDING)
   /// Lu par l'acheteur quand la demande est refusée.
-  refusalReason String?
-  decidedById   String?
+  refusalReason    String?
+  decidedById      String?
   /// Vrai quand c'est le support qui a tranché, faute de réponse du créateur.
-  decidedBySupport Boolean @default(false)
-  decidedAt   DateTime?
-  createdAt   DateTime @default(now())
+  decidedBySupport Boolean             @default(false)
+  decidedAt        DateTime?
+  createdAt        DateTime            @default(now())
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
   buyer     User      @relation("DemandesDeRemboursement", fields: [buyerId], references: [id], onDelete: Cascade)
@@ -1645,23 +1683,23 @@ enum ContactStatus {
 }
 
 model ContactMessage {
-  id      String      @id @default(cuid())
-  kind    ContactKind
+  id          String        @id @default(cuid())
+  kind        ContactKind
   /// Le compte de l'expéditeur s'il était connecté. Un message se laisse aussi
   /// sans compte : on écrit souvent au support parce qu'on n'arrive plus à se
   /// connecter.
-  senderId String?
-  name     String
+  senderId    String?
+  name        String
   /// En minuscules : l'effacement d'un compte retrouve ses messages par là.
-  email   String
-  subject String
-  body    String  @db.Text
+  email       String
+  subject     String
+  body        String        @db.Text
   /// « Budget indicatif » des demandes de sponsoring, tel qu'écrit.
-  budget  String?
-  status  ContactStatus @default(NEW)
+  budget      String?
+  status      ContactStatus @default(NEW)
   handledById String?
   handledAt   DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
 
   sender User? @relation("MessagesEnvoyes", fields: [senderId], references: [id], onDelete: Cascade)
 
@@ -1692,41 +1730,41 @@ enum NewsletterIssueStatus {
 }
 
 model NewsletterIssue {
-  id      String @id @default(cuid())
-  subject String
+  id          String                @id @default(cuid())
+  subject     String
   /// Texte brut : les courriels de Baobart n'ont pas de HTML.
-  body    String @db.Text
-  status  NewsletterIssueStatus @default(DRAFT)
+  body        String                @db.Text
+  status      NewsletterIssueStatus @default(DRAFT)
   /// Sans relation, comme `Ad.createdById` : un numéro reste quand son auteur
   /// quitte l'équipe.
   createdById String
   sentById    String?
   sentAt      DateTime?
   /// Combien de courriels ont été déposés pour ce numéro.
-  recipients  Int @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  recipients  Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 
   @@index([status, createdAt])
 }
 
 model NewsletterSubscriber {
-  id     String @id @default(cuid())
+  id                   String           @id @default(cuid())
   /// En minuscules.
-  email  String @unique
-  status NewsletterStatus @default(PENDING)
+  email                String           @unique
+  status               NewsletterStatus @default(PENDING)
   /// Empreintes SHA-256 des jetons : le lien du courriel porte le jeton, la
   /// base n'en garde que l'empreinte — une fuite de la table ne permet ni de
   /// confirmer ni de désinscrire à la place de quelqu'un.
-  confirmTokenHash     String  @unique
-  unsubscribeTokenHash String  @unique
+  confirmTokenHash     String           @unique
+  unsubscribeTokenHash String           @unique
   /// Un lien de confirmation ne vaut que sept jours.
-  confirmExpiresAt DateTime
+  confirmExpiresAt     DateTime
   /// Le consentement, c'est le clic sur le lien : sa date.
-  confirmedAt      DateTime?
-  unsubscribedAt   DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  confirmedAt          DateTime?
+  unsubscribedAt       DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 }
 
 /// Une ligne d'achat = un produit d'un vendeur. C'est ici que vit l'état de
@@ -2073,20 +2111,20 @@ model ExchangeRate {
 // ============================================================================
 
 model Plan {
-  id                String       @id @default(cuid())
-  code              PlanCode     @unique
-  name              String
-  priceMonthly      Int // unité mineure XOF
-  downloadsPerMonth Int? // null = illimité (Studio)
-  licenseIncluded   LicenseCode?
-  shieldLevel       ShieldLevel  @default(NONE)
-  features          Json         @default("{}")
+  id                    String       @id @default(cuid())
+  code                  PlanCode     @unique
+  name                  String
+  priceMonthly          Int // unité mineure XOF
+  downloadsPerMonth     Int? // null = illimité (Studio)
+  licenseIncluded       LicenseCode?
+  shieldLevel           ShieldLevel  @default(NONE)
+  features              Json         @default("{}")
   /// Se souscrit depuis le site. Faux pour les forfaits payants tant que leur
   /// paiement n'est pas ouvert : la grille les montre grisés.
-  openForSubscription   Boolean @default(false)
+  openForSubscription   Boolean      @default(false)
   /// Ouvre les ressources payantes sans achat, dans le quota du mois. Faux
   /// pour Accès libre : « tout sauf le payant ».
-  includesPaidResources Boolean @default(true)
+  includesPaidResources Boolean      @default(true)
 
   subscriptions Subscription[]
 }

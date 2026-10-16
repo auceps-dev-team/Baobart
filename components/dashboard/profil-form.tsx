@@ -2,8 +2,10 @@
 
 import { useActionState, useState } from "react";
 
+import { Medaillon } from "@/components/reseaux/logos";
 import { enregistrerProfil, type EtatProfil } from "@/lib/profil/actions";
 import type { Saisie } from "@/lib/profil/validation";
+import { RESEAUX, exempleDuReseau, nomDuReseau } from "@/lib/reseaux/reseaux";
 import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 /**
@@ -225,33 +227,56 @@ export function FormulaireProfil({ depart }: { depart: Saisie }) {
           />
         </Champ>
 
-        <Champ
-          label="Instagram"
-          pour="instagram"
-          aide="Ton pseudo, ou colle l'adresse — on garde ce qu'il faut."
-        >
-          <input
-            id="instagram"
-            name="instagram"
-            maxLength={80}
-            defaultValue={v.instagram}
-            key={`insta-${v.instagram}`}
-            placeholder="awa.diallo"
-            style={entree}
-          />
-        </Champ>
+      </Bloc>
 
-        <Champ label="Behance" pour="behance">
-          <input
-            id="behance"
-            name="behance"
-            maxLength={80}
-            defaultValue={v.behance}
-            key={`behance-${v.behance}`}
-            placeholder="awadiallo"
-            style={entree}
-          />
-        </Champ>
+      {/*
+        Les douze réseaux du Design System (« 05 · Logos réseaux »), chacun
+        avec le médaillon des « liens profil ». Tout est facultatif : un champ
+        vide n'affiche rien sur la vitrine.
+      */}
+      <Bloc titre="Tes réseaux">
+        <p
+          style={{
+            gridColumn: "1 / -1",
+            margin: 0,
+            fontSize: 13,
+            fontWeight: 600,
+            lineHeight: 1.5,
+            opacity: 0.75,
+            textWrap: "pretty",
+          }}
+        >
+          Ton pseudo, ou colle l&apos;adresse de ta page. Chaque logo mène sur
+          son réseau et nulle part ailleurs : une adresse Behance dans le champ
+          Instagram est refusée.
+        </p>
+        {RESEAUX.map((r) => {
+          const fautif = refus?.champ === `reseau-${r}`;
+          return (
+            <div key={r} style={{ minWidth: 0 }}>
+              <label
+                htmlFor={`reseau-${r}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, fontWeight: 800 }}
+              >
+                <Medaillon reseau={r} />
+                {nomDuReseau(r)}
+              </label>
+              <input
+                id={`reseau-${r}`}
+                name={`reseau-${r}`}
+                maxLength={300}
+                defaultValue={v.reseaux[r]}
+                key={`reseau-${r}-${v.reseaux[r]}`}
+                placeholder={exempleDuReseau(r)}
+                aria-invalid={fautif || undefined}
+                inputMode={r === "whatsapp" ? "tel" : undefined}
+                autoComplete="off"
+                spellCheck={false}
+                style={fautif ? { ...entree, borderColor: ORANGE, background: "#FFF1EA" } : entree}
+              />
+            </div>
+          );
+        })}
       </Bloc>
 
       <div>

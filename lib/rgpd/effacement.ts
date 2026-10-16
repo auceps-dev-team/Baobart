@@ -97,6 +97,8 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   ["account", "userId"],
 
   // ── Ce qui identifie ──────────────────────────────────────────────────
+  // Ses réseaux (`ProfileLink`) n'ont pas de colonne vers `User` : ils
+  // partent avec le profil, par la cascade de leur clé étrangère.
   ["profile", "userId"],
   ["billingInfo", "userId"],
   ["payoutAccount", "userId"],

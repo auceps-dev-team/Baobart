@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { valider, type Saisie } from "@/lib/profil/validation";
+import { RESEAUX, enBase, type Reseau } from "@/lib/reseaux/reseaux";
 
 /**
  * Enregistrer son profil public.
@@ -84,20 +85,38 @@ export async function enregistrerProfil(
     country: p.pays,
     speciality: p.specialite,
     portfolioUrl: p.portfolio,
-    instagram: p.instagram,
-    behance: p.behance,
     openToCommissions: p.disponibilite,
     dailyRate: p.tarifJournalier,
   };
 
   try {
-    // `upsert` : un compte peut exister sans profil — l'inscription en crée
-    // un, mais rien ne l'impose au schéma, et un compte fabriqué autrement
-    // (script, import) n'en aurait pas.
-    await db.profile.upsert({
-      where: { userId: utilisateur.id },
-      update: donneesProfil,
-      create: { userId: utilisateur.id, ...donneesProfil },
+    // Le profil et ses réseaux dans la même transaction : un enregistrement
+    // qui échouerait entre les deux laisserait une vitrine dont les liens ne
+    // correspondent plus à ce que le formulaire montrait.
+    await db.$transaction(async (tx) => {
+      // `upsert` : un compte peut exister sans profil — l'inscription en crée
+      // un, mais rien ne l'impose au schéma, et un compte fabriqué autrement
+      // (script, import) n'en aurait pas.
+      const profil = await tx.profile.upsert({
+        where: { userId: utilisateur.id },
+        update: donneesProfil,
+        create: { userId: utilisateur.id, ...donneesProfil },
+        select: { id: true },
+      });
+
+      // Le formulaire montre les douze champs : ce qu'il envoie est l'état
+      // complet. On remplace donc tout, plutôt que de deviner ce qui a été
+      // vidé.
+      await tx.profileLink.deleteMany({ where: { profileId: profil.id } });
+      if (p.liens.length > 0) {
+        await tx.profileLink.createMany({
+          data: p.liens.map((l) => ({
+            profileId: profil.id,
+            network: enBase(l.reseau),
+            url: l.url,
+          })),
+        });
+      }
     });
   } catch (cause) {
     // Deux personnes ont pu choisir le même nom entre la lecture ci-dessus et
@@ -150,8 +169,10 @@ function lireSaisie(donnees: FormData): Saisie {
     pays: lire("pays"),
     specialite: lire("specialite"),
     portfolio: lire("portfolio"),
-    instagram: lire("instagram"),
-    behance: lire("behance"),
+    reseaux: Object.fromEntries(RESEAUX.map((r) => [r, lire(`reseau-${r}`)])) as Record<
+      Reseau,
+      string
+    >,
     disponibilite: lire("disponibilite"),
     tarifJournalier: lire("tarifJournalier"),
   };

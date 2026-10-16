@@ -125,7 +125,15 @@ async function main() {
             isVerified: true,
             speciality: c.speciality,
             portfolioUrl: c.portfolioUrl,
-            instagram: c.instagram,
+            // La même forme que `lib/reseaux/reseaux.ts` donne à un pseudo nu.
+            links: {
+              create: [
+                {
+                  network: "INSTAGRAM",
+                  url: `https://www.instagram.com/${c.instagram.replace(/^@/, "")}/`,
+                },
+              ],
+            },
             openToCommissions: c.openToCommissions,
             dailyRate: c.dailyRate,
           },

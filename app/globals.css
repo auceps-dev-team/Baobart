@@ -939,3 +939,75 @@
     display: none;
   }
 }
+
+/* --- Logos réseaux -----------------------------------------------------------
+ * Design System, section « 05 · Logos réseaux » (relue le 16/10) : contour
+ * noir de 2,5 px, ombre dure, survol -2/-2. Le repos est posé ici et non en
+ * style en ligne, sans quoi `:hover` ne l'emporterait jamais. Seul le fond
+ * des pastilles, propre à chaque réseau, reste en ligne : le survol n'y
+ * touche pas. Voir components/reseaux/logos.tsx. */
+
+.reseau-pastille {
+  width: 56px;
+  height: 56px;
+  border: 2.5px solid var(--color-encre);
+  border-radius: 99px;
+  box-shadow: 4px 4px 0 var(--color-encre);
+  display: grid;
+  place-items: center;
+  color: var(--color-encre);
+  transition:
+    transform 130ms,
+    box-shadow 130ms;
+}
+a:hover > .reseau-pastille,
+button:hover > .reseau-pastille {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--color-encre);
+}
+a:active > .reseau-pastille,
+button:active > .reseau-pastille {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--color-encre);
+}
+
+.reseau-tuile {
+  width: 46px;
+  height: 46px;
+  border: 2.5px solid var(--color-encre);
+  border-radius: 14px;
+  background: var(--color-blanc);
+  box-shadow: 3px 3px 0 var(--color-encre);
+  display: grid;
+  place-items: center;
+  color: var(--color-encre);
+  transition:
+    transform 130ms,
+    box-shadow 130ms,
+    background-color 130ms;
+}
+.reseau-tuile:hover {
+  background: var(--color-jaune);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--color-encre);
+}
+
+.reseau-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 6px 16px 6px 6px;
+  border: 2.5px solid var(--color-encre);
+  border-radius: 999px;
+  background: var(--color-blanc);
+  box-shadow: 3px 3px 0 var(--color-encre);
+  color: var(--color-encre);
+  transition:
+    transform 130ms,
+    box-shadow 130ms;
+}
+.reseau-lien:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--color-encre);
+}

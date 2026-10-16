@@ -1,18 +1,22 @@
+import { RESEAUX, lireLien as lireReseau, type Reseau } from "@/lib/reseaux/reseaux";
+
 /**
  * Ce qu'on accepte de recevoir dans un profil public.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * LA VITRINE EXISTAIT, RIEN NE LA REMPLISSAIT
  *
- * `Profile` porte `speciality`, `portfolioUrl`, `instagram`, `behance`,
- * `openToCommissions` et `dailyRate` depuis longtemps, et
- * `/createurs/[username]` les affiche depuis la v1.45.0. Mais **aucune action
- * ne les écrivait** : ces colonnes étaient vides pour tout le monde, et la
- * page que les agences visitent montrait des blancs que personne ne pouvait
- * combler.
+ * `Profile` portait `speciality`, `portfolioUrl`, `instagram`, `behance`,
+ * `openToCommissions` et `dailyRate` depuis longtemps, mais **aucune action
+ * ne les écrivait** : ces colonnes étaient vides pour tout le monde. Ce module
+ * a fermé la boucle.
  *
- * On avait construit l'affichage sans l'alimentation. Ce module ferme la
- * boucle.
+ * Il affirmait aussi : « `/createurs/[username]` les affiche depuis la
+ * v1.45.0 ». Relu le 16/10 dans la page : elle affichait le portfolio, jamais
+ * Instagram ni Behance. Un créateur remplissait deux champs que personne ne
+ * voyait, et aucun test ne le relisait. Les réseaux vivent maintenant dans
+ * `lib/reseaux/reseaux.ts`, et `profilPublic` a un test d'intégration qui les
+ * relit.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * IL EST PUR
@@ -30,8 +34,8 @@ export interface Saisie {
   pays: string;
   specialite: string;
   portfolio: string;
-  instagram: string;
-  behance: string;
+  /** Un champ par réseau, tel que tapé — pseudo, @pseudo ou adresse. */
+  reseaux: Record<Reseau, string>;
   disponibilite: string;
   tarifJournalier: string;
 }
@@ -44,8 +48,7 @@ export type Champ =
   | "pays"
   | "specialite"
   | "portfolio"
-  | "instagram"
-  | "behance"
+  | `reseau-${Reseau}`
   | "disponibilite"
   | "tarifJournalier";
 
@@ -63,8 +66,8 @@ export interface ProfilValide {
   pays: string | null;
   specialite: string | null;
   portfolio: string | null;
-  instagram: string | null;
-  behance: string | null;
+  /** Les réseaux remplis, en adresses complètes. Un champ vide n'y est pas. */
+  liens: Array<{ reseau: Reseau; url: string }>;
   disponibilite: string | null;
   tarifJournalier: number | null;
 }
@@ -140,6 +143,13 @@ export function valider(saisie: Saisie): Verdict {
     return refus("portfolio", "L'adresse doit commencer par https://.");
   }
 
+  const liens: ProfilValide["liens"] = [];
+  for (const reseau of RESEAUX) {
+    const lecture = lireReseau(reseau, saisie.reseaux[reseau] ?? "");
+    if (!lecture.ok) return refus(`reseau-${reseau}`, lecture.message);
+    if (lecture.url) liens.push({ reseau, url: lecture.url });
+  }
+
   const tarif = lireEntier(saisie.tarifJournalier);
   if (tarif === "invalide") {
     return refus("tarifJournalier", "Indique un montant en chiffres, ou laisse vide.");
@@ -158,11 +168,7 @@ export function valider(saisie: Saisie): Verdict {
       pays: vide(pays),
       specialite: vide(saisie.specialite.trim().slice(0, COURT_MAX)),
       portfolio,
-      // Les deux réseaux sont rangés en **identifiant**, pas en URL : la
-      // vitrine les préfixe d'un « @ » et compose le lien elle-même. Accepter
-      // une URL entière ferait afficher « @https://instagram.com/awa ».
-      instagram: vide(nettoyerPseudo(saisie.instagram)),
-      behance: vide(nettoyerPseudo(saisie.behance)),
+      liens,
       disponibilite: vide(saisie.disponibilite.trim().slice(0, COURT_MAX)),
       // Zéro et vide disent la même chose — pas de tarif annoncé. On range
       // `null` dans les deux cas, pour n'avoir qu'une écriture à lire.
@@ -196,22 +202,6 @@ function lireLien(brut: string): string | null | "invalide" {
   } catch {
     return "invalide";
   }
-}
-
-/**
- * Un pseudo de réseau social, quelle que soit la façon dont il a été collé.
- *
- * Les gens collent l'URL entière, le « @ », ou le pseudo nu. Les trois
- * arrivent ici et repartent identiques — sinon la vitrine afficherait
- * « @https://instagram.com/awa » à qui a collé son lien.
- */
-function nettoyerPseudo(brut: string): string {
-  return brut
-    .trim()
-    .replace(/^https?:\/\/(www\.)?[^/]+\//i, "")
-    .replace(/^@/, "")
-    .replace(/\/+$/, "")
-    .slice(0, COURT_MAX);
 }
 
 /** Un entier positif, ou `null` si vide, ou `"invalide"` sinon. */

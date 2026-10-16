@@ -7,8 +7,9 @@
  *   — le nom d'utilisateur se normalise **exactement** comme à l'inscription.
  *     Deux règles qui divergeraient feraient qu'on ne peut plus « changer »
  *     son nom pour celui qu'on a déjà : l'unicité se heurterait à soi-même ;
- *   — un pseudo de réseau se range nu, quelle que soit la façon dont il a été
- *     collé — sinon la vitrine affiche « @https://instagram.com/awa » ;
+ *   — un réseau se range en adresse complète, quelle que soit la façon dont il
+ *     a été collé, et un refus désigne le champ du réseau fautif — les règles
+ *     elles-mêmes sont éprouvées dans `lib/reseaux/reseaux.test.ts` ;
  *   — un portfolio en `http` ou en `javascript:` est refusé : c'est un lien
  *     qu'on met en avant sur une page publique ;
  *   — l'absence s'écrit d'une seule façon, `null`, pour qu'aucun écran n'ait
@@ -18,8 +19,12 @@
 import { describe, expect, it } from "vitest";
 
 import { normaliserUsername, valider, type Saisie } from "@/lib/profil/validation";
+import { RESEAUX, type Reseau } from "@/lib/reseaux/reseaux";
 
-function saisie(over: Partial<Saisie> = {}): Saisie {
+function saisie(
+  over: Partial<Omit<Saisie, "reseaux">> = {},
+  reseaux: Partial<Record<Reseau, string>> = {},
+): Saisie {
   return {
     nomAffiche: "Awa Diallo",
     username: "awa-diallo",
@@ -28,8 +33,10 @@ function saisie(over: Partial<Saisie> = {}): Saisie {
     pays: "CI",
     specialite: "Illustration éditoriale",
     portfolio: "",
-    instagram: "",
-    behance: "",
+    reseaux: {
+      ...(Object.fromEntries(RESEAUX.map((r) => [r, ""])) as Record<Reseau, string>),
+      ...reseaux,
+    },
     disponibilite: "",
     tarifJournalier: "",
     ...over,
@@ -60,28 +67,27 @@ describe("le nom d'utilisateur", () => {
 });
 
 describe("les réseaux", () => {
-  it("garde le pseudo nu quand on colle une URL", () => {
-    const v = valider(saisie({ instagram: "https://instagram.com/awa.diallo/" }));
+  it("range chaque réseau rempli en adresse, dans l'ordre de la maquette", () => {
+    const v = valider(saisie({}, { behance: "@awadiallo", instagram: "https://instagram.com/awa.diallo/" }));
     expect(v.ok).toBe(true);
     if (!v.ok) return;
-    expect(v.profil.instagram).toBe("awa.diallo");
+    expect(v.profil.liens).toEqual([
+      { reseau: "instagram", url: "https://instagram.com/awa.diallo/" },
+      { reseau: "behance", url: "https://www.behance.net/awadiallo" },
+    ]);
   });
 
-  it("retire le @ quand on le tape", () => {
-    const v = valider(saisie({ behance: "@awadiallo" }));
-    expect(v.ok).toBe(true);
-    if (!v.ok) return;
-    expect(v.profil.behance).toBe("awadiallo");
+  it("ne range rien pour un champ vide", () => {
+    const v = valider(saisie({}, { instagram: "   " }));
+    expect(v.ok && v.profil.liens).toEqual([]);
   });
 
-  it("laisse un pseudo nu tel quel", () => {
-    const v = valider(saisie({ instagram: "awadiallo" }));
-    expect(v.ok && v.profil.instagram).toBe("awadiallo");
-  });
-
-  it("range null quand le champ est vide", () => {
-    const v = valider(saisie({ instagram: "   " }));
-    expect(v.ok && v.profil.instagram).toBeNull();
+  it("désigne le champ du réseau fautif", () => {
+    const v = valider(saisie({}, { x: "https://piege.example/awa" }));
+    expect(v.ok).toBe(false);
+    if (v.ok) return;
+    expect(v.refus.champ).toBe("reseau-x");
+    expect(v.refus.message).toMatch(/ne mène pas à X/);
   });
 });
 

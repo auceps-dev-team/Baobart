@@ -130,6 +130,70 @@ describe("le profil public", () => {
   });
 });
 
+/**
+ * Ce que la vitrine montre des réseaux.
+ *
+ * Écrit le 16/10 parce que l'absence d'un tel test a coûté cher :
+ * `lib/profil/validation.ts` affirmait que la page affichait Instagram et
+ * Behance, et elle ne les affichait pas. Personne ne relisait ce que la
+ * vitrine rendait vraiment.
+ */
+describe("les réseaux de la vitrine", () => {
+  async function vitrine() {
+    const c = await compte();
+    const nom = `awa-${n}`;
+    await publier(c.id);
+    const { id } = await db.profile.findUniqueOrThrow({ where: { userId: c.id }, select: { id: true } });
+    return { nom, profileId: id };
+  }
+
+  it("rend les liens dans l'ordre de la maquette, avec leur identifiant", async () => {
+    const v = await vitrine();
+    // Rangés dans le désordre : l'ordre affiché ne dépend pas de l'insertion.
+    await db.profileLink.createMany({
+      data: [
+        { profileId: v.profileId, network: "BEHANCE", url: "https://www.behance.net/awadiallo" },
+        { profileId: v.profileId, network: "INSTAGRAM", url: "https://www.instagram.com/awa.draws/" },
+      ],
+    });
+
+    const profil = await profilPublic(v.nom);
+    expect(profil!.liens).toEqual([
+      { reseau: "instagram", url: "https://www.instagram.com/awa.draws/", identifiant: "@awa.draws" },
+      { reseau: "behance", url: "https://www.behance.net/awadiallo", identifiant: "/awadiallo" },
+    ]);
+  });
+
+  it("écarte une adresse rangée qui ne mène plus sur son réseau", async () => {
+    // Une ligne venue d'ailleurs que du formulaire — import, script. Le logo
+    // Instagram ne se pose pas sur un autre domaine.
+    const v = await vitrine();
+    await db.profileLink.create({
+      data: { profileId: v.profileId, network: "INSTAGRAM", url: "https://piege.example/connexion" },
+    });
+
+    expect((await profilPublic(v.nom))!.liens).toEqual([]);
+  });
+
+  it("refuse en base un lien qui n'est pas en https", async () => {
+    const v = await vitrine();
+    await expect(
+      db.profileLink.create({
+        data: { profileId: v.profileId, network: "X", url: "http://x.com/awa" },
+      }),
+    ).rejects.toThrow(/ProfileLink_url_https|check constraint/i);
+  });
+
+  it("ne rend pas un portfolio sans protocole, qui deviendrait un lien relatif", async () => {
+    const v = await vitrine();
+    await db.profile.update({ where: { id: v.profileId }, data: { portfolioUrl: "awadiallo.com" } });
+    expect((await profilPublic(v.nom))!.portfolioUrl).toBeNull();
+
+    await db.profile.update({ where: { id: v.profileId }, data: { portfolioUrl: "https://awa.example" } });
+    expect((await profilPublic(v.nom))!.portfolioUrl).toBe("https://awa.example");
+  });
+});
+
 describe("l'annuaire", () => {
   it("ne liste que ceux qui ont publié", async () => {
     const publiant = await compte();

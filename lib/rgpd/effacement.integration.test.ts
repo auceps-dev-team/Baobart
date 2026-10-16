@@ -111,12 +111,20 @@ describe("le caviardage", () => {
 
   it("retire le profil et la facturation", async () => {
     const compte = await creerCompte();
+    // Un réseau social dit qui l'on est ailleurs : il part avec le profil.
+    // Aucune colonne ne le relie à `User`, seule la cascade l'emporte.
+    const profil = await db.profile.findUniqueOrThrow({ where: { userId: compte.id }, select: { id: true } });
+    const lien = await db.profileLink.create({
+      data: { profileId: profil.id, network: "INSTAGRAM", url: "https://www.instagram.com/aya.k/" },
+      select: { id: true },
+    });
 
     await anonymiser(compte.id);
 
     expect(
       await db.profile.count({ where: { userId: compte.id } }),
     ).toBe(0);
+    expect(await db.profileLink.count({ where: { id: lien.id } })).toBe(0);
     expect(
       await db.billingInfo.count({ where: { userId: compte.id } }),
     ).toBe(0);

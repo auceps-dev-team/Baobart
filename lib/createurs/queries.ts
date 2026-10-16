@@ -2,6 +2,13 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import type { ProductFamily } from "@/lib/domain/prisma-types";
+import {
+  RESEAUX,
+  adresseAffichable,
+  depuisBase,
+  identifiant,
+  type Reseau,
+} from "@/lib/reseaux/reseaux";
 
 /**
  * Le profil public d'un créateur.
@@ -54,10 +61,15 @@ export interface ProfilPublic {
   verifie: boolean;
   membreDepuis: Date;
 
-  /** Les liens que le créateur a bien voulu donner. */
+  /**
+   * Les liens que le créateur a bien voulu donner. Le portfolio n'est rendu
+   * qu'en `https://` : une valeur sans protocole (`awadiallo.com`, dans les
+   * données de démonstration) deviendrait un lien relatif vers
+   * `/createurs/awadiallo.com` — une page qui n'existe pas.
+   */
   portfolioUrl: string | null;
-  instagram: string | null;
-  behance: string | null;
+  /** Ses réseaux, dans l'ordre de la maquette, chacun vérifié sur son domaine. */
+  liens: Array<{ reseau: Reseau; url: string; identifiant: string }>;
   /** « Oui, sous 2 semaines » — un texte, pas un booléen. */
   ouvertAuxCommandes: string | null;
   /** Tarif journalier indicatif, en unités mineures. */
@@ -106,8 +118,7 @@ export async function profilPublic(
       ratingCount: true,
       followerCount: true,
       portfolioUrl: true,
-      instagram: true,
-      behance: true,
+      links: { select: { network: true, url: true } },
       openToCommissions: true,
       dailyRate: true,
       createdAt: true,
@@ -137,9 +148,8 @@ export async function profilPublic(
     bannerUrl: profil.bannerUrl,
     verifie: profil.isVerified,
     membreDepuis: profil.createdAt,
-    portfolioUrl: profil.portfolioUrl,
-    instagram: profil.instagram,
-    behance: profil.behance,
+    portfolioUrl: profil.portfolioUrl?.startsWith("https://") ? profil.portfolioUrl : null,
+    liens: liensAffichables(profil.links),
     ouvertAuxCommandes: profil.openToCommissions,
     tarifJournalier: profil.dailyRate,
     note: Number(profil.ratingAvg),
@@ -148,6 +158,23 @@ export async function profilPublic(
     ventes: produits.reduce((total, p) => total + p.salesCount, 0),
     abonnes: profil.followerCount,
   };
+}
+
+/**
+ * Les réseaux rangés, remis dans l'ordre de la maquette. Une adresse qui ne
+ * mène plus sur son réseau est écartée ici, avant l'écran : c'est l'affichage
+ * qui pose le logo dessus.
+ */
+function liensAffichables(
+  lignes: Array<{ network: string; url: string }>,
+): ProfilPublic["liens"] {
+  const liens: ProfilPublic["liens"] = [];
+  for (const reseau of RESEAUX) {
+    const ligne = lignes.find((l) => depuisBase(l.network) === reseau);
+    const url = ligne ? adresseAffichable(reseau, ligne.url) : null;
+    if (url) liens.push({ reseau, url, identifiant: identifiant(reseau, url) });
+  }
+  return liens;
 }
 
 export interface CreateurEnVitrine {

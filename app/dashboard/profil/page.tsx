@@ -33,6 +33,7 @@ import {
 } from "@/lib/rgpd/actions";
 import { etatEffacement } from "@/lib/rgpd/effacement";
 import { lireProfilDashboard } from "@/lib/dashboard/lectures";
+import { RESEAUX, depuisBase, type Reseau } from "@/lib/reseaux/reseaux";
 
 export const metadata = { title: "Profil — Baobart." };
 export const dynamic = "force-dynamic";
@@ -96,8 +97,11 @@ export default async function ProfilPage() {
     pays: p?.country ?? "",
     specialite: p?.speciality ?? "",
     portfolio: p?.portfolioUrl ?? "",
-    instagram: p?.instagram ?? "",
-    behance: p?.behance ?? "",
+    // L'adresse rangée, telle quelle : c'est ce que le créateur a validé, et
+    // ce qu'il reconnaîtra en relisant.
+    reseaux: Object.fromEntries(
+      RESEAUX.map((r) => [r, p?.links.find((l) => depuisBase(l.network) === r)?.url ?? ""]),
+    ) as Record<Reseau, string>,
     disponibilite: p?.openToCommissions ?? "",
     tarifJournalier: p?.dailyRate ? String(p.dailyRate) : "",
   };

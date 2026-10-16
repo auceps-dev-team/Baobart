@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
+import { Tuile } from "@/components/reseaux/logos";
 import { BoutonSuivre } from "@/components/social/boutons";
 import { sessionCourante } from "@/lib/auth/session";
 import { profilPublic, suitCeCreateur } from "@/lib/createurs/queries";
@@ -73,7 +74,8 @@ export default async function ProfilCreateurPage({
 
   const soiMeme = visiteur?.id === profil.userId;
 
-  const lieu = [profil.ville, profil.pays].filter(Boolean).join(", ");
+  // « Dakar, Sénégal », comme la maquette — pas le code « SN » que range la base.
+  const lieu = [profil.ville, nomDuPays(profil.pays)].filter(Boolean).join(", ");
   const sousTitre = [profil.specialite, lieu || null, `membre depuis ${profil.membreDepuis.getFullYear()}`]
     .filter(Boolean)
     .join(" · ");
@@ -176,6 +178,22 @@ export default async function ProfilCreateurPage({
                   >
                     {profil.bio}
                   </p>
+                ) : null}
+
+                {/*
+                  « Tuiles carrées · profils créateurs » du Design System :
+                  blanches au repos, jaunes au survol. Rien quand le créateur
+                  n'a donné aucun réseau — une rangée vide n'apprend rien.
+                */}
+                {profil.liens.length > 0 ? (
+                  <div
+                    data-reseaux
+                    style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 14 }}
+                  >
+                    {profil.liens.map((l) => (
+                      <Tuile key={l.reseau} reseau={l.reseau} href={l.url} proprietaire={profil.nom} />
+                    ))}
+                  </div>
                 ) : null}
               </div>
 
@@ -297,6 +315,17 @@ export default async function ProfilCreateurPage({
       <Footer />
     </>
   );
+}
+
+/** Le nom du pays en français, depuis son code ISO 3166-1 (« SN »). */
+function nomDuPays(code: string | null): string | null {
+  if (!code) return null;
+  try {
+    return new Intl.DisplayNames(["fr"], { type: "region" }).of(code) ?? code;
+  } catch {
+    // Un code que l'ICU ne connaît pas : mieux vaut le code que rien.
+    return code;
+  }
 }
 
 function Indicateur({ valeur, label }: { valeur: string; label: string }) {
