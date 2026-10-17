@@ -16,6 +16,10 @@
  * Paiement Mobile Money ») : aucune ne correspond à une livraison.
  *
  * À compléter à chaque version mineure qui change ce qu'on voit.
+ *
+ * Complété le 17/10 de v1.84.0 à v1.98.0, depuis les messages de commit. Le
+ * même jour, l'entrée v1.48.9 a perdu « et avatar » : aucun code n'écrivait
+ * l'avatar avant v1.94.0 (relu dans lib, app, components, prisma, scripts).
  */
 
 export interface EntreeChangelog {
@@ -27,6 +31,18 @@ export interface EntreeChangelog {
 }
 
 export const CHANGELOG: readonly EntreeChangelog[] = [
+  { date: "2026-10-17", version: "1.98.0", titre: "Ta copie de référence", texte: "Chaque image que tu vends porte ta mention de licence, et l'écran de la ressource te garde une copie de référence en cas de litige. L'acheteur ne la voit jamais." },
+  { date: "2026-10-17", version: "1.97.0", titre: "Pas d'entraînement d'IA sans accord", texte: "Le site déclare, dans le format standard que les robots savent lire, que ses œuvres ne sont pas offertes à l'entraînement d'IA." },
+  { date: "2026-10-16", version: "1.96.0", titre: "Les vues de ton profil", texte: "Ta vitrine affiche combien de visiteurs elle reçoit : une vue par personne et par jour, sans cookie, et les robots ne comptent pas." },
+  { date: "2026-10-16", version: "1.95.0", titre: "Les onglets du profil", texte: "Ressources, Services, Collections et À propos. On cherche dans ton portfolio, on filtre par catégorie, on trie, et les pages se numérotent." },
+  { date: "2026-10-16", version: "1.94.0", titre: "Ta photo et ta bannière", texte: "Téléverse-les depuis ton profil. On publie une copie réduite, débarrassée de ce que la photo disait de l'endroit où elle a été prise." },
+  { date: "2026-10-16", version: "1.93.0", titre: "Partager une ressource", texte: "Sous chaque fiche et chaque article, une rangée pour partager sur WhatsApp, Facebook, X, LinkedIn, Pinterest ou Threads, par courriel ou en copiant le lien. Le lien partagé montre la couverture de la ressource." },
+  { date: "2026-10-16", version: "1.92.0", titre: "Tes réseaux sur ta vitrine", texte: "Douze réseaux, d'Instagram à WhatsApp, s'ajoutent depuis ton profil. Chaque logo mène sur son réseau, et nulle part ailleurs." },
+  { date: "2026-10-15", version: "1.91.0", titre: "Une alerte quand ton compte de versement change", texte: "Un courriel te prévient dès que la destination de tes versements change : tu as le temps de réagir avant le premier départ." },
+  { date: "2026-10-15", version: "1.90.0", titre: "Un fichier hébergé ailleurs", texte: "Vends un fichier qui reste sur Drive, Dropbox ou ton site : l'acheteur reçoit le lien après paiement, et la fiche dit où il est hébergé." },
+  { date: "2026-10-09", version: "1.87.0", titre: "Les robots d'entraînement refusés", texte: "Les robots qui collectent des images pour entraîner des IA sont refusés, et chaque aperçu porte la réserve qui l'interdit." },
+  { date: "2026-10-09", version: "1.86.0", titre: "Des aperçus filigranés", texte: "Les aperçus publics portent ton pseudo en filigrane et passent à 800 px. Le fichier que reçoit l'acheteur reste intact." },
+  { date: "2026-10-08", version: "1.84.0", titre: "Se connecter par téléphone", texte: "Un code à six chiffres par SMS, une fois ton numéro prouvé depuis ton profil." },
   { date: "2026-10-08", version: "1.80.0", titre: "La lettre d'information part", texte: "L'équipe écrit et envoie ses numéros aux adresses confirmées. Chacun porte son lien de désinscription, et aucune image de suivi." },
   { date: "2026-10-08", version: "1.79.0", titre: "Demander un remboursement", texte: "Chaque créateur affiche son délai de remboursement sur ses fiches. Dans ce délai, l'acheteur demande depuis son espace ; le créateur accepte ou refuse avec un motif, et sans réponse sous sept jours l'équipe tranche." },
   { date: "2026-10-08", version: "1.78.0", titre: "Accès libre", texte: "Un forfait gratuit pour tous, activé d'un clic : toutes les ressources offertes sans limite, les collections, les communautés. Les forfaits payants sont annoncés, grisés, en attendant l'ouverture de leur paiement." },
@@ -53,7 +69,7 @@ export const CHANGELOG: readonly EntreeChangelog[] = [
   { date: "2026-09-17", version: "1.53.0", titre: "Le blog", texte: "Les articles de l'équipe : coulisses, guides et portraits." },
   { date: "2026-09-14", version: "1.52.0", titre: "Les notifications", texte: "Une vente, un achat, un versement, un nouvel abonné : dans la cloche, et par courriel selon tes réglages." },
   { date: "2026-09-11", version: "1.49.0", titre: "Les événements", texte: "Ateliers, concours et expositions, avec inscription en ligne et places comptées." },
-  { date: "2026-09-11", version: "1.48.9", titre: "Ton profil se modifie", texte: "Bio, ville, spécialité, liens et avatar se changent depuis ton tableau de bord." },
+  { date: "2026-09-11", version: "1.48.9", titre: "Ton profil se modifie", texte: "Bio, ville, spécialité et liens se changent depuis ton tableau de bord." },
   { date: "2026-09-04", version: "1.48.0", titre: "Les services", texte: "Les créateurs proposent leurs prestations, et on les contacte directement." },
   { date: "2026-09-03", version: "1.46.0", titre: "Les offres de missions", texte: "Des missions à saisir, et la candidature en ligne." },
   { date: "2026-09-02", version: "1.41.0", titre: "Baobart s'installe", texte: "Ajoute Baobart à l'écran d'accueil de ton téléphone, et reçois ses notifications." },

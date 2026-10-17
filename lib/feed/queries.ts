@@ -282,6 +282,11 @@ export const PAR_PAGE_VITRINE = 24;
  * de ressources. La sélection et la forme de sortie, elles, sont les mêmes
  * (`SELECTION_CARTE`, `versCarte`) — c'était la crainte du commentaire de
  * `ListerFeedInput`, et elle est tenue.
+ *
+ * C'est un écart à la règle n°2 du README (« jamais d'OFFSET sur les tables
+ * du feed »), relevé le 17/10 et écrit là-bas comme exception à arbitrer : le
+ * décalage ne porte que sur les ressources d'un vendeur (index `sellerId,
+ * status`), jamais sur la table entière.
  */
 export async function pageDeLaVitrine(input: {
   auteurId: string;

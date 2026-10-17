@@ -101,6 +101,22 @@ Une **place de marché communautaire** qui combine :
 > ni de perturbation anti-IA (Glaze, Nightshade) : aucune de ces trois
 > mentions n'apparaît dans `lib/`, `app/` ou `components/` (recherché le
 > 10/10).
+>
+> **Shield, revu le 17/10/2026.** Depuis v1.97.0 : réserve TDMRep
+> (`public/.well-known/tdmrep.json` et l'en-tête `tdm-reservation`), mention
+> de licence gravée en XMP dans le fichier vendu, copie de référence pour le
+> litige (`lib/upload/provenance.ts`). Toujours aucune mention de C2PA, de
+> Glaze ni de Nightshade dans `lib/`, `app/` ou `components/` (recherché le
+> 17/10).
+>
+> **Profils, revu le 17/10/2026.** Construit de v1.92.0 à v1.96.0 : douze
+> réseaux sociaux, photo et bannière, partage d'une ressource ou d'un profil,
+> onglets Ressources / Services / Collections / À propos (pas « Événements »),
+> recherche, tri, pages, vues de page. Restent à faire : les **Shots**
+> (aucune page ni composant n'en parle, recherché le 17/10) et l'affichage
+> des **badges** sur la vitrine, qui ne montre que « vérifié ». Les badges
+> eux-mêmes existent en partie : `lib/services/badges.ts` les lit pour le
+> droit de publier un service.
 
 ### Découverte (Pinterest)
 - Feed visuel masonry infini, **pagination curseur** (rapide à grande échelle)
