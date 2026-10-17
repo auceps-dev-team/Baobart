@@ -280,9 +280,74 @@
       </div>
     </div>
 
+    <!-- RESEAUX -->
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:26px">
+      <div style="font-family:'Archivo Black',sans-serif; font-size:24px; text-transform:uppercase; letter-spacing:-.6px">05 · Logos réseaux</div>
+      <div style="font-size:14px; font-weight:500; opacity:.75; margin-top:6px; max-width:720px">Les glyphes des marques restent intacts ; seules les couleurs passent dans la palette Baobart. Toujours un contour noir 2,5 px et une ombre dure — jamais les couleurs officielles.</div>
+
+      <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:22px 0 12px">Pastilles · fond clair</div>
+      <div style="display:flex; flex-wrap:wrap; gap:16px">
+        <sc-for list="{{ socials }}" as="s" hint-placeholder-count="12">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:72px">
+            <div title="{{ s.name }}" style="width:56px; height:56px; border:2.5px solid #121212; border-radius:99px; background:{{ s.bg }}; box-shadow:4px 4px 0 #121212; display:grid; place-items:center; cursor:pointer; transition:transform 130ms, box-shadow 130ms" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212" style-active="transform:translate(2px,2px); box-shadow:0 0 0 #121212">
+              <div style="width:24px; height:24px; background:#121212; -webkit-mask:url({{ s.src }}) center / contain no-repeat; mask:url({{ s.src }}) center / contain no-repeat"></div>
+            </div>
+            <div style="font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; text-align:center">{{ s.name }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-top:26px">
+        <div style="border:2.5px solid #121212; border-radius:20px; background:#F4EEFC; padding:18px">
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em">Tuiles carrées · profils créateurs</div>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:14px">
+            <sc-for list="{{ socialsMain }}" as="s" hint-placeholder-count="6">
+              <div title="{{ s.name }}" style="width:46px; height:46px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; display:grid; place-items:center; cursor:pointer; transition:transform 130ms, box-shadow 130ms, background 130ms" style-hover="background:#FFD84A; transform:translate(-2px,-2px); box-shadow:5px 5px 0 #121212">
+                <div style="width:20px; height:20px; background:#121212; -webkit-mask:url({{ s.src }}) center / contain no-repeat; mask:url({{ s.src }}) center / contain no-repeat"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.65; margin-top:12px">Blanc au repos · jaune au survol</div>
+        </div>
+
+        <div style="border:2.5px solid #121212; border-radius:20px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; padding:18px">
+          <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em">Footer · fond noir</div>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:14px">
+            <sc-for list="{{ socialsMain }}" as="s" hint-placeholder-count="6">
+              <div title="{{ s.name }}" style="width:44px; height:44px; border:2.5px solid #FFFFFF; border-radius:99px; display:grid; place-items:center; cursor:pointer; transition:background 130ms" style-hover="background:#E2622C">
+                <div style="width:19px; height:19px; background:#FFFFFF; -webkit-mask:url({{ s.src }}) center / contain no-repeat; mask:url({{ s.src }}) center / contain no-repeat"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.7; margin-top:12px">Contour blanc · orange au survol</div>
+        </div>
+      </div>
+
+      <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Liens profil · avec identifiant</div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px">
+        <sc-for list="{{ socialLinks }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex; align-items:center; gap:10px; padding:6px 16px 6px 6px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; cursor:pointer; transition:transform 130ms, box-shadow 130ms" style-hover="transform:translate(-2px,-2px); box-shadow:5px 5px 0 #121212">
+            <div style="width:34px; height:34px; border:2px solid #121212; border-radius:99px; background:{{ s.bg }}; display:grid; place-items:center">
+              <div style="width:16px; height:16px; background:#121212; -webkit-mask:url({{ s.src }}) center / contain no-repeat; mask:url({{ s.src }}) center / contain no-repeat"></div>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:800; line-height:1.1">{{ s.name }}</div>
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.65">{{ s.handle }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin:26px 0 12px">Bouton de connexion</div>
+      <div style="display:flex; flex-wrap:wrap; gap:14px">
+        <div style="display:flex; align-items:center; gap:10px; padding:13px 22px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; font-size:14px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212"><div style="width:18px; height:18px; background:#121212; -webkit-mask:url(img/social/linkedin.svg) center / contain no-repeat; mask:url(img/social/linkedin.svg) center / contain no-repeat"></div>Continuer avec LinkedIn</div>
+        <div style="display:flex; align-items:center; gap:10px; padding:13px 22px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; font-size:14px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #E2622C"><div style="width:18px; height:18px; background:#FFFFFF; -webkit-mask:url(img/social/figma.svg) center / contain no-repeat; mask:url(img/social/figma.svg) center / contain no-repeat"></div>Importer depuis Figma</div>
+      </div>
+    </div>
+
     <!-- REGLES -->
     <div style="border:2.5px solid #121212; border-radius:26px; background:#121212; color:#FFFFFF; box-shadow:7px 7px 0 #E2622C; padding:28px">
-      <div style="font-family:'Archivo Black',sans-serif; font-size:24px; text-transform:uppercase; letter-spacing:-.6px">05 · Règles d'usage</div>
+      <div style="font-family:'Archivo Black',sans-serif; font-size:24px; text-transform:uppercase; letter-spacing:-.6px">06 · Règles d'usage</div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; margin-top:18px">
         <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
           <div style="border:2.5px solid #FFFFFF; border-radius:18px; padding:16px">
@@ -301,7 +366,18 @@ const INK = "#121212", W = "#FFFFFF", LAV = "#EADFF9", PUR = "#C9A8F5", YEL = "#
 
 class Component extends DCLogic {
   renderVals() {
+    const S = (id, name, bg, handle) => ({ id, name, bg, handle, src: `img/social/${id}.svg` });
+    const socials = [
+      S('instagram','Instagram',YEL,'@baobart.studio'), S('facebook','Facebook',PUR,'/baobart'), S('linkedin','LinkedIn',W,'Baobart'),
+      S('dribbble','Dribbble',ORA,'@baobart'), S('figma','Figma',LAV,'Baobart Community'), S('tiktok','TikTok',YEL,'@baobart'),
+      S('behance','Behance',PUR,'/baobart'), S('youtube','YouTube',ORA,'@baobart'), S('x','X',W,'@baobart'),
+      S('pinterest','Pinterest',LAV,'/baobart'), S('whatsapp','WhatsApp',YEL,'Communauté'), S('threads','Threads',PUR,'@baobart.studio')
+    ];
+    const pick = ids => ids.map(i => socials.find(s => s.id === i));
     return {
+      socials,
+      socialsMain: pick(['instagram','linkedin','dribbble','behance','figma','tiktok']),
+      socialLinks: pick(['instagram','dribbble','behance','linkedin']),
       colors: [
         { name: "Lavande fond", hex: "#EADFF9", usage: "Fond de page, socle de toutes les vues." },
         { name: "Lavande clair", hex: "#F4EEFC", usage: "Survols, champs de saisie, zones internes." },
