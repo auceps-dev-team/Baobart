@@ -46,6 +46,18 @@ export default async function DocumentationPage() {
         />
       </DocSection>
 
+      <DocSection titre="Ta vitrine" id="vitrine">
+        <DocListe
+          elements={[
+            <>Dans {vers("/dashboard/profil", "ton profil")} : ta photo (PNG ou JPG, 400×400 au moins) et ta bannière (1600×400 au moins). On publie une copie réduite, sans ce que la photo disait de l&apos;endroit où elle a été prise.</>,
+            "Tes réseaux : douze au choix, d'Instagram à WhatsApp. Colle ton pseudo ou l'adresse de ta page ; un lien qui ne mène pas sur le bon réseau est refusé.",
+            "Ta page publique, à /@ton-nom, range tes ressources, tes services, tes collections publiques et ta présentation dans quatre onglets. On y cherche, on filtre par catégorie et on trie.",
+            "Le bouton « Partager » de ta page, et la rangée de partage sous chacune de tes ressources, envoient le lien sur WhatsApp, Facebook, X, LinkedIn, Pinterest ou Threads, par courriel, ou le copient.",
+            "Le compteur « vues de page » dit combien de personnes passent : une vue par visiteur et par jour, sans cookie. Tes propres visites et les robots ne comptent pas.",
+          ]}
+        />
+      </DocSection>
+
       <DocSection titre="Publier une ressource" id="publier">
         <DocListe
           elements={[

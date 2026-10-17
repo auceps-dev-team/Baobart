@@ -48,6 +48,13 @@ interface Bloc {
  *
  * Les images de la maquette étaient ses propres photos : ce sont ici des
  * couvertures de la bibliothèque, les plus téléchargées.
+ *
+ * Revu le 17/10, après v1.86.0 à v1.96.0 : le bloc « Ta vitrine » dit
+ * maintenant ce que fait la vitrine (photo, bannière, réseaux, onglets, vues,
+ * partage, fichier hébergé ailleurs) — c'est aussi ce que la maquette
+ * annonçait (« Bio, réseaux, services proposés »). Toujours pas : « les
+ * agences te contactent directement », le bouton Contact du profil n'existe
+ * pas encore.
  */
 export default async function FonctionnalitesPage() {
   const [visiteur, couvertures] = await Promise.all([sessionCourante(), couverturesPopulaires(5)]);
@@ -63,9 +70,9 @@ export default async function FonctionnalitesPage() {
       titre: "Ta boutique, à ta façon",
       intro: "Baobart s'occupe du paiement, du fichier et de la licence. Toi, tu montres ton travail.",
       items: [
-        { t: "Ta page publique, dès la première ressource", d: "Ton profil, à l'adresse /@ton-nom, montre ce que tu publies. Il n'y a rien à configurer de plus." },
-        { t: "Une page par ressource", d: "Aperçus, format, dimensions, poids, licence et commentaires : ce que l'acheteur veut savoir avant de payer." },
-        { t: "Ton profil devient ton portfolio", d: "Bio, ville, spécialité, liens, pièces de portfolio et services proposés : on voit ce que tu sais faire." },
+        { t: "Ta page publique, dès la première ressource", d: "Ton profil, à l'adresse /@ton-nom, avec ta photo, ta bannière et tes réseaux — Instagram, Behance, LinkedIn, WhatsApp et huit autres. Il n'y a rien à configurer de plus." },
+        { t: "Une page par ressource", d: "Aperçus filigranés, format, dimensions, poids, licence et commentaires, et une rangée pour la partager sur WhatsApp, Facebook ou LinkedIn. Ton fichier peut même rester sur Drive ou Dropbox : seul l'acheteur en reçoit le lien." },
+        { t: "Ton profil devient ton portfolio", d: "Tes ressources, tes services, tes collections publiques et ta présentation, chacun dans son onglet. On cherche dans ton portfolio, on trie, et tu vois combien de visiteurs passent." },
       ],
     },
     {

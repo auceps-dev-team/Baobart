@@ -3,7 +3,7 @@
 > **Plateforme tout-en-un de création, découverte, partage et monétisation pour les créateurs africains.**  
 > Du premier croquis au premier encaissement en monnaie locale (FCFA, Mobile Money).
 
-[![Version](https://img.shields.io/badge/version-1.91.0-orange.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.98.1-orange.svg)](package.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5_App_Router-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](tsconfig.json)
 [![Prisma](https://img.shields.io/badge/Prisma-6.3-1b222d.svg)](prisma/schema.prisma)
@@ -77,7 +77,7 @@ Le **Baobart Shield** (`Doc/SPEC_BAOBART_SHIELD.md`) est le système de défense
 
 | Couche | Objectif | Statut |
 |---|---|---|
-| **1 — Provenance** | Filigrane invisible, manifestes cryptographiques C2PA, empreinte perceptuelle pHash | Prévu (M6) |
+| **1 — Provenance** | Filigrane invisible, manifestes cryptographiques C2PA, empreinte perceptuelle pHash | **Partiel (v1.97+)** : mention de licence gravée en XMP dans le fichier vendu, copie de référence pour le litige (`lib/upload/provenance.ts`), réserve TDMRep (`public/.well-known/tdmrep.json`). Ni filigrane invisible, ni C2PA, ni pHash : aucune de ces trois mentions dans `lib/`, `app/` ou `components/` (recherché le 17/10) |
 | **2 — Aperçus dégradés & Filigranes** | Filigrane visible diagonal, réduction de résolution, métadonnées XMP anti-IA | **Actif & Déployé (v1.86+)** |
 | **3 — Perturbation anti-IA** | Bruitage de style imperceptible (Glaze / Nightshade) sur GPU | Prévu (M6) |
 | **4 — Juridique & Veille** | Procédure de retrait DMCA, veille automatisée sur les copies | Prévu (M7) |
@@ -180,6 +180,8 @@ pnpm dev             # Disponible sur http://localhost:3100
 | `pnpm db:seed` | Remplit la base avec les données socles |
 | `pnpm db:test:setup` | Recrée la base `baobart_test` et applique les migrations |
 | `pnpm apercus:regenerer` | Détecte et met à jour les filigranes d'aperçus (`-- --appliquer` pour exécuter) |
+| `pnpm provenance:poser` | Grave la mention de licence et crée la copie de référence des fichiers vendus déjà en base — à lancer une fois après déploiement (`-- --appliquer` pour exécuter) |
+| `pnpm stockage:verifier` | Vérifie le stockage réel (R2 ou MinIO) : aperçu lisible sans signature, fichier vendu fermé à son adresse publique, URL signée, CORS — dépose puis retire deux objets |
 | `pnpm stack:up` / `stack:down` | Démarre ou arrête la stack Docker (Postgres, Redis, MinIO) |
 
 ---
@@ -199,7 +201,9 @@ baobart/
 │   ├── createurs/        # Éléments de profil et vitrines créateurs
 │   └── anime/            # Micro-animations validées
 ├── lib/                  # Logique métier et domaine
-│   ├── upload/           # Fabrique d'aperçus, filigrane.ts, vignette.ts, stockage S3
+│   ├── upload/           # Fabrique d'aperçus, filigrane.ts, vignette.ts, provenance.ts, stockage S3/R2
+│   ├── reseaux/          # Les douze réseaux sociaux, leurs glyphes, les adresses de partage
+│   ├── createurs/        # Vitrine publique : requêtes, pagination, vues de page
 │   ├── payments/         # Encaissement (Paystack, Flutterwave), grand livre
 │   ├── auth/             # Authentification sur mesure, sessions, passkeys, 2FA
 │   ├── securite/         # Limites de débit Redis, détection anti-bot
@@ -217,7 +221,8 @@ baobart/
 1. **L'argent est un entier** :  
    Tout montant est stocké dans son unité mineure ISO 4217. Le XOF n'ayant pas de centime, 1 FCFA = 1 unité mineure. Aucun nombre flottant ne manipule d'argent (`lib/i18n/money.ts`).
 2. **Pagination par curseur obligatoire** :  
-   Jamais d'`OFFSET` SQL sur les tables du feed à fort volume ; pagination stricte par curseur (`createdAt` / `id`) et compteurs dénormalisés.
+   Jamais d'`OFFSET` SQL sur les tables du feed à fort volume ; pagination stricte par curseur (`createdAt` / `id`) et compteurs dénormalisés.  
+   *Une exception, à arbitrer :* le portfolio d'un créateur (`pageDeLaVitrine`, `lib/feed/queries.ts`, depuis v1.95.0) pagine par décalage, parce que la maquette dessine des pages numérotées (« 1 2 3 … 6 »), qu'un curseur ne sait pas atteindre. La requête est bornée à un seul vendeur (index `sellerId, status`), soit quelques dizaines de lignes ; le fil, lui, reste au curseur.
 3. **Le Sticker System est un système, pas une palette** :  
    Bordures noires marquées, ombres portées nettes à 45°, deux accents colorés maximum par écran, jaune réservé aux fonds (jamais en texte), orange de texte normalisé à `#B34A1F` (`Doc/ANALYSE_DESIGN_SYSTEM_BAOBART.md`).
 4. **Le grand livre est immuable et les soldes sont figés** :  
