@@ -12,6 +12,8 @@ import { LIBELLE_PAR_FAMILLE } from "@/lib/feed/types";
 import { formatPrice } from "@/lib/i18n/money";
 import { hoteDuLien } from "@/lib/products/lien-externe";
 import { extensionDe, formatDe, formatPoids } from "@/lib/upload/formats";
+import { cleDeReference } from "@/lib/upload/provenance";
+import { lireObjet } from "@/lib/upload/storage";
 import {
   depublierRessource,
   modifierRessource,
@@ -127,7 +129,7 @@ export default async function ProduitDuTableauDeBord({
           sizeBytes: true,
           role: true,
           externalUrl: true,
-          media: { select: { width: true, height: true } },
+          media: { select: { id: true, width: true, height: true } },
         },
       },
       _count: { select: { orderItems: true } },
@@ -144,6 +146,22 @@ export default async function ProduitDuTableauDeBord({
   // vingt secondes n'a pas à peser dans le « poids total » annoncé.
   const fichiersSources = produit.files.filter((f) => f.role === "SOURCE");
   const fichiersApercu = produit.files.filter((f) => f.role === "PREVIEW");
+
+  // Les copies de référence existantes (litige). On ne montre un lien que s'il
+  // mène quelque part : un fichier non image, ou envoyé avant cette fonction,
+  // n'en a pas. Peu de fichiers par produit, et c'est le vendeur sur sa propre
+  // page — le coût de ces lectures est borné.
+  const copiesDeReference = (
+    await Promise.all(
+      fichiersSources
+        .filter((f) => f.externalUrl === null && f.media)
+        .map(async (f) =>
+          (await lireObjet(cleDeReference(f.media!.id)))
+            ? { mediaId: f.media!.id, nom: f.filename }
+            : null,
+        ),
+    )
+  ).filter((c): c is { mediaId: string; nom: string } => c !== null);
 
   const enLigne = produit.status === "PUBLISHED";
   const retiree = produit.status === "SUSPENDED";
@@ -390,6 +408,38 @@ export default async function ProduitDuTableauDeBord({
             externe: f.externalUrl ? hoteDuLien(f.externalUrl) : null,
           }))}
         />
+
+        {copiesDeReference.length > 0 && (
+          <>
+            <Section
+              titre="Copies de référence (litige)"
+              aide={
+                "Pour chaque image vendue, une copie réduite marquée de ton auteur, du © et de " +
+                "ta licence, que toi seul peux voir. Si tu retrouves ton œuvre utilisée autrement " +
+                "que la licence ne l'autorise, télécharge-la : elle sert de preuve. L'acheteur ne " +
+                "la reçoit jamais."
+              }
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {copiesDeReference.map((c) => (
+                // Un lien de téléchargement vers une route d'API (redirection
+                // signée), pas une navigation interne : `<a>` simple, pas `<Link>`.
+                <a
+                  key={c.mediaId}
+                  href={`/api/reference/${c.mediaId}`}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "underline",
+                    width: "fit-content",
+                  }}
+                >
+                  Copie de référence — {c.nom}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
 
         <Section
           titre="Aperçu"
