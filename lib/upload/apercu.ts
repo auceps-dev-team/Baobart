@@ -61,12 +61,22 @@ export { cleDApercu, cleDeVignette, VERSION_APERCU } from "./vignette";
  * métadonnées, ou les jette, n'est arrêté par rien. Elle compte pour qui
  * respecte la règle — et comme preuve d'une réserve explicite.
  */
-export function xmpDe(pseudo: string | null): string {
+export function xmpDe(
+  pseudo: string | null,
+  options: {
+    /** `true` (défaut) : « aperçu Baobart ». `false` : un fichier livré, pas un aperçu. */
+    apercu?: boolean;
+    /** Le titre de la licence, gravé dans la copie de référence seulement. */
+    licence?: string | null;
+  } = {},
+): string {
+  const { apercu = true, licence = null } = options;
   const echapper = (t: string) =>
     t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const auteur = echapper(pseudo ? `@${pseudo}` : "Baobart");
+  const mentionLicence = licence ? ` Licence : ${licence}.` : "";
   const droits = echapper(
-    `© ${pseudo ? `@${pseudo}` : "le créateur"} — aperçu Baobart. Reproduction et entraînement d'IA interdits.`,
+    `© ${pseudo ? `@${pseudo}` : "le créateur"} — ${apercu ? "aperçu Baobart" : "Baobart"}.${mentionLicence} Reproduction et entraînement d'IA interdits.`,
   );
   return [
     `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>`,

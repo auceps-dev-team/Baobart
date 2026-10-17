@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 import { entetesDeSecurite } from "./lib/securite/entetes";
+import { entetesTdm } from "./lib/seo/tdm";
 
 /**
  * Hôtes autorisés pour l'optimiseur d'images.
@@ -52,9 +53,16 @@ const nextConfig: NextConfig = {
   /**
    * Les en-têtes de sécurité, sur toutes les réponses. Ce qu'ils couvrent et
    * pourquoi la CSP n'observe encore qu'en silence : `lib/securite/entetes.ts`.
+   * S'y ajoute la réserve de fouille de données (`lib/seo/tdm.ts`) : un robot
+   * d'entraînement la lit dans l'en-tête ou dans `/.well-known/tdmrep.json`.
    */
   async headers() {
-    return [{ source: "/:path*", headers: entetesDeSecurite(process.env) }];
+    return [
+      {
+        source: "/:path*",
+        headers: [...entetesDeSecurite(process.env), ...entetesTdm()],
+      },
+    ];
   },
 
   /**

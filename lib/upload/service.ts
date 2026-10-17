@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { nomDuLien, verifierLienExterne } from "@/lib/products/lien-externe";
 import { produireApercu } from "@/lib/upload/apercu";
+import { poserLaProvenance } from "@/lib/upload/provenance";
 import { anciennesClesDApercu, cleDApercu, toutesLesClesDApercu } from "@/lib/upload/vignette";
 import {
   natureApercu,
@@ -362,6 +363,25 @@ export async function confirmerFichierDe(
     where: { id: reservation.id },
     data: { status: "uploaded", checksum: depose.etag },
   });
+
+  // La provenance du fichier VENDU : mention de droits gravée dans le fichier
+  // livré (sans perte), et copie de référence privée avec la licence, pour le
+  // litige. Les aperçus, eux, portent déjà leur mention. Sans effet sur un
+  // format non gravable — la ressource reste vendable. Voir `provenance.ts`.
+  if (role === "SOURCE") {
+    const licence = await db.product.findUnique({
+      where: { id: produitId },
+      select: { licenseType: { select: { title: true } } },
+    });
+    await poserLaProvenance({
+      mediaId: media.id,
+      s3Key: reservation.s3Key,
+      taille: depose.taille,
+      contentType: depose.contentType,
+      pseudo: await pseudoDe(userId),
+      licenceTitre: licence?.licenseType?.title ?? null,
+    });
+  }
 
   const nature = natureApercu(reservation.filename);
   const estExtrait = role === "PREVIEW" && nature !== null && nature !== "image";
