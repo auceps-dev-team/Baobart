@@ -17,6 +17,9 @@ const eslintConfig = [
       // (`require()`, variables globales) : ils cassaient `pnpm lint` en local
       // sans que la CI, qui ne les a pas, le voie jamais.
       "qa/**",
+      // Copies de travail des sessions d'agent : chacune porte son propre
+      // `.next/` et ses fichiers générés, que `pnpm lint` lisait en double.
+      ".claude/**",
       ".next/**",
       "node_modules/**",
       "next-env.d.ts", // fichier généré par Next.js
