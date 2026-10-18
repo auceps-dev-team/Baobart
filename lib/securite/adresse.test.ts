@@ -18,10 +18,16 @@ describe("l'adresse d'une requête", () => {
     expect(adresseDe(r)).toBe("9.9.9.9");
   });
 
+  it("reconnaît cf-connecting-ip posé par Cloudflare", () => {
+    const r = requete({ "cf-connecting-ip": "4.4.4.4", "x-forwarded-for": "1.1.1.1" });
+    expect(adresseDe(r)).toBe("4.4.4.4");
+  });
+
   it("retombe sur x-real-ip, posé par les mandataires inverses", () => {
     const r = requete({ "x-real-ip": "2.2.2.2", "x-forwarded-for": "1.1.1.1" });
     expect(adresseDe(r)).toBe("2.2.2.2");
   });
+
 
   it("prend le DERNIER élément de x-forwarded-for, pas le premier", () => {
     // Le cœur du sujet. Un mandataire honnête AJOUTE l'adresse réelle à la fin

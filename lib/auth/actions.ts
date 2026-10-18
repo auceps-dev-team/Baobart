@@ -270,14 +270,18 @@ export async function inscrire(
   ]);
 
   if (emailPris) {
+    // Égalisation temporelle par hachage scrypt pour empêcher l'analyse de temps
+    await hacherMotDePasse(motDePasse);
+    journal.info("inscription tentée avec une adresse déjà enregistrée", {});
     return {
-      erreur: "Un compte existe déjà avec cette adresse.",
+      erreur: "Impossible de créer ce compte avec ces informations. Si tu possèdes déjà un compte, connecte-toi.",
       champ: "email",
     };
   }
   if (usernamePris) {
     return { erreur: "Ce nom d'utilisateur est déjà pris.", champ: "username" };
   }
+
 
   const passwordHash = await hacherMotDePasse(motDePasse);
 

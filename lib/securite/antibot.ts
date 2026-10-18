@@ -111,6 +111,11 @@ export interface Geste {
   ouvertLe?: string | null;
   /** Le jeton du tiers, quand la page en produit un. */
   jeton?: string | null;
+  /**
+   * Si vrai, l'horodatage d'ouverture est strictement exigé en production
+   * pour interdire les soumissions directes par script headless.
+   */
+  delaiRequis?: boolean;
 }
 
 /**
@@ -126,7 +131,7 @@ export async function evaluerUnGeste(geste: Geste): Promise<Verdict> {
     return { laisserPasser: false, score: null, motif: "leurre" };
   }
 
-  if (tropRapide(geste.ouvertLe)) {
+  if (tropRapide(geste.ouvertLe, geste.delaiRequis)) {
     return { laisserPasser: false, score: null, motif: "trop_rapide" };
   }
 
@@ -143,13 +148,6 @@ export async function evaluerUnGeste(geste: Geste): Promise<Verdict> {
  * Le formulaire a-t-il été soumis trop vite ?
  *
  * ────────────────────────────────────────────────────────────────────────────
- * UN HORODATAGE ABSENT N'EST PAS UNE FAUTE
- *
- * Il manque dans un test, dans une requête forgée à la main pendant le
- * développement, et sur une page qu'on n'a pas encore équipée. Refuser
- * fermerait ces trois cas sans rien dire de plus sur le quatrième.
- *
- * ────────────────────────────────────────────────────────────────────────────
  * UN HORODATAGE DANS L'AVENIR EST UNE FAUTE
  *
  * Le champ vient du client : rien n'empêche d'y écrire l'an prochain pour que
@@ -157,11 +155,18 @@ export async function evaluerUnGeste(geste: Geste): Promise<Verdict> {
  * maintenant — une horloge locale en avance de quelques secondes reste
  * tolérée, parce qu'elles le sont souvent.
  */
-function tropRapide(brut: string | null | undefined): boolean {
-  if (!brut) return false;
+function tropRapide(
+  brut: string | null | undefined,
+  requis = false,
+): boolean {
+  if (!brut) {
+    return Boolean(requis && process.env.NODE_ENV === "production");
+  }
 
   const ouvert = Number(brut);
-  if (!Number.isFinite(ouvert)) return false;
+  if (!Number.isFinite(ouvert)) {
+    return Boolean(requis && process.env.NODE_ENV === "production");
+  }
 
   const ecart = Date.now() - ouvert;
 
@@ -170,6 +175,7 @@ function tropRapide(brut: string | null | undefined): boolean {
 
   return ecart >= 0 && ecart < DELAI_MINIMUM_MS;
 }
+
 
 /**
  * Le score du tiers, ou `null` quand personne n'a d'opinion.

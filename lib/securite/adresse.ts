@@ -29,7 +29,12 @@
  * l'extérieur. `x-real-ip` est posé par la plupart des mandataires inverses
  * — Caddy, nginx — et vaut donc pour un déploiement sur serveur.
  */
-const SURS = ["x-vercel-forwarded-for", "x-real-ip"] as const;
+const SURS = [
+  "cf-connecting-ip",
+  "x-vercel-forwarded-for",
+  "x-real-ip",
+] as const;
+
 
 /** Une adresse plausible. On ne valide pas la forme, on refuse l'absurde. */
 function plausible(valeur: string): boolean {

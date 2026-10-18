@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { deuxFacteursRecent } from "@/lib/auth/deux-facteurs";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { deposer } from "@/lib/email/outbox";
@@ -53,10 +54,22 @@ export async function enregistrerCompteDeVersement(
   // d'une action, et refaire saisir un IBAN sur une faute de frappe est cruel.
   const saisie = { provider, reference, titulaire };
 
+  // Sécurité renforcée (Step-Up Auth) :
+  // Si le compte a activé la double authentification, il doit l'avoir franchie
+  // récemment avant de pouvoir modifier la destination des versements.
+  if (utilisateur.sessionId && !(await deuxFacteursRecent(utilisateur.sessionId))) {
+    return {
+      ok: false,
+      message: "Par sécurité, reconnecte-toi avec ta double authentification avant de modifier ton compte de versement.",
+      saisie,
+    };
+  }
+
   const verdict = verifierCompte({ provider, reference, titulaire });
   if (!verdict.accepte || !verdict.reference || !verdict.method) {
     return { ok: false, message: verdict.message ?? "Compte refusé.", saisie };
   }
+
 
   const rejouable = verdict.reference;
 

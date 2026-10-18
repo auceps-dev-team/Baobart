@@ -18,6 +18,8 @@ import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
  * ou le support sur une demande restée sans réponse).
  */
 
+import { piloteLimite } from "@/lib/securite/pilotes";
+
 export type Remboursement = { ok: true; message: string; montant: number } | { ok: false; message: string };
 
 /** Deux clics sur « Rembourser » ne doivent pas rembourser deux fois. */
@@ -32,6 +34,21 @@ export async function rembourserUneVente(input: {
   raison?: string;
 }): Promise<Remboursement> {
   const { orderItemId } = input;
+
+  // ── VERROU CONCURRENTIEL ATOMIQUE ───────────────────────────────────────
+  //
+  // Un enregistrement en base n'existe qu'APRÈS la transaction. Deux requêtes
+  // simultanées (ex: double-clic ou attaques concurrentes) passeraient toutes
+  // deux le findFirst avant que l'opérateur ait répondu, entraînant un double
+  // déboursement financier sur le compte marchand. Le compteur atomique bloque
+  // immédiatement toute requête parallèle.
+  const pilote = piloteLimite();
+  const cleVerrou = `verrou:remboursement:${orderItemId}`;
+  const verrou = await pilote.compter(cleVerrou, FENETRE_DOUBLON_MS);
+  if (verrou !== null && verrou > 1) {
+    return { ok: false, message: "Un remboursement est déjà en cours de traitement pour cette vente. Recharge la page." };
+  }
+
   const ligne = await db.orderItem.findUnique({
     where: { id: orderItemId },
     select: {
@@ -45,23 +62,37 @@ export async function rembourserUneVente(input: {
     },
   });
 
-  if (!ligne) return { ok: false, message: "Vente introuvable." };
+  if (!ligne) {
+    await pilote.effacer(cleVerrou);
+    return { ok: false, message: "Vente introuvable." };
+  }
 
   // Le drapeau que la machine à états du risque pose quand un solde plonge.
   if (ligne.product.seller.refundsDisabled) {
+    await pilote.effacer(cleVerrou);
     return { ok: false, message: "Les remboursements sont suspendus sur ce compte vendeur. Le support doit intervenir." };
   }
 
   if (ligne.chargebackAt !== null) {
+    await pilote.effacer(cleVerrou);
     return { ok: false, message: "Ce paiement est contesté auprès de la banque : l'argent a déjà été repris." };
   }
 
   const restant = ligne.price * ligne.quantity - ligne.refundedAmount;
-  if (restant <= 0) return { ok: false, message: "Cette vente est déjà remboursée en entier." };
+  if (restant <= 0) {
+    await pilote.effacer(cleVerrou);
+    return { ok: false, message: "Cette vente est déjà remboursée en entier." };
+  }
 
   const montant = input.montant ?? restant;
-  if (!Number.isInteger(montant) || montant <= 0) return { ok: false, message: "Indique un montant à rembourser." };
-  if (montant > restant) return { ok: false, message: "Tu ne peux pas rembourser plus que le restant." };
+  if (!Number.isInteger(montant) || montant <= 0) {
+    await pilote.effacer(cleVerrou);
+    return { ok: false, message: "Indique un montant à rembourser." };
+  }
+  if (montant > restant) {
+    await pilote.effacer(cleVerrou);
+    return { ok: false, message: "Tu ne peux pas rembourser plus que le restant." };
+  }
 
   // Protection contre le double clic : un remboursement identique à l'instant
   // est presque toujours un envoi accidentel, jamais une décision.
@@ -69,7 +100,9 @@ export async function rembourserUneVente(input: {
     where: { orderItemId, amount: montant, createdAt: { gte: new Date(Date.now() - FENETRE_DOUBLON_MS) } },
     select: { id: true },
   });
-  if (jumeau) return { ok: false, message: "Ce remboursement vient d'être enregistré. Recharge la page." };
+  if (jumeau) {
+    return { ok: false, message: "Ce remboursement vient d'être enregistré. Recharge la page." };
+  }
 
   // ── L'ARGENT D'ABORD, LES ÉCRITURES ENSUITE ──────────────────────────────
   //
@@ -85,7 +118,11 @@ export async function rembourserUneVente(input: {
     devise: ligne.order.currency,
     motifInterne: input.motifInterne,
   });
-  if (!suiteOperateur.ok) return { ok: false, message: suiteOperateur.message };
+  if (!suiteOperateur.ok) {
+    await pilote.effacer(cleVerrou);
+    return { ok: false, message: suiteOperateur.message };
+  }
+
 
   try {
     const { retenu } = await rembourserLigne({ orderItemId, amount: montant, refundedById: input.parId, reason: input.raison });

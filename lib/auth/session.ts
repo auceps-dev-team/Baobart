@@ -110,19 +110,27 @@ export async function ouvrirSession(
   return session.id;
 }
 
+import { cache } from "react";
+
 /**
  * Personne connectée, ou `null`.
  *
  * Une session expirée est supprimée au passage : la table ne grossit pas
  * indéfiniment, et un jeton périmé ne traîne pas en base.
+ *
+ * Mémoïsé par requête via React cache() pour éviter d'interroger la base
+ * plusieurs fois par page (layout, header, page, composants).
  */
-export async function sessionCourante(): Promise<UtilisateurConnecte | null> {
-  const magasin = await cookies();
-  const jeton = magasin.get(NOM_COOKIE)?.value;
-  if (!jeton) return null;
+export const sessionCourante = cache(
+  async function sessionCourante(): Promise<UtilisateurConnecte | null> {
+    const magasin = await cookies();
+    const jeton = magasin.get(NOM_COOKIE)?.value;
+    if (!jeton) return null;
 
-  return resoudreSession(jeton);
-}
+    return resoudreSession(jeton);
+  },
+);
+
 
 /**
  * Le même travail, à partir d'un jeton explicite.

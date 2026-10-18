@@ -64,6 +64,8 @@ export interface EtatTelephone {
   numeroMasque?: string;
 }
 
+import { createHmac, timingSafeEqual } from "crypto";
+
 /** Le numéro en attente de code, entre les deux étapes. */
 const COOKIE_CONNEXION = "baobart_tel_connexion";
 const COOKIE_VERIFICATION = "baobart_tel_verification";
@@ -71,9 +73,37 @@ const COOKIE_VERIFICATION = "baobart_tel_verification";
 /** Dix minutes, comme le code. */
 const DUREE_COOKIE_S = 600;
 
+function signerNumero(e164: string): string {
+  const secret = process.env.SESSION_SECRET ?? "baobart-phone-signature-fallback";
+  const hmac = createHmac("sha256", secret).update(e164).digest("hex");
+  return `${e164}.${hmac}`;
+}
+
+async function recupererNumero(nom: string): Promise<string | null> {
+  const magasin = await cookies();
+  const brut = magasin.get(nom)?.value;
+  if (!brut) return null;
+  const point = brut.lastIndexOf(".");
+  if (point === -1) {
+    return brut.startsWith("+") && /^\+[1-9]\d{6,14}$/.test(brut) ? brut : null;
+  }
+
+  const e164 = brut.slice(0, point);
+  const hmacRecu = brut.slice(point + 1);
+  const secret = process.env.SESSION_SECRET ?? "baobart-phone-signature-fallback";
+  const hmacAttendu = createHmac("sha256", secret).update(e164).digest("hex");
+  if (
+    hmacRecu.length !== hmacAttendu.length ||
+    !timingSafeEqual(Buffer.from(hmacRecu), Buffer.from(hmacAttendu))
+  ) {
+    return null;
+  }
+  return e164;
+}
+
 async function poserNumero(nom: string, e164: string): Promise<void> {
   const magasin = await cookies();
-  magasin.set(nom, e164, {
+  magasin.set(nom, signerNumero(e164), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -81,6 +111,7 @@ async function poserNumero(nom: string, e164: string): Promise<void> {
     maxAge: DUREE_COOKIE_S,
   });
 }
+
 
 function lireNumero(donnees: FormData): string | null {
   return versE164(
@@ -172,11 +203,12 @@ export async function verifierCodeConnexion(
   const borne = await verifierLimiteAction("connexion");
   if (!borne.autorise) return { ...tropDEssais(borne.dansSecondes), etape: "code" };
 
-  const magasin = await cookies();
-  const e164 = magasin.get(COOKIE_CONNEXION)?.value;
+  const e164 = await recupererNumero(COOKIE_CONNEXION);
   if (!e164) {
     return { erreur: "La demande a expiré. Recommence avec ton numéro.", etape: "numero" };
   }
+  const magasin = await cookies();
+
 
   const suite = await verifierCode({
     telephone: e164,
@@ -305,9 +337,10 @@ export async function confirmerTelephone(
   // l'avoir franchie récemment.
   if (!(await deuxFacteursRecent(moi.sessionId))) return DEUX_FACTEURS_A_REFAIRE;
 
-  const magasin = await cookies();
-  const e164 = magasin.get(COOKIE_VERIFICATION)?.value;
+  const e164 = await recupererNumero(COOKIE_VERIFICATION);
   if (!e164) return { erreur: "La demande a expiré. Redemande un code.", etape: "numero" };
+  const magasin = await cookies();
+
 
   const suite = await verifierCode({
     telephone: e164,
