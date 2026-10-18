@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { deuxFacteursRecent } from "@/lib/auth/deux-facteurs";
+import { verifierMotDePasse } from "@/lib/auth/password";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { deposer } from "@/lib/email/outbox";
@@ -55,14 +56,32 @@ export async function enregistrerCompteDeVersement(
   const saisie = { provider, reference, titulaire };
 
   // Sécurité renforcée (Step-Up Auth) :
-  // Si le compte a activé la double authentification, il doit l'avoir franchie
-  // récemment avant de pouvoir modifier la destination des versements.
+  // 1. Si le compte a activé la 2FA, celle-ci doit avoir été validée récemment.
   if (utilisateur.sessionId && !(await deuxFacteursRecent(utilisateur.sessionId))) {
     return {
       ok: false,
       message: "Par sécurité, reconnecte-toi avec ta double authentification avant de modifier ton compte de versement.",
       saisie,
     };
+  }
+
+  // 2. Si un mot de passe de confirmation est fourni, le valider rigoureusement
+  const motDePasse = donnees.get("motDePasseConfirmation");
+  if (motDePasse && typeof motDePasse === "string") {
+    const compte = await db.user.findUnique({
+      where: { id: utilisateur.id },
+      select: { passwordHash: true },
+    });
+    if (compte?.passwordHash) {
+      const motDePasseValide = await verifierMotDePasse(motDePasse, compte.passwordHash);
+      if (!motDePasseValide) {
+        return {
+          ok: false,
+          message: "Mot de passe incorrect. La modification du compte de versement requiert une confirmation valide.",
+          saisie,
+        };
+      }
+    }
   }
 
   const verdict = verifierCompte({ provider, reference, titulaire });

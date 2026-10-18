@@ -68,11 +68,18 @@ export function adresseDe(requete: Request): string | null {
 /**
  * La clé de limitation d'une requête anonyme.
  *
- * Sans adresse, on rend `null` et l'appelant laisse passer. Utiliser une valeur
- * de repli commune — « inconnu » — serait pire que rien : tous les visiteurs
- * sans adresse partageraient un seul compteur, et le premier robot fermerait la
- * porte à tous les autres.
+ * Sans adresse identifiable :
+ * — Par défaut (dév, test, tunnel), rend `null` et laisse passer pour ne pas bloquer les tests/dév.
+ * — Quand `RATE_LIMIT_STRICT=true` (ou option stricte), assigne la clé commune `"anonyme-sans-ip"`
+ *   afin d'interdire aux requêtes directes sans proxy headers d'échapper au rate limiting.
  */
-export function sujetAnonyme(requete: Request): string | null {
-  return adresseDe(requete);
+export function sujetAnonyme(
+  requete: Request,
+  optionnelStrict?: boolean,
+): string | null {
+  const adresse = adresseDe(requete);
+  if (adresse) return adresse;
+
+  const strict = optionnelStrict ?? process.env.RATE_LIMIT_STRICT === "true";
+  return strict ? "anonyme-sans-ip" : null;
 }

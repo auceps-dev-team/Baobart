@@ -107,6 +107,16 @@ describe("le temps de remplissage", () => {
     );
   });
 
+  it("refuse un horodatage absent ou vide quand delaiRequis est actif", async () => {
+    const verdictAbsent = await evaluerUnGeste(humain({ ouvertLe: null, delaiRequis: true }));
+    expect(verdictAbsent.laisserPasser).toBe(false);
+    expect(verdictAbsent.motif).toBe("trop_rapide");
+
+    const verdictVide = await evaluerUnGeste(humain({ ouvertLe: "  ", delaiRequis: true }));
+    expect(verdictVide.laisserPasser).toBe(false);
+    expect(verdictVide.motif).toBe("trop_rapide");
+  });
+
   it("laisse passer un horodatage illisible", async () => {
     expect(
       (await evaluerUnGeste(humain({ ouvertLe: "hier" }))).laisserPasser,

@@ -275,7 +275,6 @@ export async function inscrire(
     journal.info("inscription tentée avec une adresse déjà enregistrée", {});
     return {
       erreur: "Impossible de créer ce compte avec ces informations. Si tu possèdes déjà un compte, connecte-toi.",
-      champ: "email",
     };
   }
   if (usernamePris) {

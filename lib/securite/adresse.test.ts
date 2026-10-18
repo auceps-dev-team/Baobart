@@ -61,10 +61,12 @@ describe("l'adresse d'une requête", () => {
     expect(adresseDe(r)).toBe("2.2.2.2");
   });
 
-  it("ne fabrique jamais de sujet de repli", () => {
-    // Une valeur commune — « inconnu » — serait pire que rien : tous les
-    // visiteurs sans adresse partageraient un compteur, et le premier robot
-    // fermerait la porte à tous les autres.
+  it("ne fabrique pas de sujet de repli par défaut en dév", () => {
+    // Par défaut, pas de repli en dev/test pour ne pas bloquer les développeurs
     expect(sujetAnonyme(requete({}))).toBeNull();
+  });
+
+  it("produit un sujet de repli protecteur quand le mode strict est actif", () => {
+    expect(sujetAnonyme(requete({}), true)).toBe("anonyme-sans-ip");
   });
 });

@@ -159,13 +159,13 @@ function tropRapide(
   brut: string | null | undefined,
   requis = false,
 ): boolean {
-  if (!brut) {
-    return Boolean(requis && process.env.NODE_ENV === "production");
+  if (!brut || !brut.trim()) {
+    return requis;
   }
 
   const ouvert = Number(brut);
   if (!Number.isFinite(ouvert)) {
-    return Boolean(requis && process.env.NODE_ENV === "production");
+    return requis;
   }
 
   const ecart = Date.now() - ouvert;

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { rembourserLigne } from "@/lib/domain/orders";
 import { journal } from "@/lib/observabilite/journal";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
+import { piloteLimite } from "@/lib/securite/pilotes";
 
 /**
  * Rembourser une vente : l'opérateur d'abord, le grand livre ensuite.
@@ -18,12 +19,36 @@ import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
  * ou le support sur une demande restée sans réponse).
  */
 
-import { piloteLimite } from "@/lib/securite/pilotes";
-
 export type Remboursement = { ok: true; message: string; montant: number } | { ok: false; message: string };
 
 /** Deux clics sur « Rembourser » ne doivent pas rembourser deux fois. */
 const FENETRE_DOUBLON_MS = 60_000;
+
+/** Registre en mémoire pour garantir l'exclusion mutuelle locale immédiate. */
+const verrousLocaux = new Map<string, number>();
+
+async function acquerirVerrou(cle: string, ttlMs: number): Promise<boolean> {
+  const maintenant = Date.now();
+  const expireA = verrousLocaux.get(cle);
+  if (expireA && expireA > maintenant) {
+    return false;
+  }
+  verrousLocaux.set(cle, maintenant + ttlMs);
+
+  const pilote = piloteLimite();
+  const compteur = await pilote.compter(cle, ttlMs);
+  if (compteur !== null && compteur > 1) {
+    verrousLocaux.delete(cle);
+    return false;
+  }
+  return true;
+}
+
+async function libererVerrou(cle: string): Promise<void> {
+  verrousLocaux.delete(cle);
+  const pilote = piloteLimite();
+  await pilote.effacer(cle);
+}
 
 export async function rembourserUneVente(input: {
   orderItemId: string;
@@ -40,12 +65,11 @@ export async function rembourserUneVente(input: {
   // Un enregistrement en base n'existe qu'APRÈS la transaction. Deux requêtes
   // simultanées (ex: double-clic ou attaques concurrentes) passeraient toutes
   // deux le findFirst avant que l'opérateur ait répondu, entraînant un double
-  // déboursement financier sur le compte marchand. Le compteur atomique bloque
-  // immédiatement toute requête parallèle.
-  const pilote = piloteLimite();
+  // déboursement financier sur le compte marchand. Le verrou atomique bloque
+  // immédiatement toute requête parallèle locale et distribuée.
   const cleVerrou = `verrou:remboursement:${orderItemId}`;
-  const verrou = await pilote.compter(cleVerrou, FENETRE_DOUBLON_MS);
-  if (verrou !== null && verrou > 1) {
+  const verrouAcquis = await acquerirVerrou(cleVerrou, FENETRE_DOUBLON_MS);
+  if (!verrouAcquis) {
     return { ok: false, message: "Un remboursement est déjà en cours de traitement pour cette vente. Recharge la page." };
   }
 
@@ -63,34 +87,34 @@ export async function rembourserUneVente(input: {
   });
 
   if (!ligne) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: "Vente introuvable." };
   }
 
   // Le drapeau que la machine à états du risque pose quand un solde plonge.
   if (ligne.product.seller.refundsDisabled) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: "Les remboursements sont suspendus sur ce compte vendeur. Le support doit intervenir." };
   }
 
   if (ligne.chargebackAt !== null) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: "Ce paiement est contesté auprès de la banque : l'argent a déjà été repris." };
   }
 
   const restant = ligne.price * ligne.quantity - ligne.refundedAmount;
   if (restant <= 0) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: "Cette vente est déjà remboursée en entier." };
   }
 
   const montant = input.montant ?? restant;
   if (!Number.isInteger(montant) || montant <= 0) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: "Indique un montant à rembourser." };
   }
   if (montant > restant) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: "Tu ne peux pas rembourser plus que le restant." };
   }
 
@@ -111,15 +135,16 @@ export async function rembourserUneVente(input: {
   // fait que l'échec courant ne laisse AUCUNE trace. L'échec rare — l'opérateur
   // a rendu l'argent et l'écriture ne passe pas — est bruyant et se rattrape à
   // la main.
+  const cleIdempotence = `remboursement-${orderItemId}-${montant}`;
   const suiteOperateur = await rendreLArgent({
     fournisseur: ligne.order.provider,
     referenceOperateur: ligne.order.providerRef,
     montant,
     devise: ligne.order.currency,
-    motifInterne: input.motifInterne,
+    motifInterne: `${input.motifInterne} [idemp:${cleIdempotence}]`,
   });
   if (!suiteOperateur.ok) {
-    await pilote.effacer(cleVerrou);
+    await libererVerrou(cleVerrou);
     return { ok: false, message: suiteOperateur.message };
   }
 
@@ -138,6 +163,8 @@ export async function rembourserUneVente(input: {
       remede: "L'acheteur a été remboursé mais le vendeur n'est pas débité. Rapprocher le relevé de l'opérateur et passer l'écriture à la main.",
     });
     throw cause;
+  } finally {
+    await libererVerrou(cleVerrou);
   }
 }
 

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
+import { cache } from "react";
 
 import { cookies } from "next/headers";
 
@@ -110,8 +111,6 @@ export async function ouvrirSession(
   return session.id;
 }
 
-import { cache } from "react";
-
 /**
  * Personne connectée, ou `null`.
  *
@@ -156,11 +155,13 @@ export async function resoudreSession(
           suspendedAt: true,
           followersCount: true,
           profile: { select: { displayName: true, username: true } },
-          _count: {
-            select: {
-              products: true,
-              balanceTransactions: true,
-            },
+          products: {
+            take: 1,
+            select: { id: true },
+          },
+          balanceTransactions: {
+            take: 1,
+            select: { id: true },
           },
         },
       },
@@ -178,10 +179,10 @@ export async function resoudreSession(
   // encore frais — la suspension doit prendre effet immédiatement.
   if (session.user.suspendedAt) return null;
 
-  // Le compte des produits PUBLIÉS demande une seconde lecture : `_count` ne
-  // sait pas compter deux fois la même relation avec des filtres différents.
-  const produitsPublies = await db.product.count({
+  // Recherche O(1) du premier produit publié plutôt qu'un COUNT global
+  const produitPublie = await db.product.findFirst({
     where: { sellerId: session.user.id, status: "PUBLISHED" },
+    select: { id: true },
   });
 
   return {
@@ -193,9 +194,9 @@ export async function resoudreSession(
     abonnes: session.user.followersCount,
     role: session.user.platformRole,
     progression: deduireProgression({
-      produits: session.user._count.products,
-      produitsPublies,
-      ecrituresAuGrandLivre: session.user._count.balanceTransactions,
+      produits: session.user.products.length,
+      produitsPublies: produitPublie ? 1 : 0,
+      ecrituresAuGrandLivre: session.user.balanceTransactions.length,
     }),
   };
 }

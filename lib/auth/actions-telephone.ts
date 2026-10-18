@@ -1,5 +1,6 @@
 "use server";
 
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -64,8 +65,6 @@ export interface EtatTelephone {
   numeroMasque?: string;
 }
 
-import { createHmac, timingSafeEqual } from "crypto";
-
 /** Le numéro en attente de code, entre les deux étapes. */
 const COOKIE_CONNEXION = "baobart_tel_connexion";
 const COOKIE_VERIFICATION = "baobart_tel_verification";
@@ -73,8 +72,19 @@ const COOKIE_VERIFICATION = "baobart_tel_verification";
 /** Dix minutes, comme le code. */
 const DUREE_COOKIE_S = 600;
 
+function secretDeSignature(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET doit être défini en production pour signer les sessions téléphoniques.");
+    }
+    return "baobart-phone-signature-fallback-dev";
+  }
+  return secret;
+}
+
 function signerNumero(e164: string): string {
-  const secret = process.env.SESSION_SECRET ?? "baobart-phone-signature-fallback";
+  const secret = secretDeSignature();
   const hmac = createHmac("sha256", secret).update(e164).digest("hex");
   return `${e164}.${hmac}`;
 }
@@ -84,13 +94,12 @@ async function recupererNumero(nom: string): Promise<string | null> {
   const brut = magasin.get(nom)?.value;
   if (!brut) return null;
   const point = brut.lastIndexOf(".");
-  if (point === -1) {
-    return brut.startsWith("+") && /^\+[1-9]\d{6,14}$/.test(brut) ? brut : null;
-  }
+  // Rejet strict de tout cookie non signé pour interdire les falsifications côté client
+  if (point === -1) return null;
 
   const e164 = brut.slice(0, point);
   const hmacRecu = brut.slice(point + 1);
-  const secret = process.env.SESSION_SECRET ?? "baobart-phone-signature-fallback";
+  const secret = secretDeSignature();
   const hmacAttendu = createHmac("sha256", secret).update(e164).digest("hex");
   if (
     hmacRecu.length !== hmacAttendu.length ||
@@ -98,7 +107,7 @@ async function recupererNumero(nom: string): Promise<string | null> {
   ) {
     return null;
   }
-  return e164;
+  return /^\+[1-9]\d{6,14}$/.test(e164) ? e164 : null;
 }
 
 async function poserNumero(nom: string, e164: string): Promise<void> {
