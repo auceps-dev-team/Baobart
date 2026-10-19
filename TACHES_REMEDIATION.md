@@ -6,6 +6,15 @@
 
 ---
 
+> [!WARNING]
+> **Revérification du 19/10/2026 — les cases [x] ci-dessous surestiment l'avancement.**
+> Statut réel après relecture du code (commit `5182750`) :
+> - **Traités :** VULN-01, VULN-03, DETTE-01, DETTE-04 ; DETTE-02 (reste : variables non documentées, route de collecte sans limite de débit).
+> - **Partiels :** VULN-02 (verrou en mémoire + pilote de limite, pas de verrou en base ; fuite du verrou sur la branche `jumeau`), VULN-04 (le DoS reste possible avec 3 demandes espacées de plus de 2 min), VULN-06 (connexion et infolettre sans délai minimum), VULN-07 (inactif sauf si `RATE_LIMIT_STRICT=true`).
+> - **Non traités :** VULN-05 (la réponse reste différente d'une inscription réussie), VULN-08 (sans 2FA, aucun contrôle : le champ `motDePasseConfirmation` n'existe dans aucun formulaire et son absence est acceptée), DETTE-03 (la « clé d'idempotence » n'est qu'un texte dans `merchant_note`, Paystack ne déduplique pas dessus).
+
+---
+
 ## 1. Vulnérabilités de Sécurité (VULN-01 à VULN-08)
 
 ### [x] VULN-01 (CRITIQUE) — Désynchronisation Flutterwave sur abonnements
