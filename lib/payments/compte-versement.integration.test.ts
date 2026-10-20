@@ -23,18 +23,22 @@ let sessionCouranteValeur: { id: string; email: string; nom: string } | null = n
 vi.mock("@/lib/auth/session", () => ({
   sessionCourante: async () => sessionCouranteValeur,
 }));
+vi.mock("@/lib/auth/deux-facteurs", () => ({
+  verifierCodeOuSecours: async (_userId: string, code: string) => code === "123456",
+}));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 import { enregistrerCompteDeVersement } from "@/lib/payments/actions";
 
 let n = 0;
 
-async function compteConnecte() {
+async function compteConnecte(options: { totp?: boolean } = { totp: true }) {
   n += 1;
   const marque = `${n}-${Math.random().toString(36).slice(2, 7)}`;
   const u = await db.user.create({
     data: {
       email: `versement-${marque}@baobart.test`,
+      totpActiveLe: options.totp !== false ? new Date() : null,
       profile: { create: { username: `versement-${marque}`, displayName: "Awa Diallo" } },
     },
     select: { id: true, email: true },
@@ -46,6 +50,7 @@ async function compteConnecte() {
 function saisie(champs: Record<string, string>): FormData {
   const fd = new FormData();
   for (const [k, v] of Object.entries(champs)) fd.append(k, v);
+  if (!fd.has("code2FA")) fd.append("code2FA", "123456");
   return fd;
 }
 

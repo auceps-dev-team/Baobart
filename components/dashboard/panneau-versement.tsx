@@ -231,6 +231,17 @@ function CompteDeVersement({
                 style={CHAMP}
               />
             </div>
+            <div>
+              <div style={{ ...ETIQUETTE, marginBottom: 6 }}>Code 2FA (TOTP ou secours)</div>
+              <input
+                id="code2FA"
+                name="code2FA"
+                required
+                placeholder="123456"
+                autoComplete="one-time-code"
+                style={CHAMP}
+              />
+            </div>
           </div>
 
           {refus ? (

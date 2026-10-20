@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { journal } from "@/lib/observabilite/journal";
+import { reponseTropDeGestes, verifierLimiteHttp } from "@/lib/securite/garde";
 
 /**
  * Collecteur d'incidents CSP (Content Security Policy).
@@ -13,7 +14,12 @@ import { journal } from "@/lib/observabilite/journal";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(requete: Request): Promise<NextResponse> {
+export async function POST(requete: Request): Promise<Response> {
+  const passage = await verifierLimiteHttp("csp.rapport", requete);
+  if (!passage.autorise) {
+    return reponseTropDeGestes(passage);
+  }
+
   try {
     const corps = await requete.json();
     const rapport = (corps && typeof corps === "object" && "csp-report" in corps)

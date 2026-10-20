@@ -73,10 +73,12 @@ const COOKIE_VERIFICATION = "baobart_tel_verification";
 const DUREE_COOKIE_S = 600;
 
 function secretDeSignature(): string {
-  const secret = process.env.SESSION_SECRET;
+  const secret = process.env.SESSION_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      throw new Error("SESSION_SECRET doit être défini en production pour signer les sessions téléphoniques.");
+      throw new Error(
+        "SESSION_SECRET ou AUTH_SECRET doit être défini en production pour signer les sessions téléphoniques.",
+      );
     }
     return "baobart-phone-signature-fallback-dev";
   }

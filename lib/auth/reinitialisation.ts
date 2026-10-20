@@ -133,15 +133,15 @@ export async function demanderReinitialisation(
     return { fait: true };
   }
 
-  // Protection contre le déni de service (DoS) et l'invalidation intempestive :
-  // Si un jeton actif a été créé il y a moins de deux minutes, on ne l'écrase pas
+  // Protection contre le déni de service (DoS) et l'invalidation intempestive (VULN-04) :
+  // Si un jeton actif a été créé il y a moins de cinq minutes, on ne l'écrase pas
   // pour laisser le temps à l'utilisateur de cliquer sur le lien reçu.
   const jetonActifRecent = await db.passwordReset.findFirst({
     where: {
       userId: utilisateur.id,
       usedAt: null,
       expiresAt: { gt: new Date() },
-      createdAt: { gte: new Date(Date.now() - 2 * 60_000) },
+      createdAt: { gte: new Date(Date.now() - 5 * 60_000) },
     },
     select: { id: true },
   });

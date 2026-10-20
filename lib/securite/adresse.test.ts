@@ -69,4 +69,14 @@ describe("l'adresse d'une requête", () => {
   it("produit un sujet de repli protecteur quand le mode strict est actif", () => {
     expect(sujetAnonyme(requete({}), true)).toBe("anonyme-sans-ip");
   });
+
+  it("produit un sujet de repli protecteur en production sans IP", () => {
+    const prev = process.env.NODE_ENV;
+    try {
+      (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+      expect(sujetAnonyme(requete({}))).toBe("anonyme-sans-ip");
+    } finally {
+      (process.env as Record<string, string | undefined>).NODE_ENV = prev;
+    }
+  });
 });

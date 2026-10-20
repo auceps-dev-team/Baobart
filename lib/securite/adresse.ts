@@ -80,6 +80,9 @@ export function sujetAnonyme(
   const adresse = adresseDe(requete);
   if (adresse) return adresse;
 
-  const strict = optionnelStrict ?? process.env.RATE_LIMIT_STRICT === "true";
+  const strict =
+    optionnelStrict ??
+    (process.env.NODE_ENV === "production" ||
+      process.env.RATE_LIMIT_STRICT === "true");
   return strict ? "anonyme-sans-ip" : null;
 }

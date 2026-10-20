@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { deuxFacteursRecent } from "@/lib/auth/deux-facteurs";
-import { verifierMotDePasse } from "@/lib/auth/password";
+import { verifierCodeOuSecours } from "@/lib/auth/deux-facteurs";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { deposer } from "@/lib/email/outbox";
@@ -55,33 +54,46 @@ export async function enregistrerCompteDeVersement(
   // d'une action, et refaire saisir un IBAN sur une faute de frappe est cruel.
   const saisie = { provider, reference, titulaire };
 
-  // Sécurité renforcée (Step-Up Auth) :
-  // 1. Si le compte a activé la 2FA, celle-ci doit avoir été validée récemment.
-  if (utilisateur.sessionId && !(await deuxFacteursRecent(utilisateur.sessionId))) {
+  // ── SÉCURITÉ RENFORCÉE (2FA OBLIGATOIRE SUR LE COMPTE DE VERSEMENT) ──────
+  //
+  // Le compte de versement est la cible n°1 en cas de vol de session :
+  // détourner ce compte redirige les paies du créateur.
+  //
+  // Règle produit :
+  // 1. La 2FA (TOTP) doit impérativement être active sur le compte. Si elle ne
+  //    l'est pas, le versement est bloqué et renvoie vers les paramètres.
+  // 2. À chaque enregistrement ou remplacement, un code TOTP ou un code de
+  //    secours doit être saisi sur le formulaire. Aucun mot de passe ni
+  //    fraîcheur de session ne s'y substitue.
+  const compte = await db.user.findUnique({
+    where: { id: utilisateur.id },
+    select: { totpActiveLe: true },
+  });
+
+  if (!compte?.totpActiveLe) {
     return {
       ok: false,
-      message: "Par sécurité, reconnecte-toi avec ta double authentification avant de modifier ton compte de versement.",
+      message: "La double authentification (TOTP) est obligatoire pour enregistrer un compte de versement. Active-la dans tes paramètres de sécurité.",
       saisie,
     };
   }
 
-  // 2. Si un mot de passe de confirmation est fourni, le valider rigoureusement
-  const motDePasse = donnees.get("motDePasseConfirmation");
-  if (motDePasse && typeof motDePasse === "string") {
-    const compte = await db.user.findUnique({
-      where: { id: utilisateur.id },
-      select: { passwordHash: true },
-    });
-    if (compte?.passwordHash) {
-      const motDePasseValide = await verifierMotDePasse(motDePasse, compte.passwordHash);
-      if (!motDePasseValide) {
-        return {
-          ok: false,
-          message: "Mot de passe incorrect. La modification du compte de versement requiert une confirmation valide.",
-          saisie,
-        };
-      }
-    }
+  const code2FA = String(donnees.get("code2FA") ?? "").trim();
+  if (!code2FA) {
+    return {
+      ok: false,
+      message: "Saisis ton code à 6 chiffres (ou code de secours) pour valider l'enregistrement du compte.",
+      saisie,
+    };
+  }
+
+  const codeValide = await verifierCodeOuSecours(utilisateur.id, code2FA);
+  if (!codeValide) {
+    return {
+      ok: false,
+      message: "Code d'authentification invalide ou expiré.",
+      saisie,
+    };
   }
 
   const verdict = verifierCompte({ provider, reference, titulaire });

@@ -380,6 +380,12 @@ export async function rembourserChezPaystack(
       headers: {
         authorization: `Bearer ${secret}`,
         "content-type": "application/json",
+        ...(demande.idempotenceKey
+          ? {
+              "Idempotency-Key": demande.idempotenceKey,
+              "X-Idempotency-Key": demande.idempotenceKey,
+            }
+          : {}),
       },
       body: JSON.stringify({
         transaction: demande.referenceOperateur,

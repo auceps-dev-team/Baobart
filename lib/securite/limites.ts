@@ -237,6 +237,12 @@ export const REGLES = {
    * inonder la boîte de quelqu'un d'autre.
    */
   "infolettre.inscription": { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
+   * Rapports de violation CSP envoyés par les navigateurs. Soixante par minute
+   * et par adresse pour éviter l'engorgement du journal d'observabilité.
+   */
+  "csp.rapport": { quota: 60, fenetreMs: 60_000 },
 } as const satisfies Record<string, Regle>;
 
 export type NomRegle = keyof typeof REGLES;
