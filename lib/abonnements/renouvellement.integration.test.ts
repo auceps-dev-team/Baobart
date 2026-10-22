@@ -275,6 +275,21 @@ describe("le rappel de l'opérateur", () => {
     expect(avis.readAt).toBeNull();
   });
 
+  it("reconnaît le rappel d'un opérateur qui a retiré le tiret (VULN-01)", async () => {
+    // Le cas Flutterwave avant le 18/10 : `referencePour` retirait le « - »,
+    // le rappel revenait en `abo<id>`, et la réception le prenait pour une
+    // commande introuvable. L'abonné payait, son cycle n'avançait pas.
+    const echeance = ajouterJours(new Date(), 2);
+    const { abonnement, paiementId } = await ouvert(echeance);
+
+    const sansTiret = referenceDe(paiementId).replace("-", "");
+    expect(sansTiret).toBe(`abo${paiementId}`);
+
+    const suite = await recevoir("bac-a-sable", fait(sansTiret), {});
+    expect(suite).toEqual({ recu: true, effet: "RENOUVELE" });
+    expect(joursEntre(echeance, (await lire(abonnement.id)).cycleEnd)).toBe(30);
+  });
+
   it("n'écrit ni reçu ni avis quand le paiement ne passe pas", async () => {
     // L'autre moitié de l'atomicité, et la plus importante : un paiement qui
     // ne se règle pas ne doit laisser aucune trace de reçu. Avant que
