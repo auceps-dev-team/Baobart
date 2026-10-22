@@ -19,10 +19,13 @@ export function FormulaireContact({
   genre,
   sujets,
   depart,
+  ouverture = null,
 }: {
   genre: "CONTACT" | "SPONSOR";
   sujets: readonly string[];
   depart: { nom: string; email: string };
+  /** L'instant signé par la page : l'envoi l'exige (`delaiRequis`). */
+  ouverture?: string | null;
 }) {
   const [etat, envoyer, enCours] = useActionState<EtatEnvoi | null, FormData>(envoyerMessage.bind(null, genre), null);
   const v = etat && !etat.ok ? etat.saisie : { ...depart, sujet: "", corps: "", budget: "" };
@@ -38,7 +41,7 @@ export function FormulaireContact({
 
   return (
     <form action={envoyer} data-contact={genre} style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, position: "relative" }}>
-      <ChampsAntiBot />
+      <ChampsAntiBot ouverture={ouverture} />
       {etat && !etat.ok ? (
         <div role="alert" style={{ ...bandeau, gridColumn: "1 / -1", background: ORANGE, color: BLANC }}>
           {etat.message}

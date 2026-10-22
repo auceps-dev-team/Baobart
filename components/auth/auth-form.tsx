@@ -53,6 +53,7 @@ export function AuthForm({
   avecMotDePasseOublie = false,
   fournisseurs = [],
   annonce,
+  ouverture = null,
 }: {
   mode: "connexion" | "inscription" | "oubli";
   titre: string;
@@ -67,6 +68,8 @@ export function AuthForm({
   avecMotDePasseOublie?: boolean;
   /** Message porté par l'URL — l'arrivée depuis un autre écran. */
   annonce?: string;
+  /** L'instant signé par la page — l'inscription l'exige (`delaiRequis`). */
+  ouverture?: string | null;
   /** Moyens secondaires. Ceux qui ne sont pas configurés restent affichés. */
   fournisseurs?: FournisseurPublic[];
 }) {
@@ -151,7 +154,7 @@ export function AuthForm({
           fait — voir `lib/auth/actions.ts` : le délai minimum ne vaut que
           pour l'inscription.
         */}
-        <ChampsAntiBot />
+        <ChampsAntiBot ouverture={ouverture} />
         {/*
           Le choix « Acheteur / Créateur » de « Baobart Auth.dc.html » est
           retiré (09/10, décision après les tests QA) : il n'existe aucun rôle

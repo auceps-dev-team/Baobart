@@ -17,8 +17,10 @@ import {
   DELAI_MINIMUM_MS,
   SEUIL_SCORE,
   UN_FORMULAIRE_TRANSMET_LE_JETON,
+  VALIDITE_OUVERTURE_MS,
   etatAntiBot,
   evaluerUnGeste,
+  ouvertureSignee,
 } from "@/lib/securite/antibot";
 
 const secretOrigine = process.env.RECAPTCHA_SECRET;
@@ -142,6 +144,55 @@ describe("le temps de remplissage", () => {
     );
 
     expect(v.laisserPasser).toBe(true);
+  });
+});
+
+describe("l'instant signé par la page", () => {
+  const secretAvant = process.env.AUTH_SECRET;
+  beforeEach(() => {
+    process.env.AUTH_SECRET = "un-secret-de-test-assez-long-0123";
+  });
+  afterEach(() => {
+    if (secretAvant === undefined) delete process.env.AUTH_SECRET;
+    else process.env.AUTH_SECRET = secretAvant;
+  });
+
+  const requis = (ouvertLe: string | null) => evaluerUnGeste(humain({ ouvertLe, delaiRequis: true }));
+
+  it("laisse passer un instant signé il y a une minute", async () => {
+    expect((await requis(ouvertureSignee(Date.now() - 60_000))).laisserPasser).toBe(true);
+  });
+
+  it("refuse un instant signé trop récent : la page vient d'être chargée", async () => {
+    expect((await requis(ouvertureSignee(Date.now() - 500))).laisserPasser).toBe(false);
+  });
+
+  it("refuse l'instant forgé qu'un script écrivait en une ligne", async () => {
+    // Le contournement du 18/10 : `maintenant - 3 s`, sans signature.
+    expect((await requis(String(Date.now() - 3_000))).laisserPasser).toBe(false);
+  });
+
+  it("refuse un instant reculé sous une vraie signature", async () => {
+    const vraie = ouvertureSignee(Date.now() - 500)!;
+    const recule = vraie.replace(/^\d+/, String(Date.now() - 60_000));
+    // Sans quoi le test passerait pour une autre raison (instant trop récent).
+    expect(recule).not.toBe(vraie);
+    expect((await requis(recule)).laisserPasser).toBe(false);
+  });
+
+  it("refuse un instant signé il y a plus de six heures", async () => {
+    expect((await requis(ouvertureSignee(Date.now() - VALIDITE_OUVERTURE_MS - 60_000))).laisserPasser).toBe(false);
+  });
+
+  it("ne change rien là où le délai n'est pas requis", async () => {
+    expect((await evaluerUnGeste(humain())).laisserPasser).toBe(true);
+    expect((await evaluerUnGeste(humain({ ouvertLe: null }))).laisserPasser).toBe(true);
+  });
+
+  it("sans secret, ne signe rien et retombe sur l'instant du navigateur", async () => {
+    delete process.env.AUTH_SECRET;
+    expect(ouvertureSignee()).toBeNull();
+    expect((await requis(String(Date.now() - 60_000))).laisserPasser).toBe(true);
   });
 });
 

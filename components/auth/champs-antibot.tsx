@@ -37,14 +37,23 @@ import { CHAMP_LEURRE, CHAMP_OUVERTURE } from "@/lib/securite/antibot-champs";
  * Écrit dans un `useEffect` et non au rendu : le rendu a lieu sur le serveur,
  * et son horloge n'est pas celle de la personne.
  */
-export function ChampsAntiBot() {
+export function ChampsAntiBot({
+  ouverture: signee = null,
+}: {
+  /**
+   * L'instant signé par le serveur (`ouvertureSignee`, lib/securite/antibot.ts).
+   * Présent, il est écrit dans le HTML et le navigateur n'y touche pas :
+   * le champ est rempli même sans JavaScript.
+   */
+  ouverture?: string | null;
+} = {}) {
   const ouverture = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (ouverture.current) {
+    if (!signee && ouverture.current) {
       ouverture.current.value = String(Date.now());
     }
-  }, []);
+  }, [signee]);
 
   return (
     <div
@@ -67,7 +76,7 @@ export function ChampsAntiBot() {
         autoComplete="off"
         defaultValue=""
       />
-      <input ref={ouverture} name={CHAMP_OUVERTURE} type="text" tabIndex={-1} />
+      <input ref={ouverture} name={CHAMP_OUVERTURE} type="text" tabIndex={-1} defaultValue={signee ?? ""} />
     </div>
   );
 }
