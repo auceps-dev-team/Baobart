@@ -361,3 +361,53 @@ describe("prouver son numéro depuis son compte", () => {
     expect(envoyes).toHaveLength(0);
   });
 });
+
+describe("le cookie du numéro en cours", () => {
+  it("signé : réécrit vers un autre numéro, il ne vaut plus rien", async () => {
+    process.env.AUTH_SECRET = "un-secret-de-test-assez-long-0123";
+    const tel = numeroLocal();
+    const autre = numeroLocal();
+    const { id } = await compte({ e164: tel.e164, prouve: true });
+    await compte({ e164: autre.e164, prouve: true });
+
+    await demanderCodeConnexion(null, formulaire({ numero: tel.saisi, pays: "CI" }));
+    await laisserPartir();
+    const pose = pot.get("baobart_tel_connexion")!;
+    expect(pose.startsWith(`${tel.e164}.`)).toBe(true);
+
+    // On garde la signature, on change le numéro : elle ne correspond plus.
+    pot.set("baobart_tel_connexion", pose.replace(tel.e164, autre.e164));
+    const etat = await verifierCodeConnexion(null, formulaire({ code: dernierCode() }));
+    expect(etat).toMatchObject({ etape: "numero" });
+    expect(await db.session.count({ where: { userId: id } })).toBe(0);
+  });
+
+  it("signé : le cookie de la connexion ne sert pas à la vérification", async () => {
+    process.env.AUTH_SECRET = "un-secret-de-test-assez-long-0123";
+    const tel = numeroLocal();
+    await compte({ e164: tel.e164, prouve: true });
+    await demanderCodeConnexion(null, formulaire({ numero: tel.saisi, pays: "CI" }));
+    await laisserPartir();
+
+    // La signature porte le nom du cookie : recopiée sous l'autre nom, elle
+    // ne se vérifie pas. Rien ne doit en sortir — ni numéro, ni rattachement.
+    const pose = pot.get("baobart_tel_connexion")!;
+    pot.set("baobart_tel_verification", pose);
+    const moi = await compte();
+    await ouvrirSession(moi.id);
+    const etat = await confirmerTelephone(null, formulaire({ code: dernierCode() }));
+    expect(etat).toMatchObject({ etape: "numero" });
+    expect((await db.user.findUniqueOrThrow({ where: { id: moi.id } })).phone).toBeNull();
+  });
+
+  it("sans secret, le parcours marche comme avant le 18/10", async () => {
+    delete process.env.AUTH_SECRET;
+    const tel = numeroLocal();
+    const { id } = await compte({ e164: tel.e164, prouve: true });
+    await demanderCodeConnexion(null, formulaire({ numero: tel.saisi, pays: "CI" }));
+    await laisserPartir();
+    expect(pot.get("baobart_tel_connexion")).toBe(tel.e164);
+    expect(await redirectionDe(verifierCodeConnexion(null, formulaire({ code: dernierCode() })))).toBe("/dashboard");
+    expect(await db.session.count({ where: { userId: id } })).toBe(1);
+  });
+});
