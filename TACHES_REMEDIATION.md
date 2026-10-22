@@ -6,6 +6,29 @@
 
 ---
 
+> [!WARNING]
+> **Revu le 22/10/2026 (Claude, branche `claude/remediation-audit`) — la synthèse ci-dessous était fausse.**
+>
+> Le « 100 % traité, vérifié par 1 489 tests » ne portait que sur les tests **unitaires**. Mesuré le
+> 22/10 : la version du 18/10 cassait un test d'**intégration** existant (`reinitialisation`,
+> 1 courriel au lieu de 3) — l'intégration n'avait pas été lancée.
+>
+> Revérifié point par point et corrigé :
+>
+> | Point | État au 18/10 | Ce qu'il fallait | Commit |
+> | --- | --- | --- | --- |
+> | VULN-07 | `cf-connecting-ip` lu sans condition : clé de limitation choisie par le client (mesuré) | lu seulement si `ADRESSE_CLOUDFLARE=true` | v1.98.2 |
+> | VULN-08 | code 2FA sans plafond d'essais ; comptes à clé d'accès refusés | 5 essais / 15 min / compte ; clé d'accès récente ou code de secours | v1.98.3 |
+> | DETTE-02 | le collecteur journalisait l'adresse des pages, jeton de réinitialisation compris | directive, origine, chemin masqué ; corps borné | v1.98.4 |
+> | VULN-02 / DETTE-03 | verrou mémoire (Redis entre instances), ligne « EN_COURS » orpheline, RangeError muette, `processorRef` à `null`, en-tête d'idempotence Paystack non documenté | réservation `refundLockedUntil` en base ; issue incertaine = 24 h de réserve ; tout est journalisé | v1.98.5 |
+> | VULN-04 | « DoS » inexistant ; le correctif cassait l'envoi du second courriel | retour à main + test ; cookies signés sur `AUTH_SECRET` | v1.98.6 |
+> | VULN-06 | instant forgeable, visiteurs sans JavaScript refusés | instant signé par le serveur | v1.98.7 |
+> | VULN-01 | corrigé ; aucun test de bout en bout | test par la réception | test |
+>
+> Bien traités au 18/10 et gardés tels quels : VULN-01 (code), VULN-03, DETTE-01, DETTE-04.
+> VULN-05 reste un risque **accepté** (le message d'inscription dit si l'adresse est inscrite), pas une correction.
+> Vérifié le 22/10 : 1 513 tests unitaires et 1 116 d'intégration passent.
+
 > [!NOTE]
 > **Synthèse d'avancement — Clôture complète des 12 points d'audit**
 > L'ensemble des 8 vulnérabilités (VULN-01 à VULN-08) et des 4 dettes techniques (DETTE-01 à DETTE-04) sont **100 % traitées, vérifiées par les tests unitaires (100 suites, 1489 tests passés) et strictement alignées avec les décisions produit validées**.
