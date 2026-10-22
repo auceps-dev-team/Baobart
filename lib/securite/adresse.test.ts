@@ -18,9 +18,27 @@ describe("l'adresse d'une requête", () => {
     expect(adresseDe(r)).toBe("9.9.9.9");
   });
 
-  it("reconnaît cf-connecting-ip posé par Cloudflare", () => {
-    const r = requete({ "cf-connecting-ip": "4.4.4.4", "x-forwarded-for": "1.1.1.1" });
-    expect(adresseDe(r)).toBe("4.4.4.4");
+  describe("cf-connecting-ip", () => {
+    it("est lu en premier quand le site se déclare derrière Cloudflare", () => {
+      const r = requete({ "cf-connecting-ip": "4.4.4.4", "x-real-ip": "2.2.2.2" });
+      expect(adresseDe(r, { ADRESSE_CLOUDFLARE: "true" })).toBe("4.4.4.4");
+    });
+
+    it("est ignoré sinon : hors de Cloudflare, c'est le client qui l'écrit", () => {
+      // Le cas mesuré le 22/10 : derrière Vercel, l'en-tête forgé l'emportait
+      // sur celui de la plateforme, et la clé changeait à chaque requête.
+      const cles = new Set(
+        ["203.0.113.1", "203.0.113.2", "203.0.113.3"].map((forge) =>
+          adresseDe(requete({ "x-vercel-forwarded-for": "198.51.100.7", "cf-connecting-ip": forge }), {}),
+        ),
+      );
+      expect([...cles]).toEqual(["198.51.100.7"]);
+    });
+
+    it("ne remplace pas x-real-ip derrière nginx ou Caddy", () => {
+      const r = requete({ "x-real-ip": "2.2.2.2", "cf-connecting-ip": "203.0.113.99" });
+      expect(adresseDe(r, {})).toBe("2.2.2.2");
+    });
   });
 
   it("retombe sur x-real-ip, posé par les mandataires inverses", () => {
