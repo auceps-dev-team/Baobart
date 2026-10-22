@@ -258,8 +258,6 @@ export interface DemandeRemboursement {
   motifClient: string;
   /** Ce qu'on retrouvera dans le tableau de bord de l'opérateur. */
   motifInterne: string;
-  /** Clé d'idempotence unique pour éviter tout double débit réseau chez l'opérateur. */
-  idempotenceKey?: string;
 }
 
 export type Remboursement =

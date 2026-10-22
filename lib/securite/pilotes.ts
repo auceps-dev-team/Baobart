@@ -42,10 +42,7 @@ export interface PiloteLimite {
   compter(cle: string, ttlMs: number): Promise<number | null>;
   /** Lit sans incrémenter. `0` quand la clé n'existe pas. */
   lire(cle: string): Promise<number | null>;
-  /** Supprime une clé ou libère un verrou. */
-  effacer(cle: string): Promise<void>;
 }
-
 
 // ────────────────────────────────────────────────────────────────── mémoire ──
 
@@ -89,12 +86,7 @@ const MEMOIRE: PiloteLimite = {
     if (!entree || entree.expireA <= Date.now()) return 0;
     return entree.valeur;
   },
-
-  async effacer(cle) {
-    compteurs.delete(cle);
-  },
 };
-
 
 /** Vidé par les tests. Sans cela, un test hériterait des compteurs du suivant. */
 export function oublierCompteurs(): void {
@@ -127,9 +119,7 @@ type ClientRedis = {
     ...args: (string | number)[]
   ): Promise<unknown>;
   get(cle: string): Promise<string | null>;
-  del?(...cles: string[]): Promise<number>;
 };
-
 
 let client: ClientRedis | null = null;
 let clientImpossible = false;
@@ -231,20 +221,6 @@ const REDIS: PiloteLimite = {
       return null;
     }
   },
-
-  async effacer(cle) {
-    const c = await connexion();
-    if (!c || !c.del) return;
-
-    try {
-      await c.del(cle);
-    } catch (cause) {
-      journal.avertissement("redis : impossible d'effacer la clé", {
-        cle,
-        cause: cause instanceof Error ? cause.message : String(cause),
-      });
-    }
-  },
 };
 
 // ──────────────────────────────────────────────────────────────────── aucun ──
@@ -258,9 +234,7 @@ const AUCUN: PiloteLimite = {
   async lire() {
     return null;
   },
-  async effacer() {},
 };
-
 
 const PILOTES: Record<NomPiloteLimite, PiloteLimite> = {
   memoire: MEMOIRE,

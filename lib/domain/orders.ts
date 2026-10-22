@@ -174,7 +174,8 @@ export async function rembourserLigne(input: {
   holdingCurrency?: Currency;
   tauxChange?: number;
   date?: Date;
-  refundId?: string;
+  /** La référence du remboursement chez l'opérateur, quand il en rend une. */
+  processorRef?: string | null;
 }) {
   const {
     orderItemId,
@@ -184,7 +185,7 @@ export async function rembourserLigne(input: {
     holdingCurrency,
     tauxChange,
     date = new Date(),
-    refundId,
+    processorRef = null,
   } = input;
 
   if (!Number.isInteger(amount) || amount <= 0) {
@@ -259,29 +260,17 @@ export async function rembourserLigne(input: {
       montant: amount,
     });
 
-    const remboursement = refundId
-      ? await tx.refund.update({
-          where: { id: refundId },
-          data: {
-            orderItemId,
-            amount,
-            currency: ligne.order.currency,
-            reason,
-            refundedById,
-            retainedFee: retenu,
-            processorRef: null,
-          },
-        })
-      : await tx.refund.create({
-          data: {
-            orderItemId,
-            amount,
-            currency: ligne.order.currency,
-            reason,
-            refundedById,
-            retainedFee: retenu,
-          },
-        });
+    const remboursement = await tx.refund.create({
+      data: {
+        orderItemId,
+        amount,
+        currency: ligne.order.currency,
+        reason,
+        refundedById,
+        retainedFee: retenu,
+        processorRef,
+      },
+    });
 
     // ────────────────────────────────────────────────────────────────
     // LE VENDEUR FINANCE LE REMBOURSEMENT EN ENTIER
