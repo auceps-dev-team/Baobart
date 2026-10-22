@@ -14,17 +14,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
+import { oublierCompteurs } from "@/lib/securite/pilotes";
 
 // ── Doublures de Next ────────────────────────────────────────────────────────
 
 // La session est posée par chaque test après avoir créé son utilisateur.
-let sessionCouranteValeur: { id: string; email: string; nom: string } | null = null;
+let sessionCouranteValeur: { id: string; sessionId: string; email: string; nom: string } | null = null;
 
 vi.mock("@/lib/auth/session", () => ({
   sessionCourante: async () => sessionCouranteValeur,
 }));
-vi.mock("@/lib/auth/deux-facteurs", () => ({
-  verifierCodeOuSecours: async (_userId: string, code: string) => code === "123456",
+// Le reste du module reste réel : `FRAICHEUR_SENSIBLE_MS` en vient.
+const verifierCodeOuSecours = vi.fn(async (_userId: string, code: string) => code === "123456");
+vi.mock("@/lib/auth/deux-facteurs", async (original) => ({
+  ...(await original<typeof import("@/lib/auth/deux-facteurs")>()),
+  verifierCodeOuSecours: (userId: string, code: string) => verifierCodeOuSecours(userId, code),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
@@ -32,7 +36,9 @@ import { enregistrerCompteDeVersement } from "@/lib/payments/actions";
 
 let n = 0;
 
-async function compteConnecte(options: { totp?: boolean } = { totp: true }) {
+async function compteConnecte(
+  options: { totp?: boolean; cleDAcces?: boolean; passageIlYA?: number | null } = { totp: true },
+) {
   n += 1;
   const marque = `${n}-${Math.random().toString(36).slice(2, 7)}`;
   const u = await db.user.create({
@@ -43,7 +49,16 @@ async function compteConnecte(options: { totp?: boolean } = { totp: true }) {
     },
     select: { id: true, email: true },
   });
-  sessionCouranteValeur = { id: u.id, email: u.email, nom: "Awa Diallo" };
+  if (options.cleDAcces) {
+    await db.passkey.create({ data: { userId: u.id, credentialId: `cle-${marque}`, publicKey: "x" } });
+  }
+  // Une vraie session : la règle lit son dernier passage 2FA.
+  const passage = options.passageIlYA == null ? null : new Date(Date.now() - options.passageIlYA);
+  const session = await db.session.create({
+    data: { userId: u.id, token: `jeton-${marque}`, expiresAt: new Date(Date.now() + 3_600_000), totpValideLe: passage },
+    select: { id: true },
+  });
+  sessionCouranteValeur = { id: u.id, sessionId: session.id, email: u.email, nom: "Awa Diallo" };
   return u;
 }
 
@@ -57,6 +72,8 @@ function saisie(champs: Record<string, string>): FormData {
 describe("enregistrerCompteDeVersement — l'alerte de sécurité", () => {
   beforeEach(() => {
     sessionCouranteValeur = null;
+    oublierCompteurs();
+    verifierCodeOuSecours.mockClear();
   });
 
   it("dépose une alerte à l'adresse du compte quand le compte de versement change", async () => {
@@ -133,5 +150,60 @@ describe("enregistrerCompteDeVersement — l'alerte de sécurité", () => {
         where: { template: "COMPTE_VERSEMENT_MODIFIE", recipient: u.email },
       }),
     ).toBe(0);
+  });
+});
+
+describe("enregistrerCompteDeVersement — la preuve demandée", () => {
+  beforeEach(() => {
+    sessionCouranteValeur = null;
+    oublierCompteurs();
+    verifierCodeOuSecours.mockClear();
+  });
+
+  const WAVE = { provider: "wave", reference: "+225 0700112233" };
+
+  it("arrête la devinette : au sixième code en un quart d'heure, même le bon est refusé", async () => {
+    const u = await compteConnecte();
+    for (let i = 0; i < 5; i += 1) {
+      const r = await enregistrerCompteDeVersement(null, saisie({ ...WAVE, code2FA: `00000${i}` }));
+      expect(r).toMatchObject({ ok: false, message: "Ce code ne correspond pas." });
+    }
+    const r = await enregistrerCompteDeVersement(null, saisie({ ...WAVE, code2FA: "123456" }));
+    expect(r.ok).toBe(false);
+    expect(r.ok ? "" : r.message).toMatch(/Trop de codes/);
+    // Le sixième n'a même pas été vérifié.
+    expect(verifierCodeOuSecours).toHaveBeenCalledTimes(5);
+    expect(await db.payoutAccount.count({ where: { userId: u.id } })).toBe(0);
+  });
+
+  it("une faute de frappe sur le numéro ne coûte aucun essai de code", async () => {
+    await compteConnecte();
+    await enregistrerCompteDeVersement(null, saisie({ provider: "wave", reference: "pas-un-numero" }));
+    expect(verifierCodeOuSecours).not.toHaveBeenCalled();
+  });
+
+  it("refuse un compte sans double authentification, même avec un code", async () => {
+    const u = await compteConnecte({ totp: false });
+    const r = await enregistrerCompteDeVersement(null, saisie(WAVE));
+    expect(r.ok).toBe(false);
+    expect(await db.payoutAccount.count({ where: { userId: u.id } })).toBe(0);
+  });
+
+  it("laisse passer un compte à clé d'accès franchie il y a dix minutes, sans code", async () => {
+    const u = await compteConnecte({ totp: false, cleDAcces: true, passageIlYA: 10 * 60_000 });
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(WAVE)) fd.append(k, v);
+    const r = await enregistrerCompteDeVersement(null, fd);
+    expect(r.ok).toBe(true);
+    expect(await db.payoutAccount.count({ where: { userId: u.id, deletedAt: null } })).toBe(1);
+  });
+
+  it("redemande la clé d'accès quand elle date de plus d'un quart d'heure", async () => {
+    const u = await compteConnecte({ totp: false, cleDAcces: true, passageIlYA: 20 * 60_000 });
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(WAVE)) fd.append(k, v);
+    const r = await enregistrerCompteDeVersement(null, fd);
+    expect(r.ok).toBe(false);
+    expect(await db.payoutAccount.count({ where: { userId: u.id } })).toBe(0);
   });
 });

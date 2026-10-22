@@ -232,11 +232,12 @@ function CompteDeVersement({
               />
             </div>
             <div>
-              <div style={{ ...ETIQUETTE, marginBottom: 6 }}>Code 2FA (TOTP ou secours)</div>
+              <div style={{ ...ETIQUETTE, marginBottom: 6 }}>
+                Code 2FA (TOTP ou secours) — vide si tu viens d&apos;utiliser ta clé d&apos;accès
+              </div>
               <input
                 id="code2FA"
                 name="code2FA"
-                required
                 placeholder="123456"
                 autoComplete="one-time-code"
                 style={CHAMP}

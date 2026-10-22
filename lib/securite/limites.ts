@@ -53,6 +53,21 @@ export const REGLES = {
   connexion: { quota: 10, fenetreMs: 15 * 60_000 },
 
   /**
+   * Codes de double authentification saisis pour un geste sensible — le
+   * compte de versement. Cinq essais par quart d'heure et PAR COMPTE.
+   *
+   * Par compte et non par adresse : celui qui essaie ces codes a déjà volé une
+   * session, et une session vaut pour un seul compte. Changer d'adresse ne lui
+   * rend aucun essai.
+   *
+   * Calculé le 22/10 (`TOLERANCE_PAS` = 1 : trois codes valables sur un
+   * million à chaque instant) : 333 333 essais en moyenne. Sans plafond — le
+   * cas du 18 au 22/10 —, deux heures à cinquante essais par seconde. Avec
+   * celui-ci, 480 essais par jour : près de deux ans.
+   */
+  "deux-facteurs.code": { quota: 5, fenetreMs: 15 * 60_000 },
+
+  /**
    * Inscription. Cinq comptes par heure et par adresse.
    *
    * Une famille derrière un même routeur peut en créer plusieurs le même jour ;
