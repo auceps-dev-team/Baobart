@@ -23,7 +23,7 @@ describe("la route /api/csp-report", () => {
     expect(espion).toHaveBeenCalledWith(
       "csp: violation signalee",
       expect.objectContaining({
-        rapport: expect.stringContaining("script-src"),
+        directive: "script-src", page: "/boutique",
       }),
     );
   });
@@ -49,7 +49,7 @@ describe("la route /api/csp-report", () => {
     expect(espion).toHaveBeenCalledWith(
       "csp: violation signalee",
       expect.objectContaining({
-        rapport: expect.stringContaining("connect-src"),
+        directive: "connect-src", page: "/panier",
       }),
     );
   });
@@ -96,5 +96,62 @@ describe("la route /api/csp-report", () => {
     const repRefus = await POST(refus);
     expect(repRefus.status).toBe(429);
     expect(repRefus.headers.get("retry-after")).toBeTruthy();
+  });
+
+  it("ne journalise jamais le jeton que porte l'adresse de la page", async () => {
+    const espion = vi.spyOn(journal, "avertissement");
+    const jeton = "Zx9_secretJetonDeReinitialisation-42";
+    const rep = await POST(
+      new Request("https://baobart.test/api/csp-report", {
+        method: "POST",
+        headers: { "content-type": "application/csp-report", "x-real-ip": "1.2.3.7" },
+        body: JSON.stringify({
+          "csp-report": {
+            "document-uri": `https://baobart.test/reinitialiser/${jeton}?suite=/dashboard`,
+            "violated-directive": "script-src-elem",
+            "blocked-uri": `chrome-extension://abc/inject.js?k=${jeton}`,
+          },
+        }),
+      }),
+    );
+    expect(rep.status).toBe(204);
+    const journalise = JSON.stringify(espion.mock.calls.at(-1));
+    expect(journalise).not.toContain(jeton);
+    expect(espion).toHaveBeenLastCalledWith(
+      "csp: violation signalee",
+      expect.objectContaining({ page: "/reinitialiser/:x", bloque: "chrome-extension" }),
+    );
+  });
+
+  it("refuse un corps trop gros sans le lire jusqu'au bout", async () => {
+    const espion = vi.spyOn(journal, "avertissement");
+    espion.mockClear();
+    const rep = await POST(
+      new Request("https://baobart.test/api/csp-report", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-real-ip": "1.2.3.8" },
+        body: JSON.stringify({ "violated-directive": "img-src", bourrage: "x".repeat(20_000) }),
+      }),
+    );
+    expect(rep.status).toBe(413);
+    expect(espion).not.toHaveBeenCalled();
+  });
+
+  it("lit aussi le format de l'API Reporting", async () => {
+    const espion = vi.spyOn(journal, "avertissement");
+    const rep = await POST(
+      new Request("https://baobart.test/api/csp-report", {
+        method: "POST",
+        headers: { "content-type": "application/reports+json", "x-real-ip": "1.2.3.9" },
+        body: JSON.stringify([
+          { type: "csp-violation", body: { effectiveDirective: "img-src", blockedURL: "https://pub.exemple/x.png?id=1", documentURL: "https://baobart.test/@awa", disposition: "enforce" } },
+        ]),
+      }),
+    );
+    expect(rep.status).toBe(204);
+    expect(espion).toHaveBeenLastCalledWith(
+      "csp: violation signalee",
+      { directive: "img-src", bloque: "https://pub.exemple", page: "/:x", disposition: "enforce" },
+    );
   });
 });
