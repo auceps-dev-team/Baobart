@@ -48,6 +48,12 @@ export const LONGUEUR_MIN_SECRET = 16;
  * les deux seuls lecteurs (un nom de variable construit à l'exécution y
  * échapperait). Elle se contente d'un secret non vide ; le plafond en veut
  * seize caractères.
+ *
+ * Revérifié le 22/10, même méthode : cette fonction a désormais quatre autres
+ * lecteurs — les vues des profils (lib/createurs/vues.ts, v1.96.0), l'instant
+ * signé de l'anti-bot (lib/securite/antibot.ts), le cookie du numéro de
+ * téléphone (lib/auth/actions-telephone.ts) et l'écran Système
+ * (lib/systeme/lecture.ts). La lettre lit toujours la variable directement.
  */
 export function secretDuPlafond(
   env: Record<string, string | undefined> = process.env,

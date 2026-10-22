@@ -1855,6 +1855,14 @@ model OrderItem {
   /// PARTIEL, qu'un simple statut « remboursé » ne sait pas exprimer.
   refundedAmount Int @default(0)
 
+  /// Un remboursement est en cours chez l'opérateur jusqu'à cette date.
+  ///
+  /// Pris par un UPDATE conditionnel (`lib/ventes/remboursement.ts`) : une
+  /// seule requête l'obtient, quel que soit le nombre d'instances, avec ou sans
+  /// Redis. Il expire seul — un processus tombé pendant l'appel ne bloque la
+  /// ligne qu'une minute.
+  refundLockedUntil DateTime?
+
   /// Paiement contesté auprès de la banque ou de l'opérateur : l'argent est
   /// repris sans qu'on ait rien remboursé. Distinct du remboursement, qui est
   /// un geste du vendeur (url_redirects_controller.rb §295 chez Gumroad).

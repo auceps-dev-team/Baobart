@@ -4,6 +4,7 @@ import type { Route } from "next";
 import { FormulaireContact } from "@/components/contact/formulaire";
 import { DocListe, DocSection, PageDocument } from "@/components/doc/page-document";
 import { sessionCourante } from "@/lib/auth/session";
+import { ouvertureSignee } from "@/lib/securite/antibot";
 import { ADRESSE_DONNEES_PERSONNELLES } from "@/lib/config/contact";
 import { SUJETS_CONTACT } from "@/lib/contact/regles";
 import { ENCRE } from "@/lib/systeme/charte";
@@ -73,7 +74,7 @@ export default async function ContactPage() {
 
       <DocSection titre="Nous écrire" id="ecrire">
         <div style={{ marginTop: 12 }}>
-          <FormulaireContact genre="CONTACT" sujets={SUJETS_CONTACT} depart={{ nom: visiteur?.nom ?? "", email: visiteur?.email ?? "" }} />
+          <FormulaireContact genre="CONTACT" sujets={SUJETS_CONTACT} depart={{ nom: visiteur?.nom ?? "", email: visiteur?.email ?? "" }} ouverture={ouvertureSignee()} />
         </div>
       </DocSection>
     </PageDocument>

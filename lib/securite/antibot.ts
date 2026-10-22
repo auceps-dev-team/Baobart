@@ -1,6 +1,9 @@
 import "server-only";
 
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import { journal } from "@/lib/observabilite/journal";
+import { secretDuPlafond } from "@/lib/publicites/plafond";
 
 /**
  * Anti-bot — un score, pas un puzzle.
@@ -111,6 +114,11 @@ export interface Geste {
   ouvertLe?: string | null;
   /** Le jeton du tiers, quand la page en produit un. */
   jeton?: string | null;
+  /**
+   * Si vrai, l'horodatage d'ouverture est strictement exigé en production
+   * pour interdire les soumissions directes par script headless.
+   */
+  delaiRequis?: boolean;
 }
 
 /**
@@ -126,7 +134,7 @@ export async function evaluerUnGeste(geste: Geste): Promise<Verdict> {
     return { laisserPasser: false, score: null, motif: "leurre" };
   }
 
-  if (tropRapide(geste.ouvertLe)) {
+  if (tropRapide(geste.ouvertLe, geste.delaiRequis)) {
     return { laisserPasser: false, score: null, motif: "trop_rapide" };
   }
 
@@ -140,14 +148,43 @@ export async function evaluerUnGeste(geste: Geste): Promise<Verdict> {
 }
 
 /**
- * Le formulaire a-t-il été soumis trop vite ?
+ * Combien de temps un horodatage signé reste bon. Au-delà, la page a été
+ * chargée il y a trop longtemps pour qu'on la croie encore ouverte : un robot
+ * qui en garderait un ne s'en servirait pas plus d'une demi-journée.
+ */
+export const VALIDITE_OUVERTURE_MS = 6 * 60 * 60_000;
+
+function signatureDOuverture(instant: string, secret: string): string {
+  return createHmac("sha256", secret).update(`ouverture:${instant}`).digest("base64url");
+}
+
+/**
+ * L'instant d'ouverture, posé et signé par le serveur au rendu de la page.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * UN HORODATAGE ABSENT N'EST PAS UNE FAUTE
+ * POURQUOI SIGNER, POURQUOI LE SERVEUR
  *
- * Il manque dans un test, dans une requête forgée à la main pendant le
- * développement, et sur une page qu'on n'a pas encore équipée. Refuser
- * fermerait ces trois cas sans rien dire de plus sur le quatrième.
+ * Jusqu'au 22/10, le navigateur écrivait l'instant dans un `useEffect`. Deux
+ * défauts. Un script le forgeait en une ligne (`maintenant - 3 s`), donc
+ * l'exiger (`delaiRequis`, 18/10) n'arrêtait que les scripts paresseux. Et
+ * sans JavaScript, le champ restait vide : l'exiger refusait ces visiteurs.
+ *
+ * Signé par le serveur, l'instant ne se fabrique plus : il faut charger la
+ * page, puis attendre deux secondes. Le serveur compare son instant à sa
+ * propre horloge — le décalage de l'horloge du visiteur ne joue plus.
+ *
+ * Sans `AUTH_SECRET` (`secretDuPlafond`), rien n'est signé : `null`, et le
+ * navigateur reprend la main comme avant.
+ */
+export function ouvertureSignee(maintenant = Date.now()): string | null {
+  const secret = secretDuPlafond();
+  if (!secret) return null;
+  const instant = String(maintenant);
+  return `${instant}.${signatureDOuverture(instant, secret)}`;
+}
+
+/**
+ * Le formulaire a-t-il été soumis trop vite — ou avec un instant fabriqué ?
  *
  * ────────────────────────────────────────────────────────────────────────────
  * UN HORODATAGE DANS L'AVENIR EST UNE FAUTE
@@ -156,17 +193,44 @@ export async function evaluerUnGeste(geste: Geste): Promise<Verdict> {
  * l'écart paraisse énorme. On refuse donc aussi ce qui prétend venir d'après
  * maintenant — une horloge locale en avance de quelques secondes reste
  * tolérée, parce qu'elles le sont souvent.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * QUAND LE DÉLAI EST REQUIS
+ *
+ * `requis` vaut pour les formulaires dont la page signe l'instant
+ * (inscription, Contact, Sponsoriser). Là, un instant absent, illisible, nu
+ * alors qu'un secret existe, mal signé ou trop vieux est refusé. Ailleurs, un
+ * instant absent passe : il manque dans un test, dans une requête forgée à la
+ * main pendant le développement, sur une page qu'on n'a pas équipée.
  */
-function tropRapide(brut: string | null | undefined): boolean {
-  if (!brut) return false;
+function tropRapide(brut: string | null | undefined, requis = false, maintenant = Date.now()): boolean {
+  const valeur = (brut ?? "").trim();
+  if (!valeur) return requis;
 
-  const ouvert = Number(brut);
-  if (!Number.isFinite(ouvert)) return false;
+  const secret = secretDuPlafond();
+  const point = valeur.indexOf(".");
+  let instant: string;
+  if (point !== -1) {
+    instant = valeur.slice(0, point);
+    if (secret) {
+      const recue = Buffer.from(valeur.slice(point + 1));
+      const attendue = Buffer.from(signatureDOuverture(instant, secret));
+      if (recue.length !== attendue.length || !timingSafeEqual(recue, attendue)) return true;
+    }
+  } else {
+    // Un instant nu là où la page en signe un : écrit par quelqu'un d'autre.
+    if (requis && secret) return true;
+    instant = valeur;
+  }
 
-  const ecart = Date.now() - ouvert;
+  const ouvert = Number(instant);
+  if (!Number.isFinite(ouvert)) return requis;
+
+  const ecart = maintenant - ouvert;
 
   // Cinq secondes de tolérance pour une horloge locale en avance.
   if (ecart < -5_000) return true;
+  if (requis && point !== -1 && ecart > VALIDITE_OUVERTURE_MS) return true;
 
   return ecart >= 0 && ecart < DELAI_MINIMUM_MS;
 }

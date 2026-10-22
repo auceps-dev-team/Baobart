@@ -39,6 +39,7 @@ export async function envoyerMessage(genre: Genre, _precedent: EtatEnvoi | null,
     action: "contact",
     leurre: String(donnees.get(CHAMP_LEURRE) ?? ""),
     ouvertLe: String(donnees.get(CHAMP_OUVERTURE) ?? ""),
+    delaiRequis: true,
   });
   if (!verdict.laisserPasser) {
     return { ok: false, message: "Le message n'a pas pu partir. Recharge la page et réessaie.", saisie };

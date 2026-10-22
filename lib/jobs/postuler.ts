@@ -119,7 +119,8 @@ export async function postuler(input: {
   // et suffisamment court pour être lisible dans un journal.
   const cle = `jobs/${offre.id}/cv-${randomBytes(14).toString("base64url")}.pdf`;
 
-  await deposerObjet({ cle, corps: Buffer.from(input.cv), contentType: "application/pdf" });
+  await deposerObjet({ cle, corps: Buffer.from(input.cv), contentType: "application/pdf", prive: true });
+
 
   const checksum = createHash("sha256").update(input.cv).digest("hex");
 

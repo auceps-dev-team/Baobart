@@ -357,6 +357,14 @@ export async function confirmerAupresDePaystack(
  * de commande ne rembourserait rien : il ne connaît pas nos numéros. C'est la
  * valeur gardée sur `Order.providerRef` au moment du rappel.
  */
+/**
+ * Quinze secondes. Paystack ne documente pas d'en-tête d'idempotence pour
+ * `/refund` (cherché le 22/10, rien trouvé) : l'en-tête posé le 18/10 était
+ * une supposition, retirée. La garde contre un double remboursement est la
+ * réservation de la ligne, côté Baobart.
+ */
+export const DELAI_REMBOURSEMENT_MS = 15_000;
+
 export async function rembourserChezPaystack(
   demande: DemandeRemboursement,
 ): Promise<Remboursement> {
@@ -381,6 +389,11 @@ export async function rembourserChezPaystack(
         authorization: `Bearer ${secret}`,
         "content-type": "application/json",
       },
+      // Borné : un appel qui pendrait survivrait à la réservation de la ligne
+      // (`RESERVATION_MS`, lib/ventes/remboursement.ts), et une seconde demande
+      // pourrait partir pendant qu'il pend. Expiré, il est traité en issue
+      // incertaine — il a peut-être abouti.
+      signal: AbortSignal.timeout(DELAI_REMBOURSEMENT_MS),
       body: JSON.stringify({
         transaction: demande.referenceOperateur,
         amount: versPaystack(demande.montant, demande.devise as Currency),

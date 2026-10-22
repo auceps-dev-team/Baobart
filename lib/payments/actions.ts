@@ -2,13 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 
+import { FRAICHEUR_SENSIBLE_MS, verifierCodeOuSecours } from "@/lib/auth/deux-facteurs";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { deposer } from "@/lib/email/outbox";
 import { verifierCompte } from "@/lib/payments/comptes";
 import { cadenceValide } from "@/lib/payments/cadences";
 import { masquerCompte } from "@/lib/payments/gains";
+import { MESSAGES_PREUVE, preuveExigee } from "@/lib/payments/preuve";
 import { RAILS } from "@/lib/payments/rails";
+import { verifierLimite } from "@/lib/securite/garde";
 
 /**
  * Le moyen de versement, en clair, pour l'alerte au propriétaire.
@@ -53,9 +56,44 @@ export async function enregistrerCompteDeVersement(
   // d'une action, et refaire saisir un IBAN sur une faute de frappe est cruel.
   const saisie = { provider, reference, titulaire };
 
+  // La forme du compte d'abord : une faute de frappe ne doit coûter ni un essai
+  // de code, ni un code de secours, qui ne sert qu'une fois.
   const verdict = verifierCompte({ provider, reference, titulaire });
   if (!verdict.accepte || !verdict.reference || !verdict.method) {
     return { ok: false, message: verdict.message ?? "Compte refusé.", saisie };
+  }
+
+  // ── LA PREUVE, AVANT TOUTE ÉCRITURE ───────────────────────────────────────
+  //
+  // Le compte de versement est la cible n°1 d'une session volée : le changer
+  // redirige l'argent. La règle — quelle preuve, pour quel compte — est dans
+  // `lib/payments/preuve.ts` ; ici, on lit ce qu'elle demande.
+  const [compte, clesDAcces, session] = await Promise.all([
+    db.user.findUnique({ where: { id: utilisateur.id }, select: { totpActiveLe: true } }),
+    db.passkey.count({ where: { userId: utilisateur.id } }),
+    db.session.findUnique({ where: { id: utilisateur.sessionId }, select: { totpValideLe: true } }),
+  ]);
+  const code2FA = String(donnees.get("code2FA") ?? "").trim();
+  const preuve = preuveExigee({
+    totpActif: Boolean(compte?.totpActiveLe),
+    clesDAcces,
+    codeSaisi: code2FA.length > 0,
+    passageRecent:
+      session?.totpValideLe != null && Date.now() - session.totpValideLe.getTime() <= FRAICHEUR_SENSIBLE_MS,
+  });
+  if ("refus" in preuve) return { ok: false, message: MESSAGES_PREUVE[preuve.refus], saisie };
+
+  if (preuve.exiger === "CODE") {
+    // Le plafond se compte AVANT la vérification, et par compte : voir
+    // `deux-facteurs.code` dans lib/securite/limites.ts. Du 18 au 22/10, il
+    // n'y en avait aucun — six chiffres se devinaient en deux heures.
+    const borne = await verifierLimite("deux-facteurs.code", utilisateur.id);
+    if (!borne.autorise) {
+      return { ok: false, message: `Trop de codes essayés. Réessaie dans ${Math.ceil(borne.dansSecondes / 60)} minutes.`, saisie };
+    }
+    if (!(await verifierCodeOuSecours(utilisateur.id, code2FA))) {
+      return { ok: false, message: MESSAGES_PREUVE.CODE_FAUX, saisie };
+    }
   }
 
   const rejouable = verdict.reference;
