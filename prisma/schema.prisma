@@ -513,6 +513,7 @@ model User {
   deletionRequest   DeletionRequest?
   passwordResets    PasswordReset[]
   phoneCodes        PhoneCode[]
+  emailCodes        EmailCode[]
 
   // équipes multi-rôles (§3.10-B)
   memberships TeamMembership[] @relation("TeamMember")
@@ -987,6 +988,40 @@ enum PhoneCodePurpose {
   LOGIN
   /// Prouver un numéro pour le rattacher à son compte.
   VERIFY
+}
+
+/// Un code envoyé par courriel pour confirmer un geste sensible.
+///
+/// Ajouté le 23/10 : la double authentification est obligatoire pour changer
+/// de compte de versement (VULN-08), et tout le monde n'a pas une application
+/// TOTP. Même mécanique que `PhoneCode` (lib/auth/telephone.ts) — empreinte
+/// salée, cinq essais réservés avant la comparaison, un seul code vivant —,
+/// avec en plus la CIBLE : le code ne vaut que pour le compte de versement
+/// qu'il annonce dans le courriel. Voir lib/auth/code-courriel.ts.
+model EmailCode {
+  id        String           @id @default(cuid())
+  userId    String
+  purpose   EmailCodePurpose
+  /// Empreinte de ce que le code autorise (`fournisseur:référence`). Jamais
+  /// la référence en clair : la table n'a pas à devenir un second annuaire de
+  /// comptes bancaires.
+  target    String
+  codeHash  String
+  salt      String
+  expiresAt DateTime
+  attempts  Int              @default(0)
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+  @@index([createdAt])
+}
+
+enum EmailCodePurpose {
+  /// Enregistrer ou remplacer le compte où partent les versements.
+  PAYOUT_ACCOUNT
 }
 
 /// Une demande d'effacement, et le delai avant execution.
@@ -3487,6 +3522,10 @@ enum EmailTemplate {
   /// prévenu à temps. Le courriel ne porte que le moyen et les quatre derniers
   /// chiffres — jamais la référence entière.
   COMPTE_VERSEMENT_MODIFIE
+
+  /// Ajouté le 23/10 : le code par courriel qui confirme un changement de
+  /// compte de versement, pour qui n'a pas d'application TOTP.
+  CODE_COMPTE_VERSEMENT
 }
 
 /// File d'attente des messages transactionnels.

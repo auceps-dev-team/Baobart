@@ -68,6 +68,14 @@ export const REGLES = {
   "deux-facteurs.code": { quota: 5, fenetreMs: 15 * 60_000 },
 
   /**
+   * Codes envoyés par courriel pour changer de compte de versement. Cinq par
+   * heure et PAR COMPTE, en plus de la minute d'attente entre deux envois
+   * (`lib/auth/code-courriel.ts`) : assez pour un courriel perdu et deux
+   * fautes de frappe, trop peu pour remplir la boîte du propriétaire.
+   */
+  "courriel.code": { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
    * Inscription. Cinq comptes par heure et par adresse.
    *
    * Une famille derrière un même routeur peut en créer plusieurs le même jour ;

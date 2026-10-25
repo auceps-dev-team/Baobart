@@ -97,6 +97,7 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   ["totpChallenge", "userId"],
   ["passwordReset", "userId"],
   ["phoneCode", "userId"],
+  ["emailCode", "userId"],
   ["account", "userId"],
 
   // ── Ce qui identifie ──────────────────────────────────────────────────

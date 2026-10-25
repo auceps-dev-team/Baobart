@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
+import { cibleDe, emettreCodeCourriel, verifierCodeCourriel } from "@/lib/auth/code-courriel";
 import { FRAICHEUR_SENSIBLE_MS, verifierCodeOuSecours } from "@/lib/auth/deux-facteurs";
+import { lireCode } from "@/lib/auth/telephone";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { deposer } from "@/lib/email/outbox";
+import { deposer, envoyerMaintenant } from "@/lib/email/outbox";
 import { verifierCompte } from "@/lib/payments/comptes";
 import { cadenceValide } from "@/lib/payments/cadences";
 import { masquerCompte } from "@/lib/payments/gains";
@@ -83,7 +86,7 @@ export async function enregistrerCompteDeVersement(
   });
   if ("refus" in preuve) return { ok: false, message: MESSAGES_PREUVE[preuve.refus], saisie };
 
-  if (preuve.exiger === "CODE") {
+  if (preuve.exiger !== "RIEN") {
     // Le plafond se compte AVANT la vérification, et par compte : voir
     // `deux-facteurs.code` dans lib/securite/limites.ts. Du 18 au 22/10, il
     // n'y en avait aucun — six chiffres se devinaient en deux heures.
@@ -91,7 +94,19 @@ export async function enregistrerCompteDeVersement(
     if (!borne.autorise) {
       return { ok: false, message: `Trop de codes essayés. Réessaie dans ${Math.ceil(borne.dansSecondes / 60)} minutes.`, saisie };
     }
-    if (!(await verifierCodeOuSecours(utilisateur.id, code2FA))) {
+
+    // Un code reçu par courriel a six chiffres ; un code de secours, non.
+    if (preuve.exiger === "CODE_COURRIEL" && lireCode(code2FA) !== null) {
+      const suite = await verifierCodeCourriel({
+        userId: utilisateur.id,
+        but: "PAYOUT_ACCOUNT",
+        cible: cibleDe(provider, verdict.reference),
+        saisie: code2FA,
+      });
+      if (!suite.ok) {
+        return { ok: false, message: suite.motif === "INVALIDE" ? MESSAGES_PREUVE.CODE_FAUX : MESSAGES_PREUVE[suite.motif], saisie };
+      }
+    } else if (!(await verifierCodeOuSecours(utilisateur.id, code2FA))) {
       return { ok: false, message: MESSAGES_PREUVE.CODE_FAUX, saisie };
     }
   }
@@ -157,6 +172,68 @@ export async function enregistrerCompteDeVersement(
   revalidatePath("/dashboard/gains");
   revalidatePath("/dashboard/versements");
   return { ok: true };
+}
+
+export type EtatCode =
+  | { ok: true; vers: string; saisie: { provider: string; reference: string; titulaire: string } }
+  | { ok: false; message: string; saisie: { provider: string; reference: string; titulaire: string } };
+
+/**
+ * Envoyer le code qui confirmera ce compte de versement, par courriel.
+ *
+ * Pour qui n'a pas d'application TOTP (`lib/payments/preuve.ts`). Le compte
+ * est validé AVANT l'envoi : le code est lié à lui, et en demander un pour un
+ * numéro mal formé ne servirait à rien.
+ *
+ * Le courriel est déposé dans la file, puis envoyé juste après la réponse
+ * (`after`, `envoyerMaintenant`) : sans cela, il attendrait le passage
+ * suivant — jusqu'à cinq minutes d'un code qui en vit quinze, davantage si la
+ * file est en retard. Le passage planifié reste le filet.
+ */
+export async function demanderCodeVersement(_precedent: EtatCode | null, donnees: FormData): Promise<EtatCode> {
+  const provider = String(donnees.get("provider") ?? "").trim();
+  const reference = String(donnees.get("reference") ?? "");
+  const titulaire = String(donnees.get("titulaire") ?? "");
+  const saisie = { provider, reference, titulaire };
+
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) return { ok: false, message: "Connecte-toi pour continuer.", saisie };
+
+  const verdict = verifierCompte({ provider, reference, titulaire });
+  if (!verdict.accepte || !verdict.reference || !verdict.method) {
+    return { ok: false, message: verdict.message ?? "Compte refusé.", saisie };
+  }
+
+  const compte = await db.user.findUnique({ where: { id: utilisateur.id }, select: { totpActiveLe: true } });
+  if (compte?.totpActiveLe) {
+    return { ok: false, message: "Ton compte est protégé par ton application : saisis son code.", saisie };
+  }
+
+  const borne = await verifierLimite("courriel.code", utilisateur.id);
+  if (!borne.autorise) {
+    return { ok: false, message: `Trop de codes demandés. Réessaie dans ${Math.ceil(borne.dansSecondes / 60)} minutes.`, saisie };
+  }
+
+  const emission = await emettreCodeCourriel({
+    userId: utilisateur.id,
+    but: "PAYOUT_ACCOUNT",
+    cible: cibleDe(provider, verdict.reference),
+    destination: `${libelleDuMoyen(provider, verdict.method)} — ${masquerCompte(verdict.reference)}`,
+  });
+  if (!emission.ok) {
+    return {
+      ok: false,
+      message:
+        emission.motif === "TROP_TOT"
+          ? "Un code vient de partir. Attends une minute avant d'en redemander un."
+          : "Le courriel n'a pas pu partir. Réessaie dans un instant.",
+      saisie,
+    };
+  }
+
+  const courrielId = emission.courrielId;
+  after(() => envoyerMaintenant(courrielId).then(() => undefined));
+  return { ok: true, vers: emission.vers, saisie };
 }
 
 /**

@@ -31,8 +31,13 @@ vi.mock("@/lib/auth/deux-facteurs", async (original) => ({
   verifierCodeOuSecours: (userId: string, code: string) => verifierCodeOuSecours(userId, code),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+// La file des courriels n'est pas poussée ici : le code se lit dans la file.
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: () => {},
+}));
 
-import { enregistrerCompteDeVersement } from "@/lib/payments/actions";
+import { demanderCodeVersement, enregistrerCompteDeVersement } from "@/lib/payments/actions";
 
 let n = 0;
 
@@ -182,10 +187,13 @@ describe("enregistrerCompteDeVersement — la preuve demandée", () => {
     expect(verifierCodeOuSecours).not.toHaveBeenCalled();
   });
 
-  it("refuse un compte sans double authentification, même avec un code", async () => {
+  it("sans application, un code à six chiffres se vérifie comme un code reçu par courriel", async () => {
+    // Le 18/10, ce compte était refusé d'office. Depuis le 23/10, il reçoit un
+    // code par courriel ; « 123456 », jamais demandé, ne correspond à rien.
     const u = await compteConnecte({ totp: false });
     const r = await enregistrerCompteDeVersement(null, saisie(WAVE));
-    expect(r.ok).toBe(false);
+    expect(r).toMatchObject({ ok: false, message: "Ce code ne correspond pas." });
+    expect(verifierCodeOuSecours).not.toHaveBeenCalled();
     expect(await db.payoutAccount.count({ where: { userId: u.id } })).toBe(0);
   });
 
@@ -205,5 +213,81 @@ describe("enregistrerCompteDeVersement — la preuve demandée", () => {
     const r = await enregistrerCompteDeVersement(null, fd);
     expect(r.ok).toBe(false);
     expect(await db.payoutAccount.count({ where: { userId: u.id } })).toBe(0);
+  });
+});
+
+describe("le code par courriel, de bout en bout", () => {
+  beforeEach(() => {
+    sessionCouranteValeur = null;
+    oublierCompteurs();
+    verifierCodeOuSecours.mockClear();
+  });
+
+  const WAVE = { provider: "wave", reference: "+225 0700112233" };
+
+  function formulaire(champs: Record<string, string>): FormData {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(champs)) fd.append(k, v);
+    return fd;
+  }
+
+  async function codeEnvoyeA(email: string): Promise<string> {
+    const envoi = await db.emailOutbox.findFirstOrThrow({
+      where: { recipient: email, template: "CODE_COMPTE_VERSEMENT" },
+      select: { payload: true },
+    });
+    return (envoi.payload as { codeSecret: string }).codeSecret;
+  }
+
+  it("demander le code, le recevoir, enregistrer le compte", async () => {
+    const u = await compteConnecte({ totp: false });
+
+    const demande = await demanderCodeVersement(null, formulaire(WAVE));
+    expect(demande.ok).toBe(true);
+    const envoi = await db.emailOutbox.findFirstOrThrow({
+      where: { recipient: u.email, template: "CODE_COMPTE_VERSEMENT" },
+      select: { payload: true },
+    });
+    // Le courriel nomme ce qu'il autorise, masqué.
+    expect((envoi.payload as { destination: string }).destination).toBe("Wave — ···· 2233");
+
+    const code = await codeEnvoyeA(u.email);
+    const r = await enregistrerCompteDeVersement(null, formulaire({ ...WAVE, code2FA: code }));
+    expect(r.ok).toBe(true);
+    expect(await db.payoutAccount.count({ where: { userId: u.id, deletedAt: null } })).toBe(1);
+    // Et l'alerte de changement part toujours.
+    expect(await db.emailOutbox.count({ where: { recipient: u.email, template: "COMPTE_VERSEMENT_MODIFIE" } })).toBe(1);
+  });
+
+  it("le code demandé pour un numéro ne vaut pas pour un autre", async () => {
+    const u = await compteConnecte({ totp: false });
+    await demanderCodeVersement(null, formulaire(WAVE));
+    const code = await codeEnvoyeA(u.email);
+
+    const r = await enregistrerCompteDeVersement(null, formulaire({ provider: "wave", reference: "+225 0799887766", code2FA: code }));
+    expect(r.ok).toBe(false);
+    expect(await db.payoutAccount.count({ where: { userId: u.id } })).toBe(0);
+  });
+
+  it("ne demande pas de code pour un numéro mal formé", async () => {
+    const u = await compteConnecte({ totp: false });
+    const r = await demanderCodeVersement(null, formulaire({ provider: "wave", reference: "pas-un-numero" }));
+    expect(r.ok).toBe(false);
+    expect(await db.emailOutbox.count({ where: { recipient: u.email, template: "CODE_COMPTE_VERSEMENT" } })).toBe(0);
+  });
+
+  it("n'envoie pas de code par courriel à un compte qui a son application", async () => {
+    const u = await compteConnecte({ totp: true });
+    const r = await demanderCodeVersement(null, formulaire(WAVE));
+    expect(r.ok).toBe(false);
+    expect(await db.emailOutbox.count({ where: { recipient: u.email, template: "CODE_COMPTE_VERSEMENT" } })).toBe(0);
+  });
+
+  it("attend une minute entre deux demandes (le plafond horaire est « courriel.code »)", async () => {
+    const u = await compteConnecte({ totp: false });
+    expect((await demanderCodeVersement(null, formulaire(WAVE))).ok).toBe(true);
+    const tropTot = await demanderCodeVersement(null, formulaire(WAVE));
+    expect(tropTot).toMatchObject({ ok: false });
+    expect(await db.emailOutbox.count({ where: { recipient: u.email, template: "CODE_COMPTE_VERSEMENT" } })).toBe(1);
   });
 });

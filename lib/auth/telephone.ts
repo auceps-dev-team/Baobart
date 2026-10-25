@@ -70,7 +70,8 @@ export function empreinteDe(sel: string, code: string): string {
   return createHash("sha256").update(`${sel}:${code}`, "utf8").digest("hex");
 }
 
-function egales(a: string, b: string): boolean {
+/** Deux empreintes hexadécimales, comparées en temps constant. */
+export function egales(a: string, b: string): boolean {
   const x = Buffer.from(a, "hex");
   const y = Buffer.from(b, "hex");
   return x.length === y.length && timingSafeEqual(x, y);

@@ -207,8 +207,45 @@ export interface Passage {
  * une panne totale déguisée en incident isolé.
  */
 export async function vider(lot = 20): Promise<Passage> {
+  return traiter(await reclamer(lot));
+}
+
+/**
+ * Envoie UN message, tout de suite, sans attendre son tour.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POURQUOI PAS `vider()`
+ *
+ * `vider()` prend les plus anciens d'abord. Mesuré le 23/10 en recette : un
+ * code de compte de versement déposé derrière 127 messages en retard est
+ * resté en attente, et le passage a envoyé vingt vieux messages à sa place.
+ * Un code qui vit quinze minutes ne peut pas faire la queue derrière une file
+ * en retard — c'est justement quand l'expéditeur a eu une panne qu'elle l'est.
+ *
+ * Même verrou que `reclamer` (`FOR UPDATE SKIP LOCKED`) : si le passage
+ * planifié tient déjà la ligne, on ne l'envoie pas une seconde fois.
+ */
+export async function envoyerMaintenant(id: string): Promise<Passage> {
+  const maintenant = new Date();
+  const lignes = await db.$queryRaw<LigneReclamee[]>`
+    UPDATE "EmailOutbox" AS cible
+    SET "status" = 'SENDING',
+        "claimedAt" = ${maintenant},
+        "attempts" = cible."attempts" + 1,
+        "updatedAt" = ${maintenant}
+    WHERE cible."id" IN (
+      SELECT "id" FROM "EmailOutbox"
+      WHERE "id" = ${id} AND "status" = 'PENDING'
+      FOR UPDATE SKIP LOCKED
+    )
+    RETURNING cible."id", cible."recipient", cible."template",
+              cible."payload", cible."attempts"
+  `;
+  return traiter(lignes);
+}
+
+async function traiter(lignes: LigneReclamee[]): Promise<Passage> {
   const pilote = piloteCourant();
-  const lignes = await reclamer(lot);
 
   const passage: Passage = {
     pilote: pilote.nom,

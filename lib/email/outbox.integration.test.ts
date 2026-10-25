@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { abandonner, deposer, relancer, vider } from "@/lib/email/outbox";
+import { abandonner, deposer, envoyerMaintenant, relancer, vider } from "@/lib/email/outbox";
 
 const CHARGE = { nom: "Awa" };
 
@@ -260,5 +260,37 @@ describe("actions d'exploitation", () => {
     await abandonner(ligne.id);
 
     expect((await vider()).traites).toBe(0);
+  });
+});
+
+describe("envoyer un message tout de suite", () => {
+  it("l'envoie lui, même derrière une file en retard — le cas de la recette du 23/10", async () => {
+    const prefixe = `retard-${Math.random().toString(36).slice(2, 7)}`;
+    for (let i = 0; i < 25; i++) await deposer(depot(`${prefixe}-${i}`));
+    const urgent = await deposer(depot(`${prefixe}-urgent`));
+    if (!urgent.depose) throw new Error("dépôt refusé");
+
+    const passage = await envoyerMaintenant(urgent.id);
+    expect(passage).toMatchObject({ traites: 1, envoyes: 1 });
+    expect((await etatDe(`${prefixe}-urgent`))?.status).toBe("SENT");
+    // Les vingt-cinq autres attendent leur tour, intacts.
+    expect(await db.emailOutbox.count({ where: { idempotencyKey: { startsWith: `${prefixe}-` }, status: "PENDING" } })).toBe(25);
+  });
+
+  it("ne renvoie pas un message déjà parti", async () => {
+    const cle = `deja-${Math.random().toString(36).slice(2, 7)}`;
+    const r = await deposer(depot(cle));
+    if (!r.depose) throw new Error("dépôt refusé");
+    await envoyerMaintenant(r.id);
+    expect(await envoyerMaintenant(r.id)).toMatchObject({ traites: 0 });
+    expect((await etatDe(cle))?.attempts).toBe(1);
+  });
+
+  it("ne prend pas un message qu'un passage tient déjà", async () => {
+    const cle = `tenu-${Math.random().toString(36).slice(2, 7)}`;
+    const r = await deposer(depot(cle));
+    if (!r.depose) throw new Error("dépôt refusé");
+    await db.emailOutbox.update({ where: { id: r.id }, data: { status: "SENDING", claimedAt: new Date() } });
+    expect(await envoyerMaintenant(r.id)).toMatchObject({ traites: 0 });
   });
 });

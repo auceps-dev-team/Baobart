@@ -31,6 +31,7 @@ export interface EntreeChangelog {
 }
 
 export const CHANGELOG: readonly EntreeChangelog[] = [
+  { date: "2026-10-24", version: "1.99.0", titre: "Ton compte de versement, confirmé par un code", texte: "Changer le compte où part ton argent demande désormais un code : celui de ton application d'authentification si tu en as une, sinon un code reçu par courriel. Il ne vaut que pour le numéro qu'il annonce, et un courriel te prévient à chaque changement." },
   { date: "2026-10-17", version: "1.98.0", titre: "Ta copie de référence", texte: "Chaque image que tu vends porte ta mention de licence, et l'écran de la ressource te garde une copie de référence en cas de litige. L'acheteur ne la voit jamais." },
   { date: "2026-10-17", version: "1.97.0", titre: "Pas d'entraînement d'IA sans accord", texte: "Le site déclare, dans le format standard que les robots savent lire, que ses œuvres ne sont pas offertes à l'entraînement d'IA." },
   { date: "2026-10-16", version: "1.96.0", titre: "Les vues de ton profil", texte: "Ta vitrine affiche combien de visiteurs elle reçoit : une vue par personne et par jour, sans cookie, et les robots ne comptent pas." },

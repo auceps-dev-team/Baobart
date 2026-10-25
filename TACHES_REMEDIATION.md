@@ -28,6 +28,12 @@
 > Bien traités au 18/10 et gardés tels quels : VULN-01 (code), VULN-03, DETTE-01, DETTE-04.
 > VULN-05 reste un risque **accepté** (le message d'inscription dit si l'adresse est inscrite), pas une correction.
 > Vérifié le 22/10 : 1 513 tests unitaires et 1 116 d'intégration passent.
+>
+> **Décidé le 23/10 (VULN-08)** : la double authentification reste obligatoire pour être payé, mais sans
+> application à installer — le code arrive par courriel (`lib/auth/code-courriel.ts`, v1.99.0), lié au
+> compte qu'il annonce. Un compte TOTP garde son application. La recette du 24/10 a trouvé au passage un
+> défaut antérieur : après une action du formulaire, le moyen de versement envoyé revenait à l'ancien
+> pendant que l'écran montrait le nouveau (corrigé dans le même commit).
 
 > [!NOTE]
 > **Synthèse d'avancement — Clôture complète des 12 points d'audit**
