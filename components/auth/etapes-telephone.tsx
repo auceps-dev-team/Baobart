@@ -85,6 +85,7 @@ export function EtapesTelephone({
   libelleEnvoi,
   libelleValidation,
   avecAntiBot = false,
+  suite = null,
 }: {
   demander: Action;
   verifier: Action;
@@ -92,6 +93,8 @@ export function EtapesTelephone({
   libelleValidation: string;
   /** Le champ leurre des formulaires publics (`lib/securite/antibot.ts`). */
   avecAntiBot?: boolean;
+  /** Où mener après la connexion — seule la connexion par téléphone en a une. */
+  suite?: string | null;
 }) {
   const [etape, setEtape] = useState<"numero" | "code">("numero");
   const [masque, setMasque] = useState<string | undefined>(undefined);
@@ -125,6 +128,8 @@ export function EtapesTelephone({
   if (etape === "code") {
     return (
       <form action={envoyerCode}>
+        {/* C'est le code qui ouvre la session : la suite part avec lui (`lib/auth/suite.ts`). */}
+        {suite ? <input type="hidden" name="suite" value={suite} /> : null}
         <Message etat={message} />
         <p style={{ fontSize: 13.5, lineHeight: 1.5, margin: "12px 0 16px" }}>
           {masque

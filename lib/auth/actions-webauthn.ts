@@ -15,6 +15,7 @@ import {
   compteDuDefi,
   regenererCodesSecours,
 } from "@/lib/auth/deux-facteurs";
+import { reprendreSuite } from "@/lib/auth/gestes";
 import { ouvrirSession } from "@/lib/auth/session";
 import { sessionCourante } from "@/lib/auth/session";
 import {
@@ -210,5 +211,5 @@ export async function connexionParCle(
 
   await ouvrirSession(suite.userId, await adresseCourante(), new Date());
 
-  redirect("/dashboard");
+  redirect(await reprendreSuite());
 }

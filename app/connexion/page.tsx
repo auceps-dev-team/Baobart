@@ -5,6 +5,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { connecter } from "@/lib/auth/actions";
 import { listerFournisseurs } from "@/lib/auth/providers";
 import { sessionCourante } from "@/lib/auth/session";
+import { destination, suiteSure } from "@/lib/auth/suite";
 
 export const metadata = { title: "Se connecter — Baobart." };
 export const dynamic = "force-dynamic";
@@ -12,12 +13,14 @@ export const dynamic = "force-dynamic";
 export default async function ConnexionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reinitialise?: string }>;
+  searchParams: Promise<{ reinitialise?: string; suite?: string }>;
 }) {
-  // Déjà connecté : cette page n'a rien à offrir.
-  if (await sessionCourante()) redirect("/dashboard");
+  const { reinitialise, suite: demandee } = await searchParams;
+  // Lue ici pour pré-remplir le formulaire ; l'action la relit, elle ne s'y fie pas.
+  const suite = suiteSure(demandee);
 
-  const { reinitialise } = await searchParams;
+  // Déjà connecté : cette page n'a rien à offrir — sauf la suite qu'on venait chercher.
+  if (await sessionCourante()) redirect(destination(suite));
 
   return (
     <AuthShell
@@ -33,7 +36,7 @@ export default async function ConnexionPage({
           "Les nouveautés des créateurs que tu suis",
         ],
       }}
-      lienBascule="/inscription"
+      lienBascule={suite ? `/inscription?suite=${encodeURIComponent(suite)}` : "/inscription"}
       libelleBascule="Créer un compte"
       indiceBascule="Pas encore de compte ?"
     >
@@ -49,6 +52,7 @@ export default async function ConnexionPage({
         cta="Se connecter"
         libelleCase="Rester connecté sur cet appareil"
         action={connecter}
+        suite={suite}
         fournisseurs={listerFournisseurs()}
         avecMotDePasseOublie
         champs={[

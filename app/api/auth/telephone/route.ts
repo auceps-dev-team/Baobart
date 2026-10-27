@@ -1,3 +1,4 @@
+import { suiteSure } from "@/lib/auth/suite";
 import { rediriger } from "@/lib/http/redirection";
 
 /**
@@ -15,6 +16,9 @@ import { rediriger } from "@/lib/http/redirection";
  * session se posait sur l'hôte d'écoute, et le profil, visité ensuite,
  * renvoyait à la connexion.
  */
-export function GET() {
-  return rediriger("/connexion/telephone", 303);
+export function GET(requete: Request) {
+  // La suite de la connexion passe d'une porte à l'autre (`lib/auth/suite.ts`),
+  // relue ici avant d'être recopiée dans l'adresse.
+  const suite = suiteSure(new URL(requete.url).searchParams.get("suite"));
+  return rediriger(suite ? `/connexion/telephone?suite=${encodeURIComponent(suite)}` : "/connexion/telephone", 303);
 }

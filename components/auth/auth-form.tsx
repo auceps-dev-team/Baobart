@@ -54,6 +54,7 @@ export function AuthForm({
   fournisseurs = [],
   annonce,
   ouverture = null,
+  suite = null,
 }: {
   mode: "connexion" | "inscription" | "oubli";
   titre: string;
@@ -72,7 +73,14 @@ export function AuthForm({
   ouverture?: string | null;
   /** Moyens secondaires. Ceux qui ne sont pas configurés restent affichés. */
   fournisseurs?: FournisseurPublic[];
+  /**
+   * Où mener après l'entrée — déjà passé par `suiteSure` dans la page, et
+   * relu par l'action. Suit aussi les liens vers l'autre formulaire et vers
+   * le téléphone : qui change de porte en chemin garde sa destination.
+   */
+  suite?: string | null;
 }) {
+  const avecSuite = (chemin: string) => (suite ? `${chemin}?suite=${encodeURIComponent(suite)}` : chemin);
   const [etat, envoyer, enCours] = useActionState(action, {});
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [motDePasse, setMotDePasse] = useState("");
@@ -155,6 +163,7 @@ export function AuthForm({
           pour l'inscription.
         */}
         <ChampsAntiBot ouverture={ouverture} />
+        {suite ? <input type="hidden" name="suite" value={suite} /> : null}
         {/*
           Le choix « Acheteur / Créateur » de « Baobart Auth.dc.html » est
           retiré (09/10, décision après les tests QA) : il n'existe aucun rôle
@@ -458,7 +467,7 @@ export function AuthForm({
                 type="button"
                 onClick={() =>
                   f.actif
-                    ? (window.location.href = `/api/auth/${f.id}`)
+                    ? (window.location.href = avecSuite(`/api/auth/${f.id}`))
                     : setBientot(f.label)
                 }
                 aria-disabled={!f.actif}
@@ -524,7 +533,7 @@ export function AuthForm({
       >
         {texteBas}{" "}
         <a
-          href={lienBas}
+          href={avecSuite(lienBas)}
           style={{
             fontWeight: 800,
             color: ORANGE,
