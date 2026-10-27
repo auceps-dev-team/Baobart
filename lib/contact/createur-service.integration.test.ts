@@ -103,6 +103,23 @@ describe("écrire à un créateur", () => {
     expect(await ecrire()).toEqual({ ok: false, refus: "PLAFOND_CREATEUR" });
   });
 
+  it("ne laisse pas huit envois simultanés dépasser le plafond", async () => {
+    // Le double clic, en pire. Avant le verrou (27/10), les comptes se lisaient
+    // hors transaction : chacun voyait zéro, et tous passaient.
+    const createur = await compte();
+    const visiteur = await compte();
+
+    const issues = await Promise.all(
+      Array.from({ length: 8 }, () => ecrireAuCreateur({ expediteurId: visiteur.id, username: createur.profile!.username, ...MESSAGE })),
+    );
+
+    expect(issues.filter((i) => i.ok)).toHaveLength(PLAFOND_PAR_CREATEUR);
+    expect(issues.filter((i) => !i.ok).every((i) => !i.ok && i.refus === "PLAFOND_CREATEUR")).toBe(true);
+    expect(await db.creatorMessage.count({ where: { senderId: visiteur.id } })).toBe(PLAFOND_PAR_CREATEUR);
+    // Un courriel par message gardé, pas un de plus.
+    expect(await db.emailOutbox.count({ where: { template: "MESSAGE_CREATEUR", recipient: createur.email } })).toBe(PLAFOND_PAR_CREATEUR);
+  }, 60_000);
+
   it("refuse sans adresse du site plutôt que d'envoyer des liens morts", async () => {
     const createur = await compte();
     const visiteur = await compte();
