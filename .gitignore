@@ -46,3 +46,7 @@ Baobart Design/video/
 
 # Mémoire agent locale
 memory-bank/
+
+# Sauvegardes d'images avant pose du logo officiel (composer-logo.py).
+# Elles se régénèrent à chaque exécution et pèsent lourd.
+*.avant-logo
