@@ -170,6 +170,11 @@ Deux états à ajouter à l'écran des commandes :
 Rien à redessiner ici. C'est la liste de ce que vos maquettes promettent et que
 le code ne fait pas encore — utile pour ne pas croire ces écrans terminés.
 
+*Revu le 17 octobre (v1.98.1) :* les routes barrées existent, vérifiées une à une
+dans `app/` et datées par le commit qui a créé leur `page.tsx`. Restent sans code
+la page catégorie et le panier. « Câblé » dit que la route existe, pas que
+chaque bloc de la maquette y est.
+
 De `Baobart Accueil.dc.html` :
 
 | Section | Route attendue | État |
@@ -178,13 +183,13 @@ De `Baobart Accueil.dc.html` :
 | ~~PAGE CREATEURS · PROFIL CREATEUR~~ | `/createurs`, `/@[username]` | ✅ **câblé en v1.45.0**, complété du 16/10 (v1.92.0–v1.96.0) — voir §F pour ce qui reste |
 | PANIER | `/panier` | Aucun code — l'achat se fait à l'unité |
 | ~~PAGE JOBS · FICHE MISSION~~ | `/jobs`, `/jobs/[id]` | ✅ **câblé en v1.46.0.** Trois blocs dessinés restent absents — voir §G |
-| PAGE SERVICES · FICHE SERVICE | `/services` | Aucun code (M3) |
-| PAGE CONCOURS & EVENEMENTS | `/evenements` | Aucun code (M4) |
-| PAGE SPONSORISER | `/sponsoriser` | Aucun code |
-| PAGE FONCTIONNALITES | `/fonctionnalites` | Aucun code |
-| TARIFS | `/tarifs` | Aucun code |
-| BLOG | `/blog` | Aucun code (M5) |
-| PAGES DOC / LEGAL / COMMUNAUTE | `/doc`, `/legal`, … | Aucun code |
+| ~~PAGE SERVICES · FICHE SERVICE~~ | `/services`, `/services/[id]` | ✅ **câblé** : dépôt en v1.47.2, lecture publique en v1.47.4 |
+| ~~PAGE CONCOURS & EVENEMENTS~~ | `/evenements`, `/evenements/[id]` | ✅ **câblé en v1.49.0** (lecture publique) |
+| ~~PAGE SPONSORISER~~ | `/sponsoriser` | ✅ **câblé en v1.76.0** — le formulaire écrit à l’équipe |
+| ~~PAGE FONCTIONNALITES~~ | `/fonctionnalites` | ✅ **câblé en v1.76.0**, revu le 17/10 (v1.98.1) |
+| ~~TARIFS~~ | `/tarifs` | ✅ **câblé en v1.76.0** |
+| ~~BLOG~~ | `/blog`, `/blog/[slug]` | ✅ **câblé en v1.53.0** |
+| ~~PAGES DOC / LEGAL / COMMUNAUTE~~ | `/documentation`, `/conditions`, `/confidentialite`, `/cookies`, `/licences`, `/communautes` | ✅ **câblé** : communautés en v1.54.0, documentation et pages légales en v1.76.0 |
 | MON COMPTE | — | Le tableau de bord en tient lieu |
 
 ---
