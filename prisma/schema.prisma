@@ -548,6 +548,8 @@ model User {
   blogPosts               BlogPost[]
   testimonial             Testimonial?
   messagesEnvoyes         ContactMessage[] @relation("MessagesEnvoyes")
+  messagesAuxCreateurs    CreatorMessage[] @relation("MessagesAuxCreateurs")
+  messagesDeVisiteurs     CreatorMessage[] @relation("MessagesDeVisiteurs")
   demandesDeRemboursement RefundRequest[]  @relation("DemandesDeRemboursement")
 
   /// Le forum. Les relations vers `Community`, `ForumTopic`, `ForumPost` et
@@ -613,6 +615,10 @@ model Profile {
   openToCommissions String?
   /// Tarif journalier indicatif, en unité mineure XOF comme tout montant.
   dailyRate         Int?
+  /// Le bouton « Contact » de la vitrine. Ouvert par défaut, comme la
+  /// maquette le dessine ; le créateur le ferme depuis son profil. Fermé,
+  /// le bouton disparaît et l’action refuse — voir `lib/contact/createur.ts`.
+  acceptsMessages   Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -1743,6 +1749,28 @@ model ContactMessage {
 
   @@index([kind, status, createdAt])
   @@index([email])
+}
+
+/// Un message laissé à un créateur depuis le bouton « Contact » de sa vitrine.
+///
+/// Baobart le relaie par courriel, avec l’adresse de l’expéditeur en « Répondre
+/// à » : l’adresse du créateur n’est montrée à personne. Gardé ici pour qu’un
+/// abus signalé à l’équipe se retrouve par sa référence (l’identifiant), et
+/// pour borner les envois par expéditeur. Les deux côtés en cascade : effacer
+/// un compte efface ce qu’il a écrit et ce qu’on lui a écrit.
+model CreatorMessage {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  subject     String
+  body        String   @db.Text
+  createdAt   DateTime @default(now())
+
+  sender    User @relation("MessagesAuxCreateurs", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("MessagesDeVisiteurs", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, createdAt])
+  @@index([recipientId, createdAt])
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -3526,6 +3554,9 @@ enum EmailTemplate {
   /// Ajouté le 23/10 : le code par courriel qui confirme un changement de
   /// compte de versement, pour qui n'a pas d'application TOTP.
   CODE_COMPTE_VERSEMENT
+  /// Ajouté le 18/10 : le message laissé à un créateur depuis sa vitrine,
+  /// relayé avec l’adresse de l’expéditeur en « Répondre à ».
+  MESSAGE_CREATEUR
 }
 
 /// File d'attente des messages transactionnels.

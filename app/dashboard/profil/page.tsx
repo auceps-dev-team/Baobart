@@ -6,6 +6,7 @@ import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { PanneauDeuxFacteurs } from "@/components/dashboard/deux-facteurs";
 import { PanneauClesAcces } from "@/components/dashboard/cles-acces";
 import { PanneauEffacement } from "@/components/dashboard/effacement";
+import { PanneauMessagesVitrine } from "@/components/dashboard/messages-vitrine";
 import { PanneauTelephone } from "@/components/dashboard/telephone";
 import { FormulaireProfil } from "@/components/dashboard/profil-form";
 import {
@@ -24,6 +25,7 @@ import {
   retirerMonTelephone,
 } from "@/lib/auth/actions-telephone";
 import { etatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
+import { reglerLesMessagesAction } from "@/lib/contact/actions-createur";
 import { codesParSmsPossibles } from "@/lib/auth/telephone";
 import { listerLesCles } from "@/lib/auth/webauthn";
 import { sessionCourante } from "@/lib/auth/session";
@@ -134,6 +136,12 @@ export default async function ProfilPage() {
         depart={depart}
         visuels={{ avatarUrl: p?.avatarUrl ?? null, bannerUrl: p?.bannerUrl ?? null }}
       />
+
+      <div style={{ marginTop: 20, maxWidth: 900 }}>
+        <DashboardPanel titre="Bouton « Contact »">
+          <PanneauMessagesVitrine ouvert={p?.acceptsMessages ?? true} regler={reglerLesMessagesAction} />
+        </DashboardPanel>
+      </div>
 
       <div style={{ marginTop: 20, maxWidth: 900 }}>
         <DashboardPanel titre="Double authentification">

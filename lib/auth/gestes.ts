@@ -1,8 +1,10 @@
 import "server-only";
 
+import type { Route } from "next";
 import { cookies } from "next/headers";
 
 import { COOKIE_DEFI, ouvrirDefi } from "@/lib/auth/deux-facteurs";
+import { destination, suiteSure } from "@/lib/auth/suite";
 import { journal } from "@/lib/observabilite/journal";
 import {
   CHAMP_LEURRE,
@@ -138,12 +140,15 @@ export async function identitesDe(qui: { email?: string | null; telephone?: stri
 /**
  * Ouvre le défi de 2FA et pose son cookie — le même, quel que soit le premier
  * facteur (mot de passe ou code SMS).
+ *
+ * `suite` part avec lui, dans son propre cookie et pour la même durée : c'est
+ * la seconde étape qui ouvre la session, et la clé d'accès y est appelée sans
+ * formulaire — un champ caché ne l'atteindrait pas (`lib/auth/suite.ts`).
  */
-export async function poserDefi(compteId: string): Promise<void> {
+export async function poserDefi(compteId: string, suite?: unknown): Promise<void> {
   const jeton = await ouvrirDefi(compteId);
   const magasin = await cookies();
-
-  magasin.set(COOKIE_DEFI, jeton, {
+  const reglages = {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -151,5 +156,25 @@ export async function poserDefi(compteId: string): Promise<void> {
     // Cinq minutes, comme le défi. Un cookie qui survivrait au défi ne
     // donnerait rien, mais laisserait croire à une session en cours.
     maxAge: 300,
-  });
+  } as const;
+
+  magasin.set(COOKIE_DEFI, jeton, reglages);
+
+  const chemin = suiteSure(suite);
+  if (chemin) magasin.set(COOKIE_SUITE, chemin, reglages);
+  else magasin.delete(COOKIE_SUITE);
 }
+
+/**
+ * Là où mener après la seconde étape — et le cookie disparaît : une suite
+ * ne sert qu'une fois. Relue par `suiteSure`, comme si elle venait du
+ * navigateur, parce qu'elle en vient.
+ */
+export async function reprendreSuite(): Promise<Route> {
+  const magasin = await cookies();
+  const valeur = magasin.get(COOKIE_SUITE)?.value;
+  magasin.delete(COOKIE_SUITE);
+  return destination(valeur);
+}
+
+const COOKIE_SUITE = "baobart_suite";

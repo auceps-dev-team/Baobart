@@ -163,7 +163,8 @@ export function PanneauEffacement({
         }}
       >
         <strong>Ce qui part :</strong> profil, photo, biographie, messages de
-        forum et de communauté, commentaires, collections, abonnements,
+        forum et de communauté, messages envoyés ou reçus par le bouton
+        « Contact », commentaires, collections, abonnements,
         notifications, moyens de paiement, sessions et mots de passe.
         <br />
         <strong>Ce qui reste :</strong> les commandes, factures et écritures

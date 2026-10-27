@@ -20,9 +20,11 @@ import {
   identitesDe,
   MESSAGE_BLOQUE,
   poserDefi,
+  reprendreSuite,
   tropDEssais,
   verdictAntiBot,
 } from "@/lib/auth/gestes";
+import { destination } from "@/lib/auth/suite";
 import {
   adresseCourante,
   premierBlocage,
@@ -140,13 +142,17 @@ export async function connecter(
   // C'est pourquoi le premier enrôlement de clé remet aussi des codes de
   // secours — voir `lib/auth/actions-webauthn.ts`. Poser un verrou sans
   // fabriquer de double fermerait le compte de qui perd l'appareil.
+  // `suite` : le champ caché que la page a rempli depuis `?suite=`, relu par
+  // `suiteSure` — la page ne garantit rien de ce qui revient du navigateur.
+  const suite = donnees.get("suite");
+
   if (compte.totpActiveLe || compte._count.passkeys > 0) {
-    await poserDefi(compte.id);
+    await poserDefi(compte.id, suite);
     redirect("/connexion/verification");
   }
 
   await ouvrirSession(compte.id, await adresseCourante());
-  redirect("/dashboard");
+  redirect(destination(suite));
 }
 
 /**
@@ -207,7 +213,7 @@ export async function verifierDeuxFacteurs(
   // foulée d'une connexion qui vient d'en exiger un.
   await ouvrirSession(suite.userId, await adresseCourante(), new Date());
 
-  redirect("/dashboard");
+  redirect(await reprendreSuite());
 }
 
 export async function inscrire(
@@ -341,7 +347,9 @@ export async function inscrire(
   // qui envoyait les seconds vers `/dashboard/produits/nouveau` est retiré
   // (09/10) : il n'existe aucun rôle (`lib/auth/roles.ts`), on devient
   // créateur en publiant, et le tableau de bord mène aux deux usages.
-  redirect("/dashboard");
+  // Sauf s'il venait de quelque part : qui s'inscrit pour écrire à un
+  // créateur doit retrouver sa vitrine (`?suite=`, 27/10).
+  redirect(destination(donnees.get("suite")));
 }
 
 export async function deconnecter(): Promise<void> {

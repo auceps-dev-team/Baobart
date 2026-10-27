@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { MenuPartage } from "@/components/anime/menu-partage";
+import { BoutonContact } from "@/components/createurs/bouton-contact";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
 import { CompteurDeVue } from "@/components/createurs/compteur-de-vue";
 import { FiltresPortfolio } from "@/components/createurs/filtres-portfolio";
@@ -21,6 +22,7 @@ import { BoutonSuivre } from "@/components/social/boutons";
 import { sessionCourante } from "@/lib/auth/session";
 import { urlDuSite } from "@/lib/config/site";
 import { absolue } from "@/lib/reseaux/partage";
+import { ouvertureSignee } from "@/lib/securite/antibot";
 import { collectionsPubliquesDe, profilPublic, suitCeCreateur } from "@/lib/createurs/queries";
 import {
   TRIS_VITRINE,
@@ -285,6 +287,19 @@ export default async function ProfilCreateurPage({
                     chezSoi={false}
                   />
                 )}
+                {/*
+                  « Contact » de la maquette, entre « Suivre » et « Partager ».
+                  Absent chez soi (on ne s'écrit pas), et quand le créateur l'a
+                  fermé : un bouton qui mène à un refus n'a rien à montrer.
+                */}
+                {!soiMeme && profil.ouvertAuxMessages ? (
+                  <BoutonContact
+                    username={profil.username}
+                    nom={profil.nom}
+                    adresseDeReponse={visiteur?.email ?? null}
+                    ouverture={ouvertureSignee()}
+                  />
+                ) : null}
                 {profil.portfolioUrl ? (
                   <a
                     href={profil.portfolioUrl}

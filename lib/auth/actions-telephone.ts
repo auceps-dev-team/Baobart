@@ -18,6 +18,7 @@ import {
   tropDEssais,
   verdictAntiBot,
 } from "@/lib/auth/gestes";
+import { destination } from "@/lib/auth/suite";
 import { ouvrirSession, sessionCourante } from "@/lib/auth/session";
 import {
   codesParSmsPossibles,
@@ -280,14 +281,18 @@ export async function verifierCodeConnexion(
     return { erreur: MESSAGE_BLOQUE, etape: "numero" };
   }
 
+  // `suite` : le champ caché du formulaire, relu par `suiteSure` — comme pour
+  // la connexion par mot de passe (`lib/auth/suite.ts`).
+  const destinationDemandee = donnees.get("suite");
+
   // Voir l'en-tête : le code SMS ne remplace pas un second facteur.
   if (compte.totpActiveLe || compte._count.passkeys > 0) {
-    await poserDefi(compte.id);
+    await poserDefi(compte.id, destinationDemandee);
     redirect("/connexion/verification");
   }
 
   await ouvrirSession(compte.id, await adresseCourante());
-  redirect("/dashboard");
+  redirect(destination(destinationDemandee));
 }
 
 // ═══════════════════════════════════════════════════════ vérification ══

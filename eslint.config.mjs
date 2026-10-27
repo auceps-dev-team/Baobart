@@ -20,6 +20,9 @@ const eslintConfig = [
       // Copies de travail des sessions d'agent : chacune porte son propre
       // `.next/` et ses fichiers générés, que `pnpm lint` lisait en double.
       ".claude/**",
+      // Les mêmes, pour les agents d'autres éditeurs (`.agents/worktrees/…`,
+      // relevé le 27/10 : deux erreurs dans la copie de Gemini, aucune ici).
+      ".agents/**",
       ".next/**",
       "node_modules/**",
       "next-env.d.ts", // fichier généré par Next.js

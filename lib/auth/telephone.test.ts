@@ -37,13 +37,22 @@ describe("le SMS", () => {
 });
 
 describe("la route du bouton « Téléphone »", () => {
+  // L'hôte d'écoute, exprès : la `Location` ne doit jamais le recopier.
+  const appel = (requete = "") => GET(new Request(`http://localhost:3300/api/auth/telephone${requete}`));
+
   it("mène au formulaire, jamais à une 404", () => {
-    const reponse = GET();
+    const reponse = appel();
     expect(reponse.status).toBe(303);
     // Relative : le navigateur la résout contre l'hôte qu'il a demandé. Une
     // adresse absolue tirée de `requete.url` portait l'hôte d'écoute du
     // serveur (`localhost`), et la session se posait sur le mauvais hôte —
     // ce qu'un test qui fabrique lui-même sa `Request` ne pouvait pas voir.
     expect(reponse.headers.get("location")).toBe("/connexion/telephone");
+  });
+
+  it("transmet la suite de la connexion, et elle seule", () => {
+    expect(appel("?suite=%2F%40awa-createur").headers.get("location")).toBe("/connexion/telephone?suite=%2F%40awa-createur");
+    // Une adresse extérieure ne se recopie pas : on perd la suite, pas le visiteur.
+    expect(appel("?suite=%2F%2Fbaobart-ci.com").headers.get("location")).toBe("/connexion/telephone");
   });
 });

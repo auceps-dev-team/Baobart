@@ -73,6 +73,8 @@ export interface ProfilPublic {
   liens: Array<{ reseau: Reseau; url: string; identifiant: string }>;
   /** « Oui, sous 2 semaines » — un texte, pas un booléen. */
   ouvertAuxCommandes: string | null;
+  /** Le bouton « Contact » est-il ouvert ? Le créateur le ferme depuis son profil. */
+  ouvertAuxMessages: boolean;
   /** Tarif journalier indicatif, en unités mineures. */
   tarifJournalier: number | null;
 
@@ -127,6 +129,7 @@ export async function profilPublic(
       portfolioUrl: true,
       links: { select: { network: true, url: true } },
       openToCommissions: true,
+      acceptsMessages: true,
       dailyRate: true,
       createdAt: true,
       user: { select: { suspendedAt: true } },
@@ -158,6 +161,7 @@ export async function profilPublic(
     portfolioUrl: profil.portfolioUrl?.startsWith("https://") ? profil.portfolioUrl : null,
     liens: liensAffichables(profil.links),
     ouvertAuxCommandes: profil.openToCommissions,
+    ouvertAuxMessages: profil.acceptsMessages,
     tarifJournalier: profil.dailyRate,
     note: Number(profil.ratingAvg),
     nombreDAvis: profil.ratingCount,

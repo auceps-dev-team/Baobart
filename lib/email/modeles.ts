@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { adressePlausible } from "@/lib/email/pilotes";
+
 /**
  * Le texte des messages transactionnels, et rien d'autre.
  *
@@ -101,6 +103,13 @@ export const MODELES = [
   // `console` le journalise. Le champ s'appelle `codeSecret` pour que le
   // journal le caviarde s'il était un jour journalisé (`NOMS_SENSIBLES`).
   "CODE_COMPTE_VERSEMENT",
+  // ── Ajouté le 18/10 : le bouton « Contact » de la vitrine ───────────────
+  //
+  // Le seul modèle qui porte un « Répondre à » : la réponse du créateur part
+  // droit à l'expéditeur, sans que Baobart ait à relayer un fil. L'adresse du
+  // créateur n'est donc dévoilée que s'il choisit de répondre, et à cette
+  // personne seulement.
+  "MESSAGE_CREATEUR",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -108,6 +117,12 @@ export type Modele = (typeof MODELES)[number];
 export interface Message {
   sujet: string;
   texte: string;
+  /**
+   * L'adresse où part une réponse (« Reply-To »). Absente partout sauf pour
+   * `MESSAGE_CREATEUR` : un avis de Baobart auquel on répondrait n'a personne
+   * pour le lire de l'autre côté.
+   */
+  repondreA?: string;
 }
 
 /**
@@ -298,6 +313,26 @@ const SCHEMAS = {
     /** Ce que le code autorise : « Wave — ···· 2233 ». */
     destination: z.string().min(1).max(80),
     minutes: z.number().int().positive(),
+  }),
+
+  MESSAGE_CREATEUR: z.object({
+    nom,
+    /** Le nom affiché de l'expéditeur, tel que son profil le dit. */
+    expediteur: nom,
+    /** Sa vitrine, quand il en a une : le créateur voit à qui il répond. */
+    profil: lien.nullable(),
+    sujet: z.string().min(1).max(120),
+    corps: z.string().min(1).max(4000),
+    /**
+     * L'adresse du compte de l'expéditeur. Contrôlée comme un destinataire :
+     * elle finit dans un en-tête, et un retour à la ligne y ajouterait les
+     * siens.
+     */
+    repondreA: z.string().refine(adressePlausible, { message: "adresse invalide" }),
+    /** L'identifiant du message, que le créateur cite s'il signale un abus. */
+    reference: z.string().min(1).max(40),
+    contact: lien,
+    reglages: lien,
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
@@ -741,6 +776,49 @@ Répondre : ${c.lien}` : ""),
       `écris-nous.` +
       SIGNATURE,
   }),
+
+  /**
+   * Le message laissé depuis le bouton « Contact » d'une vitrine.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * IL DIT CE QUE COÛTE UNE RÉPONSE
+   *
+   * Répondre dévoile l'adresse du créateur à l'expéditeur — c'est le prix
+   * d'un échange direct, et le créateur doit le savoir avant d'appuyer. Le
+   * pied dit aussi quoi faire d'un message importun : écrire à l'équipe avec
+   * la référence, ou fermer le bouton.
+   */
+  MESSAGE_CREATEUR: (c) => ({
+    sujet: `${c.expediteur} t'écrit : ${c.sujet}`,
+    repondreA: c.repondreA,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `${c.expediteur} t'a écrit depuis ta vitrine Baobart` +
+      (c.profil ? ` (${c.profil})` : "") +
+      `.
+
+` +
+      `Sujet : ${c.sujet}
+
+` +
+      `${c.corps}
+
+` +
+      `———
+
+` +
+      `Pour lui répondre, réponds à ce courriel : ta réponse partira à ` +
+      `${c.repondreA}. Ton adresse, elle, n'est dévoilée qu'à ce moment-là, ` +
+      `et à cette personne seulement.
+
+` +
+      `Ce message t'importune ? Écris à l'équipe (${c.contact}) en citant la ` +
+      `référence ${c.reference}. Tu peux aussi fermer ton bouton « Contact » ` +
+      `depuis ton profil : ${c.reglages}` +
+      SIGNATURE,
+  }),
 };
 
 export class ChargeInvalide extends Error {
@@ -770,5 +848,9 @@ export function rendre(modele: Modele, charge: unknown): Message {
   }
 
   const rendu = (TEXTES[modele] as (c: unknown) => Message)(lu.data);
-  return { sujet: sujetSur(rendu.sujet), texte: rendu.texte };
+  return {
+    sujet: sujetSur(rendu.sujet),
+    texte: rendu.texte,
+    ...(rendu.repondreA ? { repondreA: rendu.repondreA } : {}),
+  };
 }

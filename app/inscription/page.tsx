@@ -5,14 +5,21 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { inscrire } from "@/lib/auth/actions";
 import { listerFournisseurs } from "@/lib/auth/providers";
 import { sessionCourante } from "@/lib/auth/session";
+import { destination, suiteSure } from "@/lib/auth/suite";
 import { ouvertureSignee } from "@/lib/securite/antibot";
 import { partDuCreateur } from "@/lib/domain/fees";
 
 export const metadata = { title: "Créer un compte — Baobart." };
 export const dynamic = "force-dynamic";
 
-export default async function InscriptionPage() {
-  if (await sessionCourante()) redirect("/dashboard");
+export default async function InscriptionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ suite?: string }>;
+}) {
+  // La suite vient de la connexion (« Créer un compte ») ou d'un lien direct.
+  const suite = suiteSure((await searchParams).suite);
+  if (await sessionCourante()) redirect(destination(suite));
 
   // Le même chiffre que l'accueil et l'écran des gains : `partDuCreateur`.
   const partCreateur = partDuCreateur();
@@ -30,7 +37,7 @@ export default async function InscriptionPage() {
           "Paiement Mobile Money et carte bancaire",
         ],
       }}
-      lienBascule="/connexion"
+      lienBascule={suite ? `/connexion?suite=${encodeURIComponent(suite)}` : "/connexion"}
       libelleBascule="Se connecter"
       indiceBascule="Déjà membre ?"
     >
@@ -55,6 +62,7 @@ export default async function InscriptionPage() {
           </>
         }
         action={inscrire}
+        suite={suite}
         fournisseurs={listerFournisseurs()}
         ouverture={ouvertureSignee()}
         champs={[

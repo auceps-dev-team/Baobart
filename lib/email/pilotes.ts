@@ -81,6 +81,18 @@ const AUCUN: Pilote = {
   },
 };
 
+/**
+ * L'en-tête « Répondre à », sous le nom qu'attend chaque transport.
+ *
+ * Revérifiée ici bien que le modèle l'ait déjà validée : c'est la dernière
+ * porte avant un en-tête, et une adresse qui porterait un retour à la ligne y
+ * glisserait les siens. Invalide, elle est omise — le message part quand même,
+ * et la réponse irait à Baobart plutôt qu'à un inconnu.
+ */
+function repondreA(message: Message, cle: "reply_to" | "replyTo"): Record<string, string> {
+  return message.repondreA && adressePlausible(message.repondreA) ? { [cle]: message.repondreA } : {};
+}
+
 /** Délai au-delà duquel on considère l'expéditeur muet. */
 const DELAI_MS = 10_000;
 
@@ -110,6 +122,7 @@ const RESEND: Pilote = {
           to: [destinataire],
           subject: message.sujet,
           text: message.texte,
+          ...repondreA(message, "reply_to"),
         }),
         signal: abandon,
       });
@@ -254,6 +267,7 @@ const SMTP: Pilote = {
         to: destinataire,
         subject: message.sujet,
         text: message.texte,
+        ...repondreA(message, "replyTo"),
       });
       return { ok: true, reference: resultat.messageId ?? null };
     } catch (cause) {

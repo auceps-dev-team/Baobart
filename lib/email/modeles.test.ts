@@ -84,6 +84,17 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
   INFOLETTRE: { sujet: "Les nouveautés d'octobre", corps: "Trois nouvelles familles de ressources arrivent.", desinscrire: "https://baobart.test/infolettre/desinscription?jeton=abc.def" },
   COMPTE_VERSEMENT_MODIFIE: { nom: "Awa", moyen: "Orange Money", compte: "···· 4821" },
   CODE_COMPTE_VERSEMENT: { nom: "Awa", codeSecret: "482913", destination: "Wave — ···· 2233", minutes: 15 },
+  MESSAGE_CREATEUR: {
+    nom: "Awa",
+    expediteur: "Studio Kente",
+    profil: "https://baobart.test/@studio-kente",
+    sujet: "Une affiche pour notre festival",
+    corps: "Bonjour, nous aimerions vous confier l'affiche de notre festival de mars.",
+    repondreA: "contact@studio-kente.test",
+    reference: "cm0message0001",
+    contact: "https://baobart.test/contact",
+    reglages: "https://baobart.test/dashboard/profil",
+  },
 };
 
 describe("modèles de courriel", () => {
@@ -124,6 +135,36 @@ describe("modèles de courriel", () => {
 
     it("refuse un code qui n'a pas six chiffres", () => {
       expect(() => rendre("CODE_COMPTE_VERSEMENT", { ...CHARGES.CODE_COMPTE_VERSEMENT, codeSecret: "12ab56" })).toThrow(ChargeInvalide);
+    });
+  });
+
+  describe("le message laissé à un créateur", () => {
+    it("porte l'adresse de l'expéditeur en « Répondre à », et elle seule", () => {
+      const m = rendre("MESSAGE_CREATEUR", CHARGES.MESSAGE_CREATEUR);
+      expect(m.repondreA).toBe("contact@studio-kente.test");
+      expect(m.texte).toContain("Une affiche pour notre festival");
+      expect(m.texte).toContain("cm0message0001");
+    });
+
+    it("n'en porte aucun ailleurs : un avis de Baobart n'a personne pour lire la réponse", () => {
+      for (const modele of MODELES.filter((x) => x !== "MESSAGE_CREATEUR")) {
+        expect(rendre(modele, CHARGES[modele]).repondreA).toBeUndefined();
+      }
+    });
+
+    it("refuse une adresse de réponse qui glisserait un en-tête", () => {
+      expect(() =>
+        rendre("MESSAGE_CREATEUR", {
+          ...CHARGES.MESSAGE_CREATEUR,
+          repondreA: "a@b.test\r\nBcc: voleur@exemple.com",
+        }),
+      ).toThrow(ChargeInvalide);
+    });
+
+    it("se rend sans vitrine quand l'expéditeur n'en a pas", () => {
+      const m = rendre("MESSAGE_CREATEUR", { ...CHARGES.MESSAGE_CREATEUR, profil: null });
+      expect(m.texte).not.toContain("null");
+      expect(m.texte).toContain("Studio Kente t'a écrit depuis ta vitrine Baobart.");
     });
   });
 

@@ -9,6 +9,7 @@ import {
   verifierCodeConnexion,
 } from "@/lib/auth/actions-telephone";
 import { sessionCourante } from "@/lib/auth/session";
+import { destination, suiteSure } from "@/lib/auth/suite";
 import { codesParSmsPossibles } from "@/lib/auth/telephone";
 
 export const metadata = { title: "Se connecter par téléphone — Baobart." };
@@ -22,8 +23,14 @@ export const dynamic = "force-dynamic";
  * tapée à la main, le bouton restant « Bientôt disponible »
  * (`lib/auth/providers.ts`).
  */
-export default async function ConnexionTelephonePage() {
-  if (await sessionCourante()) redirect("/dashboard");
+export default async function ConnexionTelephonePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ suite?: string }>;
+}) {
+  // Arrivée par le bouton « Téléphone » de la connexion, qui transmet la suite.
+  const suite = suiteSure((await searchParams).suite);
+  if (await sessionCourante()) redirect(destination(suite));
 
   const disponible = codesParSmsPossibles();
 
@@ -40,7 +47,7 @@ export default async function ConnexionTelephonePage() {
           "Personne chez Baobart ne te demandera jamais ce code",
         ],
       }}
-      lienBascule="/connexion"
+      lienBascule={suite ? `/connexion?suite=${encodeURIComponent(suite)}` : "/connexion"}
       libelleBascule="Avec ton adresse"
       indiceBascule="Plutôt le mot de passe ?"
     >
@@ -72,6 +79,7 @@ export default async function ConnexionTelephonePage() {
             libelleEnvoi="Recevoir un code"
             libelleValidation="Se connecter"
             avecAntiBot
+            suite={suite}
           />
         ) : (
           <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>
