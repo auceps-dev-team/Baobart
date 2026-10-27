@@ -2,6 +2,7 @@ import { FormulaireContact } from "@/components/contact/formulaire";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
+import { ouvertureSignee } from "@/lib/securite/antibot";
 import { compterCommunaute } from "@/lib/feed/queries";
 import { formatCount } from "@/lib/i18n/money";
 import { TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO } from "@/lib/publicites/formats";
@@ -142,7 +143,7 @@ export default async function SponsoriserPage() {
                 Dis-nous ce que tu veux mettre en avant et quand. L&apos;équipe revient vers toi avec un plan et un tarif.
               </p>
             </div>
-            <FormulaireContact genre="SPONSOR" sujets={[]} depart={{ nom: visiteur?.nom ?? "", email: visiteur?.email ?? "" }} />
+            <FormulaireContact genre="SPONSOR" sujets={[]} depart={{ nom: visiteur?.nom ?? "", email: visiteur?.email ?? "" }} ouverture={ouvertureSignee()} />
           </div>
         </div>
         <Footer />

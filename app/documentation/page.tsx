@@ -76,6 +76,7 @@ export default async function DocumentationPage() {
           elements={[
             `Tu gardes ${part} de chaque vente : ${BAREME_XOF.commissionBp / 100} % de commission, et les frais de l'opérateur de paiement.`,
             <>Renseigne ton compte de versement dans {vers("/dashboard/versements", "Versements")} : mobile money ou virement. {vers("/dashboard/gains", "Gains")} dit ce qui est disponible et quand il part.</>,
+            <>Changer de compte de versement demande une confirmation : un code envoyé à ton adresse, que tu saisis sous le numéro. Si tu as activé une application d&apos;authentification dans {vers("/dashboard/profil", "ton profil")}, c&apos;est son code qui est demandé. Une clé d&apos;accès utilisée il y a moins d&apos;un quart d&apos;heure suffit aussi. Un courriel te prévient à chaque changement.</>,
             `Ton solde part une fois par semaine, le jour de ton moyen — ${versements.join(", ")} —, dès qu'il atteint le minimum.`,
             <>Ton délai de remboursement se règle dans {vers("/dashboard/ventes/remboursements", "Demandes de remboursement")}, où arrivent les demandes : réponds sous sept jours, sinon l&apos;équipe tranche.</>,
             <>Chaque vente, et son éventuel remboursement, est dans {vers("/dashboard/ventes", "Ventes")}. Les codes de réduction et l&apos;offre après achat sont dans {vers("/dashboard/promos", "Promotions")}.</>,

@@ -225,6 +225,26 @@ describe("la demande", () => {
     expect(envoyes).toBe(3);
   });
 
+  it("laisse toujours à la victime un lien valable, même quand un tiers épuise le plafond", async () => {
+    // L'audit du 18/10 (VULN-04) y voyait un déni de service permanent : un
+    // tiers demande trois liens, les premiers deviennent caducs, la victime
+    // est bloquée. Le correctif du 18/10 cessait alors d'envoyer pendant cinq
+    // minutes — et cassait le test précédent (1 courriel au lieu de 3, mesuré
+    // le 22/10). Ce test dit pourquoi il n'y avait rien à corriger : chaque
+    // demande, celles du tiers comprises, part dans la boîte de la VICTIME, et
+    // le dernier lien reçu ouvre toujours le compte.
+    const u = await creerCompte("cible@exemple.com");
+    for (let i = 0; i < 4; i++) await demanderReinitialisation(u.email);
+
+    const recus = await db.emailOutbox.findMany({ where: { recipient: u.email }, select: { payload: true } });
+    expect(recus).toHaveLength(3);
+    // Les trois partent dans la même milliseconde : on ne trie pas, on compte.
+    // Exactement un lien reçu ouvre le compte — le dernier créé.
+    const jetons = recus.map((r) => (r.payload as { lien: string }).lien.split("/").pop()!);
+    const valables = await Promise.all(jetons.map(async (j) => (await verifierJeton(j)).valide));
+    expect(valables.filter(Boolean)).toHaveLength(1);
+  });
+
   it("refuse franchement quand l'adresse du site manque", async () => {
     delete process.env.APP_URL;
     const u = await creerCompte("sansurl@exemple.com");

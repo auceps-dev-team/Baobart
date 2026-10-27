@@ -165,15 +165,16 @@ async function appeler(
 /**
  * La référence Baobart adaptée à leur format.
  *
- * Flutterwave n'accepte que 6 à 42 caractères alphanumériques. Nos identifiants
- * de commande sont des `cuid` — alphanumériques et de bonne taille — mais on
- * filtre quand même : le jour où le générateur change, l'ouverture échouerait
- * pour une raison que personne ne devinerait.
+ * Flutterwave accepte 6 à 42 caractères (alphanumériques, tirets et tirets bas).
+ * Nos identifiants de commande sont des `cuid` et nos renouvellements portent
+ * le préfixe `abo-`. On filtre les caractères spéciaux tout en préservant
+ * les tirets et tirets bas indispensables à la détection des renouvellements.
  */
 export function referencePour(reference: string): string {
-  const propre = reference.replace(/[^a-zA-Z0-9]/g, "");
+  const propre = reference.replace(/[^a-zA-Z0-9\-_]/g, "");
   return propre.slice(0, 42).padEnd(6, "0");
 }
+
 
 async function ouvrirChezFlutterwave(demande: DemandePaiement) {
   const acces = await jeton();

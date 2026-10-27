@@ -93,6 +93,14 @@ export const MODELES = [
   // ne porte que le moyen et les quatre derniers chiffres : la référence
   // entière dans une boîte serait une fuite gratuite.
   "COMPTE_VERSEMENT_MODIFIE",
+
+  // ── Ajouté le 23/10 : le code qui confirme un changement de compte ──────
+  //
+  // Pour qui n'a pas d'application TOTP. Le code n'est JAMAIS dans l'objet :
+  // l'objet s'affiche sur l'écran verrouillé d'un téléphone, et le pilote
+  // `console` le journalise. Le champ s'appelle `codeSecret` pour que le
+  // journal le caviarde s'il était un jour journalisé (`NOMS_SENSIBLES`).
+  "CODE_COMPTE_VERSEMENT",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -283,6 +291,13 @@ const SCHEMAS = {
     moyen: z.string().min(1).max(60),
     /** La destination masquée : « ···· 4821 ». Jamais la référence entière. */
     compte: z.string().min(1).max(60),
+  }),
+  CODE_COMPTE_VERSEMENT: z.object({
+    nom,
+    codeSecret: z.string().regex(/^\d{6}$/),
+    /** Ce que le code autorise : « Wave — ···· 2233 ». */
+    destination: z.string().min(1).max(80),
+    minutes: z.number().int().positive(),
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
@@ -692,6 +707,38 @@ Répondre : ${c.lien}` : ""),
       `Si ce n'est PAS toi, écris-nous tout de suite : tant que ce compte est ` +
       `en place, c'est là que partiront tes prochains versements. Change-le ` +
       `depuis ton tableau de bord, rubrique « Versements », et préviens-nous.` +
+      SIGNATURE,
+  }),
+
+  /**
+   * Le code qui confirme un changement de compte de versement.
+   *
+   * Il nomme ce qu'il autorise — le moyen et les quatre derniers chiffres — :
+   * c'est ce qui permet au propriétaire de voir qu'on lui demande d'envoyer
+   * son argent ailleurs. Et il dit quoi faire si ce n'est pas lui : quelqu'un
+   * est dans sa session, puisque la demande vient d'un compte connecté.
+   */
+  CODE_COMPTE_VERSEMENT: (c) => ({
+    sujet: "Ton code pour changer de compte de versement",
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Voici ton code pour enregistrer ce compte de versement :
+
+` +
+      `  ${c.destination}
+
+` +
+      `  ${c.codeSecret}
+
+` +
+      `Il expire dans ${c.minutes} minutes et ne vaut que pour ce compte.
+
+` +
+      `Si ce n'est PAS toi : ne donne ce code à personne, même à l'équipe ` +
+      `Baobart. Quelqu'un utilise ta session — change ton mot de passe, et ` +
+      `écris-nous.` +
       SIGNATURE,
   }),
 };

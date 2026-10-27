@@ -5,6 +5,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { inscrire } from "@/lib/auth/actions";
 import { listerFournisseurs } from "@/lib/auth/providers";
 import { sessionCourante } from "@/lib/auth/session";
+import { ouvertureSignee } from "@/lib/securite/antibot";
 import { partDuCreateur } from "@/lib/domain/fees";
 
 export const metadata = { title: "Créer un compte — Baobart." };
@@ -55,6 +56,7 @@ export default async function InscriptionPage() {
         }
         action={inscrire}
         fournisseurs={listerFournisseurs()}
+        ouverture={ouvertureSignee()}
         champs={[
           {
             nom: "prenom",

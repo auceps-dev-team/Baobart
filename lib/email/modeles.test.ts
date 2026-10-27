@@ -83,6 +83,7 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
   REMBOURSEMENT_REFUSE: { nom: "Kofi", ressource: "Pack textures", motif: "Le fichier s'ouvre avec Illustrator 2024.", par: "le créateur" },
   INFOLETTRE: { sujet: "Les nouveautés d'octobre", corps: "Trois nouvelles familles de ressources arrivent.", desinscrire: "https://baobart.test/infolettre/desinscription?jeton=abc.def" },
   COMPTE_VERSEMENT_MODIFIE: { nom: "Awa", moyen: "Orange Money", compte: "···· 4821" },
+  CODE_COMPTE_VERSEMENT: { nom: "Awa", codeSecret: "482913", destination: "Wave — ···· 2233", minutes: 15 },
 };
 
 describe("modèles de courriel", () => {
@@ -107,6 +108,22 @@ describe("modèles de courriel", () => {
       expect(m.texte).toContain("Awa");
       expect(m.texte).toContain("12 000 F");
       expect(m.texte).toContain("···· 4821");
+    });
+  });
+
+  describe("le code du compte de versement", () => {
+    it("nomme ce qu'il autorise et porte le code dans le corps", () => {
+      const m = rendre("CODE_COMPTE_VERSEMENT", CHARGES.CODE_COMPTE_VERSEMENT);
+      expect(m.texte).toContain("482913");
+      expect(m.texte).toContain("Wave — ···· 2233");
+    });
+
+    it("ne met jamais le code dans l'objet : il s'affiche sur l'écran verrouillé, et se journalise", () => {
+      expect(rendre("CODE_COMPTE_VERSEMENT", CHARGES.CODE_COMPTE_VERSEMENT).sujet).not.toMatch(/\d{6}/);
+    });
+
+    it("refuse un code qui n'a pas six chiffres", () => {
+      expect(() => rendre("CODE_COMPTE_VERSEMENT", { ...CHARGES.CODE_COMPTE_VERSEMENT, codeSecret: "12ab56" })).toThrow(ChargeInvalide);
     });
   });
 

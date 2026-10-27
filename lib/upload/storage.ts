@@ -354,13 +354,24 @@ export async function telechargerObjet(
   }
 }
 
-/** Dépose un objet produit par le serveur — un aperçu, jamais un fichier reçu. */
+/** Dépose un objet produit par le serveur — un aperçu public ou une ressource privée. */
 export async function deposerObjet(input: {
   cle: string;
   corps: Buffer;
   contentType: string;
+  cacheControl?: string;
+  prive?: boolean;
 }): Promise<void> {
   await assurerBucket();
+
+  // Les ressources sous 'public/' peuvent être mises en cache public immuable.
+  // Les fichiers sources, copies de référence et documents sensibles (CV) sont strictement privés.
+  const estPrive = input.prive ?? !input.cle.startsWith("public/");
+  const cacheControl =
+    input.cacheControl ??
+    (estPrive
+      ? "private, no-cache, no-store, must-revalidate"
+      : "public, max-age=31536000, immutable");
 
   await s3().send(
     new PutObjectCommand({
@@ -368,11 +379,11 @@ export async function deposerObjet(input: {
       Key: input.cle,
       Body: input.corps,
       ContentType: input.contentType,
-      // Un aperçu ne change jamais : sa clé porte l'identifiant du média.
-      CacheControl: "public, max-age=31536000, immutable",
+      CacheControl: cacheControl,
     }),
   );
 }
+
 
 export interface ObjetListe {
   cle: string;
