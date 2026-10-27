@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { PanneauVersement } from "@/components/dashboard/panneau-versement";
 import { sessionCourante } from "@/lib/auth/session";
+import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { configurationDe } from "@/lib/payments/configuration";
+import { facteurPropose } from "@/lib/payments/preuve";
 
 export const metadata = { title: "Versements — Baobart." };
 export const dynamic = "force-dynamic";
@@ -57,7 +59,10 @@ export default async function VersementsPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
-  const config = await configurationDe(utilisateur.id);
+  const [config, securite] = await Promise.all([
+    configurationDe(utilisateur.id),
+    db.user.findUnique({ where: { id: utilisateur.id }, select: { totpActiveLe: true } }),
+  ]);
 
   const conditions = [
     {
@@ -186,6 +191,7 @@ export default async function VersementsPage() {
           }
           cadence={config.cadence}
           jourDeVersement={config.jourDeVersement}
+          facteur={facteurPropose({ totpActif: Boolean(securite?.totpActiveLe) })}
         />
 
         <div

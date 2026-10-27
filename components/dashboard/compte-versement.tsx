@@ -103,6 +103,22 @@ export function CompteDeVersement({
           />
         </label>
 
+        <label style={{ display: "block" }}>
+          <span style={ETIQUETTE}>
+            Code d&apos;authentification (2FA){" "}
+            <span style={{ opacity: 0.6, fontWeight: 500 }}>
+              — code à 6 chiffres de ton application, ou code de secours. Avec une clé
+              d&apos;accès utilisée il y a moins d&apos;un quart d&apos;heure, laisse vide.
+            </span>
+          </span>
+          <input
+            name="code2FA"
+            placeholder="123456"
+            autoComplete="one-time-code"
+            style={CHAMP}
+          />
+        </label>
+
         {refus ? (
           <p
             role="alert"

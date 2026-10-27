@@ -197,10 +197,12 @@ describe("la référence transmise", () => {
     expect(referencePour("cmxyz123abc")).toBe("cmxyz123abc");
   });
 
-  it("retire ce que Flutterwave n'accepte pas", () => {
-    // Six à quarante-deux caractères alphanumériques, pas un de plus.
-    expect(referencePour("cm-xyz_123.abc")).toBe("cmxyz123abc");
+  it("retire ce que Flutterwave n'accepte pas mais préserve tirets et tirets bas", () => {
+    // Six à quarante-deux caractères alphanumériques + tiret et tiret bas.
+    expect(referencePour("cm-xyz_123.abc")).toBe("cm-xyz_123abc");
+    expect(referencePour("abo-cmxyz123abc")).toBe("abo-cmxyz123abc");
   });
+
 
   it("tient les deux bornes", () => {
     expect(referencePour("ab").length).toBe(6);

@@ -174,6 +174,8 @@ export async function rembourserLigne(input: {
   holdingCurrency?: Currency;
   tauxChange?: number;
   date?: Date;
+  /** La référence du remboursement chez l'opérateur, quand il en rend une. */
+  processorRef?: string | null;
 }) {
   const {
     orderItemId,
@@ -183,6 +185,7 @@ export async function rembourserLigne(input: {
     holdingCurrency,
     tauxChange,
     date = new Date(),
+    processorRef = null,
   } = input;
 
   if (!Number.isInteger(amount) || amount <= 0) {
@@ -265,6 +268,7 @@ export async function rembourserLigne(input: {
         reason,
         refundedById,
         retainedFee: retenu,
+        processorRef,
       },
     });
 

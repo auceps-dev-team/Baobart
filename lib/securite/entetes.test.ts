@@ -19,12 +19,23 @@ describe("les en-têtes de sécurité", () => {
     expect(valeur("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
   });
 
-  it("gardent la CSP en mode observation, sans bloquer", () => {
+  it("gardent la CSP en mode observation, sans bloquer par défaut", () => {
     // Le jour où on la passe en mode bloquant, ce test doit changer avec :
     // c'est une décision, pas un détail de configuration.
     const cles = entetesDeSecurite({}).map((e) => e.key);
     expect(cles).toContain("Content-Security-Policy-Report-Only");
     expect(cles).not.toContain("Content-Security-Policy");
+  });
+
+  it("basculent en mode bloquant quand CSP_ENFORCE=true", () => {
+    const cles = entetesDeSecurite({ CSP_ENFORCE: "true" }).map((e) => e.key);
+    expect(cles).toContain("Content-Security-Policy");
+    expect(cles).not.toContain("Content-Security-Policy-Report-Only");
+  });
+
+  it("injectent report-uri quand CSP_REPORT_URI est configuré", () => {
+    const csp = politiqueDeContenu({ CSP_REPORT_URI: "https://baobart.test/api/csp-report" });
+    expect(csp).toContain("report-uri https://baobart.test/api/csp-report");
   });
 
   it("autorisent le stockage pour les images et l'envoi direct", () => {

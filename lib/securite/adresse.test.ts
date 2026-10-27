@@ -18,10 +18,34 @@ describe("l'adresse d'une requête", () => {
     expect(adresseDe(r)).toBe("9.9.9.9");
   });
 
+  describe("cf-connecting-ip", () => {
+    it("est lu en premier quand le site se déclare derrière Cloudflare", () => {
+      const r = requete({ "cf-connecting-ip": "4.4.4.4", "x-real-ip": "2.2.2.2" });
+      expect(adresseDe(r, { ADRESSE_CLOUDFLARE: "true" })).toBe("4.4.4.4");
+    });
+
+    it("est ignoré sinon : hors de Cloudflare, c'est le client qui l'écrit", () => {
+      // Le cas mesuré le 22/10 : derrière Vercel, l'en-tête forgé l'emportait
+      // sur celui de la plateforme, et la clé changeait à chaque requête.
+      const cles = new Set(
+        ["203.0.113.1", "203.0.113.2", "203.0.113.3"].map((forge) =>
+          adresseDe(requete({ "x-vercel-forwarded-for": "198.51.100.7", "cf-connecting-ip": forge }), {}),
+        ),
+      );
+      expect([...cles]).toEqual(["198.51.100.7"]);
+    });
+
+    it("ne remplace pas x-real-ip derrière nginx ou Caddy", () => {
+      const r = requete({ "x-real-ip": "2.2.2.2", "cf-connecting-ip": "203.0.113.99" });
+      expect(adresseDe(r, {})).toBe("2.2.2.2");
+    });
+  });
+
   it("retombe sur x-real-ip, posé par les mandataires inverses", () => {
     const r = requete({ "x-real-ip": "2.2.2.2", "x-forwarded-for": "1.1.1.1" });
     expect(adresseDe(r)).toBe("2.2.2.2");
   });
+
 
   it("prend le DERNIER élément de x-forwarded-for, pas le premier", () => {
     // Le cœur du sujet. Un mandataire honnête AJOUTE l'adresse réelle à la fin
@@ -55,10 +79,22 @@ describe("l'adresse d'une requête", () => {
     expect(adresseDe(r)).toBe("2.2.2.2");
   });
 
-  it("ne fabrique jamais de sujet de repli", () => {
-    // Une valeur commune — « inconnu » — serait pire que rien : tous les
-    // visiteurs sans adresse partageraient un compteur, et le premier robot
-    // fermerait la porte à tous les autres.
+  it("ne fabrique pas de sujet de repli par défaut en dév", () => {
+    // Par défaut, pas de repli en dev/test pour ne pas bloquer les développeurs
     expect(sujetAnonyme(requete({}))).toBeNull();
+  });
+
+  it("produit un sujet de repli protecteur quand le mode strict est actif", () => {
+    expect(sujetAnonyme(requete({}), true)).toBe("anonyme-sans-ip");
+  });
+
+  it("produit un sujet de repli protecteur en production sans IP", () => {
+    const prev = process.env.NODE_ENV;
+    try {
+      (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+      expect(sujetAnonyme(requete({}))).toBe("anonyme-sans-ip");
+    } finally {
+      (process.env as Record<string, string | undefined>).NODE_ENV = prev;
+    }
   });
 });

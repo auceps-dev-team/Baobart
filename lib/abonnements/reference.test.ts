@@ -41,10 +41,16 @@ describe("la référence d'un renouvellement", () => {
     expect(paiementDeReference("cmdabo-123")).toBeNull();
   });
 
+  it("reconnaît une référence dont le tiret a été altéré par un opérateur", () => {
+    const id = "clx0123456789abcdef";
+    expect(paiementDeReference(`abo${id}`)).toBe(id);
+  });
+
   it("n'emploie que des caractères qu'un opérateur accepte", () => {
     // Paystack et Flutterwave restreignent le jeu de caractères d'une
     // référence. Un préfixe avec un tiret bas passerait ici et serait refusé
     // à l'ouverture, en production seulement.
     expect(referenceDe("clx1")).toMatch(/^[A-Za-z0-9.=-]+$/);
   });
+
 });

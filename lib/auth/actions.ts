@@ -270,6 +270,13 @@ export async function inscrire(
   ]);
 
   if (emailPris) {
+    // VULN-05 : Choix produit documenté et assumé — Le message explicite
+    // « Un compte existe déjà avec cette adresse. » est conservé afin de guider
+    // utilement l'utilisateur vers la connexion ou la réinitialisation.
+    // L'égalisation temporelle par hachage scrypt est maintenue pour empêcher
+    // l'énumération par analyse comparative du temps de réponse.
+    await hacherMotDePasse(motDePasse);
+    journal.info("inscription tentée avec une adresse déjà enregistrée", {});
     return {
       erreur: "Un compte existe déjà avec cette adresse.",
       champ: "email",
@@ -278,6 +285,7 @@ export async function inscrire(
   if (usernamePris) {
     return { erreur: "Ce nom d'utilisateur est déjà pris.", champ: "username" };
   }
+
 
   const passwordHash = await hacherMotDePasse(motDePasse);
 

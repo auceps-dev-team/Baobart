@@ -304,6 +304,8 @@ describe("le plafond des bannières", () => {
     // Depuis v1.96.0, les vues des profils passent par le même secret
     // (lib/createurs/vues.ts) : sans lui, elles ne sont pas comptées du tout.
     expect(c.remede).toContain("vues des profils");
+    // Depuis le 22/10, l'instant signé des formulaires aussi.
+    expect(c.remede).toContain("anti-bot");
   });
 
   it("ne dit rien en développement", () => {

@@ -42,16 +42,17 @@ afterAll(() => {
   vi.restoreAllMocks();
 });
 
-const envoyees: Array<{ commande: string; bucket: string | undefined }> = [];
+const envoyees: Array<{ commande: string; bucket: string | undefined; cacheControl?: string }> = [];
 
 beforeEach(() => {
   envoyees.length = 0;
   vi.spyOn(S3Client.prototype, "send").mockImplementation(async (commande: unknown) => {
-    const c = commande as { constructor: { name: string }; input: { Bucket?: string } };
-    envoyees.push({ commande: c.constructor.name, bucket: c.input.Bucket });
+    const c = commande as { constructor: { name: string }; input: { Bucket?: string; CacheControl?: string } };
+    envoyees.push({ commande: c.constructor.name, bucket: c.input.Bucket, cacheControl: c.input.CacheControl });
     return { Contents: [], IsTruncated: false } as never;
   });
 });
+
 
 describe("le bucket d'une clé", () => {
   it("range le public à part quand S3_BUCKET_PUBLIC est posé", () => {
@@ -115,8 +116,16 @@ describe("chaque opération vise le bucket de sa clé", () => {
     const politiques = envoyees.filter((e) => e.commande.includes("BucketPolicy"));
     expect(politiques.length).toBeGreaterThan(0);
     expect(politiques.every((e) => e.bucket === "vitrine")).toBe(true);
-    expect(envoyees.at(-1)).toEqual({ commande: "PutObjectCommand", bucket: "vitrine" });
+    expect(envoyees.at(-1)).toEqual({ commande: "PutObjectCommand", bucket: "vitrine", cacheControl: "public, max-age=31536000, immutable" });
   });
+
+  it("applique un cache strictement privé pour les originaux et les fichiers hors public/", async () => {
+    await deposerObjet({ cle: "produits/p1/original.jpg", corps: Buffer.from("x"), contentType: "image/jpeg" });
+    const dernier = envoyees.at(-1);
+    expect(dernier?.cacheControl).toBe("private, no-cache, no-store, must-revalidate");
+    expect(dernier?.bucket).toBe("prive");
+  });
+
 
   it("supprime et liste là où l'objet a été rangé", async () => {
     await supprimerObjet("produits/p1/pack.zip");

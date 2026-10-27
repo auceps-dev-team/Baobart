@@ -1,5 +1,6 @@
 "use server";
 
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -8,6 +9,7 @@ import { after } from "next/server";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import { paysValide } from "@/lib/payments/rails";
+import { secretDuPlafond } from "@/lib/publicites/plafond";
 import { deuxFacteursRecent } from "@/lib/auth/deux-facteurs";
 import {
   identitesDe,
@@ -71,9 +73,56 @@ const COOKIE_VERIFICATION = "baobart_tel_verification";
 /** Dix minutes, comme le code. */
 const DUREE_COOKIE_S = 600;
 
+/**
+ * Le numéro en cours de vérification, signé.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * UNE DÉFENSE EN PLUS, PAS LA DÉFENSE
+ *
+ * Le cookie est `httpOnly` : un script de la page ne le lit pas, mais la
+ * personne, elle, peut le réécrire dans son navigateur. L'audit du 18/10
+ * (VULN-04) y voyait une falsification possible. Elle ne mène à rien : le code
+ * se vérifie contre le défi rangé en base pour CE numéro, et changer le numéro
+ * du cookie ne donne pas le code envoyé à un autre téléphone.
+ *
+ * La signature empêche quand même de jouer avec l'étape, et elle est liée au
+ * nom du cookie : celui de la connexion ne vaut pas pour celui de la
+ * vérification. Le 18/10, elle reposait sur une variable nouvelle,
+ * `SESSION_SECRET`, et sur un secret de repli écrit en dur. Elle prend
+ * désormais le secret que le projet a déjà (`secretDuPlafond`, AUTH_SECRET de
+ * seize caractères au moins). Sans lui, le cookie porte le numéro nu, comme
+ * avant le 18/10 — l'écran Système signale déjà son absence.
+ */
+function signature(nom: string, e164: string, secret: string): string {
+  return createHmac("sha256", secret).update(`${nom}:${e164}`).digest("base64url");
+}
+
+function valeurSignee(nom: string, e164: string): string {
+  const secret = secretDuPlafond();
+  return secret ? `${e164}.${signature(nom, e164, secret)}` : e164;
+}
+
+async function recupererNumero(nom: string): Promise<string | null> {
+  const magasin = await cookies();
+  const brut = magasin.get(nom)?.value;
+  if (!brut) return null;
+
+  const secret = secretDuPlafond();
+  let e164 = brut;
+  if (secret) {
+    const point = brut.lastIndexOf(".");
+    if (point === -1) return null;
+    e164 = brut.slice(0, point);
+    const recue = Buffer.from(brut.slice(point + 1));
+    const attendue = Buffer.from(signature(nom, e164, secret));
+    if (recue.length !== attendue.length || !timingSafeEqual(recue, attendue)) return null;
+  }
+  return /^\+[1-9]\d{6,14}$/.test(e164) ? e164 : null;
+}
+
 async function poserNumero(nom: string, e164: string): Promise<void> {
   const magasin = await cookies();
-  magasin.set(nom, e164, {
+  magasin.set(nom, valeurSignee(nom, e164), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -81,6 +130,7 @@ async function poserNumero(nom: string, e164: string): Promise<void> {
     maxAge: DUREE_COOKIE_S,
   });
 }
+
 
 function lireNumero(donnees: FormData): string | null {
   return versE164(
@@ -172,11 +222,11 @@ export async function verifierCodeConnexion(
   const borne = await verifierLimiteAction("connexion");
   if (!borne.autorise) return { ...tropDEssais(borne.dansSecondes), etape: "code" };
 
-  const magasin = await cookies();
-  const e164 = magasin.get(COOKIE_CONNEXION)?.value;
+  const e164 = await recupererNumero(COOKIE_CONNEXION);
   if (!e164) {
     return { erreur: "La demande a expiré. Recommence avec ton numéro.", etape: "numero" };
   }
+  const magasin = await cookies();
 
   const suite = await verifierCode({
     telephone: e164,
@@ -305,9 +355,9 @@ export async function confirmerTelephone(
   // l'avoir franchie récemment.
   if (!(await deuxFacteursRecent(moi.sessionId))) return DEUX_FACTEURS_A_REFAIRE;
 
-  const magasin = await cookies();
-  const e164 = magasin.get(COOKIE_VERIFICATION)?.value;
+  const e164 = await recupererNumero(COOKIE_VERIFICATION);
   if (!e164) return { erreur: "La demande a expiré. Redemande un code.", etape: "numero" };
+  const magasin = await cookies();
 
   const suite = await verifierCode({
     telephone: e164,

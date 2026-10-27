@@ -84,7 +84,9 @@ export async function verdictAntiBot(
     action,
     leurre: String(donnees.get(CHAMP_LEURRE) ?? ""),
     ouvertLe: avecDelai ? String(donnees.get(CHAMP_OUVERTURE) ?? "") : null,
+    delaiRequis: avecDelai,
   });
+
 
   if (verdict.laisserPasser) return null;
 

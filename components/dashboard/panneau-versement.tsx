@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
+  demanderCodeVersement,
   enregistrerCadence,
   enregistrerCompteDeVersement,
+  type EtatCode,
   type EtatCompte,
 } from "@/lib/payments/actions";
 import {
@@ -80,18 +82,41 @@ function Carte({
  */
 function CompteDeVersement({
   actuel,
+  facteur,
 }: {
   actuel: { label: string; apercu: string; code: string; titulaire: string | null } | null;
+  /** Le second facteur que l'action attendra (`facteurPropose`, lib/payments/preuve.ts). */
+  facteur: "TOTP" | "COURRIEL";
 }) {
   const [etat, envoyer, enCours] = useActionState<EtatCompte | null, FormData>(
     enregistrerCompteDeVersement,
     null,
   );
+  const [demande, demander, enDemande] = useActionState<EtatCode | null, FormData>(demanderCodeVersement, null);
+
+  // Contrôlés : React vide les champs non contrôlés à la fin de CHAQUE action
+  // du formulaire — demander le code effacerait le numéro qu'il doit confirmer.
+  const [reference, setReference] = useState("");
+  const [titulaire, setTitulaire] = useState(actuel?.titulaire ?? "");
 
   // Le formulaire reste replié tant qu'un compte existe : la maquette ouvre par
   // un rappel de l'état, pas par une invitation à en changer.
   const [ouvert, setOuvert] = useState(actuel === null);
   const [moyen, setMoyen] = useState(actuel?.code ?? MOYENS_VERSEMENT[0].code);
+
+  // Enregistré : le formulaire se referme, et le code qui a servi n'est plus
+  // annoncé comme « envoyé » à sa réouverture — il est consommé.
+  const [codeConsomme, setCodeConsomme] = useState<EtatCode | null>(null);
+  useEffect(() => {
+    if (etat?.ok) {
+      setOuvert(false);
+      setReference("");
+      setCodeConsomme(demande);
+    }
+    // `demande` est lu, pas suivi : seul un nouvel enregistrement compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etat]);
+  const demandeVisible = demande === codeConsomme ? null : demande;
 
   const choisi = MOYENS_VERSEMENT.find((m) => m.code === moyen) ?? MOYENS_VERSEMENT[0];
   const refus = etat && !etat.ok ? etat : null;
@@ -157,6 +182,16 @@ function CompteDeVersement({
 
       {ouvert ? (
         <form action={envoyer}>
+          {/*
+            Le moyen part ICI, pas par les boutons radio. React remet le
+            formulaire à zéro après chaque action, et un radio revient alors à
+            celui coché au rendu — l'ancien compte — pendant que l'écran, qui
+            lit l'état, montre toujours le nouveau. Mesuré le 24/10 : « wave »
+            coché avant de demander un code, « moov » après. Le numéro
+            partait sous le mauvais opérateur. Un champ caché garde sa valeur :
+            pour lui, valeur et valeur par défaut sont la même.
+          */}
+          <input type="hidden" name="provider" value={moyen} />
           <div style={{ ...ETIQUETTE, margin: "20px 0 9px" }}>
             Moyen de versement
           </div>
@@ -179,7 +214,7 @@ function CompteDeVersement({
               >
                 <input
                   type="radio"
-                  name="provider"
+                  name="provider-choix"
                   value={m.code}
                   checked={m.code === moyen}
                   onChange={() => setMoyen(m.code)}
@@ -216,7 +251,8 @@ function CompteDeVersement({
               <div style={{ ...ETIQUETTE, marginBottom: 6 }}>{choisi.champ}</div>
               <input
                 name="reference"
-                defaultValue={refus?.saisie?.reference}
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
                 placeholder={choisi.exemple}
                 style={CHAMP}
               />
@@ -226,12 +262,59 @@ function CompteDeVersement({
               <input
                 id="titulaire"
                 name="titulaire"
-                defaultValue={refus?.saisie?.titulaire ?? actuel?.titulaire ?? ""}
+                value={titulaire}
+                onChange={(e) => setTitulaire(e.target.value)}
                 placeholder="Awa Diallo"
                 style={CHAMP}
               />
             </div>
+            <div>
+              <div style={{ ...ETIQUETTE, marginBottom: 6 }}>
+                {facteur === "TOTP"
+                  ? "Code de ton application (ou code de secours)"
+                  : "Code reçu par courriel"}
+              </div>
+              <input
+                id="code2FA"
+                name="code2FA"
+                placeholder="123456"
+                inputMode={facteur === "TOTP" ? undefined : "numeric"}
+                autoComplete="one-time-code"
+                style={CHAMP}
+              />
+            </div>
           </div>
+
+          {/*
+            Le second facteur, sans application à installer (décidé le 23/10) :
+            le code part à l'adresse du compte, lié au numéro saisi ci-dessus.
+            Il faut donc saisir le numéro AVANT de le demander.
+          */}
+          {facteur === "COURRIEL" ? (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginTop: 14 }}>
+              <button
+                type="submit"
+                formAction={demander}
+                disabled={enDemande}
+                style={{
+                  padding: "11px 16px",
+                  border: CADRE,
+                  borderRadius: 12,
+                  background: BLANC,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: enDemande ? "wait" : "pointer",
+                }}
+              >
+                {enDemande ? "Envoi…" : demandeVisible?.ok ? "Renvoyer un code" : "Recevoir un code par courriel"}
+              </button>
+              <span role="status" style={{ fontSize: 12.5, fontWeight: 700, color: demandeVisible && !demandeVisible.ok ? ORANGE_SOMBRE : ENCRE }}>
+                {demandeVisible?.ok
+                  ? `Code envoyé à ${demandeVisible.vers}. Il vaut 15 minutes, pour ce numéro seulement.`
+                  : demandeVisible?.message ?? "Une clé d'accès utilisée il y a moins d'un quart d'heure dispense du code."}
+              </span>
+            </div>
+          ) : null}
 
           {refus ? (
             <p
@@ -340,6 +423,9 @@ function CadenceDesVersements({
       </div>
 
       <form action={envoyer}>
+        {/* Même raison que le moyen de versement, plus haut : le choix part
+            par un champ caché, que la remise à zéro du formulaire ne touche pas. */}
+        <input type="hidden" name="cadence" value={choix} />
         <div
           style={{
             display: "flex",
@@ -363,7 +449,7 @@ function CadenceDesVersements({
             >
               <input
                 type="radio"
-                name="cadence"
+                name="cadence-choix"
                 value={c.code}
                 checked={c.code === choix}
                 onChange={() => setChoix(c.code)}
@@ -441,6 +527,7 @@ export interface PanneauProps {
   actuel: { label: string; apercu: string; code: string; titulaire: string | null } | null;
   cadence: CodeCadence;
   jourDeVersement: string | null;
+  facteur: "TOTP" | "COURRIEL";
 }
 
 /** Les deux réglages, côte à côte, comme la maquette les pose. */
@@ -454,7 +541,7 @@ export function PanneauVersement(props: PanneauProps) {
         alignItems: "start",
       }}
     >
-      <CompteDeVersement actuel={props.actuel} />
+      <CompteDeVersement actuel={props.actuel} facteur={props.facteur} />
       <CadenceDesVersements
         actuelle={props.cadence}
         jourDeVersement={props.jourDeVersement}

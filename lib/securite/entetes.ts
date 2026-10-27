@@ -104,6 +104,10 @@ export function politiqueDeContenu(
     "frame-ancestors": ["'none'"],
   };
 
+  if (env.CSP_REPORT_URI) {
+    directives["report-uri"] = [env.CSP_REPORT_URI];
+  }
+
   return Object.entries(directives)
     .map(([nom, valeurs]) => `${nom} ${valeurs.join(" ")}`)
     .join("; ");
@@ -112,6 +116,11 @@ export function politiqueDeContenu(
 export function entetesDeSecurite(
   env: Record<string, string | undefined>,
 ): EnteteHttp[] {
+  const cleCsp =
+    env.CSP_ENFORCE === "true"
+      ? "Content-Security-Policy"
+      : "Content-Security-Policy-Report-Only";
+
   return [
     // Deux ans. Ignoré par le navigateur sur une réponse en HTTP clair, donc
     // sans effet en développement.
@@ -131,7 +140,7 @@ export function entetesDeSecurite(
       value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
     },
     {
-      key: "Content-Security-Policy-Report-Only",
+      key: cleCsp,
       value: politiqueDeContenu(env),
     },
   ];

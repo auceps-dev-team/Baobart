@@ -90,7 +90,7 @@ export async function poserLaProvenance(input: {
   // 1. Le fichier livré, gravé sur place, sans perte.
   const grave = injecterXmp(source, xmpDe(input.pseudo, { apercu: false }));
   if (grave && (await redecodable(grave))) {
-    await deposerObjet({ cle: input.s3Key, corps: grave, contentType: input.contentType });
+    await deposerObjet({ cle: input.s3Key, corps: grave, contentType: input.contentType, prive: true });
     // Le checksum relu du stockage, pas supposé : les octets ont changé.
     const relu = await lireObjet(input.s3Key);
     await db.mediaAsset.update({
@@ -112,9 +112,10 @@ export async function poserLaProvenance(input: {
       .withXmp(xmpDe(input.pseudo, { apercu: false, licence: input.licenceTitre }))
       .webp({ quality: QUALITE_REFERENCE })
       .toBuffer();
-    await deposerObjet({ cle: cleDeReference(input.mediaId), corps: reference, contentType: "image/webp" });
+    await deposerObjet({ cle: cleDeReference(input.mediaId), corps: reference, contentType: "image/webp", prive: true });
     issue.reference = true;
   } catch (cause) {
+
     journal.avertissement("provenance : copie de référence non produite", {
       media: input.mediaId,
       cause: cause instanceof Error ? cause.message : String(cause),

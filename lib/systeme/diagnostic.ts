@@ -463,6 +463,13 @@ export interface FaitsPlafondPub {
  * le même secret (`secretDuPlafond`). Sans lui, elles ne sont pas comptées du
  * tout — et cela ne se voit nulle part ailleurs : l'indicateur reste à zéro,
  * ce qui ressemble à une vitrine que personne ne visite.
+ *
+ * Depuis le 22/10, deux lecteurs de plus : l'instant signé des formulaires
+ * d'inscription et de contact (`ouvertureSignee`, lib/securite/antibot.ts),
+ * et le cookie du numéro de téléphone en cours de vérification
+ * (lib/auth/actions-telephone.ts). Sans le secret, ni l'un ni l'autre n'est
+ * signé : l'anti-bot retombe sur l'instant du navigateur, que n'importe quel
+ * script forge.
  */
 export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
   if (faits.secret) {
@@ -482,7 +489,7 @@ export function constatPlafondPub(faits: FaitsPlafondPub): Constat {
       ? "AUTH_SECRET absent ou trop court : seul le débit à la minute s'applique."
       : "Non appliqué sans AUTH_SECRET (développement).",
     remede: faits.production
-      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour, et les vues des profils ne sont pas comptées du tout ; absent, il bloque aussi l'envoi de la lettre d'information."
+      ? "Pose AUTH_SECRET (16 caractères au moins, par exemple `openssl rand -hex 32`). Sans lui, une même adresse fait compter des affichages et des clics sans limite par jour, les vues des profils ne sont pas comptées du tout, et l'anti-bot des formulaires accepte un instant forgé ; absent, il bloque aussi l'envoi de la lettre d'information."
       : undefined,
   };
 }

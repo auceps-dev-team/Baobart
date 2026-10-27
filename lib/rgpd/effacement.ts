@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
+import { masquerCompte } from "@/lib/payments/gains";
 import { clesDesVisuels } from "@/lib/profil/visuels-service";
 import { supprimerObjet } from "@/lib/upload/storage";
 
@@ -96,6 +97,7 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   ["totpChallenge", "userId"],
   ["passwordReset", "userId"],
   ["phoneCode", "userId"],
+  ["emailCode", "userId"],
   ["account", "userId"],
 
   // ── Ce qui identifie ──────────────────────────────────────────────────
@@ -263,6 +265,25 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
       if (lettre.count > 0) supprimees["newsletterSubscriber (adresse)"] = lettre.count;
       const ecrits = await tx.contactMessage.deleteMany({ where: { email: adresse } });
       if (ecrits.count > 0) supprimees["contactMessage (adresse)"] = ecrits.count;
+
+      // ── Caviardage des coordonnées bancaires dans les versements passés ─
+      // Un versement (Payout) ne peut être supprimé pour des raisons comptables,
+      // mais les coordonnées brutes (numéro mobile money ou IBAN) sont masquées.
+      const versements = await tx.payout.findMany({
+        where: { userId },
+        select: { id: true, accountRef: true },
+      });
+      for (const v of versements) {
+        if (!v.accountRef.startsWith("····")) {
+          await tx.payout.update({
+            where: { id: v.id },
+            data: { accountRef: masquerCompte(v.accountRef) },
+          });
+        }
+      }
+      if (versements.length > 0) {
+        supprimees["payout (coordonnées caviardées)"] = versements.length;
+      }
 
       // ── La coquille ───────────────────────────────────────────────────
       await tx.user.update({

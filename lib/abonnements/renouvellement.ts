@@ -57,10 +57,18 @@ export function referenceDe(paiementId: string): string {
 
 /** L'identifiant du paiement, ou `null` si la référence n'est pas la nôtre. */
 export function paiementDeReference(reference: string): string | null {
-  if (!reference.startsWith(PREFIXE)) return null;
-  const id = reference.slice(PREFIXE.length);
-  return id.length > 0 ? id : null;
+  if (reference.startsWith(PREFIXE)) {
+    const id = reference.slice(PREFIXE.length);
+    return id.length > 0 ? id : null;
+  }
+  // Tolérance défensive si un opérateur tiers ou passerelle a tronqué le tiret (ex: "abocm...")
+  if (reference.startsWith("abo") && reference.length > 3) {
+    const id = reference.slice(3);
+    return id.length > 0 ? id : null;
+  }
+  return null;
 }
+
 
 export type MotifRefus =
   | "INTROUVABLE"
