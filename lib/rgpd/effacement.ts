@@ -130,6 +130,11 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   // Ce qu'on a écrit à l'équipe depuis son compte. Ceux écrits sans compte
   // partent par l'adresse, plus bas.
   ["contactMessage", "senderId"],
+  // Le bouton « Contact » d'une vitrine, dans les deux sens, comme `follow` :
+  // ce qu'on a écrit à un créateur, ET ce qu'on nous a écrit. Le message
+  // porte le texte de l'un et a été adressé à l'autre — l'effacement de l'un
+  // ou l'autre l'emporte.
+  ["creatorMessage", "senderId", "recipientId"],
   // Une demande de remboursement porte le motif de son auteur.
   ["refundRequest", "buyerId"],
 

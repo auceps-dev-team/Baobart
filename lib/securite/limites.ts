@@ -245,6 +245,15 @@ export const REGLES = {
   "contact.envoi": { quota: 5, fenetreMs: 60 * 60_000 },
 
   /**
+   * Le bouton « Contact » d'une vitrine. Vingt envois par heure et par
+   * adresse : un bureau partagé y tient, une rafale non. Ce n'est pas le
+   * vrai plafond — celui-là est par compte, compté en base
+   * (`lib/contact/createur.ts`) ; celui-ci arrête la rafale avant qu'elle
+   * n'atteigne la base.
+   */
+  "contact.createur": { quota: 20, fenetreMs: 60 * 60_000 },
+
+  /**
    * Demandes de code par SMS — connexion par téléphone et vérification d'un
    * numéro. Appliquée DEUX fois : par adresse, et par numéro visé
    * (`tel:+225…`). Le second compte est celui qui compte : sans lui, quelqu'un

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { adressePlausible, echecDefinitif, reglagesSmtp } from "./pilotes";
+import { POUR_TESTS, adressePlausible, echecDefinitif, reglagesSmtp } from "./pilotes";
 
 describe("adresse plausible", () => {
   it.each([
@@ -104,5 +104,39 @@ describe("échec SMTP définitif", () => {
     // Elle vient d'une configuration corrigeable : abandonner les messages en
     // attendant les perdrait.
     expect(echecDefinitif({ code: "EAUTH" })).toBe(false);
+  });
+});
+
+describe("« Répondre à »", () => {
+  // Le pilote Resend est le seul dont on peut lire la requête sans serveur :
+  // on remplace `fetch` et on regarde ce qui serait parti.
+  async function corpsEnvoye(repondreA?: string) {
+    const avant = process.env.RESEND_API_KEY;
+    process.env.RESEND_API_KEY = "re_test";
+    const appel = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
+      async () => new Response(JSON.stringify({ id: "x" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", appel);
+    try {
+      await POUR_TESTS.RESEND.envoyer("awa@baobart.test", { sujet: "s", texte: "t", repondreA });
+      const init = appel.mock.calls[0]?.[1] as RequestInit | undefined;
+      return JSON.parse(String(init?.body)) as Record<string, unknown>;
+    } finally {
+      vi.unstubAllGlobals();
+      if (avant === undefined) delete process.env.RESEND_API_KEY;
+      else process.env.RESEND_API_KEY = avant;
+    }
+  }
+
+  it("part quand le message en porte un", async () => {
+    expect((await corpsEnvoye("contact@studio.test")).reply_to).toBe("contact@studio.test");
+  });
+
+  it("n'existe pas quand le message n'en porte pas", async () => {
+    expect(await corpsEnvoye()).not.toHaveProperty("reply_to");
+  });
+
+  it("est omis plutôt que de glisser un en-tête", async () => {
+    expect(await corpsEnvoye("a@b.test\r\nBcc: voleur@exemple.com")).not.toHaveProperty("reply_to");
   });
 });

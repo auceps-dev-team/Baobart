@@ -364,9 +364,12 @@ et une phrase d'en-tête. Deux ne reposaient sur aucune donnée.
 *Revu le 16 octobre 2026* (v1.92.0 à v1.96.0) : réseaux sociaux en tuiles et
 en liens avec identifiant (Design System « 05 · Logos réseaux »), bouton
 « Partager », photo et bannière téléversables, pays en toutes lettres, les
-quatre onglets avec recherche, catégorie, tri et pages, vues de page. Reste
-absent : le bouton **« Contact »** — arbitré le 15/10 : pas maintenant ; les
-réseaux en tiennent lieu.
+quatre onglets avec recherche, catégorie, tri et pages, vues de page. Le
+bouton **« Contact »**, arbitré le 15/10 « pas maintenant », est ✅ **câblé en
+v1.100.0** (27/10) : entre « Suivre » et « Partager », jaune, comme la maquette.
+Elle ne dessine pas ce qu'il ouvre : la fenêtre reprend le formulaire de la
+page Contact (champs lavande, envoi jaune), sans Nom ni Email — il faut un
+compte pour écrire.
 
 ### F.1 Le délai de réponse est abandonné
 

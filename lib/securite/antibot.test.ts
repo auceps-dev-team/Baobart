@@ -355,6 +355,9 @@ describe("la constante dit ce que font les appelants", () => {
       [
         join("lib", "auth", "gestes.ts"),
         join("lib", "contact", "actions.ts"),
+        // Le bouton « Contact » d'une vitrine, depuis le 27/10 : sans jeton,
+        // avec `delaiRequis`, comme le formulaire de l'équipe.
+        join("lib", "contact", "actions-createur.ts"),
         join("lib", "infolettre", "actions.ts"),
       ].sort(),
     );

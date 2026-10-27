@@ -67,6 +67,20 @@
     box-sizing: border-box;
   }
 
+  /*
+    Une fenêtre native (`<dialog>` + `showModal()`) se centre par sa marge
+    `auto` — que la remise à zéro de Tailwind ramène à 0. Mesuré le 27/10 sur le
+    bouton « Contact » : la fenêtre s'ouvrait collée en haut à gauche, sur une
+    page que rien n'assombrissait.
+  */
+  dialog {
+    margin: auto;
+  }
+
+  dialog::backdrop {
+    background: rgb(18 18 18 / 0.45);
+  }
+
   body {
     margin: 0;
     background: var(--color-lavande-fond);

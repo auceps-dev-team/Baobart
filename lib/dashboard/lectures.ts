@@ -301,6 +301,7 @@ export async function lireProfilDashboard(userId: string) {
           portfolioUrl: true,
           links: { select: { network: true, url: true } },
           openToCommissions: true,
+          acceptsMessages: true,
           dailyRate: true,
         },
       },
