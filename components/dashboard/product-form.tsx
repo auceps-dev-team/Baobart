@@ -149,7 +149,13 @@ export function FormulaireProduit({
   }, [saisie]);
 
   return (
-    <form action={envoyer} style={{ display: "grid", gap: 20, maxWidth: 900 }}>
+    // Les deux blocs côte à côte, comme « Publier une ressource » de la
+    // maquette (27/10) : ils s'empilaient, et la page doublait de hauteur.
+    // Sous 800 px de large, ils se suivent.
+    <form
+      action={envoyer}
+      style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,380px),1fr))", gap: 20, alignItems: "start" }}
+    >
       <Bloc titre="Fichier & aperçu">
         <Champ nom="titre" label="Titre de la ressource" pleineLargeur>
           <input

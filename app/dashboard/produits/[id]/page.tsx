@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { FileUploader } from "@/components/dashboard/file-uploader";
+import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { FormulaireProduit } from "@/components/dashboard/product-form";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_STATUT } from "@/lib/dashboard/lectures";
 import { db } from "@/lib/db";
@@ -51,27 +51,6 @@ const ORANGE = "#E2622C";
 const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
-/** Titre de section avec sa ligne d'explication, répété pour les deux dépôts. */
-function Section({ titre, aide }: { titre: string; aide: string }) {
-  return (
-    <div style={{ margin: "28px 0 12px", maxWidth: 640 }}>
-      <h2
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 17,
-          letterSpacing: "-.4px",
-          margin: 0,
-          textTransform: "uppercase",
-        }}
-      >
-        {titre}
-      </h2>
-      <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 500, opacity: 0.7 }}>
-        {aide}
-      </p>
-    </div>
-  );
-}
 
 const MESSAGES_ERREUR: Record<string, string> = {
   vendue:
@@ -240,387 +219,231 @@ export default async function ProduitDuTableauDeBord({
     gratuit: produit.price === 0,
   };
 
+  // L'action de l'en-tête : le retour, l'état, et le geste qui change l'état.
+  // L'état était une pastille collée sous « ← Toutes mes ressources » (relevé
+  // le 27/10) ; il vit maintenant à côté du geste qui le fait changer.
+  const geste = enLigne ? (
+    <form action={depublier}>
+      <button
+        type="submit"
+        className="sticker-press"
+        style={{ padding: "11px 18px", border: CADRE, borderRadius: 13, background: BLANC, boxShadow: `4px 4px 0 ${ENCRE}`, fontSize: 13, fontWeight: 800, cursor: "pointer" }}
+      >
+        Retirer de la vente
+      </button>
+    </form>
+  ) : (
+    <form action={publier}>
+      <button
+        type="submit"
+        className={sansFichier ? undefined : "sticker-press"}
+        disabled={sansFichier}
+        title={sansFichier ? "Attache au moins un fichier avant de publier." : undefined}
+        style={{
+          padding: "11px 18px",
+          border: CADRE,
+          borderRadius: 13,
+          background: sansFichier ? BLANC : ENCRE,
+          color: sansFichier ? ENCRE : BLANC,
+          boxShadow: sansFichier ? "none" : `4px 4px 0 ${ORANGE}`,
+          fontSize: 13,
+          fontWeight: 800,
+          opacity: sansFichier ? 0.45 : 1,
+          cursor: sansFichier ? "not-allowed" : "pointer",
+        }}
+      >
+        Publier la ressource
+      </button>
+    </form>
+  );
+
+  const action = (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+      <Link href="/dashboard/produits" style={{ fontSize: 13, fontWeight: 700, opacity: 0.75 }}>
+        ← Toutes mes ressources
+      </Link>
+      <span
+        data-statut-produit
+        style={{
+          padding: "6px 12px",
+          border: `2px solid ${ENCRE}`,
+          borderRadius: 999,
+          background: retiree ? ORANGE : enLigne ? JAUNE : BLANC,
+          color: retiree ? BLANC : ENCRE,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: ".1em",
+        }}
+      >
+        {LIBELLE_STATUT[produit.status]}
+      </span>
+      {geste}
+    </div>
+  );
+
+  // Deux colonnes, comme « Publier une ressource » de la maquette (27/10) :
+  // neuf blocs s'empilaient dans 640 px. À gauche ce que l'acheteur reçoit
+  // et voit, à droite ce qui se règle. Sous 900 px, elles se suivent.
+  const colonnes = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))",
+    gap: 20,
+    alignItems: "start",
+    marginTop: 20,
+  } as const;
+  const pile = { display: "grid", gap: 20, minWidth: 0 } as const;
+  const aide = (texte: string) => <p style={{ margin: "-6px 0 14px", fontSize: 13, fontWeight: 500, opacity: 0.7 }}>{texte}</p>;
+
   return (
-    <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
-      <DashboardSidebar
-        etape={utilisateur.progression.etape}
-        nom={utilisateur.nom}
-        email={utilisateur.email}
-      />
+    <DashboardFrame
+      utilisateur={utilisateur}
+      titre={produit.name}
+      description="Titre, prix, catégorie, mots-clés, description. L'adresse publique de la ressource ne change pas, même si tu la renommes : elle a peut-être déjà été partagée."
+      action={action}
+    >
+      {/*
+        Quel dossier la retient, et depuis quand.
 
-      <main style={{ flex: "1 1 auto", padding: "32px 36px", minWidth: 0 }}>
-        <Link
-          href="/dashboard/produits"
-          style={{ fontSize: 13, fontWeight: 700, opacity: 0.7 }}
-        >
-          ← Toutes mes ressources
-        </Link>
-
-        <div
-          style={{
-            display: "inline-block",
-            marginTop: 14,
-            padding: "6px 12px",
-            border: `2px solid ${ENCRE}`,
-            borderRadius: 999,
-            background: retiree ? ORANGE : enLigne ? JAUNE : BLANC,
-            color: retiree ? BLANC : ENCRE,
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            textTransform: "uppercase",
-            letterSpacing: ".1em",
-          }}
-        >
-          {LIBELLE_STATUT[produit.status]}
+        Une pastille « retirée » sans référence laisserait l'auteur sans rien
+        à citer : il écrirait au support pour demander ce que la page aurait
+        pu lui dire. La référence est celle qu'il retrouvera dans « Mes
+        dossiers » et dans toute correspondance.
+      */}
+      {retenues.length > 0 ? (
+        <div style={{ marginBottom: 16, padding: "13px 15px", border: CADRE, borderRadius: 14, background: BLANC, fontSize: 13, lineHeight: 1.55 }}>
+          <strong>Retrait à titre provisoire.</strong>{" "}
+          {retenues.length === 1
+            ? `Dossier ${retenues[0]!.reference}, ouvert le ${retenues[0]!.suspendedAt.toLocaleDateString("fr-FR")}.`
+            : `${retenues.length} dossiers : ${retenues.map((r) => r.reference).join(", ")}.`}{" "}
+          <Link href="/dashboard/mes-dossiers" style={{ fontWeight: 700 }}>
+            Répondre
+          </Link>
         </div>
+      ) : null}
 
-        {/*
-          Quel dossier la retient, et depuis quand.
-
-          Une pastille « retirée » sans référence laisserait l'auteur sans rien
-          à citer : il écrirait au support pour demander ce que la page aurait
-          pu lui dire. La référence est celle qu'il retrouvera dans « Mes
-          dossiers » et dans toute correspondance.
-        */}
-        {retenues.length > 0 ? (
-          <div
-            style={{
-              marginTop: 14,
-              maxWidth: 640,
-              padding: "13px 15px",
-              border: CADRE,
-              borderRadius: 14,
-              background: BLANC,
-              fontSize: 13,
-              lineHeight: 1.55,
-            }}
-          >
-            <strong>Retrait à titre provisoire.</strong>{" "}
-            {retenues.length === 1
-              ? `Dossier ${retenues[0]!.reference}, ouvert le ${retenues[0]!.suspendedAt.toLocaleDateString("fr-FR")}.`
-              : `${retenues.length} dossiers : ${retenues.map((r) => r.reference).join(", ")}.`}{" "}
-            <Link href="/dashboard/mes-dossiers" style={{ fontWeight: 700 }}>
-              Répondre
-            </Link>
-          </div>
-        ) : null}
-
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(28px,3.2vw,40px)",
-            letterSpacing: "-1.4px",
-            margin: "12px 0 0",
-            textTransform: "uppercase",
-          }}
-        >
-          {produit.name}
-        </h1>
-
-        {MESSAGES_ERREUR[erreur ?? ""] ? (
-          <div
-            role="alert"
-            style={{
-              marginTop: 16,
-              maxWidth: 640,
-              padding: "13px 15px",
-              border: CADRE,
-              borderRadius: 14,
-              background: ORANGE,
-              color: BLANC,
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {MESSAGES_ERREUR[erreur ?? ""]}
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            marginTop: 24,
-            maxWidth: 640,
-            border: CADRE,
-            borderRadius: 24,
-            background: BLANC,
-            boxShadow: `6px 6px 0 ${ENCRE}`,
-            padding: 22,
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          {/*
-            Seulement ce qui ne s'édite pas : ces trois-là se déduisent des
-            fichiers envoyés. Le reste — titre, prix, catégorie, mots-clés,
-            description — vit dans le formulaire juste en dessous, où il se
-            corrige. Les afficher aux deux endroits donnerait deux vérités à
-            tenir, et l'une des deux finirait périmée.
-          */}
-          {[
-            ["Prix affiché", formatPrice(produit.price, produit.currency)],
-            ["Fichiers sources", sources],
-            ["Dimensions", dimensions],
-            ["Poids total", poidsAffiche],
-          ].map(([cle, valeur]) => (
-            <div
-              key={cle}
-              style={{ display: "flex", justifyContent: "space-between", gap: 16 }}
-            >
-              <span style={{ opacity: 0.6, fontSize: 13, fontWeight: 600 }}>
-                {cle}
-              </span>
-              <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: "right" }}>
-                {valeur}
-              </span>
-            </div>
-          ))}
+      {MESSAGES_ERREUR[erreur ?? ""] ? (
+        <div role="alert" style={{ marginBottom: 16, padding: "13px 15px", border: CADRE, borderRadius: 14, background: ORANGE, color: BLANC, fontSize: 13, fontWeight: 700 }}>
+          {MESSAGES_ERREUR[erreur ?? ""]}
         </div>
+      ) : null}
 
-        <Section
-          titre="Modifier la fiche"
-          aide={
-            "Titre, prix, catégorie, mots-clés, description. L'adresse publique de " +
-            "la ressource ne change pas, même si tu la renommes : elle a peut-être " +
-            "déjà été partagée."
-          }
-        />
+      <FormulaireProduit action={modifier} depart={depart} libelleBouton="Enregistrer les modifications" />
 
-        <FormulaireProduit
-          action={modifier}
-          depart={depart}
-          libelleBouton="Enregistrer les modifications"
-        />
-
-        <Section
-          titre="Fichiers"
-          aide="Ce que l'acheteur télécharge après paiement. Personne d'autre n'y accède."
-        />
-
-        <FileUploader
-          produitId={produit.id}
-          role="SOURCE"
-          couvertureInitiale={produit.coverUrl}
-          fichiersInitiaux={fichiersSources.map((f) => ({
-            id: f.id,
-            nom: f.filename,
-            taille: f.sizeBytes,
-            externe: f.externalUrl ? hoteDuLien(f.externalUrl) : null,
-          }))}
-        />
-
-        {copiesDeReference.length > 0 && (
-          <>
-            <Section
-              titre="Copies de référence (litige)"
-              aide={
-                "Pour chaque image vendue, une copie réduite marquée de ton auteur, du © et de " +
-                "ta licence, que toi seul peux voir. Si tu retrouves ton œuvre utilisée autrement " +
-                "que la licence ne l'autorise, télécharge-la : elle sert de preuve. L'acheteur ne " +
-                "la reçoit jamais."
-              }
+      <div style={colonnes}>
+        <div style={pile}>
+          <DashboardPanel titre="Fichiers">
+            {aide("Ce que l'acheteur télécharge après paiement. Personne d'autre n'y accède.")}
+            <FileUploader
+              produitId={produit.id}
+              role="SOURCE"
+              couvertureInitiale={produit.coverUrl}
+              fichiersInitiaux={fichiersSources.map((f) => ({
+                id: f.id,
+                nom: f.filename,
+                taille: f.sizeBytes,
+                externe: f.externalUrl ? hoteDuLien(f.externalUrl) : null,
+              }))}
             />
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {copiesDeReference.map((c) => (
-                // Un lien de téléchargement vers une route d'API (redirection
-                // signée), pas une navigation interne : `<a>` simple, pas `<Link>`.
-                <a
-                  key={c.mediaId}
-                  href={`/api/reference/${c.mediaId}`}
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "underline",
-                    width: "fit-content",
-                  }}
-                >
-                  Copie de référence — {c.nom}
-                </a>
+            {copiesDeReference.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 15, textTransform: "uppercase" }}>Copies de référence (litige)</div>
+                {aide(
+                  "Pour chaque image vendue, une copie réduite marquée de ton auteur, du © et de ta licence, que toi seul peux voir. " +
+                    "Si tu retrouves ton œuvre utilisée autrement que la licence ne l'autorise, télécharge-la : elle sert de preuve. " +
+                    "L'acheteur ne la reçoit jamais.",
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {copiesDeReference.map((c) => (
+                    // Un lien de téléchargement vers une route d'API (redirection
+                    // signée), pas une navigation interne : `<a>` simple, pas `<Link>`.
+                    <a key={c.mediaId} href={`/api/reference/${c.mediaId}`} style={{ fontSize: 14, fontWeight: 700, textDecoration: "underline", width: "fit-content" }}>
+                      Copie de référence — {c.nom}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DashboardPanel>
+
+          <DashboardPanel titre="Aperçu">
+            {aide(
+              "Ce que les gens voient dans la grille et sur ta fiche. Une image pour tous les formats — un PSD, une police ou un ZIP " +
+                "ne se montrent pas tout seuls. Pour la vidéo et l'audio, dépose aussi un extrait : il sera jouable avant achat.",
+            )}
+            <FileUploader
+              produitId={produit.id}
+              role="PREVIEW"
+              couvertureInitiale={produit.coverUrl}
+              extraitInitial={extrait}
+              fichiersInitiaux={fichiersApercu.map((f) => ({ id: f.id, nom: f.filename, taille: f.sizeBytes }))}
+            />
+          </DashboardPanel>
+        </div>
+
+        <div style={pile}>
+          <DashboardPanel titre="En résumé">
+            {/*
+              Seulement ce qui ne s'édite pas : ces trois-là se déduisent des
+              fichiers envoyés. Le reste — titre, prix, catégorie, mots-clés,
+              description — vit dans le formulaire, où il se corrige. Les
+              afficher aux deux endroits donnerait deux vérités à tenir, et
+              l'une des deux finirait périmée.
+            */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                ["Prix affiché", formatPrice(produit.price, produit.currency)],
+                ["Fichiers sources", sources],
+                ["Dimensions", dimensions],
+                ["Poids total", poidsAffiche],
+              ].map(([cle, valeur]) => (
+                <div key={cle} style={{ display: "flex", justifyContent: "space-between", gap: 16, paddingBottom: 8, borderBottom: "1.5px solid #12121222" }}>
+                  <span style={{ opacity: 0.6, fontSize: 13, fontWeight: 600 }}>{cle}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: "right" }}>{valeur}</span>
+                </div>
               ))}
             </div>
-          </>
-        )}
+          </DashboardPanel>
 
-        <Section
-          titre="Aperçu"
-          aide={
-            "Ce que les gens voient dans la grille et sur ta fiche. Une image pour tous " +
-            "les formats — un PSD, une police ou un ZIP ne se montrent pas tout seuls. " +
-            "Pour la vidéo et l'audio, dépose aussi un extrait : il sera jouable avant achat."
-          }
-        />
+          {/*
+            Le mode de prix, avant les questions : il décide de ce que
+            l'acheteur voit en premier au moment de payer.
+          */}
+          <DashboardPanel titre="Montant et pourboire">
+            <ReglageMontant
+              produitId={produit.id}
+              mode={produit.pricingMode}
+              minPrice={produit.minPrice}
+              suggeres={Array.isArray(produit.suggestedPrices) ? (produit.suggestedPrices as unknown[]).map(Number) : []}
+              pourboires={produit.tipsEnabled}
+              parite={produit.pppEnabled}
+              paritePlafond={produit.pppMaxDiscountBp === null ? null : Math.round(produit.pppMaxDiscountBp / 100)}
+              plancher={minimumLibre(null)}
+              regler={reglerLeMontant}
+            />
+          </DashboardPanel>
 
-        <FileUploader
-          produitId={produit.id}
-          role="PREVIEW"
-          couvertureInitiale={produit.coverUrl}
-          extraitInitial={extrait}
-          fichiersInitiaux={fichiersApercu.map((f) => ({
-            id: f.id,
-            nom: f.filename,
-            taille: f.sizeBytes,
-          }))}
-        />
-
-        <div
-          style={{
-            marginTop: 24,
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            maxWidth: 640,
-          }}
-        >
-          {enLigne ? (
-            <form action={depublier}>
-              <button
-                type="submit"
-                className="sticker-press"
-                style={{
-                  padding: "14px 24px",
-                  border: CADRE,
-                  borderRadius: 14,
-                  background: BLANC,
-                  boxShadow: `4px 4px 0 ${ENCRE}`,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Retirer de la vente
-              </button>
-            </form>
-          ) : (
-            <form action={publier}>
-              <button
-                type="submit"
-                className={sansFichier ? undefined : "sticker-press"}
-                disabled={sansFichier}
-                title={
-                  sansFichier
-                    ? "Attache au moins un fichier avant de publier."
-                    : undefined
-                }
-                style={{
-                  padding: "14px 24px",
-                  border: CADRE,
-                  borderRadius: 14,
-                  background: sansFichier ? BLANC : ENCRE,
-                  color: sansFichier ? ENCRE : BLANC,
-                  boxShadow: sansFichier ? "none" : `4px 4px 0 ${ORANGE}`,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  opacity: sansFichier ? 0.45 : 1,
-                  cursor: sansFichier ? "not-allowed" : "pointer",
-                }}
-              >
-                Publier la ressource
-              </button>
-            </form>
-          )}
+          {/* Un réglage, pas une action : avant les gestes destructeurs. */}
+          <DashboardPanel titre="Questions posées à l'achat">
+            <PanneauChampsProduit produitId={produit.id} champs={champsPersonnalises} declarer={declarerMonChamp} retirer={retirerMonChamp} />
+          </DashboardPanel>
 
           {/*
             La suppression n'est proposée que si rien n'a été vendu. L'afficher
             pour la refuser ensuite serait une promesse en trompe-l'œil.
           */}
-          {/*
-            Le mode de prix, avant les questions : il décide de ce que
-            l'acheteur voit en premier au moment de payer.
-          */}
-          <div
-            style={{
-              width: "100%",
-              marginBottom: 24,
-              padding: 22,
-              border: CADRE,
-              borderRadius: 20,
-              background: BLANC,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 17,
-                marginBottom: 14,
-              }}
-            >
-              Montant et pourboire
-            </div>
-
-            <ReglageMontant
-              produitId={produit.id}
-              mode={produit.pricingMode}
-              minPrice={produit.minPrice}
-              suggeres={
-                Array.isArray(produit.suggestedPrices)
-                  ? (produit.suggestedPrices as unknown[]).map(Number)
-                  : []
-              }
-              pourboires={produit.tipsEnabled}
-              parite={produit.pppEnabled}
-              paritePlafond={
-                produit.pppMaxDiscountBp === null
-                  ? null
-                  : Math.round(produit.pppMaxDiscountBp / 100)
-              }
-              plancher={minimumLibre(null)}
-              regler={reglerLeMontant}
-            />
-          </div>
-
-          {/*
-            Les questions posées à l'achat. Placées après le contenu et avant
-            les gestes destructeurs : c'est un réglage, pas une action.
-          */}
-          <div
-            style={{
-              width: "100%",
-              marginBottom: 24,
-              padding: 22,
-              border: CADRE,
-              borderRadius: 20,
-              background: BLANC,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 17,
-                marginBottom: 14,
-              }}
-            >
-              Questions posées à l&apos;achat
-            </div>
-
-            <PanneauChampsProduit
-              produitId={produit.id}
-              champs={champsPersonnalises}
-              declarer={declarerMonChamp}
-              retirer={retirerMonChamp}
-            />
-          </div>
-
           {dejaVendue ? null : (
             <form action={supprimer}>
               <button
                 type="submit"
-                style={{
-                  padding: "14px 24px",
-                  border: CADRE,
-                  borderRadius: 14,
-                  background: BLANC,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: ORANGE_SOMBRE,
-                  cursor: "pointer",
-                }}
+                style={{ padding: "12px 20px", border: CADRE, borderRadius: 14, background: BLANC, fontSize: 13.5, fontWeight: 800, color: ORANGE_SOMBRE, cursor: "pointer" }}
               >
-                Supprimer
+                Supprimer la ressource
               </button>
             </form>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardFrame>
   );
 }
