@@ -40,92 +40,103 @@ export default async function ForfaitPage() {
   // le jour de l'échéance, alors qu'il reste la grâce.
   const accesJusquA = actif ? finDeLAcces(actif.cycleEnd) : null;
 
+  const gratuit = actif !== null && actif.plan.priceMonthly === 0;
+  const quota = actif?.quotas[0] ?? null;
+  const detail = (cle: string, valeur: string) => (
+    <div key={cle} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1.5px solid #12121222" }}>
+      <span style={{ fontSize: 13, fontWeight: 800 }}>{cle}</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", opacity: 0.75 }}>{valeur}</span>
+    </div>
+  );
+
   return (
-    <DashboardFrame utilisateur={utilisateur} titre="Forfait & pass" description="Choisis ton niveau d'accès : découverte gratuite, quotas ou usage studio.">
-      <DashboardPanel titre="Ton forfait">
-        {actif === null ? (
-          <div style={{ display: "grid", gap: 12, maxWidth: 420 }}>
-            <EmptyState
-              titre="Aucun forfait en cours"
-              texte="Accès libre est gratuit et s'active d'un clic : toutes les ressources offertes sans limite, les collections, les communautés."
-            />
-            <BoutonForfait mode="activer" />
+    <DashboardFrame utilisateur={utilisateur} titre="Forfait & pass" description="Ton forfait, ton quota et tes pass d'accès ponctuels.">
+      {/*
+        Deux cartes côte à côte, comme la maquette (27/10) : le forfait en jaune,
+        ses détails à droite. « Ton forfait » s'étirait sur toute la largeur
+        pour un contenu de 520 px, collé à gauche.
+      */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,360px),1fr))", gap: 20, alignItems: "start" }}>
+        <section data-forfait-actif={actif ? "1" : undefined} style={{ border: `2.5px solid ${ENCRE}`, borderRadius: 24, background: JAUNE, boxShadow: `5px 5px 0 ${ENCRE}`, padding: 20 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".12em", opacity: 0.7 }}>Forfait actuel</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, lineHeight: 1.05, margin: "6px 0 4px", textTransform: "uppercase" }}>
+            {actif ? actif.plan.name : "Aucun"}
           </div>
-        ) : actif.plan.priceMonthly === 0 ? (
-          // Un forfait gratuit n'a ni échéance à payer ni grâce : son cycle
-          // avance seul (`renouvelerLesGratuits`). Lui montrer « Renouveler »
-          // promettrait un paiement qui n'existe pas.
-          <div data-forfait-actif style={{ border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 14, display: "grid", gap: 10, maxWidth: 520 }}>
-            <div>
-              <strong>{actif.plan.name}</strong> · gratuit, sans prélèvement
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>
+            {actif === null
+              ? "Accès libre est gratuit et s'active d'un clic."
+              : gratuit
+                ? "Gratuit, sans prélèvement"
+                : `${formatMoney(actif.plan.priceMonthly, "XOF")} / mois · échéance le ${actif.cycleEnd.toLocaleDateString("fr-FR")}`}
+          </div>
+
+          {quota && quota.limit ? (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontWeight: 800 }}>
+                <span>Quota du mois</span>
+                <span>
+                  {quota.used} / {quota.limit}
+                </span>
+              </div>
+              <div style={{ marginTop: 6, height: 14, border: `2px solid ${ENCRE}`, borderRadius: 99, background: "#FFFFFF", overflow: "hidden" }}>
+                <div style={{ width: `${Math.min(100, Math.round((quota.used / quota.limit) * 100))}%`, height: "100%", background: "#E2622C" }} />
+              </div>
             </div>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.6, opacity: 0.8 }}>
+          ) : null}
+
+          {gratuit ? (
+            <ul style={{ margin: "12px 0 0", paddingLeft: 18, fontSize: 13, lineHeight: 1.6 }}>
               {ACCES_LIBRE.map((l) => (
                 <li key={l}>{l}</li>
               ))}
             </ul>
-            <BoutonForfait mode="quitter" />
+          ) : null}
+
+          <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {actif === null ? (
+              <BoutonForfait mode="activer" />
+            ) : gratuit ? (
+              // Un forfait gratuit n'a ni échéance à payer ni grâce : son cycle
+              // avance seul (`renouvelerLesGratuits`). Lui montrer « Renouveler »
+              // promettrait un paiement qui n'existe pas.
+              <BoutonForfait mode="quitter" />
+            ) : (
+              // Le bouton de renouvellement vit ICI et non sur « Abonnements » :
+              // cette entrée-là désigne les créateurs suivis. C'est aussi la page
+              // où mènent les reçus et les relances Ndank.
+              <Link
+                href={`/abonnement/${actif.id}/renouveler` as Route}
+                className="sticker-press"
+                style={{ display: "inline-block", padding: "11px 16px", border: `2.5px solid ${ENCRE}`, borderRadius: 14, background: ENCRE, color: "#FFFFFF", fontSize: 13.5, fontWeight: 800 }}
+              >
+                {actif.status === "EXPIRED" ? "Réactiver mon accès" : "Renouveler maintenant"}
+              </Link>
+            )}
           </div>
-        ) : (
-          <div style={{ border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 14 }}>
-            <strong>{actif.plan.name}</strong> · {formatMoney(actif.plan.priceMonthly, "XOF")}/mois
-            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.72 }}>
-              Période du {actif.cycleStart.toLocaleDateString("fr-FR")} au{" "}
-              {actif.cycleEnd.toLocaleDateString("fr-FR")} ·{" "}
-              {actif.plan.downloadsPerMonth ?? "illimité"} téléchargements/mois
+        </section>
+
+        <DashboardPanel titre="Détails du compte">
+          {actif === null ? (
+            <p style={{ margin: 0, fontSize: 13.5, opacity: 0.75 }}>Aucun forfait en cours : rien à détailler.</p>
+          ) : (
+            <div>
+              {detail("Forfait", actif.plan.name)}
+              {detail("Prix", gratuit ? "gratuit" : `${formatMoney(actif.plan.priceMonthly, "XOF")} / mois`)}
+              {gratuit ? null : detail("Période", `${actif.cycleStart.toLocaleDateString("fr-FR")} → ${actif.cycleEnd.toLocaleDateString("fr-FR")}`)}
+              {/*
+                Les deux horloges de Ndank : l'échéance dit quand payer, l'accès
+                jusqu'à quand le service tient. Les confondre ferait croire à une
+                coupure le jour de l'échéance, alors qu'il reste la grâce.
+              */}
+              {!gratuit && accesJusquA ? detail("Accès maintenu jusqu'au", `${accesJusquA.toLocaleDateString("fr-FR")} · ${REGLAGES_PAR_DEFAUT.graceJours} j de grâce`) : null}
+              {detail("Téléchargements", actif.plan.downloadsPerMonth ? `${actif.plan.downloadsPerMonth} / mois` : "illimités")}
+              {quota ? detail("Ce mois", `${quota.used} / ${quota.limit ?? "—"}`) : null}
             </div>
-            {accesJusquA ? (
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.72 }}>
-                Accès maintenu jusqu&apos;au {accesJusquA.toLocaleDateString("fr-FR")} —
-                {" "}
-                {REGLAGES_PAR_DEFAUT.graceJours} jours de grâce après l&apos;échéance,
-                le temps de renouveler.
-              </div>
-            ) : null}
-            {actif.quotas.length > 0 ? (
-              <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800 }}>
-                Ce mois : {actif.quotas[0]?.used ?? 0} / {actif.quotas[0]?.limit ?? "—"}
-              </div>
-            ) : null}
+          )}
+        </DashboardPanel>
+      </div>
 
-            {/*
-              Le bouton de renouvellement vit ICI et non sur « Abonnements » :
-              cette entrée-là désigne les créateurs suivis. C'est aussi la page où
-              mènent les reçus et les relances Ndank.
-            */}
-            <Link
-              href={`/abonnement/${actif.id}/renouveler` as Route}
-              className="sticker-press"
-              style={{
-                display: "inline-block",
-                marginTop: 14,
-                padding: "11px 16px",
-                border: `2.5px solid ${ENCRE}`,
-                borderRadius: 14,
-                background: JAUNE,
-                fontSize: 13.5,
-                fontWeight: 800,
-              }}
-            >
-              {actif.status === "EXPIRED" ? "Réactiver mon accès" : "Renouveler maintenant"}
-            </Link>
-          </div>
-        )}
-      </DashboardPanel>
-
-      <div style={{ height: 18 }} />
-
-      {/*
-        Le réglage des notifications vit sur la page du forfait : c'est le seul
-        endroit où l'on vient déjà pour une échéance, donc le seul où la
-        proposition a un sens. Aucune maquette ne le couvre — il suit la charte.
-      */}
-      <Notifications
-        clePublique={clePubliqueVapid()}
-        relances={relancesAnnoncees("push")}
-      />
-
-      <div style={{ height: 18 }} />
+      <div style={{ height: 20 }} />
 
       <DashboardPanel titre="Plans disponibles">
         {plans.length === 0 ? (
@@ -151,6 +162,17 @@ export default async function ForfaitPage() {
           </div>
         )}
       </DashboardPanel>
+
+      <div style={{ height: 20 }} />
+
+      {/*
+        Le réglage des notifications vit sur la page du forfait : c'est le seul
+        endroit où l'on vient déjà pour une échéance, donc le seul où la
+        proposition a un sens. Aucune maquette ne le couvre — il suit la charte,
+        et passe sous les plans depuis le 27/10 : il occupait le haut de l'écran
+        pour dire, le plus souvent, qu'il n'est pas branché.
+      */}
+      <Notifications clePublique={clePubliqueVapid()} relances={relancesAnnoncees("push")} />
     </DashboardFrame>
   );
 }
