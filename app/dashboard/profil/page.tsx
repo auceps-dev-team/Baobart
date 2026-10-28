@@ -132,64 +132,19 @@ export default async function ProfilPage() {
         ) : undefined
       }
     >
+      {/*
+        Deux colonnes, comme la maquette (« Identité » | « Facturation &
+        sécurité ») — 27/10. Tout était empilé dans 900 px : 3 901 px de
+        haut, un tiers de l'écran vide à droite. À gauche ce qui se montre,
+        à droite ce qui protège ; sous 960 px, les colonnes se suivent.
+      */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,460px),1fr))", gap: 20, alignItems: "start" }}>
       <FormulaireProfil
         depart={depart}
         visuels={{ avatarUrl: p?.avatarUrl ?? null, bannerUrl: p?.bannerUrl ?? null }}
       />
 
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Bouton « Contact »">
-          <PanneauMessagesVitrine ouvert={p?.acceptsMessages ?? true} regler={reglerLesMessagesAction} />
-        </DashboardPanel>
-      </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Double authentification">
-          <PanneauDeuxFacteurs
-            etat={deuxFacteurs}
-            demarrer={demarrerDeuxFacteurs}
-            confirmer={confirmerDeuxFacteurs}
-            couper={couperDeuxFacteurs}
-            renouveler={renouvelerCodesSecours}
-          />
-        </DashboardPanel>
-      </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Numéro de téléphone">
-          <PanneauTelephone
-            telephone={profil?.phone ?? null}
-            verifieLe={profil?.phoneVerifiedAt ?? null}
-            disponible={codesParSmsPossibles()}
-            demander={demanderCodeVerification}
-            confirmer={confirmerTelephone}
-            retirer={retirerMonTelephone}
-          />
-        </DashboardPanel>
-      </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Clés d'accès">
-          <PanneauClesAcces
-            cles={cles}
-            demarrer={demarrerEnrolementCle}
-            retirer={retirerLaCle}
-          />
-        </DashboardPanel>
-      </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Effacer mon compte">
-          <PanneauEffacement
-            etat={effacement}
-            courriel={utilisateur.email}
-            demander={demanderMonEffacement}
-            annuler={annulerMonEffacement}
-          />
-        </DashboardPanel>
-      </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
+      <div style={{ display: "grid", gap: 20, minWidth: 0 }}>
         <DashboardPanel titre="Compte & facturation">
           {/*
             En lecture seule, et à dessein : ces champs touchent au paiement et
@@ -205,6 +160,49 @@ export default async function ProfilPage() {
           {ligne("Nom", profil?.billing?.lastName)}
           {ligne("Adresse", profil?.billing?.addressLine1)}
         </DashboardPanel>
+
+        <DashboardPanel titre="Double authentification">
+          <PanneauDeuxFacteurs
+            etat={deuxFacteurs}
+            demarrer={demarrerDeuxFacteurs}
+            confirmer={confirmerDeuxFacteurs}
+            couper={couperDeuxFacteurs}
+            renouveler={renouvelerCodesSecours}
+          />
+        </DashboardPanel>
+
+        <DashboardPanel titre="Clés d'accès">
+          <PanneauClesAcces
+            cles={cles}
+            demarrer={demarrerEnrolementCle}
+            retirer={retirerLaCle}
+          />
+        </DashboardPanel>
+
+        <DashboardPanel titre="Numéro de téléphone">
+          <PanneauTelephone
+            telephone={profil?.phone ?? null}
+            verifieLe={profil?.phoneVerifiedAt ?? null}
+            disponible={codesParSmsPossibles()}
+            demander={demanderCodeVerification}
+            confirmer={confirmerTelephone}
+            retirer={retirerMonTelephone}
+          />
+        </DashboardPanel>
+
+        <DashboardPanel titre="Bouton « Contact »">
+          <PanneauMessagesVitrine ouvert={p?.acceptsMessages ?? true} regler={reglerLesMessagesAction} />
+        </DashboardPanel>
+
+        <DashboardPanel titre="Effacer mon compte">
+          <PanneauEffacement
+            etat={effacement}
+            courriel={utilisateur.email}
+            demander={demanderMonEffacement}
+            annuler={annulerMonEffacement}
+          />
+        </DashboardPanel>
+      </div>
       </div>
     </DashboardFrame>
   );

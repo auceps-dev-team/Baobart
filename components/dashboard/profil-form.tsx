@@ -47,7 +47,9 @@ export function FormulaireProfil({
   return (
     <form
       action={envoyer}
-      style={{ display: "grid", gap: 18, maxWidth: 900 }}
+      // Sans largeur maximale : la page le pose dans sa colonne de gauche
+      // (deux colonnes, comme la maquette — 27/10).
+      style={{ display: "grid", gap: 18, minWidth: 0 }}
     >
       {refus ? (
         <div
