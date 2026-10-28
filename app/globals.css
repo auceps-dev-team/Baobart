@@ -81,6 +81,15 @@
     background: rgb(18 18 18 / 0.45);
   }
 
+  /*
+    Le survol d'une entrée de la barre du tableau de bord : lavande clair,
+    comme la maquette. L'écran ouvert, lui, est jaune et n'en porte pas
+    (`components/dashboard/nav-entrees.tsx`).
+  */
+  .nav-entree:hover {
+    background: #f4eefc;
+  }
+
   body {
     margin: 0;
     background: var(--color-lavande-fond);

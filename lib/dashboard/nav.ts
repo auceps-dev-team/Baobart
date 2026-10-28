@@ -503,3 +503,54 @@ export function messageProgression(progression: {
 }
 
 export { RAISON_ATELIER, RAISON_BOUTIQUE };
+
+/**
+ * L'entrée à marquer pour l'adresse ouverte — en jaune, comme la maquette.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * POURQUOI ELLE SE DÉDUIT DE L'ADRESSE
+ *
+ * Relevé le 27/10 : `DashboardFrame`, qui monte la barre sur quarante-deux
+ * écrans, ne lui passait aucune clé. Rien n'était jamais marqué — sauf les
+ * entrées à pastille, peintes en jaune, si bien que « Notifications » (37 non
+ * lues) avait l'air d'être l'écran ouvert sur toutes les pages. Une clé à
+ * passer par chaque écran, c'est quarante-deux occasions de l'oublier ;
+ * l'adresse, elle, est toujours là.
+ *
+ * Le plus long préfixe gagne : `/dashboard/produits/abc` marque « Produits »,
+ * `/dashboard/produits/nouveau` marque « Ajouter un produit ». À égalité —
+ * « Aperçu » et « Tableau de bord » mènent tous deux à `/dashboard` —, la
+ * dernière de la liste l'emporte : celle de la boutique, plus précise pour qui
+ * en a une.
+ */
+export function entreeCourante(
+  entrees: ReadonlyArray<{ cle: string; href: string | null }>,
+  chemin: string,
+): string | null {
+  let gagnante: { cle: string; longueur: number } | null = null;
+  for (const e of entrees) {
+    if (!e.href) continue;
+    const couvre = chemin === e.href || chemin.startsWith(`${e.href}/`);
+    if (couvre && (!gagnante || e.href.length >= gagnante.longueur)) {
+      gagnante = { cle: e.cle, longueur: e.href.length };
+    }
+  }
+  return gagnante?.cle ?? null;
+}
+
+/**
+ * « CRÉATEUR · ESPACE PERSONNEL » : l'espace d'un écran, pour la ligne qui
+ * surmonte son titre dans la maquette. Déduit des mêmes tables que la barre :
+ * un écran ne peut pas se dire « Créateur » dans l'en-tête et s'allumer sous
+ * « Acheteur » à gauche.
+ */
+export function espaceDuChemin(chemin: string): "Acheteur" | "Créateur" | "Équipe" | "Organisation" {
+  const tables = [
+    ...ACHETEUR.map((e) => ({ ...e, espace: "Acheteur" as const })),
+    ...CREATEUR.map((e) => ({ ...e, espace: "Créateur" as const })),
+    ...ADMINISTRATION.map((e) => ({ ...e, espace: "Équipe" as const })),
+    ...ORGANISATEUR.map((e) => ({ ...e, espace: "Organisation" as const })),
+  ];
+  const cle = entreeCourante(tables, chemin);
+  return tables.find((e) => e.cle === cle)?.espace ?? "Acheteur";
+}

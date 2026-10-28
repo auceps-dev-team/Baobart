@@ -96,7 +96,7 @@ export interface VenteCreateur {
   accessRevokedAt: Date | null;
   createdAt: Date;
   order: { buyer: { email: string; profile: { displayName: string } | null } };
-  product: { name: string; slug: string; currency: Currency };
+  product: { name: string; slug: string; currency: Currency; coverUrl: string | null };
 }
 
 export interface TelechargementDashboard {
@@ -266,7 +266,8 @@ export async function lireVentesCreateur(
           buyer: { select: { email: true, profile: { select: { displayName: true } } } },
         },
       },
-      product: { select: { name: true, slug: true, currency: true } },
+      // La couverture, pour la vignette des « Dernières ventes » du tableau de bord.
+      product: { select: { name: true, slug: true, currency: true, coverUrl: true } },
     },
   }) as Promise<VenteCreateur[]>;
 }

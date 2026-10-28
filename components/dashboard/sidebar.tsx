@@ -5,10 +5,10 @@ import {
   BLANC,
   ENCRE,
   JAUNE,
-  LAVANDE,
   LAVANDE_CLAIR,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { NavEntrees } from "@/components/dashboard/nav-entrees";
 import type { EtapeCompte } from "@/lib/auth/roles";
 import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
@@ -128,133 +128,8 @@ export async function DashboardSidebar({
         </span>
       </Link>
 
-      {groupes.map((groupe) => (
-        <div
-          key={groupe.titre ?? "principal"}
-          style={{ display: "flex", flexDirection: "column", gap: 4 }}
-        >
-          {groupe.titre ? (
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 10.5,
-                textTransform: "uppercase",
-                letterSpacing: ".12em",
-                opacity: 0.55,
-                margin: "8px 0 4px",
-              }}
-            >
-              {groupe.titre}
-            </div>
-          ) : null}
-
-          {groupe.entrees.map((n) => {
-            const contenu = (
-              <>
-                <span
-                  style={{
-                    width: 30,
-                    height: 30,
-                    flex: "0 0 auto",
-                    border: `2px solid ${ENCRE}`,
-                    borderRadius: 9,
-                    display: "grid",
-                    placeItems: "center",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    background: n.actif ? LAVANDE : BLANC,
-                  }}
-                >
-                  {n.glyph}
-                </span>
-                <span
-                  style={{
-                    flex: "1 1 auto",
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {n.label}
-                </span>
-                {n.badge ? (
-                  <span
-                    style={{
-                      padding: "3px 8px",
-                      border: `2px solid ${ENCRE}`,
-                      borderRadius: 999,
-                      background: ORANGE,
-                      color: BLANC,
-                      fontSize: 10.5,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {n.badge}
-                  </span>
-                ) : null}
-                {!n.actif ? (
-                  <span style={{ fontSize: 12, opacity: 0.5 }} aria-hidden>
-                    ⌁
-                  </span>
-                ) : null}
-              </>
-            );
-
-            const courant = actif === n.cle;
-
-            const style = {
-              display: "flex",
-              alignItems: "center",
-              gap: 11,
-              padding: "9px 10px",
-              borderRadius: 12,
-              // L'écran ouvert se repère au fond lavande de la maquette.
-              background: courant
-                ? LAVANDE
-                : n.badge
-                  ? JAUNE
-                  : "transparent",
-              // Verrouillée : estompée mais lisible. Illisible, elle
-              // n'apprendrait rien ; absente, elle ne promettrait rien.
-              opacity: n.actif ? 1 : 0.45,
-            } as const;
-
-            if (!n.actif) {
-              return (
-                <div
-                  key={n.cle}
-                  aria-disabled="true"
-                  title={n.raisonVerrou ?? undefined}
-                  style={{ ...style, cursor: "not-allowed" }}
-                >
-                  {contenu}
-                </div>
-              );
-            }
-
-            if (!n.href) {
-              return (
-                <div
-                  key={n.cle}
-                  title="Écran à venir"
-                  style={{ ...style, cursor: "default" }}
-                >
-                  {contenu}
-                </div>
-              );
-            }
-
-            // `href` est une chaîne connue de notre table de navigation, mais
-            // typedRoutes ne peut pas le prouver depuis une variable : une
-            // ancre suffit, la navigation reste correcte.
-            return (
-              <a key={n.cle} href={n.href} style={style}>
-                {contenu}
-              </a>
-            );
-          })}
-        </div>
-      ))}
+      {/* « Super admin » pour qui l'est ; un modérateur ou un comptable voit « Équipe ». */}
+      <NavEntrees groupes={groupes} actif={actif} libelleEquipe={role === "SUPER_ADMIN" ? "Super admin" : "Équipe"} />
 
       <div
         style={{

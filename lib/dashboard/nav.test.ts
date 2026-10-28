@@ -1,6 +1,58 @@
 import { describe, expect, it } from "vitest";
 
-import { messageProgression, navigationPour } from "./nav";
+import { entreeCourante, espaceDuChemin, messageProgression, navigationPour } from "./nav";
+
+describe("l'entrée marquée pour l'adresse ouverte", () => {
+  // La vraie navigation d'une boutique en ligne : ses adresses, dans son ordre.
+  const boutique = navigationPour("BOUTIQUE").flatMap((g) => g.entrees);
+  const pour = (chemin: string) => entreeCourante(boutique, chemin);
+
+  it("marque le tableau de bord sur /dashboard, pas l'aperçu acheteur ni les notifications", () => {
+    expect(pour("/dashboard")).toBe("c_apercu");
+  });
+
+  it("préfère le plus long préfixe", () => {
+    expect(pour("/dashboard/produits")).toBe("c_produits");
+    expect(pour("/dashboard/produits/cm0abc")).toBe("c_produits");
+    expect(pour("/dashboard/produits/nouveau")).toBe("c_publier");
+    expect(pour("/dashboard/ventes/remboursements")).toBe("c_remboursements");
+    expect(pour("/dashboard/remboursements")).toBe("remboursements");
+  });
+
+  it("ne confond pas un préfixe de mot avec un dossier", () => {
+    expect(entreeCourante([{ cle: "p", href: "/dashboard/pro" }], "/dashboard/produits")).toBeNull();
+  });
+
+  it("ne marque rien hors du tableau de bord", () => {
+    expect(pour("/explorer")).toBeNull();
+  });
+});
+
+describe("l'onglet de l'équipe n'existe que pour l'équipe", () => {
+  // L'onglet « Super admin » de la barre naît du groupe « Plateforme » :
+  // pas de groupe, pas d'onglet (components/dashboard/nav-entrees.tsx).
+  const titres = (role: Parameters<typeof navigationPour>[1]) =>
+    navigationPour("BOUTIQUE", role).map((g) => g.titre);
+
+  it("n'apparaît jamais à un membre, même créateur", () => {
+    expect(titres("MEMBER")).not.toContain("Plateforme");
+    expect(navigationPour("ACHETEUR", "MEMBER").map((g) => g.titre)).not.toContain("Plateforme");
+  });
+
+  it("apparaît au super administrateur", () => {
+    expect(titres("SUPER_ADMIN")).toContain("Plateforme");
+  });
+});
+
+describe("l'espace d'un écran, au-dessus de son titre", () => {
+  it("suit la même table que la barre", () => {
+    expect(espaceDuChemin("/dashboard/produits/cm0abc")).toBe("Créateur");
+    expect(espaceDuChemin("/dashboard/profil")).toBe("Acheteur");
+    expect(espaceDuChemin("/dashboard/ventes/remboursements")).toBe("Créateur");
+    // `/dashboard` est aux deux : la boutique l'emporte, comme dans la barre.
+    expect(espaceDuChemin("/dashboard")).toBe("Créateur");
+  });
+});
 
 const entrees = (etape: Parameters<typeof navigationPour>[0]) =>
   navigationPour(etape).flatMap((g) => g.entrees);
