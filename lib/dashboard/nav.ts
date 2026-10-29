@@ -57,7 +57,9 @@ export interface EntreeNavRendue extends EntreeNav {
 
 /** Entrées acheteur — présentes à tous les paliers. */
 const ACHETEUR: EntreeNav[] = [
-  { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard" },
+  // Sa propre adresse depuis le 27/10 : elle partageait `/dashboard` avec le
+  // tableau de bord de la boutique, et un créateur ne voyait jamais son aperçu.
+  { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard/apercu" },
   // Juste après l'aperçu, et dans le groupe acheteur : ce n'est pas un écran
   // de vendeur. Un acheteur y trouve ses reçus et, surtout, l'annulation de
   // l'événement où il s'était inscrit.

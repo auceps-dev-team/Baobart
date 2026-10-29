@@ -36,14 +36,16 @@ export const dynamic = "force-dynamic";
  * boutique. Ce qui manquait est maintenant là ; ce que la maquette montre et
  * qu'on ne sait pas mesurer honnêtement est écrit dans `lib/dashboard/indicateurs.ts`.
  *
- * Un acheteur sans boutique garde ses propres chiffres : la vue du vendeur
- * n'aurait que des zéros à lui montrer.
+ * Un acheteur sans boutique est renvoyé à son Aperçu (`/dashboard/apercu`) :
+ * la vue du vendeur n'aurait que des zéros à lui montrer.
  */
 export default async function DashboardPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
-  const vendeur = utilisateur.progression.etape !== "ACHETEUR";
+  // Un acheteur sans boutique n'a rien à lire ici : son écran est l'Aperçu.
+  // La connexion mène à `/dashboard` pour tout le monde ; c'est ici qu'on trie.
+  if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
 
   const action = (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -52,7 +54,7 @@ export default async function DashboardPage() {
         className="sticker-press"
         style={{ padding: "11px 18px", border: CADRE, borderRadius: 13, background: JAUNE, boxShadow: `4px 4px 0 ${ENCRE}`, fontSize: 13, fontWeight: 800 }}
       >
-        {vendeur ? "Ajouter un produit" : "Devenir vendeur"}
+        Ajouter un produit
       </Link>
       <form action={deconnecter}>
         <button type="submit" style={{ padding: "11px 18px", border: CADRE, borderRadius: 13, background: "#FFFFFF", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
@@ -66,10 +68,10 @@ export default async function DashboardPage() {
     <DashboardFrame
       utilisateur={utilisateur}
       titre={`Bonjour ${utilisateur.nom}`}
-      description={vendeur ? "Tes gains, tes ventes et l'audience de ta boutique ce mois-ci." : messageProgression(utilisateur.progression)}
+      description="Tes gains, tes ventes et l'audience de ta boutique ce mois-ci."
       action={action}
     >
-      {vendeur ? <VueVendeur userId={utilisateur.id} username={utilisateur.username} progression={messageProgression(utilisateur.progression)} /> : <VueAcheteur userId={utilisateur.id} />}
+      <VueVendeur userId={utilisateur.id} username={utilisateur.username} progression={messageProgression(utilisateur.progression)} />
     </DashboardFrame>
   );
 }
@@ -175,31 +177,6 @@ async function VueVendeur({ userId, username, progression }: { userId: string; u
             </div>
           )}
         </DashboardPanel>
-      </div>
-    </>
-  );
-}
-
-async function VueAcheteur({ userId }: { userId: string }) {
-  const resume = await lireResumeDashboard(userId);
-  return (
-    <>
-      <div style={grilleCartes}>
-        <MetricCard label="Achats" value={formatCount(resume.commandes)} accent />
-        <MetricCard label="Téléchargements" value={formatCount(resume.telechargements)} />
-        <MetricCard label="Collections" value={formatCount(resume.collections)} />
-        <MetricCard label="Abonnements" value={formatCount(resume.abonnements)} mauve />
-      </div>
-      <div style={{ marginTop: 18 }}>
-        <EmptyState
-          titre="Ton espace vendeur est prêt."
-          texte="Dépose un premier brouillon pour ouvrir l'atelier, puis attache-lui un fichier : sans lui, un acheteur paierait sans rien recevoir, et la publication reste fermée."
-          action={
-            <Link href="/dashboard/produits/nouveau" className="sticker-press" style={{ display: "inline-block", padding: "10px 16px", border: CADRE, borderRadius: 12, background: JAUNE, boxShadow: `3px 3px 0 ${ENCRE}`, fontSize: 13, fontWeight: 800 }}>
-              Ajouter un produit
-            </Link>
-          }
-        />
       </div>
     </>
   );
