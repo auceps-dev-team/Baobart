@@ -816,7 +816,7 @@ Répondre : ${c.lien}` : ""),
 ` +
       `Ce message t'importune ? Écris à l'équipe (${c.contact}) en citant la ` +
       `référence ${c.reference}. Tu peux aussi fermer ton bouton « Contact » ` +
-      `depuis ton profil : ${c.reglages}` +
+      `depuis le profil de ta boutique : ${c.reglages}` +
       SIGNATURE,
   }),
 };

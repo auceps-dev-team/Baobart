@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { LigneEspace } from "@/components/dashboard/espace";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import type { UtilisateurConnecte } from "@/lib/auth/session";
 
@@ -30,48 +31,49 @@ export function DashboardFrame({
         email={utilisateur.email}
         role={utilisateur.role}
       />
-      <main style={{ flex: "1 1 auto", padding: "32px 36px", minWidth: 0 }}>
-        <div
+      <main style={{ flex: "1 1 auto", minWidth: 0 }}>
+        {/*
+          L'en-tête de la maquette (27/10) : l'espace en petites capitales, le
+          titre, l'action à droite, un filet sur toute la largeur. Le titre
+          passe de 44 à 32 px : la maquette ne le grossit pas, et chaque page
+          y gagne de la hauteur.
+        */}
+        <header
           style={{
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             justifyContent: "space-between",
             gap: 20,
             flexWrap: "wrap",
+            padding: "20px 36px 16px",
+            borderBottom: `3px solid ${ENCRE}`,
           }}
         >
-          <div>
+          <div style={{ minWidth: 0 }}>
+            <LigneEspace />
             <h1
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: "clamp(30px,3.4vw,44px)",
-                letterSpacing: "-1.4px",
-                margin: 0,
+                fontSize: "clamp(24px,2.4vw,32px)",
+                letterSpacing: "-1px",
+                margin: "4px 0 0",
                 textTransform: "uppercase",
-                // « REMBOURSEMENT » en capitales de 30 px dépasse un écran de
-                // 320 px : le mot se coupe plutôt que de pousser la page.
+                // « REMBOURSEMENT » en capitales dépasse un écran de 320 px :
+                // le mot se coupe plutôt que de pousser la page.
                 overflowWrap: "anywhere",
               }}
             >
               {titre}
             </h1>
-            {description ? (
-              <p
-                style={{
-                  fontSize: 15,
-                  fontWeight: 500,
-                  opacity: 0.75,
-                  margin: "8px 0 0",
-                  maxWidth: 680,
-                }}
-              >
-                {description}
-              </p>
-            ) : null}
           </div>
           {action}
+        </header>
+        <div style={{ padding: "22px 36px 40px" }}>
+          {description ? (
+            <p style={{ fontSize: 14.5, fontWeight: 500, opacity: 0.78, margin: "0 0 20px", maxWidth: 760 }}>{description}</p>
+          ) : null}
+          {children}
         </div>
-        <div style={{ marginTop: 28 }}>{children}</div>
       </main>
     </div>
   );
@@ -82,18 +84,21 @@ export function MetricCard({
   value,
   hint,
   accent = false,
+  mauve = false,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   accent?: boolean;
+  /** La carte mauve de la maquette (« Vues de page »). */
+  mauve?: boolean;
 }) {
   return (
     <div
       style={{
         border: CADRE,
         borderRadius: 20,
-        background: accent ? JAUNE : BLANC,
+        background: accent ? JAUNE : mauve ? "#C9A8F5" : BLANC,
         boxShadow: `4px 4px 0 ${ENCRE}`,
         padding: 18,
       }}

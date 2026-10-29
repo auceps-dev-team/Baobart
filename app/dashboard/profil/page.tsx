@@ -6,7 +6,8 @@ import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { PanneauDeuxFacteurs } from "@/components/dashboard/deux-facteurs";
 import { PanneauClesAcces } from "@/components/dashboard/cles-acces";
 import { PanneauEffacement } from "@/components/dashboard/effacement";
-import { PanneauMessagesVitrine } from "@/components/dashboard/messages-vitrine";
+import { FacturationSecurite } from "@/components/dashboard/facturation-securite";
+import { envoyerLienMotDePasse } from "@/lib/auth/actions";
 import { PanneauTelephone } from "@/components/dashboard/telephone";
 import { FormulaireProfil } from "@/components/dashboard/profil-form";
 import {
@@ -25,7 +26,6 @@ import {
   retirerMonTelephone,
 } from "@/lib/auth/actions-telephone";
 import { etatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
-import { reglerLesMessagesAction } from "@/lib/contact/actions-createur";
 import { codesParSmsPossibles } from "@/lib/auth/telephone";
 import { listerLesCles } from "@/lib/auth/webauthn";
 import { sessionCourante } from "@/lib/auth/session";
@@ -35,7 +35,7 @@ import {
 } from "@/lib/rgpd/actions";
 import { etatEffacement } from "@/lib/rgpd/effacement";
 import { lireProfilDashboard } from "@/lib/dashboard/lectures";
-import { RESEAUX, depuisBase, type Reseau } from "@/lib/reseaux/reseaux";
+import { departDuProfil } from "@/lib/profil/depart";
 
 export const metadata = { title: "Profil — Baobart." };
 export const dynamic = "force-dynamic";
@@ -91,59 +91,76 @@ export default async function ProfilPage() {
   ]);
   const p = profil?.profile;
 
-  const depart = {
-    nomAffiche: p?.displayName ?? "",
-    username: p?.username ?? "",
-    bio: p?.bio ?? "",
-    ville: p?.city ?? "",
-    pays: p?.country ?? "",
-    specialite: p?.speciality ?? "",
-    portfolio: p?.portfolioUrl ?? "",
-    // L'adresse rangée, telle quelle : c'est ce que le créateur a validé, et
-    // ce qu'il reconnaîtra en relisant.
-    reseaux: Object.fromEntries(
-      RESEAUX.map((r) => [r, p?.links.find((l) => depuisBase(l.network) === r)?.url ?? ""]),
-    ) as Record<Reseau, string>,
-    disponibilite: p?.openToCommissions ?? "",
-    tarifJournalier: p?.dailyRate ? String(p.dailyRate) : "",
-  };
+  const depart = departDuProfil(p);
 
   return (
     <DashboardFrame
       utilisateur={utilisateur}
       titre="Profil"
-      description="Ce que tu remplis ici s'affiche sur ta page publique. La facturation reste à part — une adresse privée n'a rien à faire dans une vitrine."
+      description="L'identité s'affiche sur ta page publique et quand tu commentes. La facturation reste à part — une adresse privée n'a rien à faire dans une vitrine."
       action={
         p?.username ? (
+          // « Voir mon profil public » de la maquette : jaune, ombre de 4 px.
           <Link
             href={`/@${p.username}` as Route}
+            className="sticker-press"
             style={{
-              padding: "10px 16px",
+              padding: "11px 18px",
               border: "2.5px solid #121212",
               borderRadius: 13,
-              background: "#FFFFFF",
+              background: "#FFD84A",
+              boxShadow: "4px 4px 0 #121212",
               fontSize: 13,
               fontWeight: 800,
               color: "#121212",
             }}
           >
-            Voir ma page ↗
+            Voir mon profil public
           </Link>
         ) : undefined
       }
     >
+      {/*
+        Deux colonnes, comme la maquette (« Identité » | « Facturation &
+        sécurité ») — 27/10. Tout était empilé dans 900 px : 3 901 px de
+        haut, un tiers de l'écran vide à droite. À gauche ce qui se montre,
+        à droite ce qui protège ; sous 960 px, les colonnes se suivent.
+      */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,460px),1fr))", gap: 20, alignItems: "start" }}>
       <FormulaireProfil
         depart={depart}
         visuels={{ avatarUrl: p?.avatarUrl ?? null, bannerUrl: p?.bannerUrl ?? null }}
+        email={utilisateur.email}
       />
 
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Bouton « Contact »">
-          <PanneauMessagesVitrine ouvert={p?.acceptsMessages ?? true} regler={reglerLesMessagesAction} />
+      <div style={{ display: "grid", gap: 20, minWidth: 0 }}>
+        {/*
+          « Facturation & sécurité » de la maquette : l'adresse, puis le mot de
+          passe. En lecture seule, et à dessein — voir le composant. La devise
+          et les deux statuts de conformité, que la maquette ne montre pas,
+          restent en dessous : c'est ce qui explique un refus de versement.
+        */}
+        <DashboardPanel titre="Facturation & sécurité">
+          <FacturationSecurite
+            facturation={[
+              ["Prénom", profil?.billing?.firstName],
+              ["Nom de famille", profil?.billing?.lastName],
+              ["Adresse ligne 1", profil?.billing?.addressLine1, "pleine"],
+              ["Adresse ligne 2", profil?.billing?.addressLine2, "pleine"],
+              ["Ville", profil?.billing?.city],
+              ["Code postal", profil?.billing?.postalCode],
+              ["Pays", profil?.billing?.country],
+              ["Région", profil?.billing?.region],
+            ]}
+            envoyerLien={envoyerLienMotDePasse}
+          />
+          <div style={{ marginTop: 14 }}>
+            {ligne("Devise", profil?.defaultCurrency)}
+            {ligne("KYC", profil?.kycStatus)}
+            {ligne("Risque", profil?.riskState)}
+          </div>
         </DashboardPanel>
-      </div>
 
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
         <DashboardPanel titre="Double authentification">
           <PanneauDeuxFacteurs
             etat={deuxFacteurs}
@@ -153,9 +170,15 @@ export default async function ProfilPage() {
             renouveler={renouvelerCodesSecours}
           />
         </DashboardPanel>
-      </div>
 
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
+        <DashboardPanel titre="Clés d'accès">
+          <PanneauClesAcces
+            cles={cles}
+            demarrer={demarrerEnrolementCle}
+            retirer={retirerLaCle}
+          />
+        </DashboardPanel>
+
         <DashboardPanel titre="Numéro de téléphone">
           <PanneauTelephone
             telephone={profil?.phone ?? null}
@@ -166,19 +189,7 @@ export default async function ProfilPage() {
             retirer={retirerMonTelephone}
           />
         </DashboardPanel>
-      </div>
 
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Clés d'accès">
-          <PanneauClesAcces
-            cles={cles}
-            demarrer={demarrerEnrolementCle}
-            retirer={retirerLaCle}
-          />
-        </DashboardPanel>
-      </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
         <DashboardPanel titre="Effacer mon compte">
           <PanneauEffacement
             etat={effacement}
@@ -188,23 +199,6 @@ export default async function ProfilPage() {
           />
         </DashboardPanel>
       </div>
-
-      <div style={{ marginTop: 20, maxWidth: 900 }}>
-        <DashboardPanel titre="Compte & facturation">
-          {/*
-            En lecture seule, et à dessein : ces champs touchent au paiement et
-            à la conformité. Les rendre modifiables ici demanderait les mêmes
-            gardes que le KYC — ce n'est pas le même écran ni le même risque.
-          */}
-          {ligne("Email", profil?.email)}
-          {ligne("Téléphone", profil?.phone)}
-          {ligne("Devise", profil?.defaultCurrency)}
-          {ligne("KYC", profil?.kycStatus)}
-          {ligne("Risque", profil?.riskState)}
-          {ligne("Prénom", profil?.billing?.firstName)}
-          {ligne("Nom", profil?.billing?.lastName)}
-          {ligne("Adresse", profil?.billing?.addressLine1)}
-        </DashboardPanel>
       </div>
     </DashboardFrame>
   );

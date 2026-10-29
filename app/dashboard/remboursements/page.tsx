@@ -39,13 +39,43 @@ export default async function RemboursementsPage() {
       titre="Remboursements"
       description="Chaque créateur fixe son délai, écrit sur la fiche de la ressource. Ta demande lui arrive ; sans réponse sous sept jours, l'équipe Baobart tranche."
     >
+      {/*
+        Le parcours d'une demande, en trois temps — l'équivalent acheteur des
+        « États d'une vente » de la maquette côté créateur. Ajouté le 27/10 :
+        une page sans achat se réduisait à un encart de 620 px, collé à
+        gauche, qui ne disait rien de ce qui se passerait le jour venu.
+      */}
+      <section style={{ border: CADRE, borderRadius: 24, background: BLANC, boxShadow: `5px 5px 0 ${ENCRE}`, padding: 20, marginBottom: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 14 }}>Comment se passe une demande</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+          {[
+            ["1", "Tu demandes", "Dans le délai du créateur : il est écrit sur la fiche de la ressource, et figé au moment de ton achat."],
+            ["2", "Le créateur répond", "Il rembourse, ou refuse en donnant son motif. Tu le lis ici."],
+            ["3", "Sans réponse, on tranche", "S'il n'a pas répondu sous sept jours, l'équipe Baobart décide à sa place."],
+          ].map(([n, titre, texte]) => (
+            <div key={n} style={{ display: "flex", gap: 12, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 14, background: "#F4EEFC" }}>
+              <span style={{ width: 28, height: 28, flex: "0 0 auto", display: "grid", placeItems: "center", border: `2px solid ${ENCRE}`, borderRadius: 99, background: JAUNE, fontSize: 13, fontWeight: 900 }}>{n}</span>
+              <span>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 800 }}>{titre}</span>
+                <span style={{ display: "block", marginTop: 4, fontSize: 12.5, fontWeight: 600, lineHeight: 1.5, opacity: 0.78 }}>{texte}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {achats.length === 0 ? (
-        <div style={{ border: CADRE, borderRadius: 24, background: BLANC, boxShadow: `6px 6px 0 ${ENCRE}`, padding: 28, maxWidth: 620 }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>Aucun achat payant</div>
-          <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.55, marginTop: 8 }}>Les ressources offertes n&apos;ont rien à rembourser.</p>
+        <div style={{ border: `2px dashed ${ENCRE}`, borderRadius: 20, background: "#F4EEFC", padding: 24, textAlign: "center" }}>
+          <div style={{ fontSize: 16, fontWeight: 900 }}>Aucun achat payant pour le moment</div>
+          <p style={{ margin: "8px auto 14px", maxWidth: 520, fontSize: 13.5, fontWeight: 600, lineHeight: 1.55, opacity: 0.75 }}>
+            Les ressources offertes n&apos;ont rien à rembourser. Tes achats payants apparaîtront ici, avec le délai qu&apos;il te reste pour demander.
+          </p>
+          <Link href="/dashboard/achats" className="sticker-press" style={{ display: "inline-block", padding: "10px 16px", border: CADRE, borderRadius: 12, background: JAUNE, boxShadow: `3px 3px 0 ${ENCRE}`, fontSize: 13, fontWeight: 800 }}>
+            Voir mes achats
+          </Link>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 900 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {achats.map((a) => (
             <div key={a.orderItemId} data-achat={a.orderItemId} style={{ border: CADRE, borderRadius: 20, background: BLANC, boxShadow: `4px 4px 0 ${ENCRE}`, padding: 16, color: ENCRE }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "baseline" }}>

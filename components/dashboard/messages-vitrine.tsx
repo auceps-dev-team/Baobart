@@ -8,7 +8,7 @@ import type { EtatReglage } from "@/lib/contact/actions-createur";
  * L'interrupteur du bouton « Contact » de la vitrine.
  *
  * C'est ici que mène le pied de chaque message reçu (« Tu peux aussi fermer
- * ton bouton depuis ton profil ») : celui qu'on importune doit pouvoir y
+ * ton bouton depuis le profil de ta boutique ») : celui qu’on importune doit pouvoir y
  * mettre fin en un geste, sans écrire à l'équipe.
  *
  * Il dit aussi ce que coûte une réponse — l'adresse du créateur part avec —,

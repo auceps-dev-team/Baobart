@@ -93,7 +93,7 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     repondreA: "contact@studio-kente.test",
     reference: "cm0message0001",
     contact: "https://baobart.test/contact",
-    reglages: "https://baobart.test/dashboard/profil",
+    reglages: "https://baobart.test/dashboard/boutique",
   },
 };
 

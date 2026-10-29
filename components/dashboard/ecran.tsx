@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 
+import { LigneEspace } from "@/components/dashboard/espace";
+
 /**
  * Coquille d'un écran de tableau de bord, traduite de « Baobart Dashboard.dc.html ».
  *
@@ -79,39 +81,37 @@ export function EcranDashboard({
   enfants?: ReactNode;
 }) {
   return (
-    <main style={{ flex: "1 1 auto", padding: "32px 36px", minWidth: 0 }}>
-      <div
+    <main style={{ flex: "1 1 auto", minWidth: 0 }}>
+      {/*
+        Le même en-tête que `DashboardFrame` (27/10) : l'espace en petites
+        capitales, le titre, l'action, un filet. Ces cinq écrans montent leur
+        barre à la main et n'avaient ni l'un ni l'autre.
+      */}
+      <header
         style={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "space-between",
           gap: 20,
           flexWrap: "wrap",
+          padding: "20px 36px 16px",
+          borderBottom: `3px solid ${ENCRE}`,
         }}
       >
-        <div>
+        <div style={{ minWidth: 0 }}>
+          <LigneEspace />
           <h1
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(28px,3.2vw,40px)",
-              letterSpacing: "-1.4px",
-              margin: 0,
+              fontSize: "clamp(24px,2.4vw,32px)",
+              letterSpacing: "-1px",
+              margin: "4px 0 0",
               textTransform: "uppercase",
+              overflowWrap: "anywhere",
             }}
           >
             {titre}
           </h1>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              opacity: 0.75,
-              margin: "10px 0 0",
-              maxWidth: 760,
-            }}
-          >
-            {intro}
-          </p>
         </div>
 
         {action ? (
@@ -132,7 +132,10 @@ export function EcranDashboard({
             {action.label}
           </Link>
         ) : null}
-      </div>
+      </header>
+
+      <div style={{ padding: "22px 36px 40px" }}>
+      <p style={{ fontSize: 14.5, fontWeight: 500, opacity: 0.78, margin: 0, maxWidth: 760 }}>{intro}</p>
 
       {indicateurs && indicateurs.length > 0 ? (
         <div
@@ -247,6 +250,7 @@ export function EcranDashboard({
       ) : null}
 
       {enfants}
+      </div>
     </main>
   );
 }

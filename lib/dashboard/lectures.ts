@@ -96,7 +96,7 @@ export interface VenteCreateur {
   accessRevokedAt: Date | null;
   createdAt: Date;
   order: { buyer: { email: string; profile: { displayName: string } | null } };
-  product: { name: string; slug: string; currency: Currency };
+  product: { name: string; slug: string; currency: Currency; coverUrl: string | null };
 }
 
 export interface TelechargementDashboard {
@@ -266,9 +266,54 @@ export async function lireVentesCreateur(
           buyer: { select: { email: true, profile: { select: { displayName: true } } } },
         },
       },
-      product: { select: { name: true, slug: true, currency: true } },
+      // La couverture, pour la vignette des « Dernières ventes » du tableau de bord.
+      product: { select: { name: true, slug: true, currency: true, coverUrl: true } },
     },
   }) as Promise<VenteCreateur[]>;
+}
+
+/**
+ * Les commandes qui contiennent au moins une ressource de ce vendeur, comme la
+ * maquette les montre (« Commande #10428 · 2 articles »). Ses lignes à lui
+ * seulement : une commande à plusieurs créateurs ne lui montre ni le prix ni
+ * le nom des ressources des autres.
+ */
+export async function lireCommandesVendeur(userId: string, limit = 60) {
+  const lignes = await db.orderItem.findMany({
+    where: { product: { sellerId: userId } },
+    orderBy: { createdAt: "desc" },
+    take: limit * 4,
+    select: {
+      state: true,
+      price: true,
+      quantity: true,
+      refundedAmount: true,
+      orderId: true,
+      order: {
+        select: {
+          createdAt: true,
+          provider: true,
+          currency: true,
+          buyer: { select: { email: true, profile: { select: { displayName: true } } } },
+        },
+      },
+      product: { select: { name: true, coverUrl: true } },
+    },
+  });
+
+  const parCommande = new Map<string, typeof lignes>();
+  for (const l of lignes) parCommande.set(l.orderId, [...(parCommande.get(l.orderId) ?? []), l]);
+
+  return [...parCommande.entries()].slice(0, limit).map(([id, ls]) => ({
+    id,
+    lignes: ls,
+    premiere: ls[0]!,
+    creeeLe: ls[0]!.order.createdAt,
+    prestataire: ls[0]!.order.provider,
+    devise: ls[0]!.order.currency,
+    acheteur: ls[0]!.order.buyer.profile?.displayName ?? ls[0]!.order.buyer.email,
+    montant: ls.reduce((s, l) => s + l.price * l.quantity, 0),
+  }));
 }
 
 export async function lireProfilDashboard(userId: string) {
