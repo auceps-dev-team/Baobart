@@ -2,6 +2,7 @@ import "server-only";
 
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { deposer } from "@/lib/email/outbox";
 import { formatMoney } from "@/lib/i18n/money";
 import { journal } from "@/lib/observabilite/journal";
@@ -108,6 +109,7 @@ export async function relancerLesPaiementsOublies(
       id: true,
       price: true,
       quantity: true,
+      tipAmount: true,
       order: {
         select: {
           id: true,
@@ -187,7 +189,7 @@ export async function relancerLesPaiementsOublies(
       charge: {
         nom: ligne.order.buyer.profile?.displayName ?? "toi",
         ressource: ligne.product.name,
-        montant: formatMoney(ligne.price * ligne.quantity, ligne.order.currency),
+        montant: formatMoney(encaisseDe(ligne), ligne.order.currency),
         lien: `${base}/acheter/${ligne.product.slug}`,
         heures: restantes,
       },

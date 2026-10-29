@@ -3,7 +3,7 @@
 > **Plateforme tout-en-un de création, découverte, partage et monétisation pour les créateurs africains.**  
 > Du premier croquis au premier encaissement en monnaie locale (FCFA, Mobile Money).
 
-[![Version](https://img.shields.io/badge/version-1.102.5-orange.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.102.6-orange.svg)](package.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5_App_Router-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](tsconfig.json)
 [![Prisma](https://img.shields.io/badge/Prisma-6.3-1b222d.svg)](prisma/schema.prisma)

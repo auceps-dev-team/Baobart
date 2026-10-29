@@ -2,6 +2,7 @@ import "server-only";
 
 import { encaissementPossible } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
@@ -190,6 +191,7 @@ export async function droitDeTelecharger(
       id: true,
       price: true,
       quantity: true,
+      tipAmount: true,
       refundedAmount: true,
       chargebackAt: true,
       chargebackReversedAt: true,
@@ -201,7 +203,7 @@ export async function droitDeTelecharger(
   if (!achat) return aAcheter(true);
 
   // Un remboursement intégral retire le droit ; un remboursement partiel non.
-  const totalPaye = achat.price * achat.quantity;
+  const totalPaye = encaisseDe(achat);
   if (totalPaye > 0 && achat.refundedAmount >= totalPaye) {
     return aAcheter(true);
   }

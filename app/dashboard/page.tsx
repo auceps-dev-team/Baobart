@@ -18,6 +18,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { urlDuSite } from "@/lib/config/site";
 import { indicateursCreateur } from "@/lib/dashboard/indicateurs";
 import { lireResumeDashboard, lireVentesCreateur } from "@/lib/dashboard/lectures";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { nomDuMoisPrecedent, variation } from "@/lib/dashboard/mois";
 import { messageProgression } from "@/lib/dashboard/nav";
 import { formatCount, formatMoney } from "@/lib/i18n/money";
@@ -147,7 +148,7 @@ async function VueVendeur({ userId, username, progression }: { userId: string; u
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {ventes.map((v) => {
-                const brut = v.price * v.quantity;
+                const brut = encaisseDe(v);
                 const etat = etatDeLaVente({
                   state: v.state,
                   brut,

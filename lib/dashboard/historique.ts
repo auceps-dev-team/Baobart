@@ -5,6 +5,8 @@
  * se teste sans monter un Postgres, et se relit sans suivre une jointure.
  */
 
+import { encaisseDe } from "@/lib/domain/encaisse";
+
 // ─────────────────────────────────────────────── historique des achats ──────
 
 export const FILTRES_ACHATS = ["Toutes", "Payées", "Abonnement"] as const;
@@ -36,6 +38,7 @@ export interface LigneCommande {
   state: string;
   price: number;
   quantity: number;
+  tipAmount: number;
   refundedAmount: number;
 }
 
@@ -62,7 +65,7 @@ export function etatCommande(lignes: LigneCommande[]): EtatCommande {
     return lignes.some((l) => l.state === "FAILED") ? "ÉCHOUÉE" : "EN ATTENTE";
   }
 
-  const paye = abouties.reduce((s, l) => s + l.price * l.quantity, 0);
+  const paye = abouties.reduce((s, l) => s + encaisseDe(l), 0);
   const rembourse = abouties.reduce((s, l) => s + l.refundedAmount, 0);
 
   if (rembourse <= 0) return "PAYÉE";

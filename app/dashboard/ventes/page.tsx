@@ -11,6 +11,7 @@ import {
 } from "@/components/systeme/panneau-operations";
 import { sessionCourante } from "@/lib/auth/session";
 import { lireVentesCreateur } from "@/lib/dashboard/lectures";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { formatMoney } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE, JAUNE, TON_ETAT } from "@/lib/systeme/charte";
 import { agirSurLaVente } from "@/lib/ventes/actions";
@@ -91,7 +92,7 @@ export default async function VentesPage({
   const toutes = await lireVentesCreateur(utilisateur.id, 60);
 
   const decrites = toutes.map((v: Vente) => {
-    const brutMontant = v.price * v.quantity;
+    const brutMontant = encaisseDe(v);
     const litige = v.chargebackAt !== null && v.chargebackReversedAt === null;
     const etat = etatDeLaVente({
       state: v.state,

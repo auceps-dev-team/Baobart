@@ -2,6 +2,7 @@ import "server-only";
 
 import { MARQUEUR_SIMULATION } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { rembourserLigne } from "@/lib/domain/orders";
 import { journal } from "@/lib/observabilite/journal";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
@@ -71,6 +72,7 @@ export async function rembourserUneVente(input: {
     select: {
       price: true,
       quantity: true,
+      tipAmount: true,
       refundedAmount: true,
       state: true,
       chargebackAt: true,
@@ -90,7 +92,7 @@ export async function rembourserUneVente(input: {
     return { ok: false, message: "Ce paiement est contesté auprès de la banque : l'argent a déjà été repris." };
   }
 
-  const restant = ligne.price * ligne.quantity - ligne.refundedAmount;
+  const restant = encaisseDe(ligne) - ligne.refundedAmount;
   if (restant <= 0) return { ok: false, message: "Cette vente est déjà remboursée en entier." };
 
   const montant = input.montant ?? restant;

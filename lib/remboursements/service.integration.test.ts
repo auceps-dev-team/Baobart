@@ -25,14 +25,14 @@ async function compte(prefixe: string) {
   return db.user.create({ data: { email: `${prefixe}-${s}@baobart.test`, profile: { create: { username: `${prefixe}-${s}`, displayName: prefixe } } }, select: { id: true } });
 }
 
-async function achat(prix = 5_000) {
+async function achat(prix = 5_000, pourboire = 0) {
   const vendeur = await compte("vendeur");
   const acheteur = await compte("acheteur");
   const s = `${++n}-${Math.random().toString(36).slice(2, 7)}`;
-  const produit = await db.product.create({ data: { sellerId: vendeur.id, name: `Pack ${s}`, slug: `pack-${s}`, price: prix, currency: "XOF", status: "PUBLISHED" }, select: { id: true } });
+  const produit = await db.product.create({ data: { sellerId: vendeur.id, name: `Pack ${s}`, slug: `pack-${s}`, price: prix, currency: "XOF", status: "PUBLISHED", tipsEnabled: pourboire > 0 }, select: { id: true } });
   const media = await db.mediaAsset.create({ data: { ownerId: vendeur.id, purpose: "product", s3Key: `produits/${produit.id}/f.zip`, checksum: "x", contentType: "application/zip", sizeBytes: 1024, status: "READY" }, select: { id: true } });
   await db.productFile.create({ data: { productId: produit.id, mediaId: media.id, filename: "f.zip", sizeBytes: 1024, role: "SOURCE", position: 0 } });
-  const r = await acheter({ produitId: produit.id, acheteurId: acheteur.id });
+  const r = await acheter({ produitId: produit.id, acheteurId: acheteur.id, pourboire });
   expect(r.ok).toBe(true);
   const ligne = await db.orderItem.findFirstOrThrow({ where: { productId: produit.id }, select: { id: true } });
   return { vendeur, acheteur, ligne: ligne.id };
@@ -134,5 +134,14 @@ describe("une demande de remboursement", () => {
     expect(r).toMatchObject({ ok: false, motif: "REMBOURSEMENT_IMPOSSIBLE" });
     expect(await db.refundRequest.findUniqueOrThrow({ where: { id: d.demandeId }, select: { status: true } })).toEqual({ status: "PENDING" });
     expect(await db.refund.count({ where: { orderItemId: ligne } })).toBe(0);
+  });
+
+  it("reste éligible après un remboursement du prix seul quand un pourboire reste dû", async () => {
+    const { acheteur, ligne } = await achat(5_000, 1_000);
+    await db.orderItem.update({ where: { id: ligne }, data: { refundedAmount: 5_000 } });
+
+    const [a] = await achatsRemboursables(acheteur.id);
+    expect(a).toMatchObject({ orderItemId: ligne, refus: null });
+    expect((await demander({ acheteurId: acheteur.id, orderItemId: ligne, motif: MOTIF })).ok).toBe(true);
   });
 });

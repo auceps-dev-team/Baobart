@@ -11,6 +11,7 @@ import "server-only";
 
 import { ETATS_ABOUTIS } from "@/lib/dashboard/historique";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import type {
   Currency,
   ProductFamily,
@@ -85,6 +86,7 @@ export interface VenteCreateur {
   quantity: number;
   state: PurchaseState;
   price: number;
+  tipAmount: number;
   platformFee: number;
   processorFee: number;
   affiliateFee: number;
@@ -253,6 +255,7 @@ export async function lireVentesCreateur(
       quantity: true,
       state: true,
       price: true,
+      tipAmount: true,
       platformFee: true,
       processorFee: true,
       affiliateFee: true,
@@ -288,6 +291,7 @@ export async function lireCommandesVendeur(userId: string, limit = 60) {
       price: true,
       quantity: true,
       refundedAmount: true,
+      tipAmount: true,
       orderId: true,
       order: {
         select: {
@@ -312,7 +316,7 @@ export async function lireCommandesVendeur(userId: string, limit = 60) {
     prestataire: ls[0]!.order.provider,
     devise: ls[0]!.order.currency,
     acheteur: ls[0]!.order.buyer.profile?.displayName ?? ls[0]!.order.buyer.email,
-    montant: ls.reduce((s, l) => s + l.price * l.quantity, 0),
+    montant: ls.reduce((s, l) => s + encaisseDe(l), 0),
   }));
 }
 

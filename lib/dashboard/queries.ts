@@ -2,6 +2,7 @@ import "server-only";
 
 import { estOfferte } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { hoteDuLien } from "@/lib/products/lien-externe";
 import {
   debutDuMois,
@@ -80,6 +81,7 @@ export async function historiqueDesAchats(
           state: true,
           price: true,
           quantity: true,
+          tipAmount: true,
           refundedAmount: true,
           product: { select: { coverUrl: true } },
         },
@@ -128,7 +130,7 @@ export async function historiqueDesAchats(
     const abouties = o.items.filter(
       (i) => i.state === "SUCCESSFUL" || i.state === "NOT_CHARGED",
     );
-    const paye = abouties.reduce((s, i) => s + i.price * i.quantity, 0);
+    const paye = abouties.reduce((s, i) => s + encaisseDe(i), 0);
     const rendu = abouties.reduce((s, i) => s + i.refundedAmount, 0);
     return somme + Math.max(0, paye - rendu);
   }, 0);

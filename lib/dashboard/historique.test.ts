@@ -14,11 +14,13 @@ const ligne = (p: {
   state?: string;
   price?: number;
   quantity?: number;
+  tipAmount?: number;
   refundedAmount?: number;
 }) => ({
   state: p.state ?? "SUCCESSFUL",
   price: p.price ?? 10_000,
   quantity: p.quantity ?? 1,
+  tipAmount: p.tipAmount ?? 0,
   refundedAmount: p.refundedAmount ?? 0,
 });
 
@@ -34,6 +36,12 @@ describe("état d'une commande", () => {
       "PARTIELLEMENT REMBOURSÉE",
     );
     expect(etatCommande([ligne({ refundedAmount: 10_000 })])).toBe("REMBOURSÉE");
+    expect(
+      etatCommande([ligne({ price: 5_000, tipAmount: 1_000, refundedAmount: 5_000 })]),
+    ).toBe("PARTIELLEMENT REMBOURSÉE");
+    expect(
+      etatCommande([ligne({ price: 5_000, tipAmount: 1_000, refundedAmount: 6_000 })]),
+    ).toBe("REMBOURSÉE");
   });
 
   it("raisonne sur l'ensemble des lignes, pas sur la première", () => {
