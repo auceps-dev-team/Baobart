@@ -15,7 +15,7 @@ import {
   demanderReinitialisation as demanderLienDeReinitialisation,
 } from "@/lib/auth/reinitialisation";
 import { COOKIE_DEFI, releverDefi } from "@/lib/auth/deux-facteurs";
-import { fermerSession, ouvrirSession } from "@/lib/auth/session";
+import { fermerSession, ouvrirSession, sessionCourante } from "@/lib/auth/session";
 import {
   identitesDe,
   MESSAGE_BLOQUE,
@@ -397,6 +397,31 @@ export async function demanderReinitialisation(
     succes:
       "Si un compte existe à cette adresse, un lien vient d'y partir. Il est valable une heure.",
   };
+}
+
+/**
+ * Changer son mot de passe depuis son profil (« Nouveau mot de passe » de la
+ * maquette, 27/10).
+ *
+ * Le même chemin que l'oubli, à l'adresse du compte connecté : le lien part
+ * dans la boîte, et c'est là qu'on choisit le nouveau. Un champ « nouveau mot
+ * de passe » posé directement dans le profil ferait d'une session volée un
+ * compte volé — celui qui a la session n'a pas la boîte. L'adresse ne vient
+ * jamais du formulaire : on ne peut pas s'en servir pour en viser une autre.
+ */
+export async function envoyerLienMotDePasse(): Promise<EtatFormulaire> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) redirect("/connexion?suite=/dashboard/profil");
+
+  // Le même plafond que l'oubli : sans lui, ce bouton remplirait une boîte.
+  const borne = await verifierLimiteAction("oubli");
+  if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
+  const suite = await demanderLienDeReinitialisation(utilisateur.email);
+  if (!suite.fait) {
+    return { erreur: "L'envoi des courriels n'est pas configuré sur ce serveur. Écris-nous en attendant." };
+  }
+  return { succes: `Un lien vient de partir à ${utilisateur.email}. Il est valable une heure.` };
 }
 
 /**

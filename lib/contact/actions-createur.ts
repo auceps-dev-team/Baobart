@@ -77,14 +77,14 @@ export async function reglerLesMessagesAction(
   donnees: FormData,
 ): Promise<EtatReglage> {
   const qui = await sessionCourante();
-  if (!qui) redirect("/connexion?suite=/dashboard/profil");
+  if (!qui) redirect("/connexion?suite=/dashboard/boutique");
 
   const ouvert = donnees.get("ouvert") === "oui";
   if (!(await reglerLesMessages(qui.id, ouvert))) {
     return { ok: false, message: "Enregistre d'abord ton profil public : le bouton vit sur ta vitrine." };
   }
 
-  revalidatePath("/dashboard/profil");
+  revalidatePath("/dashboard/boutique");
   if (qui.username) revalidatePath(`/createurs/${qui.username}`);
   // Le panneau redit l'état lui-même ; ce message confirme seulement le geste.
   return { ok: true, message: "C'est enregistré." };

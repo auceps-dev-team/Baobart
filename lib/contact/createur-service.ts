@@ -114,7 +114,7 @@ export async function ecrireAuCreateur(entree: {
             repondreA: expediteur.email,
             reference: message.id,
             contact: `${base}/contact`,
-            reglages: `${base}/dashboard/profil`,
+            reglages: `${base}/dashboard/boutique`,
           },
         },
         tx,
