@@ -71,9 +71,9 @@ export default async function ApercuPage() {
                   <span style={{ padding: "4px 10px", border: `2px solid ${ENCRE}`, borderRadius: 999, background: JAUNE, fontSize: 10.5, fontWeight: 800 }}>
                     {r.achete ? "ACHETÉE" : "OFFERTE"}
                   </span>
-                  <a href={`/products/${r.slug}`} style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, background: "#FFFFFF", fontSize: 13, fontWeight: 800 }}>
+                  <Link href={`/products/${r.slug}`} style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, background: "#FFFFFF", fontSize: 13, fontWeight: 800 }}>
                     Ouvrir
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>

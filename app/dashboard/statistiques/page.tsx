@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DashboardFrame, DashboardPanel, EmptyState, MetricCard } from "@/components/dashboard/frame";
@@ -57,9 +58,9 @@ export default async function StatistiquesPage() {
                     </span>
                   </span>
                   <span style={{ padding: "4px 10px", border: "2px solid #121212", borderRadius: 999, background: JAUNE, fontSize: 10.5, fontWeight: 800 }}>TOP {i + 1}</span>
-                  <a href={`/dashboard/produits/${r.id}`} style={{ padding: "8px 14px", border: "2px solid #121212", borderRadius: 12, background: "#FFFFFF", fontSize: 13, fontWeight: 800 }}>
+                  <Link href={`/dashboard/produits/${r.id}`} style={{ padding: "8px 14px", border: "2px solid #121212", borderRadius: 12, background: "#FFFFFF", fontSize: 13, fontWeight: 800 }}>
                     Détail
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>
