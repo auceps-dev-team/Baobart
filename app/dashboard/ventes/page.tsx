@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
+import { Pagination, pageDemandee } from "@/components/dashboard/pagination";
 import {
   PanneauOperations,
   type ActionOps,
@@ -22,6 +23,8 @@ import {
 
 export const metadata = { title: "Ventes · Remboursement et accès — Baobart." };
 export const dynamic = "force-dynamic";
+
+const PAR_PAGE = 8;
 
 const DATE = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -77,12 +80,12 @@ function actionsDe(etat: EtatVente, restant: number): ActionOps[] {
 export default async function VentesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ etat?: string }>;
+  searchParams: Promise<{ etat?: string; page?: string }>;
 }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
-  const { etat: brut } = await searchParams;
+  const { etat: brut, page: pageBrute } = await searchParams;
   const filtre = brut && brut in ETATS_VENTE ? (brut as EtatVente) : undefined;
 
   const toutes = await lireVentesCreateur(utilisateur.id, 60);
@@ -101,7 +104,18 @@ export default async function VentesPage({
     return { v, brutMontant, etat, restant: brutMontant - v.refundedAmount };
   });
 
-  const visibles = filtre ? decrites.filter((d) => d.etat === filtre) : decrites;
+  const filtrees = filtre ? decrites.filter((d) => d.etat === filtre) : decrites;
+  // Huit par page (27/10) : chaque vente porte ses gestes et sa trace, et
+  // trente-trois d'affilée faisaient 5 705 px. La maquette en montre cinq.
+  const pages = Math.ceil(filtrees.length / PAR_PAGE);
+  const page = pageDemandee(pageBrute, pages);
+  const visibles = filtrees.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+  const adresse = (n: number) => {
+    const p = new URLSearchParams();
+    if (filtre) p.set("etat", filtre);
+    if (n > 1) p.set("page", String(n));
+    return p.size > 0 ? `/dashboard/ventes?${p}` : "/dashboard/ventes";
+  };
   const devise = toutes[0]?.product.currency ?? "XOF";
 
   const legende: LegendeOps[] = ORDRE_VENTE.map((e) => ({
@@ -188,10 +202,11 @@ export default async function VentesPage({
             "Reste remboursable",
           ]}
           lignes={lignes}
-          pied={`${visibles.length} ventes sur ${toutes.length} · un remboursement te débite la totalité payée, pas seulement ta part`}
+          pied={`${filtrees.length} ventes sur ${toutes.length} · un remboursement te débite la totalité payée, pas seulement ta part`}
           peutAgir
           executer={agirSurLaVente}
         />
+        <Pagination page={page} pages={pages} adresse={adresse} />
 
         {/*
           La même information que sur l'écran des versements, au moment où elle
