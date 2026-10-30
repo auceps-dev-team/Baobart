@@ -16,7 +16,7 @@ import { encaisserLigne } from "@/lib/domain/orders";
 
 let n = 0;
 
-async function venteDe(prix: number, encaisser = true) {
+async function venteDe(prix: number, encaisser = true, pourboire = 0) {
   n += 1;
   const vendeur = await db.user.create({
     data: {
@@ -46,9 +46,9 @@ async function venteDe(prix: number, encaisser = true) {
   const commande = await db.order.create({
     data: {
       buyerId: acheteur.id,
-      total: prix,
+      total: prix + pourboire,
       currency: "XOF",
-      items: { create: { productId: produit.id, quantity: 1, price: prix } },
+      items: { create: { productId: produit.id, quantity: 1, price: prix, tipAmount: pourboire } },
     },
     select: { items: { select: { id: true } } },
   });
@@ -218,5 +218,22 @@ describe("effet sur l'accès de l'acheteur", () => {
     expect(apres.chargebackAt !== null && apres.chargebackReversedAt === null).toBe(
       false,
     );
+  });
+
+  it("reprend puis rend le prix et le pourboire sur une vente avec pourboire", async () => {
+    const { vendeurId, ligneId } = await venteDe(5_000, true, 1_000);
+    const apresVente = await soldeInscrit(vendeurId);
+
+    expect(await enregistrerLitige({ orderItemId: ligneId })).toEqual({
+      enregistre: true,
+      debite: 6_000,
+    });
+    expect(await soldeInscrit(vendeurId)).toBe(apresVente - 6_000);
+
+    expect(await litigeGagne({ orderItemId: ligneId })).toEqual({
+      rendu: true,
+      credite: 6_000,
+    });
+    expect(await soldeInscrit(vendeurId)).toBe(apresVente);
   });
 });

@@ -2,6 +2,7 @@ import "server-only";
 
 import { licenceBienFormee } from "@/lib/checkout/licence";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 
 /**
  * Vérifier une clé de licence — pour le créateur qui vend un logiciel, une
@@ -53,6 +54,7 @@ export async function verifierLicence(input: { produitId: string; cle: string; i
           state: true,
           price: true,
           quantity: true,
+          tipAmount: true,
           refundedAmount: true,
           chargebackAt: true,
           chargebackReversedAt: true,
@@ -74,7 +76,7 @@ export async function verifierLicence(input: { produitId: string; cle: string; i
     ? (await db.licenseKey.update({ where: { id: licence.id }, data: { usesCount: { increment: 1 } }, select: { usesCount: true } })).usesCount
     : licence.usesCount;
 
-  const totalPaye = ligne.price * ligne.quantity;
+  const totalPaye = encaisseDe(ligne);
   return {
     ok: true,
     utilisations,

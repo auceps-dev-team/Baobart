@@ -9,6 +9,7 @@ import { estOfferte, retenirLeMontant, type MotifMontant } from "@/lib/commerce/
 import { ajusterAuPays } from "@/lib/commerce/ppp";
 import { consommerLeCode, evaluerUnCode } from "@/lib/commerce/codes-promo";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { journal } from "@/lib/observabilite/journal";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import {
@@ -308,6 +309,7 @@ export async function acheter(input: {
             state: true,
             price: true,
             quantity: true,
+            tipAmount: true,
             refundedAmount: true,
             chargebackAt: true,
             chargebackReversedAt: true,
@@ -324,7 +326,7 @@ export async function acheter(input: {
             continue;
           }
 
-          const paye = l.price * l.quantity;
+          const paye = encaisseDe(l);
           const rembourseEnEntier = paye > 0 && l.refundedAmount >= paye;
           const litige =
             l.chargebackAt !== null && l.chargebackReversedAt === null;

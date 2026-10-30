@@ -14,6 +14,7 @@ import type { Prisma } from "@prisma/client";
 import type { Currency } from "@/lib/domain/prisma-types";
 
 import { crediterSolde } from "@/lib/domain/balances";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { computeFees, partProportionnelle } from "@/lib/domain/fees";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
@@ -215,7 +216,7 @@ export async function rembourserLigne(input: {
     //
     // La ligne vaut pour toutes les ventes passées : `tipAmount` vaut zéro
     // par défaut, l'expression est identique pour elles.
-    const encaisse = ligne.price * ligne.quantity + ligne.tipAmount;
+    const encaisse = encaisseDe(ligne);
     const dejaRembourse = ligne.refundedAmount;
     if (dejaRembourse + amount > encaisse) {
       throw new RangeError(

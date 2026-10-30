@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { crediterSolde } from "@/lib/domain/balances";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 
@@ -75,7 +76,7 @@ export async function enregistrerLitige(input: {
         return { enregistre: false as const, motif: "DEJA_ENREGISTRE" as const };
       }
 
-      const brut = ligne.price * ligne.quantity;
+      const brut = encaisseDe(ligne);
 
       const { mouvement } = await crediterSolde(tx, {
         userId: ligne.product.sellerId,
@@ -171,7 +172,7 @@ export async function litigeGagne(input: {
         return { rendu: false as const, motif: "DEJA_TRANCHE" as const };
       }
 
-      const brut = ligne.price * ligne.quantity;
+      const brut = encaisseDe(ligne);
 
       const { mouvement } = await crediterSolde(tx, {
         userId: ligne.product.sellerId,

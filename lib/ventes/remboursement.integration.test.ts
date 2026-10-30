@@ -49,7 +49,7 @@ import { RESERVATION_INCERTAINE_MS, rembourserUneVente } from "@/lib/ventes/remb
 
 let n = 0;
 
-async function venteDe(prix: number) {
+async function venteDe(prix: number, pourboire = 0) {
   n += 1;
   const marque = `remb-${n}-${Math.random().toString(36).slice(2, 7)}`;
   const vendeur = await db.user.create({
@@ -67,11 +67,11 @@ async function venteDe(prix: number) {
   const commande = await db.order.create({
     data: {
       buyerId: acheteur.id,
-      total: prix,
+      total: prix + pourboire,
       currency: "XOF",
       provider: "paystack",
       providerRef: `tx_${marque}`,
-      items: { create: { productId: produit.id, quantity: 1, price: prix } },
+      items: { create: { productId: produit.id, quantity: 1, price: prix, tipAmount: pourboire } },
     },
     select: { items: { select: { id: true } } },
   });
@@ -183,5 +183,27 @@ describe("l'argent parti sans écriture", () => {
     expect(r.message).toMatch(/support est prévenu/);
     expect(erreurs).toHaveBeenCalledWith("ARGENT REMBOURSÉ SANS ÉCRITURE", expect.objectContaining({ orderItemId: ligneId }));
     expect((await db.orderItem.findUniqueOrThrow({ where: { id: ligneId } })).refundLockedUntil).toBeNull();
+  });
+});
+
+describe("une vente avec pourboire", () => {
+  it("rend le prix et le pourboire quand aucun montant n'est précisé", async () => {
+    const { vendeurId, ligneId } = await venteDe(5_000, 1_000);
+
+    const r = await demande(ligneId, vendeurId);
+    expect(r).toMatchObject({ ok: true, montant: 6_000 });
+
+    const ligne = await db.orderItem.findUniqueOrThrow({ where: { id: ligneId } });
+    expect(ligne.refundedAmount).toBe(6_000);
+  });
+
+  it("permet de rendre le pourboire restant après un remboursement partiel du prix seul", async () => {
+    const { vendeurId, ligneId } = await venteDe(5_000, 1_000);
+
+    expect(await demande(ligneId, vendeurId, 5_000)).toMatchObject({ ok: true, montant: 5_000 });
+    expect(await demande(ligneId, vendeurId)).toMatchObject({ ok: true, montant: 1_000 });
+
+    const ligne = await db.orderItem.findUniqueOrThrow({ where: { id: ligneId } });
+    expect(ligne.refundedAmount).toBe(6_000);
   });
 });

@@ -3,6 +3,7 @@ import "server-only";
 import type { Currency, RefundRequestStatus } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { formatMoney } from "@/lib/i18n/money";
 import { notifier } from "@/lib/notifications/aiguilleur";
 import {
@@ -55,6 +56,7 @@ const SELECT_LIGNE = {
   state: true,
   price: true,
   quantity: true,
+  tipAmount: true,
   refundedAmount: true,
   chargebackAt: true,
   chargebackReversedAt: true,
@@ -71,6 +73,7 @@ async function eligibiliteDe(
     state: string;
     price: number;
     quantity: number;
+    tipAmount: number;
     refundedAmount: number;
     chargebackAt: Date | null;
     chargebackReversedAt: Date | null;
@@ -84,7 +87,7 @@ async function eligibiliteDe(
   return eligibilite(
     {
       etat: ligne.state,
-      paye: ligne.price * ligne.quantity,
+      paye: encaisseDe(ligne),
       rembourse: ligne.refundedAmount,
       conteste: ligne.chargebackAt !== null && ligne.chargebackReversedAt === null,
       delaiJours: delaiDe(ligne),
@@ -125,7 +128,7 @@ export async function achatsRemboursables(acheteurId: string, maintenant: Date =
       orderItemId: l.id,
       ressource: l.product.name,
       slug: l.product.slug,
-      montant: formatMoney(l.price * l.quantity, l.order.currency),
+      montant: formatMoney(encaisseDe(l), l.order.currency),
       jusquA: e.ok ? e.jusquA : null,
       refus: e.ok ? null : e.motif,
       demande: d ? { statut: d.status, motifRefus: d.refusalReason, parLeSupport: d.decidedBySupport, le: d.decidedAt ?? d.createdAt } : null,
@@ -153,7 +156,7 @@ export async function demander(input: { acheteurId: string; orderItemId: string;
         data: { orderItemId: ligne.id, buyerId: input.acheteurId, reason: input.motif.trim() },
         select: { id: true },
       });
-      const montant = formatMoney(ligne.price * ligne.quantity, ligne.order.currency);
+      const montant = formatMoney(encaisseDe(ligne), ligne.order.currency);
       await notifier(
         {
           destinataireId: ligne.product.sellerId,
@@ -202,7 +205,7 @@ const SELECT_DEMANDE = {
   decidedBySupport: true,
   createdAt: true,
   orderItemId: true,
-  orderItem: { select: { price: true, quantity: true, order: { select: { currency: true } }, product: { select: { name: true, sellerId: true } } } },
+  orderItem: { select: { price: true, quantity: true, tipAmount: true, order: { select: { currency: true } }, product: { select: { name: true, sellerId: true } } } },
   buyer: { select: { email: true, profile: { select: { displayName: true } } } },
 } as const;
 
@@ -214,14 +217,14 @@ function enDemandeRecue(d: {
   decidedBySupport: boolean;
   createdAt: Date;
   orderItemId: string;
-  orderItem: { price: number; quantity: number; order: { currency: Currency }; product: { name: string } };
+  orderItem: { price: number; quantity: number; tipAmount: number; order: { currency: Currency }; product: { name: string } };
   buyer: { email: string; profile: { displayName: string } | null };
 }): DemandeRecue {
   return {
     id: d.id,
     orderItemId: d.orderItemId,
     ressource: d.orderItem.product.name,
-    montant: formatMoney(d.orderItem.price * d.orderItem.quantity, d.orderItem.order.currency),
+    montant: formatMoney(encaisseDe(d.orderItem), d.orderItem.order.currency),
     motif: d.reason,
     statut: d.status,
     motifRefus: d.refusalReason,

@@ -2,6 +2,7 @@ import "server-only";
 
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import { encaisserLigne } from "@/lib/domain/orders";
 import { notifier } from "@/lib/notifications/aiguilleur";
 import { formatMoney } from "@/lib/i18n/money";
@@ -42,6 +43,7 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
     select: {
       price: true,
       quantity: true,
+      tipAmount: true,
       orderId: true,
       product: { select: { name: true, currency: true, sellerId: true } },
       order: {
@@ -103,13 +105,13 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
         // un second reçu, même s'il vient d'un autre événement.
         cle: `recu-${orderItemId}`,
         titre: `Achat confirmé — ${ligne.product.name}`,
-        corps: `${formatMoney(ligne.price * ligne.quantity, ligne.product.currency)} payés. Tu retrouves ta ressource dans tes achats.`,
+        corps: `${formatMoney(encaisseDe(ligne), ligne.product.currency)} payés. Tu retrouves ta ressource dans tes achats.`,
         lien: "/dashboard/achats",
         charge: {
           nom: acheteur.profile?.displayName ?? acheteur.email,
           ressource: ligne.product.name,
           montant: formatMoney(
-            ligne.price * ligne.quantity,
+            encaisseDe(ligne),
             ligne.product.currency,
           ),
           // Vers l'espace gardé, pas vers le fichier : la route de retrait
@@ -134,8 +136,8 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
     // même la notification emblématique — la sonnerie de vente pousse sur son
     // application mobile.
     //
-    // Le montant annoncé est le BRUT de la ligne, et c'est délibéré : c'est le
-    // prix que l'acheteur a payé, donc celui qui figure sur la fiche. Le net
+    // Le montant annoncé est le BRUT de la ligne (prix et pourboire compris), et c'est délibéré : c'est ce
+    // que l'acheteur a réellement payé. Le net
     // dépend des frais et du régime, et il apparaît sur l'écran des gains. Les
     // confondre dans une notification ferait croire à une erreur de calcul à
     // qui comparerait les deux.
@@ -152,12 +154,12 @@ export async function finaliserVente(orderItemId: string): Promise<void> {
           evenement: "VENTE_REALISEE",
           cle: `vente-${orderItemId}`,
           titre: `Vente — ${ligne.product.name}`,
-          corps: `${formatMoney(ligne.price * ligne.quantity, ligne.product.currency)} encaissés. Le net après frais apparaît dans tes gains.`,
+          corps: `${formatMoney(encaisseDe(ligne), ligne.product.currency)} encaissés. Le net après frais apparaît dans tes gains.`,
           lien: "/dashboard/ventes",
           charge: {
             ressource: ligne.product.name,
             montant: formatMoney(
-              ligne.price * ligne.quantity,
+              encaisseDe(ligne),
               ligne.product.currency,
             ),
           },

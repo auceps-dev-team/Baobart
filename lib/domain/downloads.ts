@@ -16,6 +16,7 @@ import type { ConsumptionType } from "@/lib/domain/delivery";
 import { estOfferte } from "@/lib/commerce/montant";
 import { accesJusquA } from "@/lib/ndank/cycle";
 import { db } from "@/lib/db";
+import { encaisseDe } from "@/lib/domain/encaisse";
 import {
   decideAcces,
   dureeUrlSignee,
@@ -165,7 +166,7 @@ export async function autoriserTelechargement(
     let quotaLimite: number | null = null;
 
     if (achat) {
-      const totalPaye = achat.price * achat.quantity;
+      const totalPaye = encaisseDe(achat);
       decision = decideAcces({
         source: "ACHAT",
         achatAbouti: true,
