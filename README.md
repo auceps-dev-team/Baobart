@@ -166,7 +166,8 @@ pnpm dev             # Disponible sur http://localhost:3100
 
 | Commande | Description |
 |---|---|
-| `pnpm dev` | Démarre le serveur Next.js en local (port 3100) |
+| `pnpm dev` | Démarre le serveur Next.js en local avec Turbopack (port 3100). Mesuré le 30/10/2026 face à webpack : démarrage de 17,7 s à 5,1 s, changement de page compilé 1,4 à 2,4 fois plus vite. La toute première page reste lente (environ 20 s), et les rechargements à chaud perdent 0,3 à 0,7 s (`Doc/MESURES_PERFORMANCE_2026-10.md`). |
+| `pnpm dev:webpack` | Démarre le serveur Next.js en local avec webpack (port 3100, en secours) |
 | `pnpm build` | Compile le projet pour la production |
 | `pnpm start` | Démarre l'application compilée |
 | `pnpm typecheck` | Vérifie les types TypeScript en mode strict |
