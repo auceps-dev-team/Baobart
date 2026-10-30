@@ -143,9 +143,9 @@ export default async function MesProduitsPage({ searchParams }: { searchParams: 
                 >
                   {LIBELLE_STATUT[p.status]}
                 </span>
-                <a href={`/dashboard/produits/${p.id}`} style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, background: BLANC, fontSize: 13, fontWeight: 800, whiteSpace: "nowrap" }}>
+                <Link href={`/dashboard/produits/${p.id}`} style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, background: BLANC, fontSize: 13, fontWeight: 800, whiteSpace: "nowrap" }}>
                   {p.status === "DRAFT" ? "Reprendre" : "Modifier"}
-                </a>
+                </Link>
               </div>
             ))}
           </div>

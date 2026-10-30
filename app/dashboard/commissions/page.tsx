@@ -90,9 +90,9 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
                     </span>
                     <span style={{ fontSize: 14.5, fontWeight: 900, whiteSpace: "nowrap" }}>{argent(l.net)}</span>
                     <span style={{ padding: "4px 10px", border: `2px solid ${ENCRE}`, borderRadius: 999, background: statut.fond, fontSize: 10.5, fontWeight: 800 }}>{statut.libelle}</span>
-                    <a href={`/dashboard/produits/${l.produitId}`} style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, background: BLANC, fontSize: 13, fontWeight: 800 }}>
+                    <Link href={`/dashboard/produits/${l.produitId}`} style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, background: BLANC, fontSize: 13, fontWeight: 800 }}>
                       Détail
-                    </a>
+                    </Link>
                   </div>
                 );
               })}

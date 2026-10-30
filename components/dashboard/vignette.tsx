@@ -1,13 +1,15 @@
 import { BLANC, ENCRE } from "@/lib/systeme/charte";
+import { vignetteDe } from "@/lib/upload/vignette";
 
 /**
  * La vignette carrée d'une ressource dans les listes du tableau de bord —
  * « Mes ressources », « Dernières ventes » (`Baobart Dashboard.dc.html`).
  *
  * La couverture quand elle existe (`Product.coverUrl`, déjà résolue : aucune
- * lecture de plus par ligne). Sinon les rayures de la maquette, dont la
- * couleur suit le titre : la même ressource garde la même vignette d'un écran
- * à l'autre, et deux voisines se distinguent.
+ * lecture de plus par ligne), ramenée à sa déclinaison 400 px via `vignetteDe`
+ * pour ne pas tirer l'aperçu 800 px dans un carré de 42 px. Sinon les rayures
+ * de la maquette, dont la couleur suit le titre : la même ressource garde la
+ * même vignette d'un écran à l'autre, et deux voisines se distinguent.
  */
 const RAYURES = ["#C9A8F5", "#E2622C", "#FFD84A", ENCRE];
 
@@ -23,7 +25,7 @@ export function Vignette({ couverture, titre, taille = 42 }: { couverture: strin
         border: `2px solid ${ENCRE}`,
         borderRadius: 10,
         background: couverture
-          ? `center / cover no-repeat url(${JSON.stringify(couverture)})`
+          ? `center / cover no-repeat url(${JSON.stringify(vignetteDe(couverture))})`
           : `repeating-linear-gradient(135deg,${teinte} 0 6px,${BLANC} 6px 12px)`,
       }}
     />
