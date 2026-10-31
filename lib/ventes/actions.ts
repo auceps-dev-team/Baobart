@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { sessionCourante } from "@/lib/auth/session";
+import { lireUnEntier } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 import { rendreAcces, retirerAcces } from "@/lib/domain/acces";
 import { rembourserUneVente } from "@/lib/ventes/remboursement";
@@ -104,13 +105,30 @@ async function rembourserVente(
     return { ok: false, message: "Vente introuvable." };
   }
 
-  const saisi = String(donnees.get("montant") ?? "").replace(/[^d]/g, "");
+  // ══════════════════════════════════════════════════════════════════════════
+  // LE MONTANT SE LIT AVEC LE LECTEUR DE L'ACHAT, ET UN CHAMP VIDE EST REFUSÉ
+  //
+  // Jusqu'au 31/10/2026, le montant passait par `.replace(/[^d]/g, "")` :
+  // l'antislash de `\d`, présent avant, s'est perdu quand ce code a été
+  // déplacé (v1.79.0, 08/10). Mesuré le 31/10 : « 1000 » devenait « », le
+  // montant arrivait absent, et `rembourserUneVente` rendait TOUT le restant —
+  // 5 000 F rendus pour 1 000 demandés, avec « Remboursement enregistré ».
+  //
+  // Même avec son antislash, la règle aurait lu « 1000.5 » comme 10 005.
+  // `lireUnEntier` est celui de l'achat, corrigé de ce défaut le 25/09.
+  //
+  // Un champ vide ne veut plus dire « tout » : le champ arrive prérempli avec
+  // le restant, le vider est une erreur, et c'est l'erreur qui coûte le plus.
+  const montant = lireUnEntier(String(donnees.get("montant") ?? ""));
+  if (montant === null || montant <= 0) {
+    return { ok: false, message: "Indique le montant à rembourser, en francs entiers (par exemple 2 500)." };
+  }
 
   // Le chemin de l'argent vit dans `rembourserUneVente` depuis le 08/10 : la
   // demande de remboursement acceptée passe par le même.
   const suite = await rembourserUneVente({
     orderItemId,
-    montant: saisi.length > 0 ? Number(saisi) : undefined,
+    montant,
     parId: utilisateur.id,
     motifInterne: "Remboursement demandé par le vendeur",
   });

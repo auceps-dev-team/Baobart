@@ -211,8 +211,12 @@ export function retenirLeMontant(entree: EntreeMontant): SuiteMontant {
  * aucun message. Un point ou une espace n'est donc toléré qu'entre des groupes
  * de trois chiffres ; tout le reste — une décimale, une virgule — est refusé :
  * le franc CFA n'a pas de centimes, et on ne devine pas l'intention.
+ *
+ * Exporté le 31/10/2026 pour le remboursement du vendeur
+ * (`lib/ventes/actions.ts`), qui lisait son montant avec une expression
+ * régulière à lui — et la perdait en route. Un seul lecteur de francs.
  */
-function lireUnEntier(brut: string | number | null | undefined): number | null {
+export function lireUnEntier(brut: string | number | null | undefined): number | null {
   if (brut === null || brut === undefined) return 0;
   if (typeof brut === "number") {
     return Number.isInteger(brut) && brut >= 0 ? brut : null;
