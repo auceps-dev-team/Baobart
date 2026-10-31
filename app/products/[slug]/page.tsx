@@ -8,6 +8,7 @@ import { urlDuSite } from "@/lib/config/site";
 import { absolue } from "@/lib/reseaux/partage";
 import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
 import { commentairesDe, etatSocial } from "@/lib/social/queries";
+import { FONDU_MS } from "@/lib/systeme/patience";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,12 @@ export default async function FicheProduitPage({
     <>
       <Header utilisateur={utilisateur} />
       <main
+        // La fiche arrive en fondu, l'en-tête reste en place : l'œil suit ce
+        // qui change. Pas de squelette ici, et pas de `loading.tsx` : il
+        // ferait répondre 200 aux fiches introuvables (`app/explore/loading.tsx`).
+        className="apparition-douce"
         style={{
+          animationDuration: `${FONDU_MS}ms`,
           minHeight: "100vh",
           background: "#EADFF9",
           padding: "24px 32px 0",
