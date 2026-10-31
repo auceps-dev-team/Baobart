@@ -470,6 +470,38 @@
   animation: tourne 1s linear infinite;
 }
 
+/* --- Apparition douce et squelette patient (30/10/2026) ---------------------
+ * La règle et ses chiffres : lib/systeme/patience.ts. Les durées et le délai
+ * sont reposés en ligne depuis ce module, seule source ; les valeurs ci-dessous
+ * ne sont que le repli.
+ *
+ * `backwards`, et non `both` : il tient l'élément transparent AVANT le départ
+ * — c'est ce qui cache le squelette pendant son délai — puis ne laisse rien
+ * derrière lui. `both` garderait l'animation appliquée après la fin, et une
+ * opacité animée crée un contexte d'empilement : l'en-tête (zIndex 40) se
+ * comparerait alors à la modale de la fiche (60) depuis l'intérieur de ce
+ * contexte, et plus directement.
+ *
+ * Sous mouvement réduit, la règle globale ramène les durées à zéro, pas le
+ * délai : un squelette ne s'affiche toujours pas pour une attente
+ * imperceptible. */
+
+@keyframes apparition-douce {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.apparition-douce {
+  animation: apparition-douce 200ms ease-out backwards;
+}
+.squelette-patient {
+  animation: apparition-douce 150ms ease-out 200ms backwards;
+}
+
 /* --- Au défilement : essayé au labo le 08/10, posé sur les vues -----------
  *
  * Animations PILOTÉES PAR LE DÉFILEMENT (`animation-timeline`) : leur avancée

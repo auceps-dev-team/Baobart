@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 
+import { Revelation } from "@/components/anime/squelette-patient";
 import { Feed } from "@/components/feed/feed";
+import { SqueletteExplore } from "@/components/feed/squelette-explore";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
@@ -10,6 +12,7 @@ import { listerAlaUne, listerFeed } from "@/lib/feed/queries";
 import { FILTRES, type Filtre } from "@/lib/feed/types";
 import { epinglesParmi } from "@/lib/collections/service";
 import { aimesParmi } from "@/lib/social/feed";
+import { LAVANDE } from "@/lib/systeme/charte";
 import { diffusion } from "@/lib/publicites/service";
 
 export const metadata = {
@@ -48,7 +51,16 @@ export default async function ExplorerPage({
   ]);
 
   return (
-    <>
+    // Le voile reprend le squelette de `loading.tsx` à l'identique : quand il
+    // se lève, rien ne bouge que l'opacité. Pourquoi il existe :
+    // `components/anime/squelette-patient.tsx`.
+    <Revelation
+      squelette={
+        <div style={{ minHeight: "100vh", background: LAVANDE }}>
+          <SqueletteExplore />
+        </div>
+      }
+    >
       <Header utilisateur={utilisateur} />
       <div
         data-root="1"
@@ -97,6 +109,6 @@ export default async function ExplorerPage({
         {/* Dans data-root : son retrait à gauche laisse la place au rail. */}
         <Footer />
       </div>
-    </>
+    </Revelation>
   );
 }

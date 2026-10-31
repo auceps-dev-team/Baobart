@@ -1,5 +1,7 @@
+import { MarqueurSquelette } from "@/components/anime/squelette-patient";
 import { SqueletteExplore } from "@/components/feed/squelette-explore";
 import { LAVANDE } from "@/lib/systeme/charte";
+import { DELAI_SQUELETTE_MS } from "@/lib/systeme/patience";
 
 /**
  * Le squelette d'attente de l'explorateur.
@@ -53,6 +55,14 @@ import { LAVANDE } from "@/lib/systeme/charte";
  * montré aussi dans le labo. Les animations (`squelette-balaye`,
  * `squelette-pulse`, `squelette-tourne`) vivent dans `app/globals.css`, et
  * s'arrêtent sous mouvement réduit.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * IL ATTEND AVANT DE SE MONTRER, ET NE DISPARAÎT PAS EN UN ÉCLAIR (30/10/2026)
+ *
+ * Sur une page rapide, il apparaissait une image ou deux puis disparaissait :
+ * un flash, pire que rien. Il reste donc invisible pendant
+ * `DELAI_SQUELETTE_MS`, puis, une fois montré, `Revelation` (dans la page) le
+ * prolonge jusqu'à `MINIMUM_SQUELETTE_MS`. Règle : `lib/systeme/patience.ts`.
  */
 export default function Chargement() {
   return (
@@ -61,8 +71,10 @@ export default function Chargement() {
       // pour chaque rectangle rendrait la page inaudible.
       role="status"
       aria-label="On charge tes ressources"
-      style={{ minHeight: "100vh", background: LAVANDE }}
+      className="squelette-patient"
+      style={{ minHeight: "100vh", background: LAVANDE, animationDelay: `${DELAI_SQUELETTE_MS}ms` }}
     >
+      <MarqueurSquelette />
       <SqueletteExplore />
     </main>
   );
