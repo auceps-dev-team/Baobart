@@ -46,8 +46,12 @@ export default async function HistoriqueDesAchatsPage({
     visuel: c.visuel,
     // Une commande mène à ses fichiers, pas à une facture : la facturation
     // viendra avec le paiement. Proposer « Facture » ouvrirait sur rien.
+    //
+    // Vers la bibliothèque depuis le 31/10, et plus vers l'historique des
+    // téléchargements : celui-ci ne liste que ce qu'on a déjà retiré, et un
+    // achat jamais ouvert y était introuvable (audit du 31/10, Q2-3).
     action: commandeTelechargeable(c.etat)
-      ? { label: "Mes fichiers", href: "/dashboard/telechargements" }
+      ? { label: "Mes fichiers", href: "/dashboard/bibliotheque" }
       : undefined,
   }));
 

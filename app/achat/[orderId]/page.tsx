@@ -527,8 +527,14 @@ export default async function RetourPaiementPage({
           ) : null}
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {/*
+              Vers la bibliothèque, où la ressource attend en tête de liste.
+              Jusqu'au 31/10, ce bouton menait à l'historique des
+              téléchargements — vide tant que rien n'a été retiré, c'est-à-dire
+              précisément juste après l'achat (audit du 31/10, Q2-3).
+            */}
             {abouti ? (
-              <Bouton href="/dashboard/telechargements" principale>
+              <Bouton href="/dashboard/bibliotheque" principale>
                 Télécharger maintenant
               </Bouton>
             ) : null}
