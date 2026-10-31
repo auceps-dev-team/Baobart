@@ -65,6 +65,9 @@ const ACHETEUR: EntreeNav[] = [
   // l'événement où il s'était inscrit.
   { cle: "notifications", label: "Notifications", glyph: "◔", href: "/dashboard/notifications" },
   { cle: "profil", label: "Profil", glyph: "☺", href: "/dashboard/profil" },
+  // Ajoutée le 31/10, à la place que lui donne la maquette : ce qu'on
+  // possède, avant l'historique de ce qu'on a payé ou retiré.
+  { cle: "bibliotheque", label: "Ma bibliothèque", glyph: "▣", href: "/dashboard/bibliotheque" },
   {
     cle: "achats",
     label: "Historique des achats",

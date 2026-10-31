@@ -118,12 +118,14 @@ export default async function HistoriqueDesTelechargementsPage({
           vide: {
             titre: "Rien téléchargé pour l'instant",
             texte:
+              // La phrase de la maquette : cet écran dit ce qu'on a RETIRÉ.
+              // Ce qu'on possède sans l'avoir ouvert est dans la bibliothèque.
               filtre === "Tous"
-                ? "Les ressources que tu retires apparaîtront ici, avec le nombre de fois où tu les as reprises."
+                ? "Ce que tu retires apparaîtra ici. Pour voir tout ce que tu possèdes — y compris ce que tu n'as pas encore téléchargé — va dans Ma bibliothèque."
                 : "Aucun téléchargement ne correspond à ce filtre.",
             action:
               filtre === "Tous"
-                ? { label: "Explorer les ressources", href: "/explore" }
+                ? { label: "Ma bibliothèque", href: "/dashboard/bibliotheque" }
                 : { label: "Voir tout", href: "/dashboard/telechargements" },
           },
         }}
