@@ -189,6 +189,12 @@ export async function acheter(input: {
    * l'acheteur sur son téléphone.
    */
   moyen?: string;
+  /**
+   * Le numéro qui recevra l'invite, déjà en E.164 (`versE164`). Flutterwave
+   * en a besoin pour déclarer du mobile money ; Paystack le demande sur sa
+   * propre page et l'ignore ici. Absent jusqu'au 31/10/2026 (audit, Q2-2).
+   */
+  telephone?: string | null;
   /** Le code promo tapé par l'acheteur, s'il y en a un. */
   codePromo?: string | null;
   /** Les réponses aux champs personnalisés, par identifiant de champ. */
@@ -579,6 +585,7 @@ export async function acheter(input: {
     devise: creation.devise,
     moyen: input.moyen ?? "om",
     retour: `${base}/achat/${creation.orderId}`,
+    telephone: input.telephone ?? undefined,
     email: acheteur.email,
     nom: acheteur.profile?.displayName ?? undefined,
   });

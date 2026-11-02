@@ -177,6 +177,23 @@ export function referencePour(reference: string): string {
 
 
 async function ouvrirChezFlutterwave(demande: DemandePaiement) {
+  // ══════════════════════════════════════════════════════════════════════════
+  // UN RAIL MOBILE MONEY SANS NUMÉRO SE REFUSE, IL NE DEVIENT PAS UNE CARTE
+  //
+  // Mesuré le 31/10/2026 (audit, Q2-2) : le numéro saisi n'atteignait jamais
+  // ce pilote, et la branche ci-dessous retombait alors sur `{ type: "card" }`
+  // — un acheteur qui avait choisi Orange Money arrivait sur un formulaire de
+  // carte bancaire, sans explication. Les appelants transmettent désormais le
+  // numéro ; ce refus garde la règle le jour où l'un d'eux l'oublierait.
+  // Avant tout appel réseau : rien n'est créé chez Flutterwave pour rien.
+  if (RESEAUX[demande.moyen] && !demande.telephone) {
+    return {
+      ok: false as const,
+      message: "Le numéro de téléphone est nécessaire pour payer par mobile money.",
+      definitif: true,
+    };
+  }
+
   const acces = await jeton();
   if (!acces) {
     return {

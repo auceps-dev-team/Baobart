@@ -1,10 +1,11 @@
 import { createHmac } from "node:crypto";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FaitPaiement } from "@/lib/payments/encaissement/contrat";
 import {
   FLUTTERWAVE,
+  oublierJeton,
   referencePour,
 } from "@/lib/payments/encaissement/pilotes/flutterwave";
 
@@ -207,5 +208,84 @@ describe("la référence transmise", () => {
   it("tient les deux bornes", () => {
     expect(referencePour("ab").length).toBe(6);
     expect(referencePour("a".repeat(60)).length).toBe(42);
+  });
+});
+
+// ──────────────────────────────────────────── l'ouverture d'un paiement ──
+//
+// Audit du 31/10/2026 (`Doc/ETAT_DU_PROJET_2026-10.md`, Q2-2) : le numéro
+// saisi sur la page de paiement n'atteignait jamais ce pilote, et sans lui il
+// ouvrait un paiement par CARTE alors que l'acheteur avait choisi Orange
+// Money — sans rien dire. Aucun test n'exerçait l'ouverture : le réseau est
+// donc simulé ici, et l'on regarde ce que le pilote envoie vraiment.
+
+describe("l'ouverture d'un paiement", () => {
+  type Appel = { url: string; corps: unknown };
+  let appels: Appel[] = [];
+
+  function simulerFlutterwave() {
+    appels = [];
+    vi.stubGlobal("fetch", async (url: string, init?: { body?: unknown }) => {
+      const corps = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+      appels.push({ url: String(url), corps });
+      const repondre = (donnees: unknown) =>
+        new Response(JSON.stringify(donnees), { status: 200, headers: { "content-type": "application/json" } });
+      if (String(url).includes("openid-connect/token")) return repondre({ access_token: "jeton", expires_in: 600 });
+      if (String(url).endsWith("/customers")) return repondre({ status: "success", data: { id: "cus_1" } });
+      if (String(url).endsWith("/payment-methods")) return repondre({ status: "success", data: { id: "pm_1" } });
+      if (String(url).endsWith("/charges")) {
+        return repondre({ status: "success", data: { id: "chg_1", next_action: { redirect_url: { url: "https://flutterwave.test/payer" } } } });
+      }
+      return new Response("{}", { status: 404 });
+    });
+  }
+
+  const demande = (moyen: string, telephone?: string) => ({
+    reference: "commande-test-1",
+    montant: 5_000,
+    devise: "XOF",
+    moyen,
+    retour: "https://baobart.test/achat/1",
+    email: "acheteur@baobart.test",
+    telephone,
+  });
+
+  const moyenEnvoye = () => appels.find((a) => a.url.endsWith("/payment-methods"))?.corps;
+
+  beforeEach(() => {
+    process.env.FLUTTERWAVE_CLIENT_ID = "client";
+    process.env.FLUTTERWAVE_CLIENT_SECRET = "secret";
+    process.env.FLUTTERWAVE_SECRET_HASH = HASH;
+    oublierJeton();
+    simulerFlutterwave();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("déclare du mobile money, avec le réseau et le numéro, quand le numéro est là", async () => {
+    const r = await FLUTTERWAVE.ouvrir(demande("om", "+2250700000000"));
+
+    expect(r.ok).toBe(true);
+    expect(moyenEnvoye()).toEqual({
+      type: "mobile_money",
+      mobile_money: { network: "ORANGE", phone_number: "+2250700000000" },
+    });
+  });
+
+  it("refuse un rail mobile money sans numéro, au lieu de basculer sur la carte", async () => {
+    const r = await FLUTTERWAVE.ouvrir(demande("mtn"));
+
+    expect(r.ok).toBe(false);
+    expect(moyenEnvoye()).toBeUndefined();
+    expect(appels.some((a) => a.url.endsWith("/charges"))).toBe(false);
+  });
+
+  it("ouvre une carte quand l'acheteur a choisi la carte", async () => {
+    const r = await FLUTTERWAVE.ouvrir(demande("carte"));
+
+    expect(r.ok).toBe(true);
+    expect(moyenEnvoye()).toEqual({ type: "card" });
   });
 });

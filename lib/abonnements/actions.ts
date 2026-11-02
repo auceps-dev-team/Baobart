@@ -7,9 +7,13 @@ import { redirect } from "next/navigation";
 import { sessionCourante } from "@/lib/auth/session";
 import { ouvrirRenouvellement } from "@/lib/abonnements/renouvellement";
 import { quitterForfaitGratuit, souscrire } from "@/lib/abonnements/souscription";
+import { RAILS } from "@/lib/payments/rails";
+import { versE164 } from "@/lib/sms/numero";
 
 /** Les rails que Baobart sait viser. Tout le reste est ignoré. */
-const MOYENS = new Set(["om", "wave", "mtn", "moov"]);
+// Dérivés de `RAILS` depuis le 31/10/2026 : voir `lib/checkout/actions.ts`,
+// où la même liste recopiée oubliait la carte.
+const MOYENS = new Set(RAILS.map((r) => r.code));
 
 /**
  * Le geste de renouvellement, depuis la page où mènent les relances Ndank.
@@ -38,6 +42,9 @@ export async function renouvelerAbonnement(
     moyen: MOYENS.has(String(donnees?.get("moyen") ?? ""))
       ? String(donnees?.get("moyen"))
       : undefined,
+    // Le même champ que l'achat, sur la même page de paiement : sans lui,
+    // Flutterwave refuse le mobile money (31/10/2026, audit Q2-2).
+    telephone: versE164(String(donnees?.get("telephone") ?? ""), String(donnees?.get("pays") ?? "")),
   });
 
   // `redirect` lève : il reste hors de tout bloc qui traiterait le résultat,

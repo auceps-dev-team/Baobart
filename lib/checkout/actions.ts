@@ -8,12 +8,19 @@ import { sessionCourante } from "@/lib/auth/session";
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
 import { COOKIE_CONSENTEMENT, lireConsentement } from "@/lib/consentement/regles";
+import { RAILS } from "@/lib/payments/rails";
 import { lireClics } from "@/lib/publicites/attribution";
 import { attribuer } from "@/lib/publicites/service";
 import { COOKIE_CLICS } from "@/lib/publicites/types";
+import { versE164 } from "@/lib/sms/numero";
 
 /** Les rails que Baobart sait viser. Tout le reste est ignoré. */
-const MOYENS = new Set(["om", "wave", "mtn", "moov"]);
+//
+// Dérivés de `RAILS` depuis le 31/10/2026. La liste était recopiée ici, sans
+// « carte » : le choix de la carte était ignoré et l'achat partait en Orange
+// Money (`moyen ?? "om"`) — sans effet chez Paystack, qui présente sa propre
+// page, mais chez Flutterwave une carte devenait du mobile money.
+const MOYENS = new Set(RAILS.map((r) => r.code));
 
 /**
  * Le geste d'achat, depuis la fiche.
@@ -61,6 +68,11 @@ export async function acheterRessource(
     moyen: MOYENS.has(String(donnees?.get("moyen") ?? ""))
       ? String(donnees?.get("moyen"))
       : undefined,
+    // Le numéro que le formulaire demande quand l'opérateur en a besoin
+    // (`demandeLeTelephone`). Il n'était lu par personne jusqu'au 31/10/2026,
+    // et Flutterwave ouvrait alors une carte au lieu du mobile money choisi.
+    // Mis en E.164 avec le pays choisi sur la même page, comme les SMS.
+    telephone: versE164(String(donnees?.get("telephone") ?? ""), String(donnees?.get("pays") ?? "")),
     // Le code voyage par le formulaire, comme le rail. Il est revalidé de
     // bout en bout dans `acheter` : l'aperçu qu'a vu l'acheteur ne fait pas
     // foi, et le prix n'est jamais calculé à partir de ce qu'il envoie.

@@ -124,6 +124,8 @@ export async function ouvrirRenouvellement(input: {
   abonnementId: string;
   abonneId: string;
   moyen?: string;
+  /** Le numéro qui recevra l'invite, en E.164 — voir `acheter`. */
+  telephone?: string | null;
 }): Promise<Resultat> {
   const simulation = simulationOuverte();
   const pilote = simulation ? null : piloteCourant();
@@ -230,6 +232,7 @@ export async function ouvrirRenouvellement(input: {
     devise: paiement.currency,
     moyen: input.moyen ?? "om",
     retour: `${base}/abonnement/${abonnement.id}/paiement/${paiement.id}`,
+    telephone: input.telephone ?? undefined,
     email: abonne.email,
     nom: abonne.profile?.displayName ?? undefined,
   });
