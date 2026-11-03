@@ -8,6 +8,7 @@ import {
   signaturesEgales,
   type DemandeRemboursement,
   type FaitPaiement,
+  type IssueLitige,
   type PiloteEncaissement,
   type Remboursement,
 } from "@/lib/payments/encaissement/contrat";
@@ -116,6 +117,74 @@ function sensEtIssue(
   }
 
   return null;
+}
+
+/**
+ * Une contestation Paystack, traduite.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * CE QUI EST LU, ET CE QUI NE L'EST PAS (03/11/2026)
+ *
+ * Lu sur https://paystack.com/docs/payments/webhooks/ : trois événements,
+ * `charge.dispute.create` (enregistrée), `charge.dispute.remind` (pas encore
+ * tranchée) et `charge.dispute.resolve` (tranchée).
+ *
+ * Lu sur https://paystack.com/docs/api/dispute/ : l'objet porte `id`,
+ * `status` (awaiting-merchant-feedback, awaiting-bank-feedback, pending,
+ * resolved), `resolution`, `refund_amount`, `currency`, et la transaction
+ * contestée sous `transaction`, avec NOTRE `reference`. Le marchand tranche
+ * par `merchant-accepted` (il accepte : l'acheteur est remboursé) ou
+ * `declined` (il conteste, preuves à l'appui).
+ *
+ * Non vérifié : un vrai rappel de contestation — aucun n'a été reçu —, et le
+ * moment où Paystack retient l'argent. La page qui l'explique
+ * (`/docs/payments/dispute-management/`) a refusé la lecture (403). D'où le
+ * choix prudent de `appliquerLitige` : débiter dès l'ouverture, rendre si le
+ * vendeur l'emporte.
+ */
+export function litigeDepuisPaystack(
+  evenement: string,
+  donnees: Record<string, unknown>,
+): FaitPaiement | "HORS_SUJET" | null {
+  const transaction =
+    typeof donnees.transaction === "object" && donnees.transaction !== null
+      ? (donnees.transaction as Record<string, unknown>)
+      : null;
+  const reference = typeof transaction?.reference === "string" ? transaction.reference : null;
+  if (!reference || donnees.id === undefined) return null;
+
+  let litige: IssueLitige;
+  if (evenement === "charge.dispute.create") litige = "OUVERT";
+  else if (evenement === "charge.dispute.remind") litige = "SUIVI";
+  else if (evenement === "charge.dispute.resolve") {
+    // Une résolution qu'on ne connaît pas ne décide rien : on la garde en
+    // trace (SUIVI) plutôt que de deviner qui l'a emporté.
+    litige =
+      donnees.resolution === "declined"
+        ? "TRANCHE_VENDEUR"
+        : donnees.resolution === "merchant-accepted"
+          ? "TRANCHE_ACHETEUR"
+          : "SUIVI";
+  } else return "HORS_SUJET";
+
+  const devise = typeof donnees.currency === "string" ? donnees.currency : null;
+  const rembourse = typeof donnees.refund_amount === "number" ? donnees.refund_amount : null;
+
+  return {
+    sens: "LITIGE",
+    issue: "EN_COURS",
+    litige,
+    // L'identifiant de la contestation, et le nom de l'événement : le rappel
+    // et la résolution d'une même contestation ne sont pas des rejeux.
+    evenement: `${evenement}:${String(donnees.id)}`,
+    reference,
+    referenceOperateur: String(donnees.id),
+    montant:
+      rembourse !== null && devise !== null && DEVISES.has(devise)
+        ? depuisPaystack(rembourse, devise as Currency)
+        : null,
+    devise,
+  };
 }
 
 export const PAYSTACK: PiloteEncaissement = {
@@ -242,6 +311,10 @@ export const PAYSTACK: PiloteEncaissement = {
         : null;
 
     if (!evenement || !donnees) return null;
+
+    // Une contestation ne porte pas la référence au même endroit qu'une
+    // charge : elle est dans la transaction contestée.
+    if (evenement.startsWith("charge.dispute.")) return litigeDepuisPaystack(evenement, donnees);
 
     const reference =
       typeof donnees.reference === "string" ? donnees.reference : null;

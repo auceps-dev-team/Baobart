@@ -82,7 +82,23 @@ export type Ouverture =
  * nous regardent pas. Sans ce marqueur, un virement réussi serait cherché parmi
  * les commandes — et n'y étant pas, refusé comme « commande introuvable ».
  */
-export type SensDeLArgent = "ENCAISSEMENT" | "VERSEMENT";
+/**
+ * `LITIGE` depuis le 03/11/2026 : l'acheteur a contesté le paiement auprès de
+ * sa banque. Jusque-là, les pilotes classaient ces événements « hors sujet »,
+ * et `lib/domain/litiges.ts` — écrit et testé — n'était appelé par personne
+ * (audit du 31/10, Q2-5).
+ */
+export type SensDeLArgent = "ENCAISSEMENT" | "VERSEMENT" | "LITIGE";
+
+/**
+ * Où en est une contestation, une fois traduite.
+ *
+ *   — `OUVERT` : la banque a enregistré la contestation ;
+ *   — `SUIVI` : un rappel, ou une étape qui ne décide rien ;
+ *   — `TRANCHE_VENDEUR` : close en faveur du vendeur, l'argent lui revient ;
+ *   — `TRANCHE_ACHETEUR` : close en faveur de l'acheteur, l'argent est parti.
+ */
+export type IssueLitige = "OUVERT" | "SUIVI" | "TRANCHE_VENDEUR" | "TRANCHE_ACHETEUR";
 
 /** Ce qu'un rappel d'opérateur nous apprend, une fois traduit. */
 export interface FaitPaiement {
@@ -102,6 +118,11 @@ export interface FaitPaiement {
    * traitent pas pareil.
    */
   issue: "REUSSI" | "ECHOUE" | "EN_COURS" | "RETOURNE";
+  /**
+   * Sur un `LITIGE` seulement : où en est la contestation. `issue` y vaut
+   * `EN_COURS` et ne décide de rien ; c'est ce champ qui décide.
+   */
+  litige?: IssueLitige;
   /** Le montant encaissé, pour le confronter au nôtre. */
   montant: number | null;
   devise: string | null;
