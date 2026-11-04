@@ -38,7 +38,7 @@ Quatre causes, et la correction appliquée ici :
 ## 1. En une page
 
 - **18 fonctionnalités entières n'existent pas** (§2) : ni code métier, ni écran. La plus visible est la **gamification**. Sept d'entre elles sont prévues pour plus tard par le plan lui-même (affiliation, assistant IA, produits physiques…). Les autres sont dessinées dans les maquettes sans avoir été construites, en particulier **les écrans de pilotage de l'administration** et **la progression « Devenir vendeur »**.
-- **12 fonctionnalités sont branchées mais ne peuvent pas fonctionner** (§3) : le code et l'écran existent, mais une donnée que rien n'écrit les bloque. La plus grave est nouvelle par rapport au 31/10 : **personne ne peut publier un service en production**, faute de badge Freelance ou Agence attribuable.
+- **14 fonctionnalités sont branchées mais ne peuvent pas fonctionner** (§3) : le code et l'écran existent, mais une donnée que rien n'écrit les bloque. La plus grave est nouvelle par rapport au 31/10 : **personne ne peut publier un service en production**, faute de badge Freelance ou Agence attribuable.
 - **10 fonctionnalités sont partielles** (§4).
 - **6 absences sont des décisions écrites** (§5), et non des oublis : le forum à sujets, la PPP, le panier, le délai de réponse, le journal de modération, les pages de labo. Elles sont listées pour que personne ne les « corrige ».
 - **Le socle tient** (§6) : l'achat, l'argent, le grand livre, les remboursements, les contestations Paystack, les versements, la confiance, les abonnements, l'authentification, le catalogue, la vitrine, les jobs, les événements, le CMS, les notifications et la bibliothèque acheteur sont écrits, affichés et branchés.
@@ -89,6 +89,8 @@ Le code et l'écran existent. Une donnée que **rien n'écrit**, ou un réglage 
 | **B9** | **Réponses aux champs personnalisés** | ✅ | ❌ | ⚠️ | Elles sont demandées et enregistrées, mais le vendeur ne les voit nulle part (Q2-10). | Lu le 31/10. | 🟠 |
 | **B10** | **Concours** | ⚠️ | ✅ | ⚠️ | `EventKind.CONTEST` existe, avec une dotation et un jury, et l'inscription fonctionne. Mais on ne peut **déposer aucune œuvre**, et aucun gagnant n'est désigné. | *Mesuré* : les champs de `Event` (`prizeAmount`, `jury`, `registrations`) ; aucune table de participation. | 🟢 |
 | **B11** | **Menu de compte** : « Règles de publication » et « Support » | ✅ | ⚠️ | ❌ | Ces deux entrées sont affichées « bientôt » (`href: null`, `components/shell/header.tsx`), alors que **les deux pages existent** (`/regles-de-publication`, `/support`). | *Mesuré* : `liensCompte` dans l'en-tête, et `ls app`. | 🟢 **Nouveau** |
+| **B13** | **Recherche dans les écrans d'administration** (« Rechercher un membre… ») | ✅ | ✅ | ❌ | Le champ de `components/systeme/panneau-operations.tsx` n'a ni nom, ni formulaire, ni gestionnaire : c'est un décor. | *Mesuré* : relevé le 04/11 en construisant l'écran des statuts, qui l'a rendu fonctionnel par une option (PR #40). Les autres écrans gardent le décor. | 🟠 **Ajouté le 04/11** |
+| **B14** | **Adresse du recruteur sur une offre publique** | ✅ | ✅ | ⚠️ | `offrePublique` affiche `recruiter.email` quand le recruteur n'a pas de nom d'affichage (`lib/jobs/queries.ts`), sur une page ouverte à tous. | *Lu* le 04/11. | 🟠 **Ajouté le 04/11** : donnée personnelle exposée |
 | **B12** | **Notifications push**, et l'annonce « téléchargement prêt » | ✅ | ✅ | ⚠️ | Les clés VAPID sont absentes, et `TELECHARGEMENT_PRET` est proposé dans les réglages sans jamais être émis (Q4-6, Q4-7). | Lu le 31/10. | 🟢 |
 
 ---
