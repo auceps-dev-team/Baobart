@@ -90,6 +90,22 @@ function clausePublique(maintenant: Date) {
 }
 
 /**
+ * « Offre vérifiée » : l'offre l'a été à la modération, OU son recruteur porte
+ * le statut « Recruteur vérifié » (accordé depuis `/dashboard/statuts`).
+ *
+ * Ajouté le 04/11/2026, d'après la maquette des badges (E.1) : contrôler
+ * l'entité une fois vaut pour chacune de ses offres. La vérification offre par
+ * offre reste, pour les recruteurs qu'on n'a pas encore contrôlés.
+ */
+const STATUT_RECRUTEUR = {
+  badges: { where: { badge: { code: "VERIFIED_RECRUITER" as const } }, select: { badgeId: true }, take: 1 },
+} as const;
+
+function offreVerifiee(o: { isVerified: boolean; recruiter: { badges: unknown[] } }): boolean {
+  return o.isVerified || o.recruiter.badges.length > 0;
+}
+
+/**
  * Les offres visibles.
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -129,6 +145,7 @@ export async function listerOffres(input: {
       deadline: true,
       isVerified: true,
       isFeatured: true,
+      recruiter: { select: STATUT_RECRUTEUR },
       // Une offre externe reçoit ses candidatures ailleurs — le compteur ne
       // veut rien dire pour elle. On le lit ici pour pouvoir rendre `null`
       // plutôt que zéro, deux choses très différentes.
@@ -152,7 +169,7 @@ export async function listerOffres(input: {
     publieeLe: o.createdAt,
     echeance: o.deadline,
     nouvelle: maintenant.getTime() - o.createdAt.getTime() < NOUVEAUTE_MS,
-    verifiee: o.isVerified,
+    verifiee: offreVerifiee(o),
     miseEnAvant: o.isFeatured,
     // Une offre externe reçoit ses candidatures ailleurs — le chiffre ne
     // veut rien dire ici.
@@ -230,6 +247,7 @@ export async function offrePublique(
         select: {
           email: true,
           profile: { select: { displayName: true, username: true } },
+          ...STATUT_RECRUTEUR,
         },
       },
     },
@@ -257,7 +275,7 @@ export async function offrePublique(
     publieeLe: o.createdAt,
     echeance: o.deadline,
     nouvelle: maintenant.getTime() - o.createdAt.getTime() < NOUVEAUTE_MS,
-    verifiee: o.isVerified,
+    verifiee: offreVerifiee(o),
     miseEnAvant: o.isFeatured,
     commentPostuler: o.applyMode,
     urlExterne: o.applyUrl,
