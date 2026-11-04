@@ -58,6 +58,10 @@ function Carte({
 export default async function VersementsPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
+  // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
+  // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
+  // règle que `/dashboard` (`app/dashboard/page.tsx`).
+  if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
 
   const [config, securite] = await Promise.all([
     configurationDe(utilisateur.id),

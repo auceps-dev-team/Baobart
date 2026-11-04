@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { ReglagesNotifications } from "@/components/notifications/reglages";
@@ -37,7 +37,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function ReglagesNotificationsPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) notFound();
+  // Vers la connexion, puis retour ici — comme les autres pages membres. C'était
+  // `notFound()` : une session expirée affichait « page introuvable » sur
+  // un écran qui existe (audit du 31/10, Q3-3).
+  if (!utilisateur) redirect("/connexion?suite=/dashboard/notifications/reglages");
 
   const preferences = await lirePreferences(utilisateur.id);
 

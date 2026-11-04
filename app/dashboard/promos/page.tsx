@@ -35,6 +35,10 @@ export const dynamic = "force-dynamic";
 export default async function PromosPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/promos");
+  // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
+  // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
+  // règle que `/dashboard` (`app/dashboard/page.tsx`).
+  if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
 
   const [codes, upsells, ressources] = await Promise.all([
     listerLesCodes(utilisateur.id),

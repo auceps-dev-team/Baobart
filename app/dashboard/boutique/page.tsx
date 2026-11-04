@@ -26,6 +26,10 @@ export const dynamic = "force-dynamic";
 export default async function BoutiquePage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/boutique");
+  // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
+  // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
+  // règle que `/dashboard` (`app/dashboard/page.tsx`).
+  if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
   const profil = await lireProfilDashboard(utilisateur.id);
   const p = profil?.profile;
 
