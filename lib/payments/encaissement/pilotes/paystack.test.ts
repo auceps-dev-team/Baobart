@@ -550,3 +550,64 @@ describe("le remboursement", () => {
     expect(suite.ok === false && suite.message).toContain("Insufficient");
   });
 });
+
+// ─────────────────────────────────────────────── les contestations ──
+//
+// Audit du 31/10/2026 (Q2-5) : `charge.dispute.*` était classé « hors sujet »,
+// et la contestation n'atteignait jamais le grand livre. La forme des corps
+// ci-dessous suit l'objet Dispute de https://paystack.com/docs/api/dispute/
+// (lu le 03/11) ; aucun vrai rappel de contestation n'a encore été reçu.
+
+describe("la lecture d'une contestation", () => {
+  const contestation = (evenement: string, donnees: Record<string, unknown> = {}) =>
+    JSON.stringify({
+      event: evenement,
+      data: {
+        id: 624,
+        status: "awaiting-merchant-feedback",
+        resolution: null,
+        refund_amount: null,
+        currency: "XOF",
+        transaction: { id: 5991760, reference: "commande-contestee", amount: 500000, currency: "XOF" },
+        ...donnees,
+      },
+    });
+
+  it("traduit l'ouverture, avec la référence de la transaction contestée", () => {
+    expect(PAYSTACK.lire(contestation("charge.dispute.create"))).toMatchObject({
+      sens: "LITIGE",
+      litige: "OUVERT",
+      reference: "commande-contestee",
+      referenceOperateur: "624",
+      evenement: "charge.dispute.create:624",
+    });
+  });
+
+  it("ne décide rien d'un rappel", () => {
+    expect(PAYSTACK.lire(contestation("charge.dispute.remind"))).toMatchObject({ sens: "LITIGE", litige: "SUIVI" });
+  });
+
+  it("lit qui l'emporte à la résolution, et le montant rendu", () => {
+    expect(PAYSTACK.lire(contestation("charge.dispute.resolve", { status: "resolved", resolution: "declined" }))).toMatchObject({
+      litige: "TRANCHE_VENDEUR",
+    });
+    expect(
+      PAYSTACK.lire(contestation("charge.dispute.resolve", { status: "resolved", resolution: "merchant-accepted", refund_amount: 500000 })),
+    ).toMatchObject({ litige: "TRANCHE_ACHETEUR", montant: 5_000, devise: "XOF" });
+  });
+
+  it("ne devine pas une résolution inconnue", () => {
+    expect(PAYSTACK.lire(contestation("charge.dispute.resolve", { resolution: "autre-chose" }))).toMatchObject({ litige: "SUIVI" });
+  });
+
+  it("refuse une contestation sans transaction ni identifiant", () => {
+    expect(PAYSTACK.lire(contestation("charge.dispute.create", { transaction: null }))).toBeNull();
+    expect(PAYSTACK.lire(contestation("charge.dispute.create", { id: undefined }))).toBeNull();
+  });
+
+  it("distingue l'ouverture et la résolution d'une même contestation", () => {
+    const a = PAYSTACK.lire(contestation("charge.dispute.create")) as FaitPaiement;
+    const b = PAYSTACK.lire(contestation("charge.dispute.resolve", { resolution: "declined" })) as FaitPaiement;
+    expect(a.evenement).not.toBe(b.evenement);
+  });
+});

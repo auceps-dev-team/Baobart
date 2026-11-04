@@ -25,6 +25,7 @@ import {
   finaliserRenouvellement,
 } from "@/lib/abonnements/reglement";
 import { paiementDeReference } from "@/lib/abonnements/renouvellement";
+import { appliquerLitige } from "@/lib/payments/encaissement/litige";
 
 /**
  * Appliquer à une commande ce qu'un opérateur affirme.
@@ -63,6 +64,12 @@ export type Effet =
   | "RENOUVELE"
   /** Le renouvellement n'a pas été payé : le cycle n'a pas bougé. */
   | "RENOUVELLEMENT_ECHOUE"
+  /** Une contestation bancaire : vendeur débité, versements et accès suspendus. */
+  | "LITIGE_OUVERT"
+  /** Contestation tranchée pour le vendeur : l'argent lui est rendu. */
+  | "LITIGE_GAGNE"
+  /** Contestation tranchée pour l'acheteur : le débit reste. */
+  | "LITIGE_PERDU"
   /** Authentique et sans effet : rejeu, ou étape intermédiaire. */
   | "SANS_EFFET";
 
@@ -239,7 +246,9 @@ export async function recevoir(
   const suite =
     fait.sens === "VERSEMENT"
       ? await appliquerVersement(fait)
-      : await appliquer(fournisseur, fait);
+      : fait.sens === "LITIGE"
+        ? await appliquerLitige(fait)
+        : await appliquer(fournisseur, fait);
 
   await db.paymentWebhookEvent.update({
     where: { id: evenementId },
