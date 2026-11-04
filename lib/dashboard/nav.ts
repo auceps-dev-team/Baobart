@@ -210,6 +210,15 @@ const ADMINISTRATION: EntreeAdmin[] = [
     pouvoir: ["moderer_le_contenu", "publier_du_contenu"],
   },
   {
+    // Ajouté le 04/11/2026 : accorder Freelance, c'est décider qui publie des
+    // services — le même pouvoir que trancher la file de modération.
+    cle: "a_statuts",
+    label: "Statuts",
+    glyph: "✓",
+    href: "/dashboard/statuts",
+    pouvoir: "moderer_le_contenu" as const,
+  },
+  {
     cle: "a_blog",
     label: "Blog",
     glyph: "✎",

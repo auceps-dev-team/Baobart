@@ -340,6 +340,11 @@ enum BadgeCode {
   FREELANCE
   /// Structure de plusieurs personnes, même règle et même exclusivité.
   AGENCE
+  /// Recruteur dont l'entité a été contrôlée (registre du commerce ou
+  /// équivalent), accordé par l'administration. Chacune de ses offres porte
+  /// « Offre vérifiée », sans attendre la vérification offre par offre
+  /// (`lib/jobs/queries.ts`). Ajouté le 04/11/2026 (maquette des badges, E.1).
+  VERIFIED_RECRUITER
 }
 
 enum JobType {

@@ -95,7 +95,11 @@ export type ActionAdmin =
   | "remboursement.accepter"
   | "remboursement.refuser"
   // Un numéro de la lettre envoyé (08/10) : à qui, combien, par qui.
-  | "infolettre.envoyer";
+  | "infolettre.envoyer"
+  // Statuts (04/11) : Baobart affirme avoir vérifié quelqu'un. La maquette
+  // veut la provenance de chacun sur la fiche admin — c'est cette trace.
+  | "statut.accorder"
+  | "statut.retirer";
 
 export interface Trace {
   /** L'administrateur qui a agi. Jamais « le système ». */

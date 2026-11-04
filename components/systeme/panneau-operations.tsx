@@ -83,6 +83,7 @@ export function PanneauOperations({
   pied,
   peutAgir,
   executer,
+  recherche,
 }: {
   legendeTitre: string;
   legende: LegendeOps[];
@@ -98,6 +99,13 @@ export function PanneauOperations({
     precedent: ResultatOps | null,
     donnees: FormData,
   ) => Promise<ResultatOps>;
+  /**
+   * Une vraie recherche, côté serveur, par l'adresse (`?q=…`). Sans elle, le
+   * champ reste ce qu'il était jusqu'au 04/11/2026 sur les autres écrans : un
+   * décor — ni nom, ni formulaire, il ne filtrait rien. `conserver` reporte
+   * les autres paramètres, le filtre actif par exemple.
+   */
+  recherche?: { valeur: string; conserver?: Record<string, string> };
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -208,9 +216,16 @@ export function PanneauOperations({
           padding: 20,
         }}
       >
+        <form method="get" role="search" onSubmit={recherche ? undefined : (e) => e.preventDefault()}>
+        {recherche
+          ? Object.entries(recherche.conserver ?? {}).map(([cle, valeur]) => (
+              <input key={cle} type="hidden" name={cle} value={valeur} />
+            ))
+          : null}
         <input
           placeholder={rechercherPlaceholder}
           aria-label={rechercherPlaceholder}
+          {...(recherche ? { name: "q", defaultValue: recherche.valeur, type: "search" } : {})}
           style={{
             width: "100%",
             minWidth: 0,
@@ -224,6 +239,7 @@ export function PanneauOperations({
             outline: "none",
           }}
         />
+        </form>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
           {filtres.map((f) => (
@@ -309,6 +325,9 @@ function Ligne({
 }) {
   return (
     <div
+      // Repère sans effet visuel : il permet à un test de viser une ligne
+      // précise quand plusieurs se ressemblent (deux adresses proches, par exemple).
+      data-ligne={ligne.id}
       style={{
         border: CADRE,
         borderRadius: 18,
