@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { usePlaceholderTape } from "@/components/anime/placeholder-tape";
 import { deconnecter } from "@/lib/auth/actions";
@@ -100,6 +100,29 @@ function liensCompte(username: string | null): LienCompte[] {
     { label: "Règles de publication", href: null },
     { label: "Support", href: null },
   ];
+}
+
+/**
+ * Un lien interne quand la page existe, un simple libellé sinon.
+ *
+ * `<Link>` et non `<a>` depuis le 03/11/2026 : chaque clic dans ce menu —
+ * « Explorer » le premier — rechargeait la page entière, JavaScript rejoué et
+ * état perdu, là où le rail latéral naviguait sans recharger (audit du 31/10,
+ * Q2-13). Sans page, un `<span>` : la règle « une entrée sans destination
+ * n'est pas un lien » des sous-menus, ci-dessous, vaut pour tout l'en-tête.
+ */
+function LienOuLibelle({
+  href,
+  children,
+  ...reste
+}: { href: string | null | undefined; children: ReactNode } & Omit<HTMLAttributes<HTMLElement>, "children">) {
+  return href ? (
+    <Link href={href as Route} {...reste}>
+      {children}
+    </Link>
+  ) : (
+    <span {...reste}>{children}</span>
+  );
 }
 
 export function Header({
@@ -415,8 +438,9 @@ export function Header({
               onMouseLeave={() => fermerBientot(() => setMenuOuvert(null))}
               style={{ position: "relative" }}
             >
-              <a
-                href={groupe.href ?? "#"}
+              {/* Pourquoi un `<Link>` : voir `LienOuLibelle`. */}
+              <LienOuLibelle
+                href={groupe.href}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -430,7 +454,7 @@ export function Header({
                 <span style={{ fontSize: 9 }}>
                   {groupe.items.length > 0 ? "▼" : ""}
                 </span>
-              </a>
+              </LienOuLibelle>
               {menuOuvert === groupe.key && groupe.items.length > 0 ? (
                 <div
                   style={{
@@ -482,11 +506,10 @@ export function Header({
                       Un `<span>` avec `cursor: default` et « bientôt » : on
                       voit ce qui vient, et on ne clique pas dans le vide.
                     */
-                    const Balise = m.href ? "a" : "span";
                     return (
-                    <Balise
+                    <LienOuLibelle
                       key={m.label}
-                      {...(m.href ? { href: m.href } : {})}
+                      href={m.href}
                       aria-disabled={m.href ? undefined : true}
                       title={m.href ? undefined : "Bientôt disponible"}
                       className="ligne-menu"
@@ -550,7 +573,7 @@ export function Header({
                           </span>
                         )}
                       </span>
-                    </Balise>
+                    </LienOuLibelle>
                     );
                   })}
                 </div>
@@ -692,11 +715,10 @@ export function Header({
                         // qui mène nulle part se clique quand même, et c'est en
                         // arrivant sur un 404 qu'on découvre qu'il ne menait
                         // nulle part.
-                        const Balise = lien.href ? "a" : "span";
                         return (
-                          <Balise
+                          <LienOuLibelle
                             key={lien.label}
-                            {...(lien.href ? { href: lien.href } : {})}
+                            href={lien.href}
                             aria-disabled={lien.href ? undefined : true}
                             title={lien.href ? undefined : "Bientôt disponible"}
                             className="ligne-menu"
@@ -727,7 +749,7 @@ export function Header({
                                 bientôt
                               </span>
                             )}
-                          </Balise>
+                          </LienOuLibelle>
                         );
                       })}
                     </div>
@@ -755,7 +777,7 @@ export function Header({
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <a
+                    <Link
                       href="/connexion"
                       style={{
                         padding: "11px 12px",
@@ -768,8 +790,8 @@ export function Header({
                       }}
                     >
                       Se connecter
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href="/inscription"
                       style={{
                         padding: "11px 12px",
@@ -782,7 +804,7 @@ export function Header({
                       }}
                     >
                       Créer un compte
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>

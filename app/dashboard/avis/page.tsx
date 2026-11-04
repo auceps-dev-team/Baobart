@@ -10,6 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function AvisPage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
+  // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
+  // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
+  // règle que `/dashboard` (`app/dashboard/page.tsx`).
+  if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
   const [profil, produits] = await Promise.all([lireProfilDashboard(utilisateur.id), lireProduitsCreateur(utilisateur.id, 20)]);
   const note = profil?.profile?.ratingAvg ? Number(profil.profile.ratingAvg).toFixed(1) : "—";
   const totalAvis = profil?.profile?.ratingCount ?? 0;
