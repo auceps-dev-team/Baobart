@@ -120,6 +120,7 @@ export type EvenementNotifiable =
   | "CANDIDATURE_RECUE"
   | "INSCRIPTION_EVENEMENT"
   | "NOUVEL_ABONNE"
+  | "CREATEUR_DU_MOIS"
   // ── Communautés ─────────────────────────────────────────────────────────
   | "COMMUNAUTE_NOUVEAU_MESSAGE"
   | "COMMUNAUTE_NOUVEAU_MEMBRE"
@@ -288,6 +289,16 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     modele: "NOUVEL_ABONNE",
     // Même raison : c'est l'événement le plus fréquent et le moins actionnable.
     defauts: { COURRIEL: false, IN_APP: true, PUSH: false },
+  },
+  // Ajouté le 08/11/2026 : le seul mérite qui s'annonce (`lib/badges/createur-du-mois.ts`).
+  // Au plus une fois par titre gagné, et rare par construction (5 % des
+  // créateurs actifs) : le courriel ne risque pas d'encombrer.
+  CREATEUR_DU_MOIS: {
+    audience: "vendeur",
+    libelle: "Créateur du mois",
+    explication: "Tu fais partie des créateurs qui ont vendu au plus d'acheteurs ce mois-ci.",
+    modele: "CREATEUR_DU_MOIS",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
 
   // ══════════════════════════════════════════════════════ communautés ══

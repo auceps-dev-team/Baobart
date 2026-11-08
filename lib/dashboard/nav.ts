@@ -65,6 +65,9 @@ const ACHETEUR: EntreeNav[] = [
   // l'événement où il s'était inscrit.
   { cle: "notifications", label: "Notifications", glyph: "◔", href: "/dashboard/notifications" },
   { cle: "profil", label: "Profil", glyph: "☺", href: "/dashboard/profil" },
+  // Ajoutée le 05/11 : « Vos badges » de `SPEC_GAMIFICATION` §5. Côté
+  // acheteur, donc à tous les paliers — un acheteur porte aussi des mérites.
+  { cle: "badges", label: "Mes badges", glyph: "◆", href: "/dashboard/badges" },
   // Ajoutée le 31/10, à la place que lui donne la maquette : ce qu'on
   // possède, avant l'historique de ce qu'on a payé ou retiré.
   { cle: "bibliotheque", label: "Ma bibliothèque", glyph: "▣", href: "/dashboard/bibliotheque" },

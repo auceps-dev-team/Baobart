@@ -50,3 +50,7 @@ memory-bank/
 # Sauvegardes d'images avant pose du logo officiel (composer-logo.py).
 # Elles se régénèrent à chaque exécution et pèsent lourd.
 *.avant-logo
+
+# Stryker (tests de mutation, lancés à la main) : copies de travail et rapports
+.stryker-tmp/
+reports/mutation/

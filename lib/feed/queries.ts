@@ -6,6 +6,9 @@ import type {
   ProductType,
 } from "@/lib/domain/prisma-types";
 
+import type { BadgeCode } from "@prisma/client";
+
+import { ecussonDeVignette } from "@/lib/badges/statuts";
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import { db } from "@/lib/db";
 import { slugifier } from "@/lib/products/validation";
@@ -54,7 +57,11 @@ type ProduitFeed = {
   salesCount: number;
   isStaffPicked: boolean;
   createdAt: Date;
-  seller: { profile: { displayName: string; username: string | null } | null };
+  seller: {
+    kycStatus: string;
+    profile: { displayName: string; username: string | null } | null;
+    badges: Array<{ badge: { code: BadgeCode } }>;
+  };
 };
 
 type SuggestionProduit = {
@@ -113,7 +120,17 @@ const SELECTION_CARTE = {
   isStaffPicked: true,
   createdAt: true,
   seller: {
-    select: { profile: { select: { displayName: true, username: true } } },
+    select: {
+      profile: { select: { displayName: true, username: true } },
+      // L'écusson de la vignette (`ecussonDeVignette`) : seul « Créateur
+      // vérifié » se lit ici, « Identité vérifiée » vient du KYC.
+      kycStatus: true,
+      badges: {
+        where: { badge: { code: "VERIFIED_CREATOR" as const } },
+        select: { badge: { select: { code: true } } },
+        take: 1,
+      },
+    },
   },
 } as const;
 
@@ -127,6 +144,10 @@ function versCarte(
     title: p.name,
     author: p.seller.profile?.displayName ?? "Créateur Baobart",
     authorUsername: p.seller.profile?.username ?? null,
+    authorEcusson: ecussonDeVignette({
+      statuts: p.seller.badges.map((b) => b.badge.code),
+      identiteVerifiee: p.seller.kycStatus === "VERIFIED",
+    }),
     type: p.type,
     famille: p.family ? LIBELLE_PAR_FAMILLE[p.family] : null,
     price: p.price,

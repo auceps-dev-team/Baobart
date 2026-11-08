@@ -23,7 +23,30 @@ import { opposeDe, verdictPour } from "@/lib/services/badges";
  *
  * Retirer l'autre puis poser celui-ci : entre les deux, le compte n'est jamais
  * l'un ET l'autre, ni — si l'écriture échoue — ni l'un ni l'autre.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * « CRÉATEUR VÉRIFIÉ » RECOPIÉ SUR LE PROFIL (05/11/2026)
+ *
+ * Le lot 1 posait la ligne `UserBadge` et s'arrêtait là. Or la fiche produit,
+ * la file de modération et le tableau de bord lisent `Profile.isVerified`, que
+ * seuls les scripts de démonstration remplissaient : un créateur vérifié par
+ * l'écran ne l'était nulle part à l'affichage. Aucune erreur — un succès qui
+ * ne faisait rien.
+ *
+ * `UserBadge` reste la vérité ; `isVerified` en est le reflet, écrit dans la
+ * même transaction. La migration `20261105090000_createur_verifie_reflet` a
+ * aligné les deux pour les comptes existants.
  */
+
+async function refleterVerification(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  code: CodeStatut,
+  verifie: boolean,
+): Promise<void> {
+  if (code !== "VERIFIED_CREATOR") return;
+  await tx.profile.updateMany({ where: { userId }, data: { isVerified: verifie } });
+}
 
 export type Pose =
   | { ok: true; retire: CodeStatut | null }
@@ -62,6 +85,7 @@ export async function accorderStatut(input: { userId: string; code: CodeStatut }
         select: { id: true },
       });
       await tx.userBadge.create({ data: { userId: input.userId, badgeId: badge.id } });
+      await refleterVerification(tx, input.userId, input.code, true);
       return { ok: true as const, retire };
     });
   } catch (cause) {
@@ -77,8 +101,12 @@ export async function accorderStatut(input: { userId: string; code: CodeStatut }
 export type Retrait = { ok: true } | { ok: false; motif: "PAS_POSE" };
 
 export async function retirerStatut(input: { userId: string; code: CodeStatut }): Promise<Retrait> {
-  const { count } = await db.userBadge.deleteMany({
-    where: { userId: input.userId, badge: { code: input.code } },
+  return db.$transaction(async (tx) => {
+    const { count } = await tx.userBadge.deleteMany({
+      where: { userId: input.userId, badge: { code: input.code } },
+    });
+    if (count === 0) return { ok: false as const, motif: "PAS_POSE" as const };
+    await refleterVerification(tx, input.userId, input.code, false);
+    return { ok: true as const };
   });
-  return count > 0 ? { ok: true } : { ok: false, motif: "PAS_POSE" };
 }

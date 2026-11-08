@@ -44,6 +44,7 @@ import { PrismaClient } from "@prisma/client";
 // des versements, et c'est pourquoi ce fichier se lance par `pnpm comptes:test`
 // et non par un `tsx` nu.
 import { hacherMotDePasse } from "@/lib/auth/password";
+import { poserCreateurVerifie } from "../prisma/createur-verifie";
 
 const db = new PrismaClient();
 
@@ -185,6 +186,8 @@ async function poser(compte: Compte, empreinte: string) {
       isVerified: true,
     },
   });
+  // Le badge avec son reflet : voir `prisma/createur-verifie.ts`.
+  await poserCreateurVerifie(db, [user.id]);
 
   // ── Les produits, publiés ────────────────────────────────────────────────
   //

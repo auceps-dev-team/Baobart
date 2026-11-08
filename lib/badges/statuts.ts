@@ -138,3 +138,75 @@ export function lireGeste(cle: string): { sens: SensGeste; code: CodeStatut } | 
 export function estCodeStatut(code: BadgeCode): code is CodeStatut {
   return PAR_CODE.has(code as CodeStatut);
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// L'AFFICHAGE : L'ÉCUSSON
+//
+// « La forme le dit avant le texte — écusson pour ce que nous garantissons,
+// jeton rond pour ce que les chiffres constatent. » Ajouté le 05/11/2026
+// (lot 2) : jusque-là, un statut accordé ne s'affichait nulle part.
+
+/** Les quatre statuts rangés, plus « Identité vérifiée », lu sur le KYC. */
+export type CodeEcusson = CodeStatut | "KYC_VERIFIED";
+
+export interface Ecusson {
+  code: CodeEcusson;
+  nom: string;
+  glyphe: string;
+  fond: string;
+  /**
+   * Freelance ou Agence sans abonnement ouvert : « le droit se referme —
+   * rien de ce qui est déjà publié n'est effacé. Le badge passe en
+   * “dormant”, visuellement grisé et sans son bandeau noir. »
+   */
+  dormant: boolean;
+}
+
+/** Ordre et couleurs de la maquette (`STATUTS`, Baobart Badges.dc.html). */
+const APPARENCE: ReadonlyArray<{ code: CodeEcusson; nom: string; glyphe: string; fond: string }> = [
+  { code: "VERIFIED_CREATOR", nom: "Créateur vérifié", glyphe: "✓", fond: "#FFD84A" },
+  { code: "FREELANCE", nom: "Freelance", glyphe: "F", fond: "#C9A8F5" },
+  { code: "AGENCE", nom: "Agence", glyphe: "A", fond: "#C9A8F5" },
+  { code: "VERIFIED_RECRUITER", nom: "Recruteur vérifié", glyphe: "R", fond: "#FFD84A" },
+  { code: "KYC_VERIFIED", nom: "Identité vérifiée", glyphe: "ID", fond: "#B9E8C0" },
+];
+
+/**
+ * Tous les écussons d'un compte, dans l'ordre de la maquette. « Les statuts
+ * ne sont jamais tronqués : ils sont cinq au maximum et ils engagent Baobart. »
+ */
+export function ecussonsDuCompte(compte: {
+  statuts: readonly BadgeCode[];
+  identiteVerifiee: boolean;
+  /** L'abonnement est ouvert (`lireQualifications`). */
+  abonnementOuvert: boolean;
+}): Ecusson[] {
+  return APPARENCE.filter((a) =>
+    a.code === "KYC_VERIFIED" ? compte.identiteVerifiee : compte.statuts.includes(a.code),
+  ).map((a) => ({
+    ...a,
+    dormant: (a.code === "FREELANCE" || a.code === "AGENCE") && !compte.abonnementOuvert,
+  }));
+}
+
+/**
+ * L'écusson d'une vignette : un seul, ou aucun.
+ *
+ * « Il répond à “peut-on lui faire confiance”. » Deux statuts y répondent :
+ * Créateur vérifié, puis Identité vérifiée. Freelance et Agence disent ce
+ * qu'on a le droit de publier, pas qu'on est fiable — et ils peuvent dormir,
+ * ce que la vignette ne sait pas lire sans une requête par carte.
+ */
+export function ecussonDeVignette(compte: {
+  statuts: readonly BadgeCode[];
+  identiteVerifiee: boolean;
+}): Pick<Ecusson, "nom" | "glyphe" | "fond"> | null {
+  const code: CodeEcusson | null = compte.statuts.includes("VERIFIED_CREATOR")
+    ? "VERIFIED_CREATOR"
+    : compte.identiteVerifiee
+      ? "KYC_VERIFIED"
+      : null;
+  if (!code) return null;
+  const { nom, glyphe, fond } = APPARENCE.find((a) => a.code === code)!;
+  return { nom, glyphe, fond };
+}

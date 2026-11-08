@@ -57,6 +57,11 @@ export interface CarteRessource {
   title: string;
   author: string;
   authorUsername: string | null;
+  /**
+   * Un seul écusson, ou aucun : « réduit à 15 px, collé au nom »
+   * (Baobart Badges.dc.html). Choisi par `ecussonDeVignette`.
+   */
+  authorEcusson: { nom: string; glyphe: string; fond: string } | null;
   type: ProductType;
   /** Libellé de famille affiché sur la carte à la une (« Photo », « Pack »…). */
   famille: Filtre | null;
