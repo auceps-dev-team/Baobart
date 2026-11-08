@@ -38,6 +38,10 @@
     {
       "path": "/api/cron/medias",
       "schedule": "45 3 * * *"
+    },
+    {
+      "path": "/api/cron/merites",
+      "schedule": "30 2 * * *"
     }
   ]
 }

@@ -3562,6 +3562,9 @@ enum EmailTemplate {
   /// Ajouté le 18/10 : le message laissé à un créateur depuis sa vitrine,
   /// relayé avec l’adresse de l’expéditeur en « Répondre à ».
   MESSAGE_CREATEUR
+  /// Ajouté le 08/11/2026 : le seul mérite qui s’annonce, « Créateur du mois »
+  /// (lib/badges/createur-du-mois.ts). Sa perte ne s’annonce pas.
+  CREATEUR_DU_MOIS
 }
 
 /// File d'attente des messages transactionnels.

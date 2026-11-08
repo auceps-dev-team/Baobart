@@ -8,6 +8,9 @@
  * personne ne la lit.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
@@ -143,5 +146,49 @@ describe("l'action de l'administration", () => {
     expect(await agirSurUnStatut(admin.id, "ACCORDER:TOP_CREATOR", null, motif("forgé depuis la console"))).toEqual({ ok: false, message: "Geste inconnu." });
     expect(await agirSurUnStatut(admin.id, "ACCORDER:VERIFIED_CREATOR", null, motif("je me vérifie moi-même"))).toMatchObject({ ok: false });
     expect(await codes(admin.id)).toEqual([]);
+  });
+});
+
+describe("« Créateur vérifié » et son reflet sur le profil (05/11)", () => {
+  const reflet = async (userId: string) =>
+    (await db.profile.findUniqueOrThrow({ where: { userId }, select: { isVerified: true } })).isVerified;
+
+  it("pose isVerified en accordant, l'ôte en retirant", async () => {
+    const c = await compte("membre");
+    await accorderStatut({ userId: c.id, code: "VERIFIED_CREATOR" });
+    expect(await reflet(c.id)).toBe(true);
+    await retirerStatut({ userId: c.id, code: "VERIFIED_CREATOR" });
+    expect(await reflet(c.id)).toBe(false);
+  });
+
+  it("ne touche pas au reflet pour les autres statuts", async () => {
+    const c = await compte("membre");
+    await accorderStatut({ userId: c.id, code: "FREELANCE" });
+    expect(await reflet(c.id)).toBe(false);
+  });
+
+  it("la migration aligne les deux côtés, dans les deux sens, sans rien retirer", async () => {
+    const dejaReflet = await compte("seed");
+    await db.profile.update({ where: { userId: dejaReflet.id }, data: { isVerified: true } });
+    const dejaBadge = await compte("ecran");
+    await accorderStatut({ userId: dejaBadge.id, code: "VERIFIED_CREATOR" });
+    await db.profile.update({ where: { userId: dejaBadge.id }, data: { isVerified: false } });
+    const personne = await compte("rien");
+
+    const sql = readFileSync(join(process.cwd(), "prisma/migrations/20261105090000_createur_verifie_reflet/migration.sql"), "utf8");
+    // Une instruction par « ; » de fin de ligne ; les commentaires `--` ôtés.
+    const instructions = sql
+      .split(/;\s*(?:\r?\n|$)/)
+      .map((x) => x.replace(/^\s*--.*$/gm, "").trim())
+      .filter(Boolean);
+    expect(instructions).toHaveLength(3);
+    // Deux fois : rejouée, elle ne doit rien doubler.
+    for (const i of [...instructions, ...instructions]) await db.$executeRawUnsafe(i);
+
+    expect(await codes(dejaReflet.id)).toEqual(["VERIFIED_CREATOR"]);
+    expect(await reflet(dejaBadge.id)).toBe(true);
+    expect(await codes(personne.id)).toEqual([]);
+    expect(await reflet(personne.id)).toBe(false);
+    expect(await db.badge.count({ where: { code: "VERIFIED_CREATOR" } })).toBe(1);
   });
 });

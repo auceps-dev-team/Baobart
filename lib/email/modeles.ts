@@ -110,6 +110,13 @@ export const MODELES = [
   // créateur n'est donc dévoilée que s'il choisit de répondre, et à cette
   // personne seulement.
   "MESSAGE_CREATEUR",
+  // ── Ajouté le 08/11 : le seul mérite qui s'annonce ──────────────────────
+  //
+  // « Créateur du mois » se gagne, et se dit (`SPEC_GAMIFICATION` §5). Sa
+  // perte, elle, ne se dit pas : « un badge perdu n'est pas un événement à
+  // interrompre quelqu'un » (maquette des badges). Il n'y a donc pas de
+  // modèle de perte, et il n'en faut pas.
+  "CREATEUR_DU_MOIS",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -333,6 +340,13 @@ const SCHEMAS = {
     reference: z.string().min(1).max(40),
     contact: lien,
     reglages: lien,
+  }),
+  CREATEUR_DU_MOIS: z.object({
+    nom,
+    /** « 8 décembre 2026 » : la fin du titre, s'il ne se renouvelle pas. */
+    jusquAu: z.string().min(1).max(40),
+    /** Vers « Mes badges », où le critère est publié. */
+    lien,
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
 
@@ -817,6 +831,18 @@ Répondre : ${c.lien}` : ""),
       `Ce message t'importune ? Écris à l'équipe (${c.contact}) en citant la ` +
       `référence ${c.reference}. Tu peux aussi fermer ton bouton « Contact » ` +
       `depuis le profil de ta boutique : ${c.reglages}` +
+      SIGNATURE,
+  }),
+
+  CREATEUR_DU_MOIS: (c) => ({
+    sujet: "🎉 Tu es Créateur du mois sur Baobart",
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Sur les 30 derniers jours, tu fais partie des créateurs qui ont vendu ` +
+      `au plus d'acheteurs différents. Le jeton « Créateur du mois » apparaît ` +
+      `désormais sur ta vitrine, jusqu'au ${c.jusquAu}.\n\n` +
+      `S'il tient, il se prolonge de lui-même : rien à demander. La règle ` +
+      `exacte est publiée sur ta page « Mes badges » : ${c.lien}` +
       SIGNATURE,
   }),
 };

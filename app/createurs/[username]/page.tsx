@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { MenuPartage } from "@/components/anime/menu-partage";
+import { RangeesDeBadges } from "@/components/badges/rangees";
 import { BoutonContact } from "@/components/createurs/bouton-contact";
 import { CarteRessourceLien } from "@/components/createurs/carte-ressource";
 import { CompteurDeVue } from "@/components/createurs/compteur-de-vue";
@@ -20,6 +21,7 @@ import { Tuile } from "@/components/reseaux/logos";
 import { CarteOffre } from "@/components/services/carte-offre";
 import { BoutonSuivre } from "@/components/social/boutons";
 import { sessionCourante } from "@/lib/auth/session";
+import { badgesDuCompte } from "@/lib/badges/compte";
 import { urlDuSite } from "@/lib/config/site";
 import { absolue } from "@/lib/reseaux/partage";
 import { ouvertureSignee } from "@/lib/securite/antibot";
@@ -110,11 +112,12 @@ export default async function ProfilCreateurPage({
     : "recent";
   const numero = Number.parseInt(demande.page ?? "1", 10);
 
-  const [suivi, familles, services, collections] = await Promise.all([
+  const [suivi, familles, services, collections, badges] = await Promise.all([
     suitCeCreateur(visiteur?.id ?? null, profil.userId),
     famillesDuCreateur(profil.userId),
     listerOffres({ createurId: profil.userId, limite: 24 }),
     collectionsPubliquesDe(profil.userId),
+    badgesDuCompte(profil.userId),
   ]);
   const famille = familles.find((f) => f.famille === demande.famille)?.famille ?? null;
 
@@ -217,20 +220,6 @@ export default async function ProfilCreateurPage({
                   >
                     {profil.nom}
                   </h1>
-                  {profil.verifie ? (
-                    <span
-                      style={{
-                        padding: "5px 11px",
-                        border: `2px solid ${ENCRE}`,
-                        borderRadius: 999,
-                        background: JAUNE,
-                        fontSize: 11,
-                        fontWeight: 800,
-                      }}
-                    >
-                      CRÉATEUR VÉRIFIÉ
-                    </span>
-                  ) : null}
                 </div>
 
                 <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.72, marginTop: 4 }}>
@@ -252,6 +241,8 @@ export default async function ProfilCreateurPage({
                     {profil.bio}
                   </p>
                 ) : null}
+
+                {badges ? <RangeesDeBadges ecussons={badges.ecussons} merites={badges.merites} createurDuMoisJusquAu={badges.createurDuMoisJusquAu} /> : null}
 
                 {/*
                   « Tuiles carrées · profils créateurs » du Design System :

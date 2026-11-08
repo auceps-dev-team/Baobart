@@ -95,6 +95,7 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     contact: "https://baobart.test/contact",
     reglages: "https://baobart.test/dashboard/boutique",
   },
+  CREATEUR_DU_MOIS: { nom: "Awa", jusquAu: "8 décembre 2026", lien: "https://baobart.test/dashboard/badges" },
 };
 
 describe("modèles de courriel", () => {

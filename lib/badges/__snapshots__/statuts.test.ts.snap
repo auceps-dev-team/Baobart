@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`l'apparence publiée des écussons > ne change pas sans qu'on le voie 1`] = `
+[
+  {
+    "code": "VERIFIED_CREATOR",
+    "dormant": false,
+    "fond": "#FFD84A",
+    "glyphe": "✓",
+    "nom": "Créateur vérifié",
+  },
+  {
+    "code": "FREELANCE",
+    "dormant": false,
+    "fond": "#C9A8F5",
+    "glyphe": "F",
+    "nom": "Freelance",
+  },
+  {
+    "code": "AGENCE",
+    "dormant": false,
+    "fond": "#C9A8F5",
+    "glyphe": "A",
+    "nom": "Agence",
+  },
+  {
+    "code": "VERIFIED_RECRUITER",
+    "dormant": false,
+    "fond": "#FFD84A",
+    "glyphe": "R",
+    "nom": "Recruteur vérifié",
+  },
+  {
+    "code": "KYC_VERIFIED",
+    "dormant": false,
+    "fond": "#B9E8C0",
+    "glyphe": "ID",
+    "nom": "Identité vérifiée",
+  },
+]
+`;
+
+exports[`l'apparence publiée des écussons > ne change pas sans qu'on le voie 2`] = `
+[
+  {
+    "code": "VERIFIED_CREATOR",
+    "comment": "Vérification manuelle par l'administration : pièce d'identité et cohérence du portfolio.",
+    "droit": "Mise en avant dans la grille, confiance affichée sur la vignette.",
+    "nom": "Créateur vérifié",
+  },
+  {
+    "code": "FREELANCE",
+    "comment": "Accordé par l'administration, puis conditionné à un abonnement actif.",
+    "droit": "Publier des services.",
+    "nom": "Freelance",
+  },
+  {
+    "code": "AGENCE",
+    "comment": "Accordé après contrôle de l'entité, puis conditionné à un abonnement actif.",
+    "droit": "Publier des services, profil d'équipe.",
+    "nom": "Agence",
+  },
+  {
+    "code": "VERIFIED_RECRUITER",
+    "comment": "Contrôle de l'entité qui recrute : registre du commerce ou équivalent.",
+    "droit": "« Offre vérifiée » apparaît sur chacune de ses offres.",
+    "nom": "Recruteur vérifié",
+  },
+]
+`;

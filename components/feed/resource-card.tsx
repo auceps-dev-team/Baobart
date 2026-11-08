@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { Eclats } from "@/components/anime/eclats";
+import { MiniEcusson } from "@/components/badges/formes";
 
 import type { CarteRessource } from "@/lib/feed/types";
 import { formatCount } from "@/lib/i18n/money";
@@ -449,7 +450,13 @@ export function CarteMosaique(props: CarteProps) {
                 textOverflow: "ellipsis",
               }}
             >
-              par {r.author}
+              par{" "}
+              {r.authorEcusson ? (
+                <>
+                  <MiniEcusson ecusson={r.authorEcusson} de={r.authorUsername} />{" "}
+                </>
+              ) : null}
+              {r.author}
               {r.famille ? ` · ${r.famille}` : ""}
             </div>
             <div
@@ -571,7 +578,13 @@ export function CarteAlaUne(props: CarteProps) {
               {r.title}
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}>
-              par {r.author}
+              par{" "}
+              {r.authorEcusson ? (
+                <>
+                  <MiniEcusson ecusson={r.authorEcusson} de={r.authorUsername} />{" "}
+                </>
+              ) : null}
+              {r.author}
               {r.famille ? ` · ${r.famille}` : ""}
             </div>
             <div

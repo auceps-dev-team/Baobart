@@ -11,6 +11,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import type { ProductFamily } from "../lib/domain/prisma-types";
+import { poserCreateurVerifie } from "./createur-verifie";
 
 const db = new PrismaClient();
 
@@ -142,6 +143,8 @@ async function main() {
     });
     createurs.push(user);
   }
+  // Le badge avec son reflet `isVerified` : voir `prisma/createur-verifie.ts`.
+  await poserCreateurVerifie(db, createurs.map((u) => u.id));
 
   // Publié sur plusieurs jours : la pagination par curseur n'a de sens que si
   // les dates de création diffèrent réellement.

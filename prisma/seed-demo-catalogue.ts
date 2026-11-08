@@ -51,6 +51,7 @@ import {
   visuelsContradictoires,
   type EntreeDemo,
 } from "./demo-catalogue";
+import { poserCreateurVerifie } from "./createur-verifie";
 
 const db = new PrismaClient();
 
@@ -190,6 +191,8 @@ async function creerLesCreateurs() {
     });
     crees.push(user);
   }
+  // Le badge avec son reflet `isVerified` : voir `prisma/createur-verifie.ts`.
+  await poserCreateurVerifie(db, crees.map((u) => u.id));
 
   return crees;
 }
