@@ -67,10 +67,13 @@ export function PastilleStatut({ ecusson }: { ecusson: Ecusson }) {
         alignItems: "center",
         gap: 8,
         padding: "6px 12px 6px 6px",
-        border: `2.5px solid ${ENCRE}`,
+        border: `2.5px ${ecusson.dormant ? "dashed" : "solid"} ${ENCRE}`,
         borderRadius: 999,
         background: ecusson.dormant ? "#EFEFEF" : ecusson.fond,
-        opacity: ecusson.dormant ? 0.6 : 1,
+        // Dormant : un gris plein, pas d'opacité. L'opacité 0,6 donnait
+        // 4,47:1 sur la vitrine d'Atelier Sankofa — mesuré par axe, relecture
+        // d'Argon du 08/11. #5C5C5C sur #EFEFEF donne 5,8:1.
+        color: ecusson.dormant ? GRIS_ETEINT : ENCRE,
       }}
     >
       <span
@@ -117,7 +120,8 @@ export function GrandEcusson({ ecusson }: { ecusson: Ecusson }) {
         overflow: "hidden",
         textAlign: "center",
         display: "block",
-        opacity: ecusson.dormant ? 0.6 : 1,
+        // Même raison que la pastille : un gris plein plutôt qu'une opacité.
+        color: ecusson.dormant ? GRIS_ETEINT : ENCRE,
       }}
     >
       {ecusson.dormant ? null : (

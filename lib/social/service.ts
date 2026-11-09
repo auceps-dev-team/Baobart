@@ -177,6 +177,14 @@ export async function basculerSuiviDe(
     where: { id: createurId },
     data: { followersCount: abonnes },
   });
+  // Le reflet que lisent la vitrine, l'annuaire, les collections et le tableau
+  // de bord. Personne ne l'écrivait (inventaire B8, revu par Argon le 08/11 :
+  // Aya Kouassi, 1 abonné, en affichait 0). La migration
+  // 20261109090000_abonnes_reflet a réaligné l'existant.
+  await db.profile.updateMany({
+    where: { userId: createurId },
+    data: { followerCount: abonnes },
+  });
   await db.user.update({
     where: { id: userId },
     data: { followingCount: abonnements },

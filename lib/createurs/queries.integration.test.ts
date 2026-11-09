@@ -13,6 +13,9 @@
  * suspendu debout reviendrait à continuer de le recommander pendant l'enquête.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
@@ -386,5 +389,55 @@ describe("les collections de la vitrine", () => {
 
     const liste = await collectionsPubliquesDe(c.id);
     expect(liste.map((x) => [x.titre, x.ressources])).toEqual([["Ouverte", 1]]);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Relecture d'Argon du 08/11/2026, sur de vrais comptes de la base : la
+// vitrine de createur@ affichait 3 ventes à vie pour 23, celle d'Aya Kouassi
+// 0 abonné pour 1.
+describe("les chiffres de la vitrine (relecture d'Argon, 08/11)", () => {
+  it("compte les ventes des ressources archivées : une vente faite reste faite", async () => {
+    const c = await compte();
+    await publier(c.id, 3);
+    const archivee = await publier(c.id, 20);
+    await db.product.update({ where: { id: archivee.id }, data: { status: "ARCHIVED" } });
+
+    const profil = await profilPublic((await db.profile.findUniqueOrThrow({ where: { userId: c.id } })).username);
+    expect(profil!.ventes).toBe(23);
+    expect(profil!.ressourcesPubliees).toBe(1);
+  });
+
+  it("compte les abonnés sur les lignes Follow, pas sur un compteur que personne n'écrivait", async () => {
+    // Le compte porte `followerCount: 10 * n` par construction du test.
+    const c = await compte();
+    await publier(c.id);
+    const a = await compte();
+    const b = await compte();
+    await db.follow.createMany({ data: [{ followerId: a.id, followingId: c.id }, { followerId: b.id, followingId: c.id }] });
+
+    const profil = await profilPublic((await db.profile.findUniqueOrThrow({ where: { userId: c.id } })).username);
+    expect(profil!.abonnes).toBe(2);
+  });
+
+  it("la migration réaligne les deux compteurs sur les lignes Follow, rejouée sans dériver", async () => {
+    const c = await compte();
+    const a = await compte();
+    await db.follow.create({ data: { followerId: a.id, followingId: c.id } });
+
+    const sql = readFileSync(join(process.cwd(), "prisma/migrations/20261109090000_abonnes_reflet/migration.sql"), "utf8");
+    const instructions = sql
+      .split(/;\s*(?:\r?\n|$)/)
+      .map((x) => x.replace(/^\s*--.*$/gm, "").trim())
+      .filter(Boolean);
+    expect(instructions).toHaveLength(2);
+    for (const i of [...instructions, ...instructions]) await db.$executeRawUnsafe(i);
+
+    const profil = await db.profile.findUniqueOrThrow({ where: { userId: c.id }, select: { followerCount: true } });
+    const user = await db.user.findUniqueOrThrow({ where: { id: c.id }, select: { followersCount: true } });
+    expect(profil.followerCount).toBe(1);
+    expect(user.followersCount).toBe(1);
+    // Celui qui n'est suivi par personne retombe à zéro, quoi que dise le test.
+    expect((await db.profile.findUniqueOrThrow({ where: { userId: a.id }, select: { followerCount: true } })).followerCount).toBe(0);
   });
 });

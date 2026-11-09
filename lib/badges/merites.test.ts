@@ -26,6 +26,7 @@ function mesures(partiel: Partial<Mesures> = {}): Mesures {
     acheteursDepuisLeDernierLitige: 0,
     abonnes: 0,
     cyclesPayesDAffilee: 0,
+    abonnementOuvert: true,
     createurDuMoisJusquAu: null,
     vip: false,
     ...partiel,

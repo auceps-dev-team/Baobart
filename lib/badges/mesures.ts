@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { ABONNE_COMPTE_APRES_JOURS, cyclesPayesDAffilee, type Mesures } from "@/lib/badges/merites";
 import { db } from "@/lib/db";
 import { JOURS_DE_CADENCE, REGLAGES_PAR_DEFAUT, type Cadence } from "@/lib/ndank/cycle";
+import { lireQualifications } from "@/lib/services/qualifications";
 
 /**
  * Ce que la base dit d'un compte, pour trancher ses mérites
@@ -122,7 +123,7 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
 
   const inscritAvant = new Date(maintenant.getTime() - ABONNE_COMPTE_APRES_JOURS * 86_400_000);
 
-  const [avant, ressourcesPubliees, acheteurs, abonnes, paiements] = await Promise.all([
+  const [avant, ressourcesPubliees, acheteurs, abonnes, paiements, qualifications] = await Promise.all([
     // Le rang d'inscription. Un compte effacé est anonymisé, pas supprimé
     // (`lib/rgpd/effacement.ts`) : il garde sa place, et les rangs ne
     // glissent pas. L'identifiant départage deux inscriptions à la même
@@ -150,6 +151,7 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
       where: { status: "PAID", amount: { gt: 0 }, cycleEnd: { not: null }, paidAt: { not: null }, subscription: { userId } },
       select: { cycleEnd: true, paidAt: true, subscriptionId: true, subscription: { select: { cadence: true } } },
     }),
+    lireQualifications(userId, maintenant),
   ]);
 
   const titre = compte.badges.find((b) => b.badge.code === "TOP_CREATOR");
@@ -162,7 +164,9 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
     acheteurs: acheteurs.acheteurs,
     acheteursDepuisLeDernierLitige: acheteurs.depuisLitige,
     abonnes,
-    cyclesPayesDAffilee: cyclesPayesDAffilee(
+    // Pas d'abonnement ouvert, pas de série en cours : quoi que disent les
+    // paiements passés. Voir `Mesures.abonnementOuvert`.
+    cyclesPayesDAffilee: !qualifications.abonnementOuvert ? 0 : cyclesPayesDAffilee(
       paiements.map((p) => ({
         abonnementId: p.subscriptionId,
         echeance: p.cycleEnd!,
@@ -172,6 +176,7 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
       maintenant,
       REGLAGES_PAR_DEFAUT.graceJours,
     ),
+    abonnementOuvert: qualifications.abonnementOuvert,
     createurDuMoisJusquAu: titre?.validUntil ?? null,
     vip: compte.badges.some((b) => b.badge.code === "VIP_CREATOR"),
   };

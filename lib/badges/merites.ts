@@ -127,8 +127,18 @@ export interface Mesures {
   acheteursDepuisLeDernierLitige: number;
   /** Abonnés qui comptent (`ABONNE_COMPTE_APRES_JOURS`). */
   abonnes: number;
-  /** Cycles d'abonnement payés d'affilée, en cours (voir `cyclesPayesDAffilee`). */
+  /**
+   * Cycles d'abonnement payés d'affilée, en cours (voir `cyclesPayesDAffilee`).
+   * Zéro quand l'abonnement n'est pas ouvert (`abonnementOuvert`).
+   */
   cyclesPayesDAffilee: number;
+  /**
+   * L'abonnement est ouvert, au sens de `lireQualifications` — le MÊME verdict
+   * qui endort Freelance et Agence. Ajouté le 08/11 après la relecture d'Argon :
+   * sur Atelier Sankofa, « Agence » dormait pendant que « Fidèle » comptait
+   * encore une série en cours. Une seule règle, deux affichages d'accord.
+   */
+  abonnementOuvert: boolean;
   /** La fin du titre « Créateur du mois » rangé en base, ou `null`. */
   createurDuMoisJusquAu: Date | null;
   /** Distinction éditoriale, posée par l'administration. */

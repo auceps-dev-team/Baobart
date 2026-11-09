@@ -214,3 +214,60 @@ describe("la règle « vente aboutie », SQL contre TypeScript", () => {
     );
   });
 });
+
+describe("Fidèle et l'abonnement ouvert (relecture d'Argon, 08/11)", () => {
+  // Atelier Sankofa : « Agence » dormait, et « Fidèle » comptait encore une
+  // série. Les deux lisent désormais le même verdict, `lireQualifications`.
+  /**
+   * `echeanceCourante` : l'échéance de l'abonnement. `dernierPaiement` :
+   * l'échéance couverte par le paiement le plus récent — par défaut la même
+   * série, mais elle peut diverger, comme sur Atelier Sankofa où les dates de
+   * l'abonnement avaient été réécrites après les paiements.
+   */
+  async function abonneAvecTroisCycles(echeanceCourante: Date, dernierPaiement = new Date(echeanceCourante.getTime() - 30 * JOUR)) {
+    const c = await compte("fid");
+    const plan = await db.plan.upsert({
+      where: { code: "DISCOVERY" },
+      update: {},
+      create: { code: "DISCOVERY", name: "Pass Découverte", priceMonthly: 2_500 },
+      select: { id: true },
+    });
+    const abo = await db.subscription.create({
+      data: {
+        userId: c.id,
+        planId: plan.id,
+        status: "ACTIVE",
+        cycleStart: new Date(echeanceCourante.getTime() - 30 * JOUR),
+        cycleEnd: echeanceCourante,
+        cadence: "MENSUEL",
+      },
+      select: { id: true },
+    });
+    // Trois paiements à temps, chacun couvrant l'échéance d'un cycle de 30 jours.
+    for (const i of [2, 1, 0]) {
+      const echeance = new Date(dernierPaiement.getTime() - i * 30 * JOUR);
+      await db.subscriptionPayment.create({
+        data: { subscriptionId: abo.id, status: "PAID", amount: 2_500, currency: "XOF", provider: "test", cycleEnd: echeance, paidAt: echeance },
+      });
+    }
+    return c;
+  }
+
+  it("compte la série quand l'abonnement est ouvert", async () => {
+    const c = await abonneAvecTroisCycles(new Date(MAINTENANT.getTime() + 10 * JOUR));
+    const m = await mesuresDe(c.id, MAINTENANT);
+    expect(m!.abonnementOuvert).toBe(true);
+    expect(m!.cyclesPayesDAffilee).toBe(3);
+  });
+
+  it("la remet à zéro quand l'abonnement est fermé, quoi que disent les paiements passés", async () => {
+    // La forme d'Atelier Sankofa : l'abonnement est échu depuis 40 jours
+    // (grâce et reprise passées), mais le dernier paiement couvre une
+    // échéance d'il y a 10 jours — à lui seul, il ferait courir la série
+    // encore 27 jours.
+    const c = await abonneAvecTroisCycles(new Date(MAINTENANT.getTime() - 40 * JOUR), new Date(MAINTENANT.getTime() - 10 * JOUR));
+    const m = await mesuresDe(c.id, MAINTENANT);
+    expect(m!.cyclesPayesDAffilee).toBe(0);
+    expect(m!.abonnementOuvert).toBe(false);
+  });
+});
