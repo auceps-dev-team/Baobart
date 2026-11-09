@@ -4,7 +4,6 @@ import { lesPlusProches, meritesObtenus, type Merite, type Proche } from "@/lib/
 import { mesuresDe } from "@/lib/badges/mesures";
 import { ecussonsDuCompte, type Ecusson } from "@/lib/badges/statuts";
 import { db } from "@/lib/db";
-import { lireQualifications } from "@/lib/services/qualifications";
 
 export interface BadgesDuCompte {
   /** Ce que Baobart garantit : jamais tronqué. */
@@ -25,12 +24,11 @@ export interface BadgesDuCompte {
  * main. Les mérites se recalculent (`lib/badges/mesures.ts`).
  */
 export async function badgesDuCompte(userId: string, maintenant: Date = new Date()): Promise<BadgesDuCompte | null> {
-  const [compte, qualifications, mesures] = await Promise.all([
+  const [compte, mesures] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
       select: { kycStatus: true, badges: { select: { badge: { select: { code: true } } } } },
     }),
-    lireQualifications(userId, maintenant),
     mesuresDe(userId, maintenant),
   ]);
   if (!compte || !mesures) return null;
@@ -39,7 +37,8 @@ export async function badgesDuCompte(userId: string, maintenant: Date = new Date
     ecussons: ecussonsDuCompte({
       statuts: compte.badges.map((b) => b.badge.code),
       identiteVerifiee: compte.kycStatus === "VERIFIED",
-      abonnementOuvert: qualifications.abonnementOuvert,
+      // Le même verdict que « Fidèle » : voir `Mesures.abonnementOuvert`.
+      abonnementOuvert: mesures.abonnementOuvert,
     }),
     merites: meritesObtenus(mesures),
     proches: lesPlusProches(mesures),

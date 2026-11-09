@@ -107,6 +107,21 @@ test.describe("les badges", () => {
     await sansViolation(page, "[data-badges]");
   });
 
+  // Relecture d'Argon du 08/11, sur Atelier Sankofa : la pastille d'un statut
+  // en sommeil donnait 4,47:1. Le créateur de `createurDistingue` n'a pas de
+  // statut qui puisse dormir — ce cas-ci, si.
+  test("un statut en sommeil reste lisible sur la vitrine, et passe axe", async ({ page }) => {
+    const c = await createurDistingue();
+    const badge = await db.badge.upsert({ where: { code: "AGENCE" }, update: {}, create: { code: "AGENCE", name: "Agence", description: "" }, select: { id: true } });
+    // Agence, sans abonnement : le droit se referme, l'écusson dort.
+    await db.userBadge.create({ data: { userId: c.id, badgeId: badge.id } });
+
+    await page.goto(`/createurs/${c.username}`);
+    await expect(page.locator("[data-badges]").getByText("Agence · en sommeil")).toBeVisible();
+
+    await sansViolation(page, "[data-badges]");
+  });
+
   test("la vignette porte un seul écusson, collé au nom", async ({ page }) => {
     const c = await createurDistingue();
 

@@ -444,3 +444,15 @@ describe("état social vu par la fiche", () => {
     expect(chezSoi.chezSoi).toBe(true);
   });
 });
+
+describe("suivi, le reflet lu par la vitrine (B8, relecture d'Argon du 08/11)", () => {
+  it("écrit aussi Profile.followerCount, que lisent la vitrine, l'annuaire et le tableau de bord", async () => {
+    await basculerSuiviDe(visiteur, vendeur);
+    const profil = await db.profile.findUniqueOrThrow({ where: { userId: vendeur }, select: { followerCount: true } });
+    expect(profil.followerCount).toBe(1);
+
+    await basculerSuiviDe(visiteur, vendeur);
+    const apres = await db.profile.findUniqueOrThrow({ where: { userId: vendeur }, select: { followerCount: true } });
+    expect(apres.followerCount).toBe(0);
+  });
+});

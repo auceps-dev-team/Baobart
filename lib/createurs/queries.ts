@@ -2,13 +2,8 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import type { ProductFamily } from "@/lib/domain/prisma-types";
-import {
-  RESEAUX,
-  adresseAffichable,
-  depuisBase,
-  identifiant,
-  type Reseau,
-} from "@/lib/reseaux/reseaux";
+import type { Reseau } from "@/lib/reseaux/reseaux";
+import { liensAffichables, portfolioAffichable } from "@/lib/reseaux/vitrine";
 
 /**
  * Le profil public d'un créateur.
@@ -138,13 +133,21 @@ export async function profilPublic(
 
   if (!profil || profil.user.suspendedAt !== null) return null;
 
-  const produits = await db.product.findMany({
-    where: { sellerId: profil.userId, status: "PUBLISHED" },
-    select: { salesCount: true },
-  });
+  const [publiees, ventesAVie, abonnes] = await Promise.all([
+    db.product.count({ where: { sellerId: profil.userId, status: "PUBLISHED" } }),
+    // TOUTES les ressources, archivées comprises. Jusqu'au 08/11, seules les
+    // publiées comptaient : archiver d'anciennes ressources faisait fondre les
+    // « ventes à vie » (23 → 3 pour createur@, relecture d'Argon). Une vente
+    // faite reste faite.
+    db.product.aggregate({ where: { sellerId: profil.userId }, _sum: { salesCount: true } }),
+    // Les lignes `Follow`, comme les mérites : `Profile.followerCount` n'était
+    // écrit par personne (inventaire B8). Il l'est désormais
+    // (`lib/social/service.ts`), mais la vitrine compte à la source.
+    db.follow.count({ where: { followingId: profil.userId } }),
+  ]);
 
   // Rien de publié, pas de vitrine.
-  if (produits.length === 0) return null;
+  if (publiees === 0) return null;
 
   return {
     userId: profil.userId,
@@ -158,37 +161,21 @@ export async function profilPublic(
     bannerUrl: profil.bannerUrl,
     verifie: profil.isVerified,
     membreDepuis: profil.createdAt,
-    portfolioUrl: profil.portfolioUrl?.startsWith("https://") ? profil.portfolioUrl : null,
+    portfolioUrl: portfolioAffichable(profil.portfolioUrl),
     liens: liensAffichables(profil.links),
     ouvertAuxCommandes: profil.openToCommissions,
     ouvertAuxMessages: profil.acceptsMessages,
     tarifJournalier: profil.dailyRate,
     note: Number(profil.ratingAvg),
     nombreDAvis: profil.ratingCount,
-    ressourcesPubliees: produits.length,
-    ventes: produits.reduce((total, p) => total + p.salesCount, 0),
-    abonnes: profil.followerCount,
+    ressourcesPubliees: publiees,
+    ventes: ventesAVie._sum.salesCount ?? 0,
+    abonnes,
     vues: profil.viewCount,
     profilId: profil.id,
   };
 }
 
-/**
- * Les réseaux rangés, remis dans l'ordre de la maquette. Une adresse qui ne
- * mène plus sur son réseau est écartée ici, avant l'écran : c'est l'affichage
- * qui pose le logo dessus.
- */
-function liensAffichables(
-  lignes: Array<{ network: string; url: string }>,
-): ProfilPublic["liens"] {
-  const liens: ProfilPublic["liens"] = [];
-  for (const reseau of RESEAUX) {
-    const ligne = lignes.find((l) => depuisBase(l.network) === reseau);
-    const url = ligne ? adresseAffichable(reseau, ligne.url) : null;
-    if (url) liens.push({ reseau, url, identifiant: identifiant(reseau, url) });
-  }
-  return liens;
-}
 
 export interface CreateurEnVitrine {
   /** L'identifiant du compte : c'est lui que « Suivre » vise. */
