@@ -4,7 +4,7 @@
 # « build once, deploy anywhere » : la même image tourne sur n'importe quel VPS.
 # ============================================================================
 
-FROM node:22-alpine AS base
+FROM node:25-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
