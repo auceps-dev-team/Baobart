@@ -18,7 +18,9 @@ import { BarrePartage } from "@/components/reseaux/barre-partage";
 import { urlDuSite } from "@/lib/config/site";
 import { BoutonCollection } from "@/components/collections/bouton-collection";
 import { BoutonJaime, BoutonSuivre } from "@/components/social/boutons";
+import { SectionAvis } from "@/components/avis/section-avis";
 import { Commentaires } from "@/components/social/commentaires";
+import type { AvisDeLaRessource } from "@/lib/avis/lecture";
 import type {
   DroitTelechargement,
   FicheProduit,
@@ -318,11 +320,14 @@ export function DetailProduit({
   droit,
   social,
   commentaires,
+  avis,
 }: {
   produit: FicheProduit;
   droit: DroitTelechargement;
   social: SocialFiche;
   commentaires: CommentaireRendu[];
+  /** Les avis notés (lot 4). `null` : la ressource a disparu entre-temps. */
+  avis: AvisDeLaRessource | null;
 }) {
   const visuel = produit.coverUrl
     ? `center / cover no-repeat url(${produit.coverUrl})`
@@ -520,6 +525,10 @@ export function DetailProduit({
           intitule="Partager cette ressource"
           origineConfiguree={urlDuSite()}
         />
+
+        {/* Les avis notés, au-dessus des commentaires : une note se lit
+            avant une conversation (lot 4, 09/11/2026). */}
+        {avis ? <SectionAvis produitId={produit.id} donnees={avis} connecte={social.connecte} /> : null}
 
         <Commentaires
           produitId={produit.id}

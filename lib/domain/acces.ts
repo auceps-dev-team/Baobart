@@ -1,5 +1,6 @@
 import "server-only";
 
+import { recompterApresLigne } from "@/lib/avis/recompte";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 
@@ -69,6 +70,8 @@ export async function retirerAcces(input: {
     motif: input.motif ?? null,
   });
 
+  // L'avis de l'acheteur sort des comptes (lib/avis/recompte.ts). Il ne lève jamais.
+  await recompterApresLigne(input.orderItemId);
   return { fait: true };
 }
 
@@ -92,5 +95,7 @@ export async function rendreAcces(input: {
     parVendeur: input.vendeurId,
   });
 
+  // Accès rendu : l'avis revient dans les comptes.
+  await recompterApresLigne(input.orderItemId);
   return { fait: true };
 }

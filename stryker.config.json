@@ -10,7 +10,8 @@
   "mutate": [
     "lib/badges/merites.ts",
     "lib/badges/statuts.ts",
-    "lib/systeme/contraste.ts"
+    "lib/systeme/contraste.ts",
+    "lib/avis/regles.ts"
   ],
   "coverageAnalysis": "perTest",
   "reporters": [

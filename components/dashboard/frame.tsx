@@ -109,7 +109,10 @@ export function MetricCard({
           fontSize: 11,
           textTransform: "uppercase",
           letterSpacing: ".1em",
-          opacity: 0.62,
+          // 0,62 donnait 3,96:1 sur la carte mauve — mesuré par axe le 13/11
+          // (« Sans réponse », lot 4) ; le défaut touchait les cinq écrans qui
+          // l'emploient. 0,8 donne environ 6,5:1 sur mauve (calculé).
+          opacity: 0.8,
         }}
       >
         {label}

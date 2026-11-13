@@ -117,6 +117,12 @@ export const MODELES = [
   // interrompre quelqu'un » (maquette des badges). Il n'y a donc pas de
   // modèle de perte, et il n'en faut pas.
   "CREATEUR_DU_MOIS",
+  // ── Ajoutés le 09/11 avec les avis notés (lot 4) ────────────────────────
+  //
+  // Le vendeur apprend qu'on a noté sa ressource ; l'auteur, qu'on lui a
+  // répondu. Ni l'un ni l'autre ne porte l'adresse de l'autre.
+  "AVIS_RECU",
+  "REPONSE_AVIS",
 ] as const;
 
 export type Modele = (typeof MODELES)[number];
@@ -346,6 +352,21 @@ const SCHEMAS = {
     /** « 8 décembre 2026 » : la fin du titre, s'il ne se renouvelle pas. */
     jusquAu: z.string().min(1).max(40),
     /** Vers « Mes badges », où le critère est publié. */
+    lien,
+  }),
+  AVIS_RECU: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    note: z.number().int().min(1).max(5),
+    /** Le texte de l'avis, quand il y en a un : tel quel, le vendeur y répond. */
+    extrait: z.string().max(2_000).optional(),
+    /** Vers « Avis & commentaires », où l'on répond. */
+    lien,
+  }),
+  REPONSE_AVIS: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    reponse: z.string().min(1).max(2_000),
     lien,
   }),
 } satisfies Record<Modele, z.ZodTypeAny>;
@@ -843,6 +864,26 @@ Répondre : ${c.lien}` : ""),
       `désormais sur ta vitrine, jusqu'au ${c.jusquAu}.\n\n` +
       `S'il tient, il se prolonge de lui-même : rien à demander. La règle ` +
       `exacte est publiée sur ta page « Mes badges » : ${c.lien}` +
+      SIGNATURE,
+  }),
+
+  AVIS_RECU: (c) => ({
+    sujet: `Nouvel avis ★ ${c.note} sur « ${c.ressource} »`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Quelqu'un a noté « ${c.ressource} » : ${c.note} sur 5.` +
+      (c.extrait ? `\n\n« ${c.extrait} »` : "") +
+      `\n\nTu peux lui répondre depuis tes avis : ${c.lien}` +
+      SIGNATURE,
+  }),
+
+  REPONSE_AVIS: (c) => ({
+    sujet: `Le créateur a répondu à ton avis sur « ${c.ressource} »`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Le créateur de « ${c.ressource} » a répondu à ton avis :\n\n` +
+      `« ${c.reponse} »\n\n` +
+      `La conversation est sur la fiche : ${c.lien}` +
       SIGNATURE,
   }),
 };
