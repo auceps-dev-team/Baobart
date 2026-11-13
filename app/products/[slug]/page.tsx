@@ -4,6 +4,7 @@ import { DetailProduit, EnTeteFiche, RetourAchat } from "@/components/product/de
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
+import { avisDeLaRessource } from "@/lib/avis/lecture";
 import { urlDuSite } from "@/lib/config/site";
 import { absolue } from "@/lib/reseaux/partage";
 import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
@@ -71,7 +72,7 @@ export default async function FicheProduitPage({
 
   if (!produit) notFound();
 
-  const [droit, social, commentaires] = await Promise.all([
+  const [droit, social, commentaires, avis] = await Promise.all([
     droitDeTelecharger(produit.id, utilisateur?.id ?? null),
     etatSocial({
       produitId: produit.id,
@@ -79,6 +80,7 @@ export default async function FicheProduitPage({
       userId: utilisateur?.id ?? null,
     }),
     commentairesDe(produit.id, utilisateur?.id ?? null, produit.auteur.id),
+    avisDeLaRessource(produit.id, utilisateur?.id ?? null),
   ]);
 
   return (
@@ -115,6 +117,7 @@ export default async function FicheProduitPage({
             droit={droit}
             social={{ ...social, connecte: utilisateur !== null }}
             commentaires={commentaires}
+            avis={avis}
           />
         </div>
         <Footer />

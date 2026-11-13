@@ -46,6 +46,10 @@ describe("ce qu'on reçoit du formulaire", () => {
   it("n'accepte qu'une note entière de 1 à 5", () => {
     expect(lireNote("4")).toBe(4);
     expect(lireNote(5)).toBe(5);
+    // Les deux bords, acceptés : « > NOTE_MIN » refusait une étoile sans
+    // qu’aucun test ne le voie (Stryker, 13/11).
+    expect(lireNote(1)).toBe(1);
+    expect(lireNote(" 1 ")).toBe(1);
     for (const faux of ["0", "6", "3.5", "", "cinq", null, undefined, -1]) expect(lireNote(faux)).toBeNull();
   });
 
@@ -53,6 +57,11 @@ describe("ce qu'on reçoit du formulaire", () => {
     expect(lireTexte("  ", 10)).toEqual({ ok: true, texte: null });
     expect(lireTexte(" bien ", 10)).toEqual({ ok: true, texte: "bien" });
     expect(lireTexte("x".repeat(11), 10)).toEqual({ ok: false, motif: "TROP_LONG" });
+    // Le bord exact passe (Stryker, 13/11 : « >= max » survivait).
+    expect(lireTexte("x".repeat(10), 10)).toEqual({ ok: true, texte: "x".repeat(10) });
+    // Un champ absent du formulaire n’est pas une erreur : l’avis sans texte est permis.
+    expect(lireTexte(null, 10)).toEqual({ ok: true, texte: null });
+    expect(lireTexte(undefined, 10)).toEqual({ ok: true, texte: null });
   });
 });
 
@@ -64,6 +73,15 @@ describe("le résumé d'une ressource", () => {
     expect(r.moyenne).toBe(4.3);
     expect(r.repartition.map((x) => x.note)).toEqual([5, 4, 3, 2, 1]);
     expect(r.repartition.map((x) => x.pourcentage)).toEqual([67, 0, 33, 0, 0]);
+  });
+
+  it("donne le point d’arrondi à la plus forte part décimale, puis à la meilleure note (Stryker, 13/11)", () => {
+    const parts = (etoiles: number[]) => resumeDesNotes(etoiles).repartition.map((r) => r.pourcentage);
+    // 5 avis à 1 étoile, 2 à 2 : 71,43 et 28,57. Le point va à 28,57 (,57 > ,43),
+    // pas à la part la plus grosse.
+    expect(parts([5, 2, 0, 0, 0])).toEqual([0, 0, 0, 29, 71]);
+    // Trois tiers égaux : le point va à la meilleure note des trois.
+    expect(parts([1, 1, 1, 0, 0])).toEqual([0, 0, 34, 33, 33]);
   });
 
   it("rend une moyenne nulle et des parts à zéro sans avis", () => {
@@ -106,6 +124,8 @@ describe("la moyenne bayésienne (prête, non branchée)", () => {
   it("rend la moyenne a priori sans aucun avis, et null sans rien", () => {
     expect(moyenneBayesienne([0, 0, 0, 0, 0], { moyenne: 4, poids: 10 })).toBe(4);
     expect(moyenneBayesienne([0, 0, 0, 0, 0], { moyenne: 4, poids: 0 })).toBeNull();
+    // Autant d’avis que de poids : une moyenne, pas « rien » (Stryker, 13/11).
+    expect(moyenneBayesienne([0, 0, 0, 10, 0], { moyenne: 4, poids: 10 })).toBe(4);
   });
 });
 
@@ -113,5 +133,7 @@ describe("pour les lecteurs d'écran", () => {
   it("dit la note en toutes lettres", () => {
     expect(noteEnToutesLettres(4)).toBe("4 sur 5");
     expect(noteEnToutesLettres(4.3)).toBe("4,3 sur 5");
+    // Une moyenne rangée au centième se dit au dixième.
+    expect(noteEnToutesLettres(4.26)).toBe("4,3 sur 5");
   });
 });

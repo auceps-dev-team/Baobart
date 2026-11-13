@@ -18,6 +18,8 @@ import { avisDeLaRessource } from "@/lib/avis/lecture";
 import { recompterTousLesAvis } from "@/lib/avis/recompte";
 import { aObtenu, type LigneObtenue } from "@/lib/avis/regles";
 import { laisserUnAvis, repondreAUnAvis, retirerSonAvis } from "@/lib/avis/service";
+import { BON_PUBLIC_AVIS } from "@/lib/badges/merites";
+import { mesuresDe } from "@/lib/badges/mesures";
 import { db } from "@/lib/db";
 import { rendreAcces, retirerAcces } from "@/lib/domain/acces";
 import { enregistrerLitige, litigeGagne } from "@/lib/domain/litiges";
@@ -293,5 +295,34 @@ describe("le balayage nocturne", () => {
 
     expect(await recompterTousLesAvis()).toBeGreaterThanOrEqual(1);
     expect(await stats(p.id)).toMatchObject({ ratingStars: [0, 0, 0, 1, 0], ratingCount: 1 });
+  });
+});
+
+describe("« Bon public » à côté d'un avis", () => {
+  // La pastille de la carte (`lib/avis/lecture.ts`) et le mérite du profil
+  // (`lib/badges/mesures.ts`) comptent chacun de leur côté. Rien ne les liait :
+  // ce test les fait parler du même auteur, au bord exact (13/11/2026).
+  it("s'allume au 25e avis qui COMPTE, pas au 25e avis écrit — et dit la même chose que le mérite", async () => {
+    const vendeur = await compte("v");
+    const auteur = await compte("a");
+    const produits: Array<{ id: string; slug: string }> = [];
+    for (let i = 0; i < BON_PUBLIC_AVIS; i++) produits.push(await ressource(vendeur.id, 0));
+
+    // Vingt-cinq avis écrits, vingt-quatre qui comptent : la dernière ressource
+    // n'a jamais été obtenue.
+    for (const p of produits.slice(0, -1)) await recevoirGratuit(auteur.id, p.id);
+    await db.productReview.createMany({ data: produits.map((p) => ({ authorId: auteur.id, productId: p.id, rating: 4 })) });
+
+    const pastille = async () => (await avisDeLaRessource(produits[0]!.id, null))!.avis[0]!.auteur.bonPublic;
+    const merite = async () => (await mesuresDe(auteur.id))!.avisRediges >= BON_PUBLIC_AVIS;
+
+    expect((await mesuresDe(auteur.id))!.avisRediges).toBe(BON_PUBLIC_AVIS - 1);
+    expect(await pastille()).toBe(false);
+    expect(await merite()).toBe(false);
+
+    // La dernière ressource est obtenue : le vingt-cinquième avis compte.
+    await recevoirGratuit(auteur.id, produits.at(-1)!.id);
+    expect(await pastille()).toBe(true);
+    expect(await merite()).toBe(true);
   });
 });
