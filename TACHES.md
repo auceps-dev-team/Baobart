@@ -4,7 +4,7 @@
 > (ou session Claude, ou agent) qui travaille sur le dépôt lit ce fichier avant
 > de commencer, et le met à jour **dans sa propre PR**.
 >
-> Relevé le **13/11/2026** sur `origin/main` (`226ecab`, v1.105.1), la liste des
+> Relevé le **13/11/2026** au soir, après la fusion des PR #48, #50, #39 et #51 (v1.107.0), la liste des
 > PR GitHub et les copies de travail en cours. Les identifiants A1…C10 renvoient
 > à l'inventaire `Doc/INVENTAIRE_FONCTIONNALITES_2026-11.md` (PR #39).
 
@@ -38,8 +38,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
-| **Lot 3 — « Devenir vendeur »** (A2) | Argon (Gemini), relu par Claude | `gemini/devenir-vendeur` — **PR #51** (brouillon) | Mission 3 bis appliquée et relue : vitrine importée, `VERIFICATION_MS`, bord des 24 h, fast-check, option A. CI 5/5 verte ; trois casses volontaires attrapées. **Reste : Playwright + axe dans les trois états** (mission 4, prête pour Argon). | CI verte ; axe sans violation dans les trois états ; relecture par Claude ✅. |
-| **Lot 4 — Avis notés** (A3) | Claude | `claude/avis` — **PR #50** (prête) | Moteur et écrans livrés. Playwright + axe 3/3, intégration 25/25, Stryker 95,5 % sur les règles. | CI verte ; relecture par un tiers sur de vrais comptes (à proposer, comme Argon au lot 2). |
+| **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. | CI verte ; relecture ; inventaire des écarts à 360 / 768 / 1440 px. |
 | **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. **La CI attend l'approbation du responsable du dépôt** (première contribution extérieure). | CI verte. |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
 
@@ -52,15 +51,14 @@ juste après le lot 4).
 
 | # | Tâche | Contenu | Notes |
 | :-: | --- | --- | --- |
-| 1 | **Design — D1 fondations** | Verser au dépôt la livraison du 09/11 (maquettes, icônes, images ; pas le dossier `skills/`) ; inventaire des écarts écran par écran (captures à 360 / 768 / 1440 px) ; jetons de mouvement (`cubic-bezier(.23,1,.32,1)`, 140 ms, pression 0,97) dans `sticker-press` ; boutons ; les 49 icônes en composants React **sans `innerHTML`**. | Les règles d'interaction de la livraison vont dans `Doc/DESIGN_SYSTEM_BAOBART.md`. |
-| 2 | **Design — D2 mobile** | Les 10 écrans de `Baobart Mobile.dc.html`. | Cibles ≥ 44 px, champs ≥ 16 px, essai à 360 px. |
-| 3 | **Design — D3/D4 Dashboard** | Aligner les ~20 écrans nouvellement dessinés (blog, événements, infolettre, publicités, remboursements, liste noire, témoignages, candidatures, dossiers, promos, réglages…). | La plupart des fonctionnalités existent : on aligne, on ne construit pas. |
-| 4 | **Lot 5 — Abonnés du créateur** (A5) | La liste de ceux qui suivent, et le fil « Suivre les détails ». | Le compteur est juste depuis v1.105.1. |
-| 5 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
-| 6 | **Lot 8 — Pass All Access** (A6) | Un catalogue entier pour une durée fixe. | |
-| 7 | **Lot 9 — Connexion sociale, import Figma / Canva / Framer** (A8, A9) | | 🧭 Le responsable du dépôt doit créer les identifiants chez chaque fournisseur. |
-| 8 | **Lot 10 — Appels, café, commandes sur mesure** (A15) | Avec un échange enregistré sur la plateforme. | Débloque « Répond vite » (< 24 h) et les **avis sur les services**. |
-| 9 | **Les 8 fonctionnalités que le plan repousse** | Affiliation (A11), infolettre du créateur (A12), soutien récurrent (A13), paiement en plusieurs fois (A14), équipes (A16), assistant IA (A17), produits physiques (A18), Shield couches 1, 3, 4 (A10). | Après les dix lots (décision du 04/11). |
+| 1 | **Design — D2 mobile** | Les 10 écrans de `Baobart Mobile.dc.html`. | Cibles ≥ 44 px, champs ≥ 16 px, essai à 360 px. |
+| 2 | **Design — D3/D4 Dashboard** | Aligner les ~20 écrans nouvellement dessinés (blog, événements, infolettre, publicités, remboursements, liste noire, témoignages, candidatures, dossiers, promos, réglages…). | La plupart des fonctionnalités existent : on aligne, on ne construit pas. |
+| 3 | **Lot 5 — Abonnés du créateur** (A5) | La liste de ceux qui suivent, et le fil « Suivre les détails ». | Le compteur est juste depuis v1.105.1. |
+| 4 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
+| 5 | **Lot 8 — Pass All Access** (A6) | Un catalogue entier pour une durée fixe. | |
+| 6 | **Lot 9 — Connexion sociale, import Figma / Canva / Framer** (A8, A9) | | 🧭 Le responsable du dépôt doit créer les identifiants chez chaque fournisseur. |
+| 7 | **Lot 10 — Appels, café, commandes sur mesure** (A15) | Avec un échange enregistré sur la plateforme. | Débloque « Répond vite » (< 24 h) et les **avis sur les services**. |
+| 8 | **Les 8 fonctionnalités que le plan repousse** | Affiliation (A11), infolettre du créateur (A12), soutien récurrent (A13), paiement en plusieurs fois (A14), équipes (A16), assistant IA (A17), produits physiques (A18), Shield couches 1, 3, 4 (A10). | Après les dix lots (décision du 04/11). |
 
 **Ensuite, les raccords et les partielles** (inventaire §3 et §4), sans ordre
 décidé — à placer avec le responsable du dépôt :
@@ -95,7 +93,6 @@ décidé — à placer avec le responsable du dépôt :
 | **Mises à jour majeures** : Next 16 (#46), `eslint-config-next` 16 (#47), Vitest 5 (#45) | Chacune est un lot à part, avec la suite complète et le navigateur. Ne pas les fusionner en même temps qu'autre chose. |
 | **JSON-LD sur les fiches** (note des avis pour Google) | La règle du dépôt n'autorise qu'**un** `dangerouslySetInnerHTML` (le blog). Un second se décide, il ne s'ajoute pas en passant. Lot C2. |
 | **Canal direct vers Gemini** (`agy -p`, outil `confier-a-gemini.sh` hors dépôt) | Pour qu'Argon écrive et teste sans intervention : une liste d'autorisations dans les réglages globaux d'Antigravity (proposée, non appliquée) et des crédits Argon (épuisés le 13/11). La lecture seule marche déjà. |
-| **Fusion de la PR #39** (l'inventaire) | Les identifiants A1…C10 de ce fichier y renvoient. |
 | **Textes de loi sur les avis** (lois 2016-412 et 91-1000) | Lus par un juriste avant d'afficher les notes en production. |
 
 ---
@@ -104,6 +101,9 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.107.0 | #51 | Lot 3 — « Devenir vendeur » : trois étapes vers la boutique (profil affichable comme la vitrine, compte de versement après 24 h, trois ressources) ; `/dashboard/boutique` ouvert à l'acheteur (option A). Écrit par Argon, relu par Claude. **Reste : Playwright + axe** (mission 4). |
+| — (docs) | #39 | L'inventaire fonctionnalité par fonctionnalité (`Doc/INVENTAIRE_FONCTIONNALITES_2026-11.md`), auquel renvoient les identifiants A1…C10. |
+| v1.106.0 | #50 | Lot 4 — les avis notés : qui note, recompte à chaque mouvement d'argent, section « Avis » de la fiche, « Avis & commentaires », balayage nocturne, effacement RGPD des avis. |
 | — (docs) | #48 | Ce fichier, les règles communes en tête du `CLAUDE.md`, `Doc/PROCESS_COLLABORATEURS.md` à coller, la section « Contribuer » du README. |
 | v1.105.1 | #42 | Les trois défauts trouvés par la relecture d'Argon sur de vrais comptes (contraste en sommeil, « Fidèle », ventes à vie et abonnés de la vitrine). |
 | v1.105.0 | #41 | Lot 2 — les vingt mérites, « Mes badges », les deux rangées du profil, l'écusson des vignettes ; « Créateur du mois » et son passage quotidien. |
