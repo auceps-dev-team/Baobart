@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Poppins:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="baobart-icons.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #DCCFF0; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  html { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font-variant-numeric: tabular-nums; }
+  @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
+  a { color: #121212; } a:hover { color: #E2622C; }
+</style>
+</helmet>
+<section style="padding:56px 48px 80px">
+  <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase">Baobart · Android</div>
+  <div style="font-family:'Archivo Black',sans-serif; font-size:56px; line-height:.95; text-transform:uppercase; letter-spacing:-2px; margin:8px 0 40px">Version mobile</div>
+  <div id="screens" style="display:flex; flex-wrap:wrap; gap:56px 48px; align-items:flex-start">
+
+    <!-- 01 SPLASH -->
+    <div data-screen-label="01 Splash" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">01 · Logo / lancement</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="height:100%; background:#E2622C; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; position:relative">
+          <div style="width:132px; height:132px; border:3px solid #121212; border-radius:99px; background:#FFD84A; box-shadow:7px 7px 0 #121212; display:grid; place-items:center"><img src="img/baobab-ink.svg" alt="Baobart" style="width:78px; display:block"></div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:44px; letter-spacing:-1.5px; color:#FFFFFF; margin-top:30px">Baobart<span style="color:#121212">.</span></div>
+          <div style="font-size:15px; font-weight:600; color:#FFFFFF; text-align:center; margin-top:8px; max-width:240px; line-height:1.4">Les ressources créatives du continent</div>
+          <div style="position:absolute; left:48px; right:48px; bottom:56px; height:14px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; overflow:hidden"><div style="width:62%; height:100%; background:#121212"></div></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 02 AUTH -->
+    <div data-screen-label="02 Auth" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">02 · Connexion</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; padding:20px 22px 28px; display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:center; gap:10px">
+            <div style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center; overflow:hidden"><img src="img/baobab-white.svg" alt="" style="width:22px"></div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:20px; letter-spacing:-.6px">Baobart<span style="color:#E2622C">.</span></div>
+          </div>
+          <div>
+            <div style="display:inline-block; border:2.5px solid #121212; border-radius:999px; background:#FFD84A; padding:5px 12px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em">Connexion</div>
+            <div style="font-family:'Archivo Black',sans-serif; font-size:34px; line-height:.98; letter-spacing:-1.4px; text-transform:uppercase; margin-top:14px">Content de te revoir</div>
+            <div style="font-size:14px; font-weight:500; opacity:.8; margin-top:10px; line-height:1.45">Retrouve tes favoris, tes achats et ton atelier.</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px">
+            <div>
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin-bottom:6px">E-mail ou téléphone</div>
+              <div style="display:flex; align-items:center; gap:10px; padding:13px 14px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; box-shadow:3px 3px 0 #121212"><bb-icon name="user" color="#FFD84A" size="20"></bb-icon><div style="font-size:14px; font-weight:600">fatou@studio.sn</div></div>
+            </div>
+            <div>
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin-bottom:6px">Mot de passe</div>
+              <div style="display:flex; align-items:center; gap:10px; padding:13px 14px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; box-shadow:3px 3px 0 #121212"><bb-icon name="lock" color="#C9A8F5" size="20"></bb-icon><div style="flex:1; font-size:16px; font-weight:700; letter-spacing:3px">••••••••</div><bb-icon name="eye" color="#EADFF9" size="20"></bb-icon></div>
+            </div>
+            <div style="font-size:13px; font-weight:700; text-align:right; text-decoration:underline; text-underline-offset:3px">Mot de passe oublié ?</div>
+          </div>
+          <div style="padding:16px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; text-align:center; font-size:15px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)">Se connecter</div>
+          <div style="display:flex; align-items:center; gap:12px; font-family:'Space Mono',monospace; font-size:11px; font-weight:700; text-transform:uppercase"><div style="flex:1; height:2px; background:#121212"></div>ou<div style="flex:1; height:2px; background:#121212"></div></div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:10px; padding:14px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:18px; height:18px; background:#121212; -webkit-mask:url(img/social/linkedin.svg) center / contain no-repeat; mask:url(img/social/linkedin.svg) center / contain no-repeat"></div>Continuer avec LinkedIn</div>
+          <div style="font-size:14px; font-weight:600; text-align:center">Pas encore de compte ? <span style="font-weight:800; text-decoration:underline; text-underline-offset:3px">Créer un compte</span></div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 03 ACCUEIL -->
+    <div data-screen-label="03 Accueil" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">03 · Accueil</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="flex:1; padding:18px 20px 24px; display:flex; flex-direction:column; gap:20px">
+            <div style="display:flex; align-items:center; gap:10px">
+              <div style="width:38px; height:38px; border:2.5px solid #121212; border-radius:99px; background:#E2622C; display:grid; place-items:center"><img src="img/baobab-white.svg" alt="" style="width:22px"></div>
+              <div style="flex:1; font-family:'Archivo Black',sans-serif; font-size:20px; letter-spacing:-.6px">Baobart<span style="color:#E2622C">.</span></div>
+              <div style="position:relative; width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="bell" color="#E2622C" size="20"></bb-icon><div style="position:absolute; top:-6px; right:-6px; width:16px; height:16px; border:2px solid #121212; border-radius:99px; background:#FFD84A"></div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; padding:13px 14px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; box-shadow:3px 3px 0 #121212"><bb-icon name="search" color="#FFD84A" size="20"></bb-icon><div style="flex:1; font-size:14px; font-weight:500; opacity:.6">Mockups, polices, photos…</div><bb-icon name="filter" color="#C9A8F5" size="20"></bb-icon></div>
+            <div style="border:2.5px solid #121212; border-radius:22px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; overflow:hidden">
+              <div style="height:150px; background:url('img/mode-rouge.jpg') center 30% / cover no-repeat; border-bottom:2.5px solid #121212"></div>
+              <div style="padding:16px">
+                <div style="display:inline-block; border:2px solid #121212; border-radius:999px; background:#FFD84A; color:#121212; padding:3px 10px; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em">Collection</div>
+                <div style="font-family:'Archivo Black',sans-serif; font-size:24px; line-height:1; text-transform:uppercase; letter-spacing:-.8px; margin-top:10px">Mode Dakar · 40 photos</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <div style="padding:8px 14px; border:2.5px solid #121212; border-radius:999px; background:#121212; color:#FFFFFF; font-size:12.5px; font-weight:800">Tout</div>
+              <div style="padding:8px 14px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; font-size:12.5px; font-weight:800">Photos</div>
+              <div style="padding:8px 14px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; font-size:12.5px; font-weight:800">Mockups</div>
+              <div style="padding:8px 14px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; font-size:12.5px; font-weight:800">Polices</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px">
+              <sc-for list="{{ feed }}" as="r" hint-placeholder-count="4">
+                <div style="border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; overflow:hidden">
+                  <div style="position:relative; height:120px; background:url({{ r.img }}) center / cover no-repeat; border-bottom:2.5px solid #121212"><div style="position:absolute; top:8px; right:8px; width:32px; height:32px; border:2px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center"><bb-icon name="heart" color="{{ r.heart }}" size="16"></bb-icon></div></div>
+                  <div style="padding:10px 12px">
+                    <div style="font-size:13px; font-weight:800; line-height:1.2">{{ r.title }}</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:4px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700"><span style="opacity:.6">{{ r.author }}</span><span>{{ r.price }}</span></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; justify-content:space-around; padding:10px 8px 12px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <sc-for list="{{ navHome }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:52px; height:32px; border:2px solid {{ n.bd }}; border-radius:99px; background:{{ n.bg }}; display:grid; place-items:center"><bb-icon name="{{ n.id }}" color="{{ n.color }}" size="20"></bb-icon></div><div style="font-size:10.5px; font-weight:{{ n.fw }}">{{ n.fr }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 04 DASHBOARD -->
+    <div data-screen-label="04 Dashboard" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">04 · Dashboard créateur</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="flex:1; padding:18px 20px 24px; display:flex; flex-direction:column; gap:18px">
+            <div style="display:flex; align-items:center; gap:12px">
+              <div style="flex:none; width:46px; height:46px; border:2.5px solid #121212; border-radius:99px; background:url('img/beaute-afro.jpg') center 25% / cover no-repeat"></div>
+              <div style="flex:1"><div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Bonjour</div><div style="font-family:'Archivo Black',sans-serif; font-size:20px; letter-spacing:-.6px">Awa Diallo</div></div>
+              <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="sliders" color="#C9A8F5" size="20"></bb-icon></div>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:22px; background:#FFD84A; box-shadow:5px 5px 0 #121212; padding:18px">
+              <div style="display:flex; align-items:center; gap:8px"><bb-icon name="coins" color="#FFFFFF" size="20"></bb-icon><div style="font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.12em">Revenus · novembre</div></div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:40px; letter-spacing:-1.5px; margin-top:8px">184 500 F</div>
+              <div style="display:flex; align-items:flex-end; gap:6px; height:56px; margin-top:12px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="8"><div style="flex:1; height:{{ b.h }}; border:2px solid #121212; border-radius:6px 6px 2px 2px; background:{{ b.bg }}"></div></sc-for>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:12px; font-size:12.5px; font-weight:800"><bb-icon name="trend" color="#FFFFFF" size="16"></bb-icon>+18 % vs octobre</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+              <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+                <div style="border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; padding:14px">
+                  <bb-icon name="{{ k.id }}" color="{{ k.color }}" size="22"></bb-icon>
+                  <div style="font-family:'Archivo Black',sans-serif; font-size:24px; letter-spacing:-.8px; margin-top:10px">{{ k.value }}</div>
+                  <div style="font-size:12px; font-weight:700; opacity:.65">{{ k.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:16px">
+              <div style="display:flex; justify-content:space-between; align-items:center"><div style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.04em">Ventes récentes</div><div style="font-size:12px; font-weight:800; text-decoration:underline; text-underline-offset:3px">Tout voir</div></div>
+              <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px">
+                <sc-for list="{{ sales }}" as="s" hint-placeholder-count="3">
+                  <div style="display:flex; align-items:center; gap:12px">
+                    <div style="width:44px; height:44px; flex:none; border:2px solid #121212; border-radius:12px; background:url({{ s.img }}) center / cover no-repeat"></div>
+                    <div style="flex:1; min-width:0"><div style="font-size:13.5px; font-weight:800">{{ s.title }}</div><div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ s.when }}</div></div>
+                    <div style="font-size:13.5px; font-weight:800">{{ s.amount }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; justify-content:space-around; padding:10px 8px 12px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <div style="position:absolute; right:20px; bottom:calc(100% + 16px); width:60px; height:60px; border:2.5px solid #121212; border-radius:18px; background:#E2622C; box-shadow:4px 4px 0 #121212; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="plus" color="#FFD84A" size="26"></bb-icon></div>
+            <sc-for list="{{ navDash }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:52px; height:32px; border:2px solid {{ n.bd }}; border-radius:99px; background:{{ n.bg }}; display:grid; place-items:center"><bb-icon name="{{ n.id }}" color="{{ n.color }}" size="20"></bb-icon></div><div style="font-size:10.5px; font-weight:{{ n.fw }}">{{ n.fr }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 05 PAIEMENT -->
+    <div data-screen-label="05 Paiement" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">05 · Parcours d'achat</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; padding:16px 20px 24px; display:flex; flex-direction:column; gap:18px">
+          <div style="display:flex; align-items:center; gap:12px">
+            <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; font-size:20px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)">←</div>
+            <div style="flex:1; font-size:15px; font-weight:800">Paiement</div>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; white-space:nowrap">Étape 1 / 2</div>
+          </div>
+          <div style="display:flex; gap:6px"><div style="flex:1; height:8px; border:2px solid #121212; border-radius:99px; background:#121212"></div><div style="flex:1; height:8px; border:2px solid #121212; border-radius:99px; background:#FFFFFF"></div></div>
+          <div style="display:flex; align-items:center; gap:12px; padding:12px; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:3px 3px 0 #121212">
+            <div style="width:56px; height:56px; flex:none; border:2px solid #121212; border-radius:12px; background:url('img/studio-02.png') center / cover no-repeat"></div>
+            <div style="flex:1; min-width:0"><div style="font-size:14px; font-weight:800">Pack mockups Studio</div><div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">Licence commerciale</div></div>
+            <bb-icon name="bag" color="#FFD84A" size="22"></bb-icon>
+          </div>
+          <div style="font-family:'Archivo Black',sans-serif; font-size:28px; line-height:1; letter-spacing:-1px; text-transform:uppercase">Comment veux-tu payer ?</div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ payRows }}" as="p" hint-placeholder-count="3">
+              <div onClick="{{ p.pick }}" style="display:flex; align-items:center; gap:12px; padding:13px; border:2.5px solid #121212; border-radius:16px; background:{{ p.bg }}; box-shadow:{{ p.shadow }}; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
+                <div style="width:22px; height:22px; flex:none; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center"><div style="width:10px; height:10px; border-radius:99px; background:{{ p.dot }}"></div></div>
+                <div style="width:40px; height:40px; flex:none; border:2px solid #121212; border-radius:10px; background:#FFFFFF; display:grid; place-items:center"><bb-icon name="{{ p.icon }}" color="{{ p.color }}" size="20"></bb-icon></div>
+                <div style="flex:1; min-width:0"><div style="font-size:14px; font-weight:800">{{ p.label }}</div><div style="font-size:11.5px; font-weight:600; opacity:.65">{{ p.sub }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2.5px dashed #121212; border-radius:14px; font-size:12.5px; font-weight:700; line-height:1.4"><bb-icon name="shield" color="#C9A8F5" size="20"></bb-icon>Rien n'est prélevé tant que tu n'as pas validé chez ton opérateur.</div>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; border-top:2.5px solid #121212"><div style="font-size:14px; font-weight:800">Total</div><div style="font-family:'Archivo Black',sans-serif; font-size:28px">5 000 F</div></div>
+            <div style="padding:16px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; text-align:center; font-size:15px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)">Payer avec {{ payLabel }}</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 06 BADGES -->
+    <div data-screen-label="06 Badges" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">06 · Profil &amp; badges</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="height:120px; background:#C9A8F5; border-bottom:2.5px solid #121212; position:relative">
+            <div style="position:absolute; top:14px; right:16px; display:flex; gap:8px"><div style="width:40px; height:40px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="share" color="#FFD84A" size="18"></bb-icon></div><div style="width:40px; height:40px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="more" color="#C9A8F5" size="18"></bb-icon></div></div>
+          </div>
+          <div style="flex:1; padding:0 20px 24px; display:flex; flex-direction:column; gap:18px">
+            <div style="flex:none; position:relative; z-index:1; margin-top:-46px; width:92px; height:92px; border:3px solid #121212; border-radius:99px; background:url('img/beaute-afro.jpg') center 25% / cover no-repeat; box-shadow:4px 4px 0 #121212"></div>
+            <div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:26px; letter-spacing:-.8px">Awa Diallo</div>
+              <div style="font-size:13px; font-weight:600; opacity:.7">Illustratrice · Dakar</div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px">
+                <sc-for list="{{ statuts }}" as="s" hint-placeholder-count="2">
+                  <div style="display:flex; align-items:center; gap:8px; padding:5px 12px 5px 5px; border:2.5px solid #121212; border-radius:999px; background:{{ s.bg }}"><div style="width:22px; height:26px; border:2px solid #121212; border-radius:5px 5px 11px 11px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:11px">{{ s.glyph }}</div><div style="font-size:11.5px; font-weight:800; white-space:nowrap">{{ s.name }}</div></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; box-shadow:3px 3px 0 #121212">
+              <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3"><div style="padding:12px 6px; text-align:center"><div style="font-family:'Archivo Black',sans-serif; font-size:20px">{{ s.v }}</div><div style="font-size:11px; font-weight:700; opacity:.6">{{ s.l }}</div></div></sc-for>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:16px">
+              <div style="display:flex; align-items:center; gap:8px"><bb-icon name="trophy" color="#FFD84A" size="20"></bb-icon><div style="flex:1; font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.04em">Mérites</div><div style="font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700">5 / 12</div></div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px">
+                <sc-for list="{{ merites }}" as="m" hint-placeholder-count="8">
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:6px"><div style="width:52px; height:52px; border:2.5px {{ m.bs }} #121212; border-radius:99px; background:{{ m.bg }}; color:{{ m.fg }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:17px; opacity:{{ m.op }}">{{ m.glyph }}</div><div style="font-size:10px; font-weight:700; text-align:center; line-height:1.15">{{ m.name }}</div></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; padding:14px; border:2.5px solid #121212; border-radius:18px; background:#FFD84A; box-shadow:4px 4px 0 #121212">
+              <bb-icon name="target" color="#FFFFFF" size="24"></bb-icon>
+              <div style="flex:1"><div style="font-size:13.5px; font-weight:800">Prochain : Top vendeuse</div><div style="margin-top:8px; height:10px; border:2px solid #121212; border-radius:99px; background:#FFFFFF; overflow:hidden"><div style="width:72%; height:100%; background:#121212"></div></div></div>
+              <div style="font-family:'Space Mono',monospace; font-size:11px; font-weight:700">36/50</div>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; justify-content:space-around; padding:10px 8px 12px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <sc-for list="{{ navProfil }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:52px; height:32px; border:2px solid {{ n.bd }}; border-radius:99px; background:{{ n.bg }}; display:grid; place-items:center"><bb-icon name="{{ n.id }}" color="{{ n.color }}" size="20"></bb-icon></div><div style="font-size:10.5px; font-weight:{{ n.fw }}">{{ n.fr }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 07 CATALOGUE -->
+    <div data-screen-label="07 Catalogue" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">07 · Catalogue produits</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="flex:1; padding:16px 20px 24px; display:flex; flex-direction:column; gap:16px">
+            <div style="display:flex; align-items:center; gap:10px">
+              <div style="width:44px; height:44px; flex:none; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; font-size:20px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)">←</div>
+              <div style="flex:1; display:flex; align-items:center; gap:8px; padding:11px 12px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; box-shadow:3px 3px 0 #121212"><bb-icon name="search" color="#FFD84A" size="18"></bb-icon><div style="font-size:14px; font-weight:700">Mockups</div></div>
+            </div>
+            <div style="display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; margin:0 -20px; padding:0 20px 4px">
+              <sc-for list="{{ catChips }}" as="c" hint-placeholder-count="4">
+                <div onClick="{{ c.pick }}" style="flex:none; padding:8px 14px; border:2.5px solid #121212; border-radius:999px; background:{{ c.bg }}; color:{{ c.fg }}; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ c.label }}</div>
+              </sc-for>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <div style="font-family:'Space Mono',monospace; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em">{{ catCount }} résultats</div>
+              <div style="display:flex; align-items:center; gap:6px; padding:6px 10px; border:2px solid #121212; border-radius:10px; background:#FFFFFF; font-size:12px; font-weight:800"><bb-icon name="filter" color="#C9A8F5" size="16"></bb-icon>Populaires</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px">
+              <sc-for list="{{ catalog }}" as="p" hint-placeholder-count="6">
+                <div style="border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; overflow:hidden">
+                  <div style="position:relative; height:132px; background:url({{ p.img }}) center / cover no-repeat; border-bottom:2.5px solid #121212">
+                    <sc-if value="{{ p.tag }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:8px; left:8px; padding:3px 8px; border:2px solid #121212; border-radius:999px; background:{{ p.tagBg }}; font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase">{{ p.tag }}</div></sc-if>
+                  </div>
+                  <div style="padding:10px 12px 12px">
+                    <div style="font-size:13px; font-weight:800; line-height:1.2">{{ p.title }}</div>
+                    <div style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:11px; font-weight:700"><bb-icon name="star" color="#FFD84A" size="13"></bb-icon>{{ p.rating }}<span style="opacity:.55">· {{ p.sales }} ventes</span></div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px">
+                      <div style="font-family:'Archivo Black',sans-serif; font-size:15px">{{ p.price }}</div>
+                      <div style="width:32px; height:32px; border:2px solid #121212; border-radius:10px; background:#FFD84A; display:grid; place-items:center"><bb-icon name="cart" color="#FFFFFF" size="16"></bb-icon></div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; justify-content:space-around; padding:10px 8px 12px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <sc-for list="{{ navExplore }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:52px; height:32px; border:2px solid {{ n.bd }}; border-radius:99px; background:{{ n.bg }}; display:grid; place-items:center"><bb-icon name="{{ n.id }}" color="{{ n.color }}" size="20"></bb-icon></div><div style="font-size:10.5px; font-weight:{{ n.fw }}">{{ n.fr }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 08 FICHE PRODUIT -->
+    <div data-screen-label="08 Fiche produit" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">08 · Fiche produit</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="position:relative; height:320px; background:url('img/studio-02.png') center / cover no-repeat; border-bottom:2.5px solid #121212">
+            <div style="position:absolute; top:14px; left:16px; right:16px; display:flex; justify-content:space-between">
+              <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; font-size:20px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)">←</div>
+              <div style="display:flex; gap:8px">
+                <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="share" color="#C9A8F5" size="18"></bb-icon></div>
+                <div onClick="{{ toggleLike }}" style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:{{ likeBg }}; display:grid; place-items:center; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)"><bb-icon name="heart" color="{{ likeColor }}" size="18"></bb-icon></div>
+              </div>
+            </div>
+            <div style="position:absolute; bottom:12px; left:0; right:0; display:flex; justify-content:center; gap:6px">
+              <div style="width:22px; height:8px; border:2px solid #121212; border-radius:99px; background:#121212"></div>
+              <div style="width:8px; height:8px; border:2px solid #121212; border-radius:99px; background:#FFFFFF"></div>
+              <div style="width:8px; height:8px; border:2px solid #121212; border-radius:99px; background:#FFFFFF"></div>
+              <div style="width:8px; height:8px; border:2px solid #121212; border-radius:99px; background:#FFFFFF"></div>
+            </div>
+          </div>
+          <div style="flex:1; padding:18px 20px 24px; display:flex; flex-direction:column; gap:18px">
+            <div>
+              <div style="display:inline-block; padding:3px 10px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em">Mockup · PSD</div>
+              <div style="font-family:'Archivo Black',sans-serif; font-size:28px; line-height:1; letter-spacing:-1px; text-transform:uppercase; margin-top:10px">Pack mockups Studio</div>
+              <div style="display:flex; align-items:center; gap:10px; margin-top:12px">
+                <div style="flex:none; width:30px; height:30px; border:2px solid #121212; border-radius:99px; background:url('img/beaute-afro.jpg') center 25% / cover no-repeat"></div>
+                <div style="flex:1; font-size:13px; font-weight:800">Awa Diallo <span style="font-weight:600; opacity:.6">· Dakar</span></div>
+                <div style="display:flex; align-items:center; gap:4px; font-size:12.5px; font-weight:800"><bb-icon name="star" color="#FFD84A" size="15"></bb-icon>4,9 <span style="font-weight:600; opacity:.6">(128)</span></div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em">Licence</div>
+              <sc-for list="{{ licenses }}" as="l" hint-placeholder-count="2">
+                <div onClick="{{ l.pick }}" style="display:flex; align-items:center; gap:12px; padding:13px; border:2.5px solid #121212; border-radius:16px; background:{{ l.bg }}; box-shadow:{{ l.shadow }}; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
+                  <div style="width:22px; height:22px; flex:none; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center"><div style="width:10px; height:10px; border-radius:99px; background:{{ l.dot }}"></div></div>
+                  <div style="flex:1; min-width:0"><div style="font-size:14px; font-weight:800">{{ l.label }}</div><div style="font-size:11.5px; font-weight:600; opacity:.65">{{ l.sub }}</div></div>
+                  <div style="font-family:'Archivo Black',sans-serif; font-size:15px">{{ l.price }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; padding:14px 16px">
+              <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em">Inclus</div>
+              <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px">
+                <sc-for list="{{ inclus }}" as="f" hint-placeholder-count="3">
+                  <div style="display:flex; align-items:center; gap:10px"><bb-icon name="{{ f.icon }}" color="{{ f.color }}" size="20"></bb-icon><div style="flex:1; font-size:13px; font-weight:700">{{ f.label }}</div><div style="font-family:'Space Mono',monospace; font-size:10.5px; opacity:.6">{{ f.meta }}</div></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; align-items:center; gap:12px; padding:12px 20px 16px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <div style="flex:none"><div style="font-family:'Space Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; opacity:.6">Total</div><div style="font-family:'Archivo Black',sans-serif; font-size:22px">{{ licensePrice }}</div></div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:14px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:14.5px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="cart" color="#FFFFFF" size="18"></bb-icon>Ajouter au panier</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 09 MES PRODUITS -->
+    <div data-screen-label="09 Mes produits" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">09 · Atelier · Mes produits</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="flex:1; padding:18px 20px 24px; display:flex; flex-direction:column; gap:16px">
+            <div style="display:flex; align-items:center; gap:12px">
+              <div style="flex:1; font-family:'Archivo Black',sans-serif; font-size:26px; letter-spacing:-.8px; text-transform:uppercase">Mes produits</div>
+              <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="search" color="#FFD84A" size="20"></bb-icon></div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); padding:4px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF">
+              <sc-for list="{{ prodTabs }}" as="t" hint-placeholder-count="3">
+                <div onClick="{{ t.pick }}" style="padding:9px 4px; border-radius:10px; background:{{ t.bg }}; color:{{ t.fg }}; text-align:center; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ t.label }} <span style="opacity:.7">{{ t.n }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px">
+              <sc-for list="{{ myProducts }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex; gap:12px; padding:12px; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF; box-shadow:3px 3px 0 #121212">
+                  <div style="width:68px; height:68px; flex:none; border:2px solid #121212; border-radius:12px; background:url({{ p.img }}) center / cover no-repeat"></div>
+                  <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+                    <div style="display:flex; align-items:flex-start; gap:8px"><div style="flex:1; font-size:14px; font-weight:800; line-height:1.2">{{ p.title }}</div><bb-icon name="more" color="#EADFF9" size="18"></bb-icon></div>
+                    <div style="align-self:flex-start; display:flex; align-items:center; gap:5px; padding:2px 8px 2px 4px; border:2px solid #121212; border-radius:999px; background:{{ p.stBg }}; font-size:10.5px; font-weight:800"><bb-icon name="{{ p.stIcon }}" color="#FFFFFF" size="13"></bb-icon>{{ p.status }}</div>
+                    <div style="display:flex; gap:14px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700"><span>{{ p.price }}</span><span style="opacity:.6">{{ p.meta }}</span></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; justify-content:space-around; padding:10px 8px 12px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <div style="position:absolute; right:20px; bottom:calc(100% + 16px); display:flex; align-items:center; gap:8px; padding:0 18px; height:56px; border:2.5px solid #121212; border-radius:18px; background:#E2622C; color:#FFFFFF; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="plus" color="#FFD84A" size="22"></bb-icon>Nouveau</div>
+            <sc-for list="{{ navDash }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:52px; height:32px; border:2px solid {{ n.bd }}; border-radius:99px; background:{{ n.bg }}; display:grid; place-items:center"><bb-icon name="{{ n.id }}" color="{{ n.color }}" size="20"></bb-icon></div><div style="font-size:10.5px; font-weight:{{ n.fw }}">{{ n.fr }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- 10 STATISTIQUES -->
+    <div data-screen-label="10 Statistiques" style="display:flex; flex-direction:column; gap:14px">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase">10 · Atelier · Statistiques</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 380 }}" height="{{ 800 }}" hint-size="380px,800px">
+        <div style="min-height:100%; background:#EADFF9; display:flex; flex-direction:column">
+          <div style="flex:1; padding:16px 20px 24px; display:flex; flex-direction:column; gap:16px">
+            <div style="display:flex; align-items:center; gap:12px">
+              <div style="width:44px; height:44px; flex:none; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; font-size:20px; font-weight:800; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)">←</div>
+              <div style="flex:1; font-size:15px; font-weight:800">Statistiques</div>
+              <div style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; display:grid; place-items:center; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><bb-icon name="download" color="#C9A8F5" size="18"></bb-icon></div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); padding:4px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF">
+              <sc-for list="{{ periods }}" as="t" hint-placeholder-count="3">
+                <div onClick="{{ t.pick }}" style="padding:9px 4px; border-radius:10px; background:{{ t.bg }}; color:{{ t.fg }}; text-align:center; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ t.label }}</div>
+              </sc-for>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:22px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; padding:16px">
+              <div style="font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Revenus</div>
+              <div style="display:flex; align-items:baseline; gap:10px; margin-top:6px"><div style="font-family:'Archivo Black',sans-serif; font-size:34px; letter-spacing:-1.2px">{{ period.total }}</div><div style="padding:2px 8px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-size:11.5px; font-weight:800">{{ period.delta }}</div></div>
+              <div style="display:flex; align-items:flex-end; gap:5px; height:110px; margin-top:14px; padding-bottom:2px; border-bottom:2.5px solid #121212">
+                <sc-for list="{{ period.bars }}" as="b" hint-placeholder-count="10"><div style="flex:1; height:{{ b.h }}; border:2px solid #121212; border-bottom:none; border-radius:6px 6px 0 0; background:{{ b.bg }}"></div></sc-for>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-top:6px; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; opacity:.6"><span>{{ period.from }}</span><span>{{ period.to }}</span></div>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:16px">
+              <div style="display:flex; align-items:center; gap:8px"><bb-icon name="pie" color="#C9A8F5" size="20"></bb-icon><div style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.04em">Par catégorie</div></div>
+              <div style="display:flex; height:22px; margin-top:14px; border:2.5px solid #121212; border-radius:99px; overflow:hidden">
+                <sc-for list="{{ split }}" as="s" hint-placeholder-count="4"><div style="width:{{ s.w }}; background:{{ s.bg }}; border-right:2px solid #121212"></div></sc-for>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; margin-top:12px">
+                <sc-for list="{{ split }}" as="s" hint-placeholder-count="4"><div style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700"><div style="width:12px; height:12px; border:2px solid #121212; border-radius:4px; background:{{ s.bg }}"></div><div style="flex:1">{{ s.label }}</div><div style="font-family:'Space Mono',monospace; font-size:10.5px">{{ s.w }}</div></div></sc-for>
+              </div>
+            </div>
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; padding:16px">
+              <div style="display:flex; align-items:center; gap:8px"><bb-icon name="trophy" color="#FFD84A" size="20"></bb-icon><div style="font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.04em">Top produits</div></div>
+              <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px">
+                <sc-for list="{{ top }}" as="t" hint-placeholder-count="3">
+                  <div style="display:flex; align-items:center; gap:12px">
+                    <div style="width:26px; flex:none; font-family:'Archivo Black',sans-serif; font-size:16px">{{ t.rank }}</div>
+                    <div style="width:40px; height:40px; flex:none; border:2px solid #121212; border-radius:10px; background:url({{ t.img }}) center / cover no-repeat"></div>
+                    <div style="flex:1; min-width:0"><div style="font-size:13px; font-weight:800">{{ t.title }}</div><div style="margin-top:5px; height:8px; border:2px solid #121212; border-radius:99px; background:#F4EEFC; overflow:hidden"><div style="width:{{ t.w }}; height:100%; background:#121212"></div></div></div>
+                    <div style="font-size:13px; font-weight:800; white-space:nowrap">{{ t.amount }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="position:sticky; bottom:0; display:flex; justify-content:space-around; padding:10px 8px 12px; border-top:2.5px solid #121212; background:#FFFFFF">
+            <sc-for list="{{ navDash }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation; cursor:pointer" style-active="transform:scale(0.97)"><div style="width:52px; height:32px; border:2px solid {{ n.bd }}; border-radius:99px; background:{{ n.bg }}; display:grid; place-items:center"><bb-icon name="{{ n.id }}" color="{{ n.color }}" size="20"></bb-icon></div><div style="font-size:10.5px; font-weight:{{ n.fw }}">{{ n.fr }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const NAV = [['home','Accueil'],['compass','Explorer'],['bag','Achats'],['dashboard','Atelier'],['user','Profil']];
+const nav = active => NAV.map(([id, fr]) => { const a = id === active; return { id, fr, bg: a ? '#FFD84A' : 'transparent', bd: a ? '#121212' : 'transparent', color: a ? '#FFFFFF' : '#EADFF9', fw: a ? 800 : 600 }; });
+const PAY = [
+  { key: 'wave', label: 'Wave', sub: 'Validation dans l\'app Wave', icon: 'wallet', color: '#C9A8F5' },
+  { key: 'om', label: 'Orange Money', sub: 'Code USSD envoyé par SMS', icon: 'coins', color: '#E2622C' },
+  { key: 'card', label: 'Carte bancaire', sub: 'Visa, Mastercard', icon: 'card', color: '#FFD84A' }
+];
+class Component extends DCLogic {
+  state = { pay: 'wave', cat: 'Tout', license: 'com', liked: false, prodTab: 'live', period: '30' };
+  renderVals() {
+    const { pay, cat, license, liked, prodTab, period } = this.state;
+    const seg = (on) => ({ bg: on ? '#121212' : 'transparent', fg: on ? '#FFFFFF' : '#121212' });
+    const CATALOG = [
+      { img: 'img/studio-02.png', title: 'Pack mockups Studio', rating: '4,9', sales: 128, price: '5 000 F', type: 'Print', tag: 'Best', tagBg: '#FFD84A' },
+      { img: 'img/neon-01.png', title: 'Enseigne néon', rating: '4,7', sales: 86, price: '2 000 F', type: 'Écran' },
+      { img: 'img/packshot-soin.png', title: 'Flacon cosmétique', rating: '4,8', sales: 64, price: '3 000 F', type: 'Packaging', tag: 'Nouveau', tagBg: '#C9A8F5' },
+      { img: 'img/mode-blanc-02.png', title: 'Tote bag lin', rating: '4,6', sales: 52, price: '2 500 F', type: 'Textile' },
+      { img: 'img/emeraude.png', title: 'Boîte émeraude', rating: '4,9', sales: 41, price: '3 500 F', type: 'Packaging' },
+      { img: 'img/studio-01.png', title: 'Affiche A2', rating: '4,5', sales: 37, price: '1 500 F', type: 'Print' }
+    ];
+    const cats = ['Tout', 'Print', 'Packaging', 'Écran', 'Textile'];
+    const catalog = CATALOG.filter(p => cat === 'Tout' || p.type === cat).map(p => ({ ...p, tag: p.tag || false }));
+    const LIC = [
+      { key: 'perso', label: 'Personnelle', sub: 'Projets non commerciaux', price: '3 000 F' },
+      { key: 'com', label: 'Commerciale', sub: 'Clients, pub, revente du rendu', price: '5 000 F' }
+    ];
+    const PRODS = {
+      live: [
+        { img: 'img/studio-02.png', title: 'Pack mockups Studio', price: '5 000 F', meta: '128 ventes' },
+        { img: 'img/neon-01.png', title: 'Enseigne néon', price: '2 000 F', meta: '86 ventes' },
+        { img: 'img/emeraude.png', title: 'Boîte émeraude', price: '3 500 F', meta: '41 ventes' },
+        { img: 'img/mode-blanc-01.png', title: 'Mode blanc · série', price: '4 000 F', meta: '29 ventes' }
+      ].map(p => ({ ...p, status: 'En ligne', stIcon: 'check', stBg: '#FFD84A' })),
+      review: [
+        { img: 'img/packshot-soin.png', title: 'Flacon cosmétique', price: '3 000 F', meta: 'Envoyé hier' }
+      ].map(p => ({ ...p, status: 'En revue', stIcon: 'clock', stBg: '#C9A8F5' })),
+      draft: [
+        { img: 'img/robe-bleue.png', title: 'Robe bleue · lookbook', price: '—', meta: 'Modifié il y a 2 j' },
+        { img: 'img/neon-02.png', title: 'Néon Lagos v2', price: '—', meta: 'Modifié il y a 5 j' }
+      ].map(p => ({ ...p, status: 'Brouillon', stIcon: 'edit', stBg: '#FFFFFF' }))
+    };
+    const PER = {
+      '7': { total: '42 000 F', delta: '+6 %', from: 'Lun', to: 'Dim', bars: [40, 62, 35, 70, 55, 88, 64] },
+      '30': { total: '184 500 F', delta: '+18 %', from: '5 oct.', to: '4 nov.', bars: [30, 44, 38, 52, 47, 60, 55, 72, 66, 90] },
+      '365': { total: '1,6 M F', delta: '+41 %', from: 'nov. 25', to: 'oct. 26', bars: [22, 28, 35, 31, 42, 48, 45, 58, 63, 70, 82, 94] }
+    };
+    const per = PER[period];
+    return {
+      catChips: cats.map(c => ({ label: c, ...seg(c === cat), pick: () => this.setState({ cat: c }) })),
+      catalog, catCount: catalog.length, navExplore: nav('compass'),
+      licenses: LIC.map(l => { const on = l.key === license; return { ...l, bg: on ? '#FFFFFF' : '#F4EEFC', shadow: on ? '4px 4px 0 #121212' : 'none', dot: on ? '#121212' : 'transparent', pick: () => this.setState({ license: l.key }) }; }),
+      licensePrice: LIC.find(l => l.key === license).price,
+      toggleLike: () => this.setState(s => ({ liked: !s.liked })),
+      likeBg: liked ? '#E2622C' : '#FFFFFF', likeColor: liked ? '#FFD84A' : '#EADFF9',
+      inclus: [
+        { icon: 'image', color: '#FFD84A', label: '12 scènes PSD', meta: '4K' },
+        { icon: 'file', color: '#C9A8F5', label: 'Calques objets dynamiques', meta: '' },
+        { icon: 'download', color: '#E2622C', label: 'Téléchargement immédiat', meta: '1,2 Go' }
+      ],
+      prodTabs: [['live', 'En ligne'], ['review', 'En revue'], ['draft', 'Brouillons']].map(([k, label]) => ({ label, n: PRODS[k].length, ...seg(k === prodTab), pick: () => this.setState({ prodTab: k }) })),
+      myProducts: PRODS[prodTab],
+      periods: [['7', '7 jours'], ['30', '30 jours'], ['365', '12 mois']].map(([k, label]) => ({ label, ...seg(k === period), pick: () => this.setState({ period: k }) })),
+      period: { ...per, bars: per.bars.map((h, i, a) => ({ h: h + '%', bg: i === a.length - 1 ? '#E2622C' : '#FFD84A' })) },
+      split: [['Mockups', '46%', '#FFD84A'], ['Packaging', '24%', '#C9A8F5'], ['Photos', '18%', '#E2622C'], ['Polices', '12%', '#FFFFFF']].map(([label, w, bg]) => ({ label, w, bg })),
+      top: [
+        { rank: '01', img: 'img/studio-02.png', title: 'Pack mockups Studio', amount: '64 000 F', w: '100%' },
+        { rank: '02', img: 'img/neon-01.png', title: 'Enseigne néon', amount: '38 000 F', w: '59%' },
+        { rank: '03', img: 'img/emeraude.png', title: 'Boîte émeraude', amount: '21 000 F', w: '33%' }
+      ],
+      feed: [
+        { img: 'img/studio-01.png', title: 'Studio lumière', author: 'K. Mensah', price: '3 500 F', heart: '#EADFF9' },
+        { img: 'img/neon-02.png', title: 'Néon Lagos', author: 'T. Adeyemi', price: '2 000 F', heart: '#E2622C' },
+        { img: 'img/robe-bleue.png', title: 'Robe bleue', author: 'Awa D.', price: '4 000 F', heart: '#EADFF9' },
+        { img: 'img/packshot-soin.png', title: 'Packshot soin', author: 'Studio Ndar', price: '2 500 F', heart: '#E2622C' }
+      ],
+      navHome: nav('home'), navDash: nav('dashboard'), navProfil: nav('user'),
+      bars: [38, 52, 30, 64, 48, 76, 58, 92].map((h, i) => ({ h: h + '%', bg: i === 7 ? '#121212' : '#FFFFFF' })),
+      kpis: [
+        { id: 'download', color: '#C9A8F5', value: '1 248', label: 'Téléchargements' },
+        { id: 'eye', color: '#FFD84A', value: '9,4 k', label: 'Vues' },
+        { id: 'heart', color: '#E2622C', value: '362', label: 'J\'aime' },
+        { id: 'star', color: '#FFD84A', value: '4,8', label: 'Note moyenne' }
+      ],
+      sales: [
+        { img: 'img/neon-01.png', title: 'Pack Néon', when: 'il y a 12 min', amount: '+2 000 F' },
+        { img: 'img/mode-blanc-01.png', title: 'Mode blanc', when: 'il y a 1 h', amount: '+4 000 F' },
+        { img: 'img/emeraude.png', title: 'Émeraude', when: 'hier', amount: '+3 500 F' }
+      ],
+      payRows: PAY.map(p => { const on = p.key === pay; return { ...p, bg: on ? '#FFFFFF' : '#F4EEFC', shadow: on ? '4px 4px 0 #121212' : 'none', dot: on ? '#121212' : 'transparent', pick: () => this.setState({ pay: p.key }) }; }),
+      payLabel: PAY.find(p => p.key === pay).label,
+      statuts: [{ glyph: '✓', name: 'Créatrice vérifiée', bg: '#FFD84A' }, { glyph: 'P', name: 'Pro', bg: '#FFFFFF' }],
+      stats: [{ v: '86', l: 'Ressources' }, { v: '2,1 k', l: 'Abonnés' }, { v: '4,8', l: 'Note' }],
+      merites: [
+        ['★', 'Première vente', '#FFD84A'], ['⚡', 'Répond vite', '#E2622C'], ['100', '100 ventes', '#C9A8F5'], ['♥', 'Coup de cœur', '#FFFFFF'], ['✦', 'Fidèle', '#FFD84A'],
+        ['?', 'Top vendeuse', null], ['?', 'Mentor', null], ['?', 'Série', null]
+      ].map(([glyph, name, bg]) => ({ glyph, name, bg: bg || '#F4EEFC', fg: bg === '#E2622C' ? '#FFFFFF' : '#121212', bs: bg ? 'solid' : 'dashed', op: bg ? 1 : .55 }))
+    };
+  }
+}
+</script>
+</body>
+</html>
