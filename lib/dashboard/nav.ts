@@ -153,7 +153,7 @@ const PORTE_CREATION: EntreeNav = {
   cle: "c_publier",
   label: "Devenir vendeur",
   glyph: "★",
-  href: "/dashboard/produits/nouveau",
+  href: "/dashboard/devenir-vendeur",
   badge: "NEW",
 };
 

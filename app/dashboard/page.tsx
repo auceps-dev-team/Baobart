@@ -14,8 +14,10 @@ import { RevenusParMois } from "@/components/dashboard/revenus-mois";
 import { UrlBoutique } from "@/components/dashboard/url-boutique";
 import { Vignette } from "@/components/dashboard/vignette";
 import { deconnecter } from "@/lib/auth/actions";
+import type { EtapeCompte } from "@/lib/auth/roles";
 import { sessionCourante } from "@/lib/auth/session";
 import { urlDuSite } from "@/lib/config/site";
+import { lireProgressionVendeur } from "@/lib/dashboard/devenir-vendeur-lecture";
 import { indicateursCreateur } from "@/lib/dashboard/indicateurs";
 import { lireResumeDashboard, lireVentesCreateur } from "@/lib/dashboard/lectures";
 import { encaisseDe } from "@/lib/domain/encaisse";
@@ -72,19 +74,35 @@ export default async function DashboardPage() {
       description="Tes gains, tes ventes et l'audience de ta boutique ce mois-ci."
       action={action}
     >
-      <VueVendeur userId={utilisateur.id} username={utilisateur.username} progression={messageProgression(utilisateur.progression)} />
+      <VueVendeur
+        userId={utilisateur.id}
+        username={utilisateur.username}
+        etape={utilisateur.progression.etape}
+        progression={messageProgression(utilisateur.progression)}
+      />
     </DashboardFrame>
   );
 }
 
 const grilleCartes = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14 } as const;
 
-async function VueVendeur({ userId, username, progression }: { userId: string; username: string | null; progression: string }) {
+async function VueVendeur({
+  userId,
+  username,
+  etape,
+  progression,
+}: {
+  userId: string;
+  username: string | null;
+  etape: EtapeCompte;
+  progression: string;
+}) {
   const maintenant = new Date();
-  const [i, resume, ventes] = await Promise.all([
+  const [i, resume, ventes, avancementAtelier] = await Promise.all([
     indicateursCreateur(userId, maintenant),
     lireResumeDashboard(userId),
     lireVentesCreateur(userId, 4),
+    etape === "ATELIER" ? lireProgressionVendeur(userId) : Promise.resolve(null),
   ]);
   const argent = (n: number) => formatMoney(n, i.devise);
   const ecart = variation(i.gainsMois, i.gainsMoisPrecedent);
@@ -92,6 +110,56 @@ async function VueVendeur({ userId, username, progression }: { userId: string; u
 
   return (
     <>
+      {avancementAtelier ? (
+        <section
+          data-encart-atelier
+          style={{
+            border: CADRE,
+            borderRadius: 22,
+            background: JAUNE,
+            boxShadow: `5px 5px 0 ${ENCRE}`,
+            padding: "16px 20px",
+            marginBottom: 18,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 14,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 19,
+                textTransform: "uppercase",
+                letterSpacing: "-.4px",
+              }}
+            >
+              {`Ta progression : ${avancementAtelier.faites} étape${avancementAtelier.faites > 1 ? "s" : ""} sur ${avancementAtelier.total}`}
+            </div>
+            <p style={{ margin: "4px 0 0", fontSize: 13.5, fontWeight: 650 }}>
+              Complète ton profil, ton moyen de versement et publie tes premières ressources pour ouvrir ta boutique.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/devenir-vendeur"
+            className="sticker-press"
+            style={{
+              padding: "10px 16px",
+              border: CADRE,
+              borderRadius: 12,
+              background: "#FFFFFF",
+              fontSize: 13,
+              fontWeight: 800,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Voir les étapes →
+          </Link>
+        </section>
+      ) : null}
+
       <div style={grilleCartes}>
         <MetricCard
           label="Gains ce mois"
