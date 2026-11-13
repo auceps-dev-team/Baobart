@@ -103,6 +103,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| — (docs) | #48 | Ce fichier, les règles communes en tête du `CLAUDE.md`, `Doc/PROCESS_COLLABORATEURS.md` à coller, la section « Contribuer » du README. |
 | v1.105.1 | #42 | Les trois défauts trouvés par la relecture d'Argon sur de vrais comptes (contraste en sommeil, « Fidèle », ventes à vie et abonnés de la vitrine). |
 | v1.105.0 | #41 | Lot 2 — les vingt mérites, « Mes badges », les deux rangées du profil, l'écusson des vignettes ; « Créateur du mois » et son passage quotidien. |
 | v1.104.0 | #40 | Lot 1 — l'administration accorde et retire les statuts ; la publication de services se rouvre. |
