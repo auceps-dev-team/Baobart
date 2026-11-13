@@ -3,6 +3,7 @@ import "server-only";
 import { estExpire, estPublic } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
 import type { JobMode, JobType } from "@/lib/jobs/enums";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Ce que le public voit des offres d'emploi.
@@ -243,9 +244,9 @@ export async function offrePublique(
       applyMode: true,
       applyUrl: true,
       recruiterId: true,
+      // Pas d'`email` : la fiche est lue sans compte (B14, voir `nomPublic`).
       recruiter: {
         select: {
-          email: true,
           profile: { select: { displayName: true, username: true } },
           ...STATUT_RECRUTEUR,
         },
@@ -279,7 +280,7 @@ export async function offrePublique(
     miseEnAvant: o.isFeatured,
     commentPostuler: o.applyMode,
     urlExterne: o.applyUrl,
-    recruteur: o.recruiter.profile?.displayName ?? o.recruiter.email,
+    recruteur: nomPublic(o.recruiter.profile),
     recruteurUsername: o.recruiter.profile?.username ?? null,
     recruteurId: o.recruiterId,
     candidatures:
