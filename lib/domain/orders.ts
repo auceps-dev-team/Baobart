@@ -16,6 +16,7 @@ import type { Currency } from "@/lib/domain/prisma-types";
 import { crediterSolde } from "@/lib/domain/balances";
 import { encaisseDe } from "@/lib/domain/encaisse";
 import { computeFees, partProportionnelle } from "@/lib/domain/fees";
+import { recompterApresLigne } from "@/lib/avis/recompte";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { notifier } from "@/lib/notifications/aiguilleur";
@@ -67,7 +68,7 @@ export async function encaisserLigne(input: EncaissementInput) {
     date = new Date(),
   } = input;
 
-  return db.$transaction(async (tx: Prisma.TransactionClient) => {
+  const resultat = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const ligne = await tx.orderItem.findUniqueOrThrow({
       where: { id: orderItemId },
       include: {
@@ -159,6 +160,11 @@ export async function encaisserLigne(input: EncaissementInput) {
 
     return { ligne: ligneEncaissee, frais, mouvement };
   }, { isolationLevel: "Serializable" });
+
+  // Un avis peut entrer dans les comptes, ou en sortir (lib/avis/recompte.ts).
+  // Après la transaction d'argent, jamais dedans ; et il ne lève jamais.
+  await recompterApresLigne(orderItemId);
+  return resultat;
 }
 
 /**
@@ -193,7 +199,7 @@ export async function rembourserLigne(input: {
     throw new RangeError(`Montant de remboursement invalide : ${amount}`);
   }
 
-  return db.$transaction(async (tx: Prisma.TransactionClient) => {
+  const resultat = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const ligne = await tx.orderItem.findUniqueOrThrow({
       where: { id: orderItemId },
       include: { order: true, product: { include: { seller: true } } },
@@ -332,4 +338,9 @@ export async function rembourserLigne(input: {
 
     return { remboursement, mouvement, retenu, aCharge: amount };
   }, { isolationLevel: "Serializable" });
+
+  // Un avis peut entrer dans les comptes, ou en sortir (lib/avis/recompte.ts).
+  // Après la transaction d'argent, jamais dedans ; et il ne lève jamais.
+  await recompterApresLigne(orderItemId);
+  return resultat;
 }

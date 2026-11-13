@@ -121,6 +121,9 @@ export type EvenementNotifiable =
   | "INSCRIPTION_EVENEMENT"
   | "NOUVEL_ABONNE"
   | "CREATEUR_DU_MOIS"
+  | "AVIS_RECU"
+  // ── Acheteur, après un avis ─────────────────────────────────────────────
+  | "REPONSE_AVIS"
   // ── Communautés ─────────────────────────────────────────────────────────
   | "COMMUNAUTE_NOUVEAU_MESSAGE"
   | "COMMUNAUTE_NOUVEAU_MEMBRE"
@@ -298,6 +301,24 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     libelle: "Créateur du mois",
     explication: "Tu fais partie des créateurs qui ont vendu au plus d'acheteurs ce mois-ci.",
     modele: "CREATEUR_DU_MOIS",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  // Ajoutés le 09/11/2026 avec les avis notés (lot 4). Gumroad prévient le
+  // vendeur d'un avis et l'auteur d'une réponse (`product_review.rb`,
+  // `product_review_response.rb`, lus le 09/11) : nous aussi, par courriel —
+  // un avis est rare à côté d'un abonnement, et il appelle une réponse.
+  AVIS_RECU: {
+    audience: "vendeur",
+    libelle: "Nouvel avis",
+    explication: "Quelqu'un a noté une de tes ressources.",
+    modele: "AVIS_RECU",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  REPONSE_AVIS: {
+    audience: "acheteur",
+    libelle: "Réponse à mon avis",
+    explication: "Le créateur a répondu à l'avis que tu as laissé.",
+    modele: "REPONSE_AVIS",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
 

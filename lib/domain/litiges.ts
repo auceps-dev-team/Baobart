@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { crediterSolde } from "@/lib/domain/balances";
 import { encaisseDe } from "@/lib/domain/encaisse";
+import { recompterApresLigne } from "@/lib/avis/recompte";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 
@@ -53,7 +54,7 @@ export async function enregistrerLitige(input: {
   const date = input.date ?? new Date();
 
   try {
-    return await db.$transaction(
+    const suite = await db.$transaction(
     async (tx: Prisma.TransactionClient) => {
       const ligne = await tx.orderItem.findUnique({
         where: { id: input.orderItemId },
@@ -112,6 +113,10 @@ export async function enregistrerLitige(input: {
     },
     { isolationLevel: "Serializable", timeout: 15_000, maxWait: 10_000 },
     );
+    // L'avis de l'acheteur sort des comptes (lib/avis/recompte.ts) : après la
+    // transaction d'argent, jamais dedans ; et il ne lève jamais.
+    if (suite.enregistre) await recompterApresLigne(input.orderItemId);
+    return suite;
   } catch (cause) {
     if (conflitDeSerialisation(cause)) {
       return { enregistre: false, motif: "DEJA_ENREGISTRE" };
@@ -147,7 +152,7 @@ export async function litigeGagne(input: {
   const date = input.date ?? new Date();
 
   try {
-    return await db.$transaction(
+    const suite = await db.$transaction(
     async (tx: Prisma.TransactionClient) => {
       const ligne = await tx.orderItem.findUnique({
         where: { id: input.orderItemId },
@@ -196,6 +201,9 @@ export async function litigeGagne(input: {
     },
     { isolationLevel: "Serializable", timeout: 15_000, maxWait: 10_000 },
     );
+    // Litige gagné : l'avis de l'acheteur revient dans les comptes.
+    if (suite.rendu) await recompterApresLigne(input.orderItemId);
+    return suite;
   } catch (cause) {
     if (conflitDeSerialisation(cause)) {
       return { rendu: false, motif: "DEJA_TRANCHE" };

@@ -31,8 +31,8 @@ import { ENCRE, BLANC, JAUNE, LAVANDE, MAUVE, ORANGE, VERT } from "@/lib/systeme
  * ════════════════════════════════════════════════════════════════════════════
  * TROIS MÉRITES NE SE MESURENT PAS ENCORE
  *
- * « Bien noté » et « Bon public » attendent les avis notés (lot 4 de
- * l'inventaire) : il n'existe aucune table d'avis. « Répond vite » attend un
+ * « Bien noté » et « Bon public » se mesurent depuis le lot 4 (avis notés,
+ * 09/11/2026). « Répond vite » attend un
  * canal de réponse sur la plateforme : la maquette le définit sur les
  * services, et une demande de service part aujourd'hui par courriel
  * (`lib/services/contact.ts`) — aucune réponse n'est enregistrée. Décidé le
@@ -104,6 +104,12 @@ export const TETE_DU_MOIS = { jours: 30, partDeTete: 0.05, plancher: 20 } as con
  */
 export const ABONNE_COMPTE_APRES_JOURS = 7;
 
+/** « Bien noté » : la note ET le nombre — « le seuil de 20 est la moitié du badge » (maquette). */
+export const BIEN_NOTE = { note: 4.5, avis: 20 } as const;
+
+/** « Bon public » : vingt-cinq avis rédigés. Lu aussi à côté d'un avis (`lib/avis/lecture.ts`). */
+export const BON_PUBLIC_AVIS = 25;
+
 /**
  * Ce qu'il faut savoir d'un compte pour trancher ses mérites.
  *
@@ -143,6 +149,16 @@ export interface Mesures {
   createurDuMoisJusquAu: Date | null;
   /** Distinction éditoriale, posée par l'administration. */
   vip: boolean;
+  /**
+   * Les avis COMPTÉS reçus sur ses ressources (`lib/avis/recompte.ts`), et
+   * seulement ceux de comptes qui comptent — ni suspendus, ni effacés, ni de
+   * moins de 7 jours : l'anti-triche du 08/11 appliqué à « Bien noté », parce
+   * que les ressources gratuites ouvrent les avis aux comptes jetables
+   * (décision du 09/11).
+   */
+  avisRecus: { nombre: number; moyenne: number | null };
+  /** Les avis comptés qu'il a lui-même rédigés. */
+  avisRediges: number;
 }
 
 export interface Progression {
@@ -382,10 +398,31 @@ export const MERITES: readonly Merite[] = [
   },
 
   // ── E.5 · Qualité ────────────────────────────────────────────────────────
-  enAttente(
-    { code: "WELL_RATED", nom: "Bien noté", famille: "QUALITE", glyphe: "4.5", fond: JAUNE, encre: ENCRE, critere: "Note moyenne d'au moins 4,5 sur au moins 20 avis." },
-    "Les avis notés n'existent pas encore sur Baobart.",
-  ),
+  {
+    code: "WELL_RATED",
+    nom: "Bien noté",
+    famille: "QUALITE",
+    glyphe: "4.5",
+    fond: JAUNE,
+    encre: ENCRE,
+    critere: `Note moyenne d'au moins 4,5 sur au moins ${BIEN_NOTE.avis} avis, hors comptes suspendus et comptes de moins de ${ABONNE_COMPTE_APRES_JOURS} jours.`,
+    enAttente: null,
+    // « “5,0” sur deux avis ne dit rien — le seuil de 20 est la moitié du badge. »
+    obtenu: (m) => m.avisRecus.nombre >= BIEN_NOTE.avis && (m.avisRecus.moyenne ?? 0) >= BIEN_NOTE.note,
+    progression: (m) => {
+      // La distance se dit en avis tant qu'il en manque. Au-delà, ce qui manque
+      // est une note : elle ne se rapproche pas en ajoutant des avis.
+      if (m.avisRecus.nombre >= BIEN_NOTE.avis) return null;
+      const reste = BIEN_NOTE.avis - m.avisRecus.nombre;
+      const note = m.avisRecus.moyenne === null ? "" : ` · note actuelle ${m.avisRecus.moyenne.toLocaleString("fr-FR")}`;
+      return {
+        valeur: m.avisRecus.nombre,
+        cible: BIEN_NOTE.avis,
+        ecart: `il te manque ${accorde(reste, "avis", "avis")}`,
+        detail: `${nombre(m.avisRecus.nombre)} ${m.avisRecus.nombre > 1 ? "avis comptés" : "avis compté"} sur ${BIEN_NOTE.avis}${note}`,
+      };
+    },
+  },
   palier(
     { code: "NO_DISPUTE", nom: "Sans litige", famille: "QUALITE", glyphe: "0", fond: VERT, encre: ENCRE, critere: "Cinquante acheteurs différents servis sans un seul litige." },
     (m) => m.acheteursDepuisLeDernierLitige,
@@ -412,9 +449,11 @@ export const MERITES: readonly Merite[] = [
     500,
     { singulier: "abonné", pluriel: "abonnés", detail: "abonnés", detailSingulier: "abonné" },
   ),
-  enAttente(
-    { code: "HELPFUL_REVIEWER", nom: "Bon public", famille: "COMMUNAUTE", glyphe: "25", fond: LAVANDE, encre: ENCRE, critere: "Vingt-cinq avis rédigés." },
-    "Les avis notés n'existent pas encore sur Baobart.",
+  palier(
+    { code: "HELPFUL_REVIEWER", nom: "Bon public", famille: "COMMUNAUTE", glyphe: "25", fond: LAVANDE, encre: ENCRE, critere: "Vingt-cinq avis rédigés, sur des ressources gardées." },
+    (m) => m.avisRediges,
+    BON_PUBLIC_AVIS,
+    { singulier: "avis", pluriel: "avis", detail: "avis rédigés", detailSingulier: "avis rédigé" },
   ),
   {
     code: "VIP_CREATOR",
