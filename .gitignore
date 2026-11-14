@@ -38,6 +38,8 @@ Thumbs.db
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+# Captures de design (pnpm design:captures) : plusieurs centaines de Mo, régénérables.
+/captures-design/
 
 # Maquettes & exports de conception locaux
 Baobart Design/posts/

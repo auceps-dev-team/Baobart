@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.107.1",
+  "version": "1.108.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -34,6 +34,8 @@
     "stockage:verifier": "tsx --conditions=react-server --env-file=.env scripts/verifier-stockage.ts",
     "comptes:test": "tsx --conditions=react-server --env-file=.env scripts/comptes-de-test.ts",
     "db:e2e:setup": "node scripts/setup-test-db.mjs e2e",
+    "icones:generer": "tsx scripts/generer-icones.ts",
+    "design:captures": "tsx --env-file=.env scripts/design/captures.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

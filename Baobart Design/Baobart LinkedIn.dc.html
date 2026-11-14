@@ -15,6 +15,10 @@
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #DCCFF0; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font-variant-numeric: tabular-nums; }
+  @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
   a { color: #121212; text-decoration: none; }
   a:hover { color: #E2622C; }
   ::selection { background: #FFD84A; }

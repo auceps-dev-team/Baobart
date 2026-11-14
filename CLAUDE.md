@@ -182,9 +182,11 @@ du blog repose dessus. La preuve tenait en **un grep, quatre termes, un glob
 qui excluait `.mjs` et `.js`**.
 
 Revérifiée correctement, la conclusion tenait — mais pas telle qu'écrite :
-`innerHTML` apparaît cinq fois dans `Baobart Design/support.js`. Ce fichier
-n'est pas servi, donc la propriété vaut ; mais le prochain qui grep aurait
-trouvé ces cinq occurrences et cru que l'en-tête mentait.
+`innerHTML` et `outerHTML` apparaissent cinq fois dans `Baobart Design/support.js`
+(quatre et une). Ce fichier n'est pas servi, donc la propriété vaut ; mais le
+prochain qui grep aurait trouvé ces cinq occurrences et cru que l'en-tête
+mentait. Depuis le versement du 13/11/2026, `Baobart Design/baobart-icons.js`
+en ajoute deux, dans le même dossier non servi.
 
 ### Le silence d'une source n'est pas une preuve
 
@@ -280,6 +282,7 @@ ressources que deux exécutions se **corrompent** vraiment.
 | PostgreSQL | port hôte **5433**, jamais 5432 | `docker-compose.yml` |
 | Serveur de développement | port **3100**, fixé | `package.json` |
 | Serveur e2e | port **3200**, distinct du précédent | `playwright.config.ts` |
+| Serveur des captures de design | port **3300**, sur la base de développement | `scripts/design/captures.ts` |
 | Redis | préfixe `baobart:` sur toutes les clés | `lib/securite/pilotes.ts` |
 
 **Le verrou plutôt qu'un schéma par exécution.** Un schéma PostgreSQL par

@@ -136,11 +136,23 @@ dans les deux quand il est utilisé.
 
 ### Boutons
 
-Six variantes : **Primaire** (jaune) · **Secondaire** (blanc) · **Contrasté** (encre) ·
-**Tertiaire** (lavande profond) · **Puce / filtre** · **Désactivé**.
+Six variantes, `components/ui/button.tsx` (livraison « Halo », 13/11/2026) :
+
+| Variante | Repos | Survol |
+|---|---|---|
+| **Primaire** | jaune, ombre 5 px | −2/−2, ombre 8 px |
+| **Secondaire** | blanc, ombre 5 px | −2/−2, ombre 8 px |
+| **Contrasté** | encre, texte blanc, ombre **orange** 5 px | −2/−2, ombre **orange** 8 px |
+| **Tertiaire** | lavande profond, sans ombre | fond encre, texte blanc — sans soulèvement |
+| **Puce / filtre** | blanc, pastille, contour 2 px | fond jaune |
+| **Désactivé** | lavande clair, texte à 40 % | — |
+
+Tailles : 15 × 28 px, texte 15 px (planche) ; 13 × 22 px, texte 14 px (boutons d'action).
 
 > **Micro-interaction physique :** survol `translate(−2px,−2px)` + ombre **+3 px** ·
-> clic `translate(2px,2px)`, ombre à **0** · transition **130 ms**.
+> clic **réduit à 97 %** (`scale(0.97)`), ombre à **0** · **140 ms**, courbe
+> `cubic-bezier(.23,1,.32,1)`. Avant la livraison « Halo » : clic `translate(2px,2px)`,
+> 130 ms. Voir §06.
 
 ### Étiquettes & statuts
 
@@ -173,6 +185,52 @@ Champ par défaut (fond lavande clair) · sur fond blanc · sélecteur.
 | 2 | **Tout est contouré** | Aucune surface flottante sans trait noir : cartes, champs, pastilles, images, avatars |
 | 3 | **L'ombre indique le niveau** | 4 px pour une carte de liste, 6 px pour un bloc de page, 9-10 px pour un panneau modal |
 | 4 | **Le texte reste sur fond plein** | Sur une image ou une trame, poser le libellé sur une pastille blanche contournée |
+
+---
+
+## 06 · Mouvement, toucher, icônes — livraison « Halo » (13/11/2026)
+
+Source : le `CLAUDE.md` de la livraison (non versé : copié dans `Baobart Design/`, il
+se chargerait dans les sessions Claude ouvertes là) et la planche
+`Baobart Design System.dc.html`.
+
+### Le geste
+
+| Règle | Valeur | Dans le code |
+|---|---|---|
+| **Une seule courbe** | `cubic-bezier(.23,1,.32,1)` — sortie rapide, arrivée douce | `--ease-sortie`, classe `ease-sortie` |
+| **Jamais** | `ease-in` (le geste traîne), `transition: all`, plus de 300 ms pour un élément d'interface | — |
+| **Pression** | chaque élément cliquable : **140 ms**, réduit à **97 %** au clic | `--duree-pression`, `--echelle-pression` |
+| **Toucher** | `user-select: none`, `touch-action: manipulation` (pas de délai de double-tap), surbrillance de tap transparente | utilitaires `pression` et `sticker-press` |
+| **Moins de mouvement** | sous `prefers-reduced-motion`, toute durée tombe à 0,01 ms | `app/globals.css` |
+
+`pression` porte le geste seul ; `sticker-press` y ajoute le soulèvement au survol. Les
+deux sont vérifiés au navigateur par `e2e/mouvement.spec.ts`.
+
+**Écart voulu** : la planche n'anime que la transformation des boutons. On anime aussi
+l'ombre, le fond et la couleur, sur la même courbe — sinon l'ombre de chaque carte
+sauterait pendant que la carte glisse.
+
+### Reste de la livraison — pas encore appliqué (D2, mobile)
+
+- `font-variant-numeric: tabular-nums` sur le corps : les chiffres ne sautent plus quand
+  ils changent ;
+- mobile : `overscroll-behavior: none`, champs de saisie **≥ 16 px** (sinon iOS zoome) ;
+- avatars et miniatures dans une ligne flex : `flex: none`.
+
+### Icônes
+
+`<Icone nom="home" />` — `components/icones/icone.tsx`, 49 icônes générées depuis
+`Baobart Design/baobart-icons.js` (`pnpm icones:generer`).
+
+- Grille de 24 px ; trait noir de 2 px, bouts ronds ; aplat de couleur **décalé de 1,6 px**
+  vers le bas à droite — la même ombre dure que les cartes.
+- Tailles : **16** en ligne · **20** dans un bouton · **24** en navigation · **40** pour un
+  état vide.
+- Aplats : **jaune** neutre · **orange** action ou alerte · **violet** social ·
+  **lavande** secondaire (`APLATS`).
+- Sur fond noir : le **trait passe en blanc**, l'aplat reste dans la palette.
+- Décorative par défaut (masquée aux lecteurs d'écran) ; `titre="…"` la nomme.
 
 ---
 
@@ -212,7 +270,9 @@ version officielle apporte six éléments qui n'existaient pas ailleurs :
 - [ ] Ombres dures à 45°, jamais floues — 4 px liste, 6 px bloc, 9-10 px modal
 - [ ] Ombre colorée **uniquement** sur les blocs noirs
 - [ ] Texte = encre ou orange **sombre** `#B34A1F` ; **jamais** de jaune en texte
-- [ ] Boutons : survol −2/−2 + ombre +3, clic +2/+2, 130 ms
+- [ ] Boutons : survol −2/−2 + ombre +3, clic réduit à 97 %, 140 ms, `cubic-bezier(.23,1,.32,1)`
+- [ ] Éléments cliquables : `pression` ou `sticker-press` — jamais `transition: all`, jamais `ease-in`
+- [ ] Icônes : `<Icone>`, jamais un SVG recopié à la main ni injecté par `innerHTML`
 - [ ] Sur image ou trame : libellé sur **pastille blanche contournée**
 - [ ] Titres en capitales, Archivo Black, letter-spacing négatif
 - [ ] Compteurs et formats en Space Mono, majuscules, +0,1 em
