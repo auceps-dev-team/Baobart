@@ -40,7 +40,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
-| **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. | CI verte ; relecture ; inventaire des écarts à 360 / 768 / 1440 px. |
+| **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11, relue par Claude le 14/11 : rien de bloquant. Reste : la CI (que l'auteur lance lui-même, une fois l'invitation acceptée) et la version 1.108.0, à remettre à jour sur `main` (1.107.0). | CI verte ; relecture ✅ ; l'inventaire des écarts à 360 / 768 / 1440 px passe en D1b (proposé dans la PR). |
 | **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. Invité comme collaborateur (écriture) le 14/11 : il lance lui-même la CI, une fois l'invitation acceptée. Version à passer en **1.107.1** en se remettant à jour sur `main`. | CI verte. |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
 
