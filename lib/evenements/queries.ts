@@ -5,6 +5,7 @@ import type { EtatContenu } from "@/lib/cms/cycle";
 import { clauseDePortee, type Portee } from "@/lib/evenements/acces";
 import type { EventKind } from "@/lib/evenements/enums";
 import { phaseDe, type Phase } from "@/lib/evenements/phases";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Ce que le tableau de bord lit des événements.
@@ -306,9 +307,9 @@ const SELECTION_PUBLIQUE = {
   cancelledAt: true,
   cancelReason: true,
   coverUrl: true,
+  // Pas d'`email` : la fiche est lue sans compte (B14, voir `nomPublic`).
   organizer: {
     select: {
-      email: true,
       profile: { select: { displayName: true, username: true } },
     },
   },
@@ -332,7 +333,6 @@ type LignePublique = {
   cancelReason: string | null;
   coverUrl: string | null;
   organizer: {
-    email: string;
     profile: { displayName: string; username: string | null } | null;
   };
 };
@@ -355,7 +355,7 @@ function versPublic(e: LignePublique, maintenant: Date): EvenementPublic {
     dotation: e.prizeAmount,
     annuleLe: e.cancelledAt,
     raisonAnnulation: e.cancelReason,
-    organisateur: e.organizer.profile?.displayName ?? e.organizer.email,
+    organisateur: nomPublic(e.organizer.profile),
     organisateurUsername: e.organizer.profile?.username ?? null,
     coverUrl: e.coverUrl,
   };
