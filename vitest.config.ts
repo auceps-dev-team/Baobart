@@ -34,6 +34,11 @@ export default defineConfig({
         // et exécutables partout (BLUEPRINT §7 : « garder lib/domain sans
         // dépendances React »).
         resolve,
+        // Le JSX « automatique », comme Next. Sans lui, esbuild compile vers
+        // `React.createElement` et un composant rendu dans un test lève
+        // « React is not defined » (mesuré le 13/11/2026, premier test de rendu :
+        // `lib/icones/icones.test.ts`).
+        esbuild: { jsx: "automatic" },
         test: {
           name: "unite",
           environment: "node",

@@ -14,13 +14,17 @@
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font-variant-numeric: tabular-nums; }
+  @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
   a { color: #121212; text-decoration: none; }
   a:hover { color: #E2622C; }
   ::selection { background: #FFD84A; }
   [data-scroll]::-webkit-scrollbar { width: 0; height: 0; }
-  [style*="cursor: pointer"] { transition: transform .13s cubic-bezier(.2,.85,.3,1), box-shadow .13s cubic-bezier(.2,.85,.3,1), background-color .13s ease, color .13s ease; }
+  [style*="cursor: pointer"] { transition: transform 130ms cubic-bezier(.23,1,.32,1), box-shadow 130ms cubic-bezier(.23,1,.32,1), background-color 130ms cubic-bezier(.23,1,.32,1), color 130ms cubic-bezier(.23,1,.32,1); }
   [style*="cursor: pointer"]:active { transform: translate(2px, 2px) scale(.985); box-shadow: 0 0 0 #121212 !important; }
-  input, textarea { transition: box-shadow .13s ease; }
+  input, textarea { transition: box-shadow 130ms cubic-bezier(.23,1,.32,1); }
   input:focus, textarea:focus { box-shadow: 4px 4px 0 #121212; }
   @media (max-width: 980px) {
     [data-sidebar] { position: static !important; width: 100% !important; height: auto !important; border-right: none !important; border-bottom: 3px solid #121212 !important; }
@@ -42,13 +46,13 @@
 
     <div style="display:flex; gap:5px; padding:5px; border:2.5px solid #121212; border-radius:14px; background:#F4EEFC">
       <sc-for list="{{ roles }}" as="r" hint-placeholder-count="3">
-        <div onClick="{{ r.pick }}" style="flex:1 1 0; text-align:center; padding:8px 4px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; background:{{ r.bg }}; color:{{ r.fg }}">{{ r.label }}</div>
+        <div onClick="{{ r.pick }}" style="flex:1 1 0; text-align:center; padding:8px 4px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; background:{{ r.bg }}; color:{{ r.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ r.label }}</div>
       </sc-for>
     </div>
 
     <div style="display:flex; flex-direction:column; gap:4px">
       <sc-for list="{{ nav }}" as="n" hint-placeholder-count="9">
-        <div onClick="{{ n.pick }}" style="display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:12px; cursor:pointer; background:{{ n.bg }}" style-hover="background:#F4EEFC">
+        <div onClick="{{ n.pick }}" style="display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:12px; cursor:pointer; background:{{ n.bg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#F4EEFC" style-active="transform:scale(0.97)">
           <div style="width:30px; height:30px; flex:0 0 auto; border:2px solid #121212; border-radius:9px; display:grid; place-items:center; font-size:13px; font-weight:800; background:{{ n.iconBg }}">{{ n.glyph }}</div>
           <div style="flex:1 1 auto; font-size:13.5px; font-weight:700; line-height:1.25">{{ n.label }}</div>
           <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}">
@@ -64,7 +68,7 @@
         <div style="font-size:13px; font-weight:800">{{ accountName }}</div>
         <div style="font-size:10.5px; font-weight:600; opacity:.6">{{ roleLabel }}</div>
       </div>
-      <div style="width:30px; height:30px; border:2px solid #121212; border-radius:9px; background:#FFFFFF; display:grid; place-items:center; font-size:12px; cursor:pointer" style-hover="background:#FFD84A">⏻</div>
+      <div style="width:30px; height:30px; border:2px solid #121212; border-radius:9px; background:#FFFFFF; display:grid; place-items:center; font-size:12px; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFD84A" style-active="transform:scale(0.97)">⏻</div>
     </div>
   </div>
 
@@ -77,7 +81,7 @@
       </div>
       <input placeholder="{{ searchPh }}" style="flex:1 1 200px; min-width:0; max-width:320px; font-family:Poppins,sans-serif; font-size:13px; font-weight:500; padding:11px 15px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; outline:none" />
       <div style="display:flex; gap:10px; flex:0 0 auto">
-        <div style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:13px; font-weight:800; cursor:pointer" style-hover="transform:translate(-1px,-1px); box-shadow:6px 6px 0 #121212">{{ page.cta }}</div>
+        <div style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:13px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-1px,-1px); box-shadow:6px 6px 0 #121212" style-active="transform:scale(0.97)">{{ page.cta }}</div>
       </div>
     </div>
 
@@ -111,7 +115,7 @@
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:14px">
               <sc-for list="{{ ops.filters }}" as="f" hint-placeholder-count="6">
-                <div onClick="{{ f.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+                <div onClick="{{ f.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ f.label }}</div>
               </sc-for>
             </div>
 
@@ -161,7 +165,7 @@
 
                   <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px">
                     <sc-for list="{{ r.actions }}" as="a" hint-placeholder-count="2">
-                      <div onClick="{{ a.run }}" style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212">{{ a.label }}</div>
+                      <div onClick="{{ a.run }}" style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212" style-active="transform:scale(0.97)">{{ a.label }}</div>
                     </sc-for>
                   </div>
 
@@ -186,7 +190,7 @@
                 <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">{{ ask.subject }}</div>
                 <div style="font-family:'Archivo Black',sans-serif; font-size:26px; line-height:1.05; letter-spacing:-1px; margin-top:6px; text-transform:uppercase">{{ ask.title }}</div>
               </div>
-              <div onClick="{{ ask.cancel }}" style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer">✕</div>
+              <div onClick="{{ ask.cancel }}" style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">✕</div>
             </div>
 
             <sc-if value="{{ ask.hasWarn }}" hint-placeholder-val="{{ false }}">
@@ -208,11 +212,20 @@
             </sc-if>
 
             <div style="display:flex; flex-wrap:wrap; gap:11px; margin-top:20px">
-              <div onClick="{{ ask.confirm }}" style="flex:1 1 180px; padding:15px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14px; font-weight:800; background:{{ ask.ctaBg }}; color:{{ ask.ctaFg }}; box-shadow:{{ ask.ctaShadow }}; cursor:{{ ask.ctaCursor }}" style-hover="{{ ask.ctaHover }}">{{ ask.cta }}</div>
-              <div onClick="{{ ask.cancel }}" style="flex:0 1 140px; padding:15px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:14px; font-weight:800; cursor:pointer">Annuler</div>
+              <div onClick="{{ ask.confirm }}" style="flex:1 1 180px; padding:15px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14px; font-weight:800; background:{{ ask.ctaBg }}; color:{{ ask.ctaFg }}; box-shadow:{{ ask.ctaShadow }}; cursor:{{ ask.ctaCursor }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="{{ ask.ctaHover }}" style-active="transform:scale(0.97)">{{ ask.cta }}</div>
+              <div onClick="{{ ask.cancel }}" style="flex:0 1 140px; padding:15px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:14px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Annuler</div>
             </div>
             <div style="font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; margin-top:12px; opacity:.65; text-wrap:pretty">{{ ask.ctaNote }}</div>
           </div>
+        </div>
+      </sc-if>
+
+      <!-- ONGLETS DE SOUS-PAGES -->
+      <sc-if value="{{ page.hasTabs }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-wrap:wrap; gap:6px; padding:5px; border:2.5px solid #121212; border-radius:16px; background:#FFFFFF; align-self:flex-start; max-width:100%">
+          <sc-for list="{{ page.tabs }}" as="t" hint-placeholder-count="3">
+            <div onClick="{{ t.pick }}" style="padding:9px 16px; border-radius:11px; background:{{ t.bg }}; color:{{ t.fg }}; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ t.label }}</div>
+          </sc-for>
         </div>
       </sc-if>
 
@@ -227,11 +240,11 @@
                 <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(19px,2.1vw,25px); line-height:1.1; letter-spacing:-.7px">Tes versements sont suspendus</div>
                 <div style="font-size:14px; font-weight:600; line-height:1.45; margin-top:7px; opacity:.95; text-wrap:pretty">Motif : le nom du titulaire du compte ne correspond pas à celui de ton profil. Ton solde reste acquis et continue de s'accumuler — rien n'est perdu, rien ne part tant que ce point n'est pas réglé.</div>
               </div>
-              <div style="flex:0 0 auto; padding:13px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; color:#121212; font-size:13.5px; font-weight:800; cursor:pointer">Corriger le titulaire</div>
+              <div style="flex:0 0 auto; padding:13px 20px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; color:#121212; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Corriger le titulaire</div>
             </div>
           </sc-if>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:20px; align-items:start">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:20px; align-items:stretch">
 
             <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
               <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Compte de versement</div>
@@ -241,13 +254,13 @@
                   <div style="font-size:15.5px; font-weight:800; line-height:1.3">{{ payout.currentLabel }}</div>
                   <div style="font-size:12.5px; font-weight:600; line-height:1.45; margin-top:6px; opacity:.75; text-wrap:pretty">{{ payout.currentNote }}</div>
                 </div>
-                <div onClick="{{ payout.toggleAccount }}" style="flex:0 0 auto; padding:9px 14px; border:2px solid #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.06em; cursor:pointer">{{ payout.toggleLabel }}</div>
+                <div onClick="{{ payout.toggleAccount }}" style="flex:0 0 auto; padding:9px 14px; border:2px solid #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.06em; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ payout.toggleLabel }}</div>
               </div>
 
               <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; margin:20px 0 9px">Moyen de versement</div>
               <div style="display:flex; flex-direction:column; gap:8px">
                 <sc-for list="{{ payout.methods }}" as="m" hint-placeholder-count="5">
-                  <div onClick="{{ m.pick }}" style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; cursor:pointer; background:{{ m.bg }}; color:{{ m.fg }}">
+                  <div onClick="{{ m.pick }}" style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; cursor:pointer; background:{{ m.bg }}; color:{{ m.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
                     <div style="flex:0 1 auto; font-size:14px; font-weight:800">{{ m.label }}</div>
                     <div style="flex:1 1 160px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; text-align:right; opacity:.7">{{ m.hint }}</div>
                   </div>
@@ -267,18 +280,19 @@
 
               <sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}">
                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:18px">
-                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ payout.saveLabel }}</div>
+                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212" style-active="transform:scale(0.97)">{{ payout.saveLabel }}</div>
                   <div style="flex:1 1 200px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.65">{{ payout.saveNote }}</div>
                 </div>
               </sc-if>
             </div>
 
+            <div style="display:flex; flex-direction:column; gap:20px; min-width:0">
             <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
               <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Cadence des versements</div>
               <div style="font-size:13.5px; font-weight:700; line-height:1.5; margin-top:10px; padding:12px 14px; border:2.5px solid #121212; border-radius:14px; background:#EADFF9; text-wrap:pretty">{{ payout.dayLine }}</div>
               <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px">
                 <sc-for list="{{ payout.cadences }}" as="c" hint-placeholder-count="3">
-                  <div onClick="{{ c.pick }}" style="display:flex; gap:13px; padding:15px; border:2.5px solid #121212; border-radius:16px; cursor:pointer; background:{{ c.bg }}">
+                  <div onClick="{{ c.pick }}" style="display:flex; gap:13px; padding:15px; border:2.5px solid #121212; border-radius:16px; cursor:pointer; background:{{ c.bg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
                     <div style="width:22px; height:22px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:11px; color:{{ c.dot }}">{{ c.mark }}</div>
                     <div style="flex:1 1 auto; min-width:0">
                       <div style="font-size:14.5px; font-weight:800">{{ c.label }}</div>
@@ -288,9 +302,14 @@
                 </sc-for>
               </div>
             </div>
+              <div style="border:2.5px solid #121212; border-radius:24px; background:#EADFF9; box-shadow:6px 6px 0 #121212; padding:22px; flex:1">
+                <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Moyens de paiement des acheteurs</div>
+                <p style="font-size:14px; font-weight:600; line-height:1.55; margin:12px 0 0; text-wrap:pretty">Tu n'as rien à régler ici. Aucun opérateur n'est branché sur ton compte : les acheteurs paient Baobart, jamais toi directement. Les moyens proposés au passage en caisse seront ceux de la plateforme, identiques pour toutes les boutiques.</p>
+              </div>
+            </div>
           </div>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; align-items:start">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; align-items:stretch">
 
             <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
               <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Ce qui conditionne un versement</div>
@@ -314,11 +333,6 @@
                 <p style="font-size:14px; font-weight:600; line-height:1.6; margin:0; text-wrap:pretty">Sur une vente à <strong>5 000 F</strong> dont tu as reçu <strong>4 425 F</strong>, un remboursement intégral te débite <strong>5 000 F</strong>. Tu perds donc 575 F de plus que ce que la vente t'avait rapporté. Si ton solde disponible est inférieur à cette somme, il devient négatif et les versements suivants servent d'abord à le ramener à zéro.</p>
               </div>
             </div>
-          </div>
-
-          <div style="border:2.5px solid #121212; border-radius:24px; background:#EADFF9; box-shadow:6px 6px 0 #121212; padding:22px">
-            <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">Moyens de paiement des acheteurs</div>
-            <p style="font-size:14px; font-weight:600; line-height:1.55; margin:12px 0 0; max-width:780px; text-wrap:pretty">Tu n'as rien à régler ici. Aucun opérateur n'est branché sur ton compte : les acheteurs paient Baobart, jamais toi directement. Les moyens proposés au passage en caisse seront ceux de la plateforme, identiques pour toutes les boutiques.</p>
           </div>
 
           <sc-if value="{{ payout.hasRetired }}" hint-placeholder-val="{{ false }}">
@@ -422,7 +436,7 @@
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:9px; margin-top:14px">
             <sc-for list="{{ page.table.filters }}" as="f" hint-placeholder-count="4">
-              <div onClick="{{ f.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+              <div onClick="{{ f.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ f.label }}</div>
             </sc-for>
           </div>
           <div style="overflow-x:auto; margin-top:16px">
@@ -434,7 +448,7 @@
               </div>
               <div style="display:flex; flex-direction:column; gap:9px; margin-top:11px">
                 <sc-for list="{{ page.table.rows }}" as="r" hint-placeholder-count="6">
-                  <div onClick="{{ r.open }}" style="display:flex; gap:12px; align-items:center; padding:13px 14px; border:2.5px solid #121212; border-radius:15px; cursor:pointer; background:{{ r.bg }}" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212">
+                  <div onClick="{{ r.open }}" style="display:flex; gap:12px; align-items:center; padding:13px 14px; border:2.5px solid #121212; border-radius:15px; cursor:pointer; background:{{ r.bg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212" style-active="transform:scale(0.97)">
                     <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="7">
                       <div style="flex:{{ c.flex }}; min-width:0">
                         <sc-if value="{{ c.isPill }}" hint-placeholder-val="{{ false }}">
@@ -455,7 +469,7 @@
             <sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}">
               <div style="display:flex; flex-wrap:wrap; gap:10px">
                 <sc-for list="{{ page.table.actions }}" as="a" hint-placeholder-count="2">
-                  <div style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-1px,-1px); box-shadow:4px 4px 0 #121212">{{ a.label }}</div>
+                  <div style="padding:11px 18px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-1px,-1px); box-shadow:4px 4px 0 #121212" style-active="transform:scale(0.97)">{{ a.label }}</div>
                 </sc-for>
               </div>
             </sc-if>
@@ -475,7 +489,7 @@
                 <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">{{ detail.kicker }}</div>
                 <div style="font-family:'Archivo Black',sans-serif; font-size:24px; line-height:1.1; letter-spacing:-.9px; margin-top:5px; text-transform:uppercase">{{ detail.title }}</div>
               </div>
-              <div onClick="{{ closeDetail }}" style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer">✕</div>
+              <div onClick="{{ closeDetail }}" style="width:38px; height:38px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; display:grid; place-items:center; font-size:15px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">✕</div>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:9px; margin-top:18px; padding:16px; border:2.5px solid #121212; border-radius:18px; background:#FFFFFF">
@@ -518,7 +532,7 @@
             <sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}">
               <div style="display:flex; flex-wrap:wrap; gap:11px; margin-top:16px">
                 <sc-for list="{{ detail.actions }}" as="a" hint-placeholder-count="2">
-                  <div style="flex:1 1 180px; padding:15px; border:2.5px solid #121212; border-radius:15px; background:{{ a.bg }}; box-shadow:4px 4px 0 #121212; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ a.label }}</div>
+                  <div style="flex:1 1 180px; padding:15px; border:2.5px solid #121212; border-radius:15px; background:{{ a.bg }}; box-shadow:4px 4px 0 #121212; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212" style-active="transform:scale(0.97)">{{ a.label }}</div>
                 </sc-for>
               </div>
               <div style="font-family:'Space Mono',monospace; font-size:10.5px; margin-top:12px; opacity:.65; line-height:1.5">{{ detail.actionNote }}</div>
@@ -562,7 +576,7 @@
             <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">{{ page.notice.label }}</div>
             <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
               <div style="flex:1 1 200px; min-width:0; padding:11px 14px; border:2.5px solid #121212; border-radius:12px; background:#F4EEFC; font-family:'Space Mono',monospace; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ page.notice.url }}</div>
-              <div style="padding:11px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="background:#121212; color:#FFFFFF">Copier</div>
+              <div style="padding:11px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#121212; color:#FFFFFF" style-active="transform:scale(0.97)">Copier</div>
             </div>
           </div>
         </div>
@@ -587,13 +601,102 @@
         </div>
       </sc-if>
 
+      <!-- CARTES (messages, dossiers, événements, publicités…) -->
+      <sc-if value="{{ page.hasCards }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <sc-if value="{{ page.hasCardsHead }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px">
+              <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">{{ page.cardsTitle }}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px">
+                <sc-for list="{{ page.cardFilters }}" as="cf" hint-placeholder-count="3">
+                  <div onClick="{{ cf.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; background:{{ cf.bg }}; color:{{ cf.fg }}; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ cf.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-for list="{{ page.cards }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; border:2.5px solid #121212; border-radius:20px; background:{{ c.bg }}; box-shadow:4px 4px 0 #121212; padding:16px; opacity:{{ c.op }}">
+              <sc-if value="{{ c.hasThumb }}" hint-placeholder-val="{{ false }}">
+                <div style="width:{{ c.thumbW }}; height:{{ c.thumbH }}; flex:none; border:2.5px solid #121212; border-radius:{{ c.thumbR }}; background:{{ c.thumb }}; display:grid; place-items:center; font-family:'Space Mono',monospace; font-size:12px; font-weight:700">{{ c.thumbLabel }}</div>
+              </sc-if>
+              <div style="flex:1 1 280px; min-width:0; display:flex; flex-direction:column; gap:8px">
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center">
+                  <sc-for list="{{ c.chips }}" as="ch" hint-placeholder-count="2">
+                    <div style="padding:3px 10px; border:2px solid #121212; border-radius:999px; background:{{ ch.bg }}; color:{{ ch.fg }}; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap">{{ ch.label }}</div>
+                  </sc-for>
+                </div>
+                <div style="font-size:16px; font-weight:800; line-height:1.3; overflow-wrap:anywhere">{{ c.title }}</div>
+                <sc-if value="{{ c.hasMeta }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-family:'Space Mono',monospace; font-size:11.5px; line-height:1.5; opacity:.7; overflow-wrap:anywhere">{{ c.meta }}</div>
+                </sc-if>
+                <sc-if value="{{ c.hasBody }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:12px 14px; border:2px solid #121212; border-radius:14px; background:#F4EEFC; font-size:14px; font-weight:500; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; text-wrap:pretty">{{ c.body }}</div>
+                </sc-if>
+                <sc-if value="{{ c.hasStats }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-wrap:wrap; gap:6px 18px; font-family:'Space Mono',monospace; font-size:12px">
+                    <sc-for list="{{ c.stats }}" as="s" hint-placeholder-count="3">
+                      <div><span style="font-weight:700">{{ s.v }}</span> <span style="opacity:.7">{{ s.l }}</span></div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ c.hasNote }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:13px; font-weight:700; line-height:1.5; opacity:.8; text-wrap:pretty">{{ c.note }}</div>
+                </sc-if>
+                <sc-if value="{{ c.hasActions }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:4px">
+                    <sc-for list="{{ c.actions }}" as="a" hint-placeholder-count="2">
+                      <div style="padding:10px 16px; border:2.5px solid #121212; border-radius:13px; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:3px 3px 0 #121212; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ a.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- INTERRUPTEURS PAR CANAL -->
+      <sc-if value="{{ page.hasToggles }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ page.toggles }}" as="sec" hint-placeholder-count="2">
+          <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
+            <div style="font-family:'Archivo Black',sans-serif; font-size:19px; text-transform:uppercase; letter-spacing:-.4px">{{ sec.title }}</div>
+            <div style="font-size:13px; font-weight:600; line-height:1.5; margin-top:6px; opacity:.7; max-width:720px">{{ sec.sub }}</div>
+            <div style="display:flex; flex-direction:column; margin-top:12px">
+              <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; padding:14px 0; border-top:2px dashed #121212">
+                  <div style="flex:1 1 260px; min-width:0">
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+                      <div style="font-size:14.5px; font-weight:800">{{ r.label }}</div>
+                      <sc-if value="{{ r.locked }}" hint-placeholder-val="{{ false }}">
+                        <div style="padding:2px 8px; border:2px solid #121212; border-radius:999px; background:#FFD84A; font-family:'Space Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase">Ne se coupe pas</div>
+                      </sc-if>
+                    </div>
+                    <div style="font-size:12.5px; font-weight:500; line-height:1.45; margin-top:3px; opacity:.75">{{ r.desc }}</div>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px">
+                    <sc-for list="{{ r.channels }}" as="ch" hint-placeholder-count="3">
+                      <div onClick="{{ ch.toggle }}" title="{{ ch.hint }}" style="display:flex; align-items:center; gap:8px; padding:5px 11px 5px 5px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; opacity:{{ ch.op }}; cursor:{{ ch.cursor }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
+                        <div style="width:36px; height:22px; flex:none; border:2px solid #121212; border-radius:99px; background:{{ ch.track }}; padding:2px">
+                          <div style="width:14px; height:14px; border:2px solid #121212; border-radius:99px; background:#FFFFFF; transform:translateX({{ ch.knobX }}); transition:transform 160ms cubic-bezier(.23,1,.32,1)"></div>
+                        </div>
+                        <div style="font-size:12px; font-weight:800; white-space:nowrap">{{ ch.label }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </sc-if>
+
       <!-- LIGNES / TABLEAU -->
       <sc-if value="{{ page.hasRows }}" hint-placeholder-val="{{ false }}">
         <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:20px">
           <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center">
             <div style="font-size:16px; font-weight:800; flex:1 1 auto">{{ page.rowsTitle }}</div>
             <sc-for list="{{ page.filters }}" as="f" hint-placeholder-count="3">
-              <div onClick="{{ f.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}">{{ f.label }}</div>
+              <div onClick="{{ f.pick }}" style="padding:7px 14px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ f.bg }}; color:{{ f.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ f.label }}</div>
             </sc-for>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px">
@@ -606,7 +709,7 @@
                 </div>
                 <div style="font-family:'Archivo Black',sans-serif; font-size:16px; white-space:nowrap">{{ r.amount }}</div>
                 <div style="padding:6px 12px; border:2px solid #121212; border-radius:999px; font-size:11px; font-weight:800; white-space:nowrap; background:{{ r.statusBg }}">{{ r.status }}</div>
-                <div style="padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap" style-hover="background:#FFD84A">{{ r.action }}</div>
+                <div style="padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFD84A" style-active="transform:scale(0.97)">{{ r.action }}</div>
               </div>
             </sc-for>
           </div>
@@ -637,8 +740,8 @@
                 <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:6px; opacity:.62">{{ l.note }}</div>
               </div>
               <div style="flex:0 0 auto; display:flex; flex-wrap:wrap; gap:10px">
-                <div style="padding:13px 22px; border:2.5px solid #121212; border-radius:14px; background:{{ l.btnBg }}; color:{{ l.btnFg }}; box-shadow:{{ l.btnSh }}; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px)">{{ l.action }}</div>
-                <div style="padding:13px 18px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Licence</div>
+                <div style="padding:13px 22px; border:2.5px solid #121212; border-radius:14px; background:{{ l.btnBg }}; color:{{ l.btnFg }}; box-shadow:{{ l.btnSh }}; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px)" style-active="transform:scale(0.97)">{{ l.action }}</div>
+                <div style="padding:13px 18px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#F4EEFC" style-active="transform:scale(0.97)">Licence</div>
               </div>
             </div>
           </sc-for>
@@ -649,7 +752,7 @@
       <sc-if value="{{ page.hasGrid }}" hint-placeholder-val="{{ false }}">
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px">
           <sc-for list="{{ page.grid }}" as="g" hint-placeholder-count="6">
-            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; overflow:hidden; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">
+            <div style="border:2.5px solid #121212; border-radius:20px; background:#FFFFFF; box-shadow:5px 5px 0 #121212; overflow:hidden; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212" style-active="transform:scale(0.97)">
               <div style="height:150px; border-bottom:2.5px solid #121212; display:grid; place-items:center; background:{{ g.bg }}">
                 <span style="padding:6px 12px; border:2px solid #121212; border-radius:999px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:11px">{{ g.ph }}</span>
               </div>
@@ -674,7 +777,7 @@
                 <div style="font-size:14px; font-weight:800">{{ p.name }}</div>
                 <div style="font-size:11.5px; font-weight:600; opacity:.65">{{ p.role }}</div>
               </div>
-              <div style="padding:8px 14px; border:2px solid #121212; border-radius:11px; background:{{ p.actionBg }}; font-size:12px; font-weight:800; cursor:pointer">{{ p.action }}</div>
+              <div style="padding:8px 14px; border:2px solid #121212; border-radius:11px; background:{{ p.actionBg }}; font-size:12px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ p.action }}</div>
             </div>
           </sc-for>
         </div>
@@ -693,7 +796,7 @@
                     <div style="font-size:13.5px; font-weight:800">Photo de profil</div>
                     <div style="font-family:'Space Mono',monospace; font-size:11px; opacity:.65">PNG ou JPG · 400×400 min</div>
                   </div>
-                  <div style="padding:10px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap">Téléverser</div>
+                  <div style="padding:10px 16px; border:2.5px solid #121212; border-radius:12px; background:#FFD84A; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Téléverser</div>
                 </div>
               </sc-if>
               <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:18px">
@@ -711,8 +814,8 @@
               </div>
               <sc-if value="{{ b.hasSave }}" hint-placeholder-val="{{ false }}">
                 <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; padding-top:18px; border-top:2.5px solid #121212">
-                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer">Enregistrer les modifications</div>
-                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer">Annuler</div>
+                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#121212; color:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Enregistrer les modifications</div>
+                  <div style="padding:14px 24px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:14px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Annuler</div>
                 </div>
               </sc-if>
             </div>
@@ -734,8 +837,8 @@
               </div>
             </div>
             <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px">
-              <div style="padding:13px 20px; border:2.5px solid #121212; border-radius:13px; background:#121212; color:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer">Changer de forfait</div>
-              <div style="padding:13px 20px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer">Résilier</div>
+              <div style="padding:13px 20px; border:2.5px solid #121212; border-radius:13px; background:#121212; color:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Changer de forfait</div>
+              <div style="padding:13px 20px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Résilier</div>
             </div>
           </div>
           <div style="border:2.5px solid #121212; border-radius:24px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:22px">
@@ -760,7 +863,7 @@
               <div style="width:34px; height:34px; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:14px">{{ s.n }}</div>
               <div style="font-size:15.5px; font-weight:800; margin-top:12px">{{ s.title }}</div>
               <div style="font-size:13.5px; font-weight:500; line-height:1.45; margin-top:5px; opacity:.8">{{ s.text }}</div>
-              <div style="display:inline-block; margin-top:14px; padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer">{{ s.action }}</div>
+              <div style="display:inline-block; margin-top:14px; padding:9px 15px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ s.action }}</div>
             </div>
           </sc-for>
         </div>
@@ -773,6 +876,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;acheteur&quot;,&quot;createur&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;acheteur&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rôle&quot;},&quot;lectureSeule&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Écrans système&quot;},&quot;versementsSuspendus&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Versements&quot;}}">
 const stripe = (base, s, w) => `repeating-linear-gradient(135deg, ${s} 0 ${w || 8}px, ${base} ${w || 8}px ${(w || 8) * 2 + 2}px)`;
 const LAV = "#EADFF9", YEL = "#FFD84A", ORA = "#E2622C", PUR = "#C9A8F5", INK = "#121212", W = "#FFFFFF";
+const GRY = "#DCDCDC", VRT = "#B9E8C0";
 
 const NAV = {
   acheteur: [
@@ -782,6 +886,7 @@ const NAV = {
     { key: "achats", label: "Historique des achats", glyph: "▤" },
     { key: "telechargements", label: "Historique des téléchargements", glyph: "↓" },
     { key: "suivis", label: "Éléments suivis", glyph: "♥" },
+    { key: "notifs", label: "Notifications", glyph: "◔", badge: true, badgeLabel: "3" },
     { key: "collections", label: "Mes collections", glyph: "⌸" },
     { key: "abonnements_suivis", label: "Abonnements", glyph: "☍" },
     { key: "abonnement", label: "Forfait & pass d'accès", glyph: "◉" },
@@ -797,8 +902,12 @@ const NAV = {
     { key: "c_ventes_ops", label: "Remboursements", glyph: "↺", badge: true, badgeLabel: "1" },
     { key: "c_commissions", label: "Commissions", glyph: "%" },
     { key: "c_versements", label: "Versements", glyph: "◈", badge: true, badgeLabel: "!" },
+    { key: "c_promos", label: "Promotions", glyph: "✂" },
     { key: "c_stats", label: "Statistiques", glyph: "▲" },
     { key: "c_profil", label: "Profil de la boutique", glyph: "☺" },
+    { key: "c_candidatures", label: "Candidatures", glyph: "✉", badge: true, badgeLabel: "3" },
+    { key: "c_dossiers", label: "Mes dossiers", glyph: "§", badge: true, badgeLabel: "1" },
+    { key: "c_notifs", label: "Notifications", glyph: "◔", badge: true, badgeLabel: "3" },
     { key: "c_purchases", label: "Mes achats", glyph: "⌂" },
     { key: "c_suivre", label: "Suivre les détails", glyph: "☍" },
     { key: "c_allaccess", label: "All Access", glyph: "◉" },
@@ -809,6 +918,8 @@ const NAV = {
     { key: "a_apercu", label: "Vue d'ensemble", glyph: "◈" },
     { key: "a_moderation", label: "File de modération", glyph: "✓", badge: true, badgeLabel: "23" },
     { key: "a_signalements", label: "Signalements & DMCA", glyph: "!", badge: true, badgeLabel: "5" },
+    { key: "a_rembours", label: "Remboursements à trancher", glyph: "↺", badge: true, badgeLabel: "3" },
+    { key: "a_messages", label: "Messages reçus", glyph: "✉", badge: true, badgeLabel: "2" },
     { key: "a_membres", label: "Membres", glyph: "☺" },
     { key: "a_membres_risque", label: "Décisions de risque", glyph: "⚑", badge: true, badgeLabel: "3" },
     { key: "a_boutiques", label: "Boutiques créateurs", glyph: "▦" },
@@ -818,6 +929,11 @@ const NAV = {
     { key: "a_abonnements", label: "Abonnements", glyph: "◉" },
     { key: "a_jobs", label: "Jobs & services", glyph: "▤" },
     { key: "a_editorial", label: "Contenus éditoriaux", glyph: "✎" },
+    { key: "a_blog", label: "Blog", glyph: "✎" },
+    { key: "a_evenements", label: "Événements", glyph: "◷" },
+    { key: "a_publicites", label: "Publicités", glyph: "▶" },
+    { key: "a_infolettre", label: "Lettre d'information", glyph: "✦" },
+    { key: "a_temoignages", label: "Témoignages", glyph: "❝", badge: true, badgeLabel: "2" },
     { key: "a_taxonomie", label: "Catégories & tags", glyph: "☍" },
     { key: "a_equipe", label: "Équipe & rôles", glyph: "◍" },
     { key: "a_journal", label: "Journal d'activité", glyph: "▲" },
@@ -825,7 +941,8 @@ const NAV = {
     { key: "a_sys_versements", label: "Système · Versements", glyph: "◈", badge: true, badgeLabel: "8" },
     { key: "a_sys_config", label: "Système · Configuration", glyph: "◧" },
     { key: "a_sys_emails", label: "Système · Emails", glyph: "✉", badge: true, badgeLabel: "1" },
-    { key: "a_sys_paiements", label: "Système · Paiements", glyph: "◎", badge: true, badgeLabel: "3" }
+    { key: "a_sys_paiements", label: "Système · Paiements", glyph: "◎", badge: true, badgeLabel: "3" },
+    { key: "a_sys_blocklist", label: "Système · Liste de blocage", glyph: "⊘" }
   ]
 };
 
@@ -1692,14 +1809,15 @@ const PAGES = {
   },
   c_commandes: {
     title: "Commandes", cta: "Exporter en CSV",
-    intro: "Les commandes qui contiennent au moins une de tes ressources.",
-    filters: ["Toutes", "Payées", "En attente", "Remboursées"],
+    intro: "Les commandes qui contiennent au moins une de tes ressources. D'une commande à plusieurs créateurs, tu ne vois que tes articles. Les états sont dits dans les mots de l'acheteur.",
+    filters: ["Toutes", "Payées", "En attente", "Remboursées", "Échouées"],
     rowsTitle: "12 commandes ce mois",
     rows: rows([
-      { title: "Commande #10428 · 2 articles", meta: "Dev.team · Wave · 12 juil. 2026", amount: "8 000 F", status: "PAYÉE", action: "Détail", bg: stripe(W, INK, 7) },
-      { title: "Commande #10412 · 1 article", meta: "Studio Kaay · carte · 11 juil. 2026", amount: "6 400 F", status: "PAYÉE", action: "Détail", bg: stripe(LAV, ORA, 7) },
-      { title: "Commande #10399 · 3 articles", meta: "École ISAD · virement · 10 juil. 2026", amount: "14 000 F", status: "EN ATTENTE", statusBg: PUR, action: "Relancer", bg: stripe(YEL, INK, 7) },
-      { title: "Commande #10344 · 1 article", meta: "M. Sow · Orange Money · 4 juil. 2026", amount: "3 000 F", status: "REMBOURSÉE", statusBg: W, action: "Détail", bg: stripe(W, PUR, 7) }
+      { title: "Commande #10428 · 2 articles", meta: "Dev.team · Wave · 12 juil. 2026 · Illu Femme au Foulard, Pack textures", amount: "8 000 F", status: "PAYÉE", action: "Détail", bg: stripe(W, INK, 7) },
+      { title: "Commande #10431 · 1 article", meta: "Yao K. · Orange Money · il y a 2 h · en attente du rappel de l'opérateur", amount: "5 000 F", status: "EN ATTENTE", statusBg: PUR, action: "Voir le retour", bg: stripe(YEL, INK, 7) },
+      { title: "Commande #10412 · 3 articles", meta: "Studio Kaay · carte · 11 juil. 2026 · 1 article remboursé", amount: "14 000 F", status: "PARTIELLEMENT REMBOURSÉE", action: "Détail", bg: stripe(LAV, ORA, 7) },
+      { title: "Commande #10344 · 1 article", meta: "M. Sow · Orange Money · 4 juil. 2026", amount: "3 000 F", status: "REMBOURSÉE", statusBg: W, action: "Détail", bg: stripe(W, PUR, 7) },
+      { title: "Commande #10399 · 1 article", meta: "Awa B. · MTN · 10 juil. 2026 · abandonnée après 24 h · rien n'a été débité", amount: "4 000 F", status: "ÉCHOUÉE", statusBg: GRY, action: "Détail", bg: stripe(GRY, W, 7) }
     ])
   },
   c_commissions: {
@@ -1811,6 +1929,338 @@ const PAGES = {
         { label: "Statut créateur", value: "boutique active" }
       ]
     }
+  }
+};
+
+
+const chip = (label, bg) => ({ label: label, bg: bg || W, fg: (bg === ORA || bg === INK) ? W : INK });
+const act = (label, bg) => ({ label: label, bg: bg || W, fg: (bg === ORA || bg === INK) ? W : INK });
+const NEUF = chip("Non lue", YEL), IMPER = chip("Impératif", ORA);
+
+const mkNotifs = base => ({
+  list: {
+    title: "Notifications", cta: "Tout marquer comme lu",
+    intro: "3 non lues. Le courriel reste indispensable, mais ce qui s'y perd est perdu : cet écran est le seul canal que Baobart maîtrise de bout en bout.",
+    tabs: [[base, "Mes notifications"], [base + "_reglages", "Réglages"]],
+    cardsTitle: "Cette semaine",
+    cardFilters: ["Toutes", "Non lues", "Argent", "Publications", "Événements"],
+    cards: [
+      { f: ["Non lues", "Argent"], chips: [NEUF, IMPER], title: "M. Sow demande le remboursement de « Portrait Wax Éditorial »", meta: "il y a 25 min · commande #A41C2F · 5 000 F", note: "Tu as jusqu'au 11 novembre pour répondre. Sans réponse, le support tranche à ta place.", actions: [act("Répondre à la demande", YEL)] },
+      { f: ["Non lues", "Argent"], chips: [NEUF, chip("Nouvelle vente")], title: "« Illu Femme au Foulard » vient d'être achetée", meta: "il y a 1 h · Wave · 5 000 F · tu touches 4 000 F", actions: [act("Voir la commande")] },
+      { f: ["Non lues", "Événements"], chips: [NEUF, IMPER], title: "« Atelier motif wax » n'aura pas lieu", meta: "prévu le 14 nov. 2026 · Abidjan, Treichville", note: "Rien n'a été débité : l'inscription était gratuite. Si l'atelier est maintenu, tu en seras prévenu de la même façon." },
+      { f: ["Argent"], chips: [chip("Versement", VRT)], title: "Ton versement d'octobre est parti", meta: "hier · Wave ···· 4821 · 121 000 F", actions: [act("Voir le reçu")] },
+      { f: ["Publications"], chips: [chip("Publication refusée", ORA)], title: "« Pack textures sable » ne paraîtra pas", meta: "3 nov. 2026 · relu par Aminata Bah", body: "Motif : deux aperçus sont identiques à ceux d'un autre créateur. Remplace-les par tes propres rendus, puis soumets à nouveau.", actions: [act("Corriger la fiche", YEL)] },
+      { f: ["Publications"], chips: [chip("Publication acceptée", VRT)], title: "« Portrait Wax Éditorial » est en ligne", meta: "2 nov. 2026" },
+      { f: [], chips: [chip("Abonnés", LAV)], title: "4 nouveaux abonnés suivent ta boutique", meta: "cette semaine · Kofi M., Nadia C. et 2 autres", note: "Regroupés en un seul avis : c'est l'événement le plus fréquent et le moins urgent.", op: 0.8 }
+    ]
+  },
+  reglages: {
+    title: "Réglages des notifications", cta: "Tout réinitialiser",
+    intro: "Ce que tu reçois, et par où. Chaque ligne se règle canal par canal. Certains avis ne se coupent pas : ceux qui engagent de l'argent, et ceux qui t'évitent un déplacement pour rien.",
+    tabs: [[base, "Mes notifications"], [base + "_reglages", "Réglages"]],
+    toggles: [
+      { title: "Quand tu achètes", sub: "Tes reçus, tes téléchargements, tes inscriptions.", rows: [
+        { label: "Reçu d'achat", desc: "Ce que tu viens d'acheter, et comment y accéder.", locked: true },
+        { label: "Lien de téléchargement", desc: "Le fichier est prêt, avec son lien.", d: [1, 1] },
+        { label: "Remboursement", desc: "L'argent repart vers ton moyen de paiement.", locked: true },
+        { label: "Remboursement refusé", desc: "Ta demande a été refusée, et pourquoi.", locked: true },
+        { label: "Abonnement à renouveler", desc: "Avant que l'accès ne se ferme.", d: [1, 1] },
+        { label: "Événement annulé ou maintenu", desc: "Un événement où tu étais inscrit change de sort.", locked: true }
+      ] },
+      { title: "Quand tu vends", sub: "Montrée à tout le monde : elle apprend ce que Baobart sait annoncer, et ton réglage t'attendra le jour où tu vendras.", rows: [
+        { label: "Nouvelle vente", desc: "Quelqu'un vient d'acheter une de tes ressources.", d: [1, 1] },
+        { label: "Demande de remboursement", desc: "Tu as sept jours pour répondre.", locked: true },
+        { label: "Versement envoyé", desc: "Tes gains sont partis vers ton compte.", locked: true },
+        { label: "Publication acceptée", desc: "Ce que tu as soumis est en ligne.", d: [1, 1] },
+        { label: "Publication refusée", desc: "Ce que tu as soumis ne paraîtra pas, et pourquoi.", locked: true },
+        { label: "Candidature reçue", desc: "Quelqu'un a postulé à ton offre.", d: [1, 1] },
+        { label: "Inscription à ton événement", desc: "Courriel éteint par défaut : un atelier de cent places ferait cent courriels.", d: [0, 1] },
+        { label: "Nouvel abonné", desc: "Quelqu'un suit désormais ta boutique.", d: [0, 1] }
+      ] },
+      { title: "Communautés & juridique", sub: "Les conversations restent sur le site : un courriel par message finit en indésirable.", rows: [
+        { label: "Nouveau dans mes communautés", desc: "Un avis par communauté et par jour, au plus.", d: [0, 1] },
+        { label: "Nouveau membre dans mon espace", desc: "Quelqu'un a rejoint une communauté que tu administres.", d: [0, 1] },
+        { label: "Retrait juridique", desc: "Un de tes contenus est contesté : tu as dix jours pour répondre.", locked: true }
+      ] }
+    ]
+  }
+});
+const NB = mkNotifs("notifs"), NC = mkNotifs("c_notifs");
+
+const EVT_TABS = [["a_evenements", "Liste"], ["a_evt_fiche", "Fiche"], ["a_evt_inscrits", "Inscrits"], ["a_evt_new", "Nouvel événement"]];
+const PUB_TABS = [["a_publicites", "Campagnes"], ["a_pub_detail", "Détail"], ["a_pub_new", "Nouvelle publicité"]];
+const BLOG_TABS = [["a_blog", "Articles"], ["a_blog_edit", "Éditeur"]];
+const PROMO_TABS = [["c_promos", "Codes promo"], ["c_promos_upsell", "Offres après achat"]];
+
+const SUB_PARENT = {
+  notifs_reglages: "notifs", c_notifs_reglages: "c_notifs",
+  a_evt_fiche: "a_evenements", a_evt_inscrits: "a_evenements", a_evt_new: "a_evenements",
+  a_pub_detail: "a_publicites", a_pub_new: "a_publicites", a_blog_edit: "a_blog", c_promos_upsell: "c_promos"
+};
+
+const NEW_PAGES = {
+  notifs: NB.list, notifs_reglages: NB.reglages, c_notifs: NC.list, c_notifs_reglages: NC.reglages,
+
+  c_dossiers: {
+    title: "Mes dossiers", cta: "Comment ça marche",
+    intro: "Les notifications qui visent tes contenus, et ce que tu peux y répondre. On te montre ce qui est reproché, jamais qui le reproche. Le motif est repris tel qu'il a été écrit.",
+    cards: [
+      { chips: [chip("BAO-J-0142", INK), chip("Retiré à titre provisoire", PUR)], title: "Pack motifs Kente revisités", meta: "notifié le 28 octobre 2026 · contenu visé : baobart.africa/r/motifs-kente-revisites", body: "Ce qui t'est reproché : « Reproduction de trois motifs extraits de mon recueil publié en 2021, sans autorisation ni mention. »", note: "Tu peux répondre jusqu'au 7 novembre 2026. Passé ce terme, le retrait devient définitif.", actions: [act("Répondre à la notification", YEL), act("Joindre une preuve")] },
+      { chips: [chip("BAO-J-0128", INK), chip("Ta réponse est à l'examen", YEL)], title: "Illustration Dakar by night", meta: "notifié le 12 octobre 2026", note: "Tu as répondu. Le dossier est repassé devant un humain." },
+      { chips: [chip("BAO-J-0097", INK), chip("Remis en ligne", VRT)], title: "Typographie Ndar Display", meta: "notifié le 2 septembre 2026", body: "Notre décision : la licence que tu as produite couvre l'usage contesté. Le contenu est de nouveau en vente." }
+    ]
+  },
+
+  c_candidatures: {
+    title: "Candidatures reçues", cta: "← Voir la fiche publique",
+    intro: "Sur « Illustrateur·rice pour une campagne de rentrée ». Les CV s'ouvrent en cliquant, par un lien valable cinq minutes. Il n'y a pas de messagerie : on répond par courriel.",
+    kpis: [
+      { label: "Candidatures", value: "3", delta: "offre ouverte jusqu'au 20 nov.", bg: YEL },
+      { label: "Avec CV", value: "2", delta: "PDF, lien éphémère", bg: W },
+      { label: "Sans réponse", value: "3", delta: "aucune relance automatique", bg: W }
+    ],
+    cards: [
+      { thumb: stripe(PUR, W, 5), thumbW: "56px", thumbH: "56px", thumbR: "99px", chips: [chip("Nouvelle", YEL)], title: "Kofi Mensah", meta: "reçue le 2 nov. 2026 · kofi@studiokm.ci · voir son profil ↗", body: "Bonjour, j'ai illustré la campagne Bonne Rentrée de la Sotra en 2025. Je joins mon portfolio et je suis disponible dès la semaine prochaine.", actions: [act("Télécharger le CV (PDF)", YEL), act("Répondre par courriel")] },
+      { thumb: stripe(ORA, YEL, 5), thumbW: "56px", thumbH: "56px", thumbR: "99px", chips: [], title: "Nadia Cissé", meta: "reçue le 1 nov. 2026 · nadia.cisse@gmail.com · voir son profil ↗", note: "Pas de mot d'accompagnement.", actions: [act("Télécharger le CV (PDF)", YEL), act("Répondre par courriel")] },
+      { thumb: stripe(INK, LAV, 5), thumbW: "56px", thumbH: "56px", thumbR: "99px", chips: [], title: "Ibrahim Traoré", meta: "reçue le 30 oct. 2026 · ibra.t@outlook.fr", note: "CV non joint.", actions: [act("Répondre par courriel")] }
+    ]
+  },
+
+  c_promos: {
+    title: "Promotions", cta: "Nouveau code",
+    intro: "Une remise que tu accordes, et ce que tu proposes après un achat. Les deux sont à ta charge — la commission de Baobart baisse avec la remise.",
+    tabs: PROMO_TABS,
+    formBlocks: [{ title: "Nouveau code", hasSave: true, fields: [
+      { label: "Code", placeholder: "WAX20" }, { label: "Remise (%)", placeholder: "20" },
+      { label: "S'applique à", placeholder: "Toutes mes ressources", span: "1 / span 2" },
+      { label: "Utilisations max", placeholder: "Illimitées" }, { label: "Expire le", placeholder: "30/11/2026" }
+    ] }],
+    cardsTitle: "Tes codes",
+    cards: [
+      { chips: [chip("WAX20", YEL), chip("Actif", VRT)], title: "−20 % sur toutes tes ressources", stats: [{ v: "14", l: "utilisations" }, { v: "−28 000 F", l: "de remise accordée" }, { v: "30 nov.", l: "expiration" }], actions: [act("Retirer")] },
+      { chips: [chip("RENTREE", YEL), chip("Actif", VRT)], title: "−5 000 F sur « Pack mockups Studio »", stats: [{ v: "3 / 10", l: "utilisations" }, { v: "sans", l: "date de fin" }], actions: [act("Retirer")] },
+      { chips: [chip("ETE26", GRY), chip("Expiré", GRY)], title: "−15 % sur la collection Été", stats: [{ v: "41", l: "utilisations" }], op: 0.6 }
+    ]
+  },
+  c_promos_upsell: {
+    title: "Promotions", cta: "Nouvelle offre",
+    intro: "Ce que l'acheteur voit juste après avoir payé. Seules tes ressources publiées peuvent être proposées.",
+    tabs: PROMO_TABS,
+    cards: [
+      { thumb: stripe(YEL, ORA, 7), thumbW: "84px", thumbH: "84px", chips: [chip("Active", VRT)], title: "Après « Illu Femme au Foulard » → « Portrait Wax Éditorial » à −30 %", stats: [{ v: "212", l: "affichages" }, { v: "19", l: "acceptées · 9 %" }], actions: [act("Désactiver")] },
+      { thumb: stripe(PUR, W, 7), thumbW: "84px", thumbH: "84px", chips: [chip("En pause", GRY)], title: "Après tout achat → « Pack textures » à 2 000 F", stats: [{ v: "88", l: "affichages" }, { v: "4", l: "acceptées" }], actions: [act("Réactiver", YEL)] }
+    ]
+  },
+
+  a_messages: {
+    title: "Messages reçus", cta: "Ouvrir ma messagerie",
+    intro: "Ce que les formulaires Contact et Sponsoriser ont reçu. On répond depuis la messagerie de l'équipe, puis on marque le message traité : un message de l'équipe doit pouvoir se relire dans la boîte de celui qui l'a écrit.",
+    cardFilters: ["À traiter", "Traités"],
+    cards: [
+      { f: ["À traiter"], chips: [chip("Contact", YEL)], title: "Je n'arrive pas à télécharger mon achat", meta: "Mariam Koné · mariam.kone@gmail.com · @mariamk · 3 nov. 2026, 14:22", body: "J'ai payé par Orange Money hier soir, j'ai bien reçu le SMS de débit mais la ressource n'apparaît pas dans mes achats. Référence : A41C2F.", actions: [act("Répondre", YEL), act("Marquer traité")] },
+      { f: ["À traiter"], chips: [chip("Sponsoring", PUR)], title: "Partenariat pour la Semaine du design d'Abidjan", meta: "Awa Bamba · partenariats@sda.ci · sans compte connecté · budget : 2 à 5 M F", body: "Nous cherchons une plateforme partenaire pour le concours d'affiches de mars. Pouvons-nous en parler cette semaine ?", actions: [act("Répondre", YEL), act("Marquer traité")] },
+      { f: ["Traités"], chips: [chip("Contact", GRY)], title: "Changer l'adresse de ma boutique", meta: "Kofi Mensah · kofi@studiokm.ci · @kofim · 29 oct. 2026", note: "Traité le 30 oct. 2026, 09:10 par Fatou Ndiaye.", op: 0.75 }
+    ]
+  },
+
+  a_rembours: {
+    title: "Remboursements à trancher", cta: "Voir le journal",
+    intro: "3 demandes sans réponse du créateur depuis plus de sept jours. Le support tranche à sa place ; chaque décision va au journal d'audit.",
+    cards: [
+      { chips: [chip("Depuis 11 jours", ORA)], title: "Portrait Wax Éditorial", meta: "5 000 F · M. Sow · demandée le 24 octobre · créatrice : Awa Diallo", body: "« Le fichier livré est en 1200 px alors que la fiche annonce 4K. »", note: "Créatrice relancée deux fois, sans réponse.", actions: [act("Rembourser", ORA), act("Refuser, avec motif")] },
+      { chips: [chip("Depuis 9 jours", YEL)], title: "Pack mockups Studio", meta: "5 000 F · Dev.team · demandée le 26 octobre · créateur : Studio Teranga", body: "« Acheté deux fois par erreur, même compte. »", actions: [act("Rembourser", ORA), act("Refuser, avec motif")] },
+      { chips: [chip("Depuis 8 jours", YEL)], title: "Typographie Ndar Display", meta: "3 500 F · École ISAD · demandée le 27 octobre · créateur : Ibrahim Traoré", body: "« Licence commerciale introuvable dans l'archive. »", actions: [act("Rembourser", ORA), act("Refuser, avec motif")] }
+    ]
+  },
+
+  a_evenements: {
+    title: "Événements", cta: "Nouvel événement",
+    intro: "Tous les événements de la plateforme. Une agence badgée voit le même écran, réduit à ce qu'elle organise. Deux colonnes d'état : l'éditorial (brouillon, publié) et la phase (à venir, en cours, terminé).",
+    tabs: EVT_TABS,
+    cardFilters: ["Tous", "À venir", "En cours", "Terminés", "Brouillons"],
+    cards: [
+      { f: ["En cours"], thumb: stripe(YEL, INK, 8), chips: [chip("Atelier", LAV), chip("Publié", VRT), chip("En cours", YEL)], title: "Atelier motif wax — de l'esquisse au fichier", stats: [{ v: "4 nov. 2026", l: "" }, { v: "Abidjan, Treichville", l: "" }, { v: "38 / 40", l: "inscrits" }, { v: "par", l: "Studio Kaay" }] },
+      { f: ["À venir", "Brouillons"], thumb: stripe(PUR, W, 8), chips: [chip("Concours", LAV), chip("Brouillon"), chip("À venir"), chip("Date dans 9 jours", ORA)], title: "Concours d'affiches — Fête de la musique", stats: [{ v: "13 nov. 2026", l: "" }, { v: "en ligne", l: "" }, { v: "0", l: "inscrit" }, { v: "par", l: "Équipe Baobart" }], note: "Toujours en brouillon à neuf jours de la date : personne ne peut encore s'inscrire." },
+      { f: ["À venir"], thumb: stripe(ORA, YEL, 8), chips: [chip("Atelier", LAV), chip("Publié", VRT), chip("À venir"), chip("Annulé", ORA)], title: "Atelier typographie africaine", stats: [{ v: "21 nov. 2026", l: "" }, { v: "Dakar", l: "" }, { v: "12 / 25", l: "inscrits" }], note: "Annulé, mais toujours en ligne pour ses 12 inscrits — tous prévenus, l'avis ne se coupe pas." },
+      { f: ["Terminés"], thumb: stripe(W, INK, 8), chips: [chip("Conférence", LAV), chip("Publié", VRT), chip("Terminé", GRY)], title: "Vendre ses ressources en mobile money", stats: [{ v: "18 oct. 2026", l: "" }, { v: "en ligne", l: "" }, { v: "214", l: "inscrits" }], op: 0.75 }
+    ]
+  },
+  a_evt_fiche: {
+    title: "Atelier motif wax", cta: "Voir la page publique",
+    intro: "Atelier · Publié · En cours. Toute modification se voit immédiatement sur la page publique.",
+    tabs: EVT_TABS,
+    formBlocks: [
+      { title: "L'événement", fields: [
+        { label: "Titre", placeholder: "Atelier motif wax — de l'esquisse au fichier", span: "1 / span 2" },
+        { label: "Genre", placeholder: "Atelier" }, { label: "Organisateur", placeholder: "Studio Kaay" },
+        { label: "Début", placeholder: "04/11/2026 · 14:00" }, { label: "Fin", placeholder: "04/11/2026 · 18:00" },
+        { label: "Lieu", placeholder: "Treichville, Abidjan" }, { label: "Capacité", placeholder: "40" },
+        { label: "Prix du billet", placeholder: "Gratuit" }, { label: "Inscriptions ouvertes jusqu'au", placeholder: "04/11/2026" },
+        { label: "Description", placeholder: "Trois heures pour passer d'un croquis à un motif vectoriel prêt à imprimer…", area: true, span: "1 / span 2" }
+      ] },
+      { title: "Publication", hasSave: true, fields: [
+        { label: "État éditorial", placeholder: "Publié", span: "1 / span 2" },
+        { label: "Motif en cas d'annulation", placeholder: "Envoyé tel quel aux inscrits", area: true, span: "1 / span 2" }
+      ] }
+    ],
+    plain: { title: "Annuler l'événement", text: "L'événement reste en ligne, marqué annulé, pour que ses inscrits le retrouvent. Chacun est prévenu sur le site et par courriel : cet avis ne se coupe pas.", items: ["38 inscrits prévenus", "Inscriptions fermées", "Réversible : « maintenir » prévient à nouveau"] }
+  },
+  a_evt_inscrits: {
+    title: "Inscrits — Atelier motif wax", cta: "Exporter en CSV",
+    intro: "Pensé pour l'entrée de l'atelier, sur un téléphone, quand on coche les présents. Les adresses sont en clair : c'est la seule voie de retour vers un inscrit. « Écrire à tout le monde » part en copie cachée.",
+    tabs: EVT_TABS,
+    kpis: [
+      { label: "Inscrits", value: "38", delta: "compteur", bg: YEL },
+      { label: "Capacité", value: "40", delta: "places", bg: W },
+      { label: "Restantes", value: "2", delta: "avant complet", bg: W },
+      { label: "Lignes réelles", value: "38", delta: "le compteur concorde", bg: VRT }
+    ],
+    cards: [
+      { thumbLabel: "1", thumb: LAV, thumbW: "38px", thumbH: "38px", thumbR: "99px", title: "Aminata Bah", meta: "aminata.bah@gmail.com · @aminatab · Abidjan · inscrite le 21 oct." },
+      { thumbLabel: "2", thumb: LAV, thumbW: "38px", thumbH: "38px", thumbR: "99px", title: "Yao Kouassi", meta: "yao.k@outlook.fr · Bouaké · inscrit le 21 oct." },
+      { thumbLabel: "3", thumb: LAV, thumbW: "38px", thumbH: "38px", thumbR: "99px", title: "Grace Dembélé", meta: "grace@dembele.studio · @gracedb · Abidjan · inscrite le 23 oct." },
+      { thumbLabel: "4", thumb: LAV, thumbW: "38px", thumbH: "38px", thumbR: "99px", title: "Sarah Bakayoko", meta: "s.bakayoko@gmail.com · Grand-Bassam · inscrite le 25 oct." }
+    ]
+  },
+  a_evt_new: {
+    title: "Nouvel événement", cta: "Créer le brouillon",
+    intro: "Il naîtra en brouillon, et ne paraîtra que lorsque tu le publieras. Une agence l'enverra d'abord en relecture.",
+    tabs: EVT_TABS,
+    formBlocks: [{ title: "L'essentiel", hasSave: true, fields: [
+      { label: "Titre", placeholder: "Atelier, concours, conférence…", span: "1 / span 2" },
+      { label: "Genre", placeholder: "Atelier" }, { label: "En ligne ou sur place", placeholder: "Sur place" },
+      { label: "Début", placeholder: "jj/mm/aaaa · hh:mm" }, { label: "Fin", placeholder: "jj/mm/aaaa · hh:mm" },
+      { label: "Lieu", placeholder: "Ville, quartier" }, { label: "Capacité", placeholder: "Laisser vide : sans limite" },
+      { label: "Description", placeholder: "Ce qu'on y fait, pour qui, ce qu'il faut apporter.", area: true, span: "1 / span 2" }
+    ] }],
+    plain: { title: "Billets payants", text: "Les billets ne s'encaissent pas encore en ligne : un événement à prix fixé garde ses inscriptions fermées.", items: ["Gratuit : inscriptions ouvertes", "Payant : inscriptions fermées pour l'instant"] }
+  },
+
+  a_publicites: {
+    title: "Publicités", cta: "Nouvelle publicité",
+    intro: "Les bannières intercalées dans la mosaïque de l'accueil et d'Explorer. « Affichages » compte les bannières vues à moitié au moins ; « ventes » ne compte que les achats d'une ressource vers laquelle la bannière menait.",
+    tabs: PUB_TABS,
+    kpis: [
+      { label: "Actives", value: "2", delta: "sur 3 autorisées", bg: YEL },
+      { label: "Écart minimal", value: "8", delta: "produits entre deux bannières", bg: W },
+      { label: "Affichages (30 j)", value: "48 200", delta: "+12 %", bg: W },
+      { label: "Taux de clic", value: "1,9 %", delta: "moyenne des actives", bg: PUR }
+    ],
+    cards: [
+      { thumb: stripe(YEL, ORA, 9), chips: [chip("Active", VRT), chip("Image"), chip("Tous les 12 produits")], title: "Pack mockups Studio — −30 % ce mois", meta: "→ baobart.africa/r/pack-mockups-studio", stats: [{ v: "du 1/11 au 30/11", l: "" }, { v: "18 420", l: "affichages" }, { v: "352", l: "clics · 1,9 %" }, { v: "27", l: "ventes" }], actions: [act("Mettre en pause"), act("Archiver")] },
+      { thumb: stripe(PUR, W, 9), chips: [chip("Active", VRT), chip("Vidéo"), chip("Tous les 20 produits")], title: "Semaine du design d'Abidjan", meta: "→ sda.ci/programme", stats: [{ v: "jusqu'au 15/11", l: "" }, { v: "9 810", l: "affichages" }, { v: "201", l: "clics · 2,0 %" }, { v: "lien extérieur :", l: "affichages et clics seulement" }], actions: [act("Mettre en pause"), act("Archiver")] },
+      { thumb: stripe(LAV, INK, 9), chips: [chip("Programmée", LAV), chip("Image"), chip("Tous les 12 produits")], title: "Concours d'affiches — inscriptions", meta: "→ baobart.africa/evenements/concours-affiches", stats: [{ v: "à partir du 10/11", l: "" }, { v: "—", l: "pas encore diffusée" }], actions: [act("Modifier")] },
+      { thumb: stripe(GRY, W, 9), chips: [chip("En pause", YEL), chip("Image")], title: "Typographies Ndar", meta: "→ baobart.africa/@ibrahim", stats: [{ v: "4 120", l: "affichages" }, { v: "38", l: "clics · 0,9 %" }, { v: "ventes non suivies :", l: "le lien ne mène pas à une fiche" }], actions: [act("Reprendre", YEL), act("Archiver")] }
+    ]
+  },
+  a_pub_detail: {
+    title: "Pack mockups Studio — −30 %", cta: "Mettre en pause",
+    intro: "Active · image · revient tous les 12 produits · du 1er au 30 novembre.",
+    tabs: PUB_TABS,
+    kpis: [
+      { label: "Affichages", value: "18 420", delta: "vues à moitié au moins", bg: W },
+      { label: "Clics", value: "352", delta: "1,9 % des affichages", bg: YEL },
+      { label: "Ventes", value: "27", delta: "7,7 % des clics", bg: PUR },
+      { label: "Chiffre généré", value: "94 500 F", delta: "après remise", bg: W }
+    ],
+    chartTitle: "Clics par jour",
+    chart: chart([["1", "38", 60], ["2", "51", 80], ["3", "47", 74], ["4", "64", 100], ["5", "59", 92], ["6", "44", 69], ["7", "49", 77]], YEL)
+  },
+  a_pub_new: {
+    title: "Nouvelle publicité", cta: "Enregistrer",
+    intro: "Une image ou une vidéo, un lien, et tous les combien de produits elle revient dans la mosaïque.",
+    tabs: PUB_TABS,
+    formBlocks: [{ title: "La bannière", hasSave: true, fields: [
+      { label: "Titre interne", placeholder: "Pack mockups Studio — −30 %", span: "1 / span 2" },
+      { label: "Nature", placeholder: "Image" }, { label: "Fichier", placeholder: "1200 × 900, 2 Mo max" },
+      { label: "Lien", placeholder: "baobart.africa/r/… ou adresse extérieure", span: "1 / span 2" },
+      { label: "Revient tous les", placeholder: "12 produits" }, { label: "Début", placeholder: "jj/mm/aaaa" },
+      { label: "Fin", placeholder: "Laisser vide : sans date de fin" }
+    ] }],
+    plain: { title: "Ce qui sera mesuré", text: "Vers une fiche Baobart : affichages, clics et ventes. Vers une adresse extérieure : affichages et clics seulement — l'écran le dira, au lieu d'un zéro qu'on lirait « cette campagne ne vend pas ».", items: ["Affichages", "Clics", "Ventes (fiche Baobart seulement)"] }
+  },
+
+  a_infolettre: {
+    title: "Lettre d'information", cta: "Nouveau numéro",
+    intro: "1 284 adresses confirmées, 96 en attente de confirmation, 41 désinscrites. Seules les confirmées reçoivent un numéro ; chacun porte son lien de désinscription.",
+    kpis: [
+      { label: "Confirmées", value: "1 284", delta: "reçoivent les numéros", bg: YEL },
+      { label: "En attente", value: "96", delta: "lien de confirmation envoyé", bg: W },
+      { label: "Désinscrites", value: "41", delta: "jamais relancées", bg: W }
+    ],
+    formBlocks: [{ title: "Nouveau numéro", hasSave: true, fields: [
+      { label: "Sujet", placeholder: "Les 12 créateurs à suivre en novembre", span: "1 / span 2" },
+      { label: "Corps", placeholder: "Texte brut : il arrive partout, et ne finit pas en indésirable.", area: true, span: "1 / span 2" }
+    ] }],
+    cardsTitle: "Numéros",
+    cards: [
+      { chips: [chip("Brouillon", YEL)], title: "Les 12 créateurs à suivre en novembre", meta: "modifié il y a 2 h par Aïssatou Sy", actions: [act("Envoyer à 1 284 adresses", YEL), act("Modifier")] },
+      { chips: [chip("Envoyé", VRT)], title: "Spécial rentrée : packs à moins de 5 000 F", meta: "5 octobre 2026, 10:00 · 1 197 destinataires", body: "Bonjour ! Cette rentrée, une sélection de packs pensés pour les étudiants en design…", op: 0.85 }
+    ]
+  },
+
+  a_temoignages: {
+    title: "Témoignages", cta: "Voir sur l'accueil",
+    intro: "2 à relire. Rien ne paraît sur l'accueil sans passer par ici ; publié, un témoignage s'affiche avec le nom et l'avatar de son auteur.",
+    cardFilters: ["Tous", "À relire", "Publiés", "Refusés"],
+    cards: [
+      { f: ["À relire"], thumb: stripe(ORA, YEL, 5), thumbW: "52px", thumbH: "52px", thumbR: "99px", chips: [chip("À relire", YEL)], title: "Awa Diallo · Illustratrice, Dakar", meta: "proposé le 2 nov. 2026", body: "« En trois mois, Baobart m'a payé plus que deux ans de commandes à la pièce. Et je suis payée en Wave, sans attendre. »", actions: [act("Publier", YEL), act("Refuser, avec motif")] },
+      { f: ["À relire"], thumb: stripe(PUR, W, 5), thumbW: "52px", thumbH: "52px", thumbR: "99px", chips: [chip("À relire", YEL)], title: "Kofi Mensah · Studio KM", meta: "proposé le 1 nov. 2026", body: "« La meilleure plateforme du monde !!! »", actions: [act("Publier", YEL), act("Refuser, avec motif")] },
+      { f: ["Publiés"], thumb: stripe(INK, LAV, 5), thumbW: "52px", thumbH: "52px", thumbR: "99px", chips: [chip("Publié", VRT)], title: "École ISAD · Abidjan", meta: "publié le 12 oct. 2026", body: "« Nos étudiants trouvent enfin des ressources faites ici, à des prix qu'ils peuvent payer. »", actions: [act("Retirer de l'accueil")] },
+      { f: ["Refusés"], thumb: stripe(GRY, W, 5), thumbW: "52px", thumbH: "52px", thumbR: "99px", chips: [chip("Refusé", GRY)], title: "Membre #8821", meta: "proposé le 20 sept. 2026", note: "Motif donné : le témoignage fait la publicité d'un service extérieur.", op: 0.7 }
+    ]
+  },
+
+  a_blog: {
+    title: "Blog", cta: "Nouvel article",
+    intro: "Les articles de Baobart. Trié par dernière modification, pour reprendre ce qu'on travaille. Le compteur dit combien de fois la page a été servie, pas combien de personnes l'ont lue.",
+    tabs: BLOG_TABS,
+    cardFilters: ["Tous", "Publiés", "Brouillons"],
+    cards: [
+      { f: ["Brouillons"], chips: [chip("Brouillon"), chip("Guides", LAV)], title: "Fixer le prix d'un pack quand on débute", stats: [{ v: "/prix-pack-debutant", l: "" }, { v: "par", l: "Aïssatou Sy" }, { v: "jamais paru", l: "" }, { v: "0", l: "affichage" }], actions: [act("Reprendre", YEL)] },
+      { f: ["Publiés"], chips: [chip("Publié", VRT), chip("Portraits", LAV), chip("À la une", ORA)], title: "Awa Diallo, des carnets au premier million", stats: [{ v: "/awa-diallo-portrait", l: "" }, { v: "par", l: "Aïssatou Sy" }, { v: "paru le", l: "28 oct. 2026" }, { v: "6 410", l: "affichages" }], actions: [act("Modifier")] },
+      { f: ["Publiés"], chips: [chip("Publié", VRT), chip("Guides", LAV)], title: "Comment fixer le prix d'un pack de ressources", stats: [{ v: "/fixer-prix-pack", l: "" }, { v: "par", l: "Fatou Ndiaye" }, { v: "paru le", l: "24 juil. 2026" }, { v: "8 240", l: "affichages" }], actions: [act("Modifier")] }
+    ]
+  },
+  a_blog_edit: {
+    title: "Éditeur d'article", cta: "Publier",
+    intro: "Brouillon · rien ne paraît tant que tu ne publies pas. Enregistré automatiquement il y a 1 min.",
+    tabs: BLOG_TABS,
+    formBlocks: [
+      { title: "L'article", fields: [
+        { label: "Titre", placeholder: "Fixer le prix d'un pack quand on débute", span: "1 / span 2" },
+        { label: "Adresse", placeholder: "/prix-pack-debutant" }, { label: "Catégorie", placeholder: "Guides" },
+        { label: "Extrait", placeholder: "Deux phrases pour la liste et les réseaux.", area: true, span: "1 / span 2" },
+        { label: "Corps", placeholder: "Commence par ce que le lecteur veut savoir…", area: true, span: "1 / span 2" }
+      ] },
+      { title: "Parution", hasSave: true, fields: [
+        { label: "À la une", placeholder: "Non" }, { label: "Image de couverture", placeholder: "1600 × 900" }
+      ] }
+    ]
+  },
+
+  a_sys_blocklist: {
+    title: "Système · Liste de blocage", cta: "Poser un blocage",
+    intro: "Bloquer n'est pas ralentir, ni suspendre : c'est ce qui sert quand la personne revient sous un autre nom. La durée découle du type, elle ne se choisit pas.",
+    kpis: [
+      { label: "EMAIL", value: "2", delta: "ni connexion, ni réinscription", bg: W },
+      { label: "IP", value: "1", delta: "ni connexion ni inscription · 6 mois", bg: YEL },
+      { label: "PHONE", value: "1", delta: "refusé à la vérification", bg: W },
+      { label: "CARD", value: "0", delta: "empreinte refusée au paiement", bg: W }
+    ],
+    formBlocks: [{ title: "Poser un blocage", hasSave: true, fields: [
+      { label: "Type", placeholder: "EMAIL" }, { label: "Valeur", placeholder: "adresse, IP, numéro…" },
+      { label: "Raison", placeholder: "Écrite avant validation, gardée au journal.", area: true, span: "1 / span 2" }
+    ] }],
+    cardsTitle: "Entrées",
+    cardFilters: ["Tous", "EMAIL", "IP", "PHONE", "CARD", "OBJECT"],
+    cards: [
+      { f: ["IP"], chips: [chip("IP", YEL), chip("Actif", YEL)], title: "41.202.207.18", meta: "échéance 2 mai 2027 · suspension d'un compte · posé le 2 nov. 2026", body: "Trois comptes créés depuis ce réseau en une heure, tous pour republier les ressources de Studio Teranga.", note: "Posé automatiquement à la suspension du compte M-8821.", actions: [act("Lever", ORA)] },
+      { f: ["EMAIL"], chips: [chip("EMAIL"), chip("Actif", YEL)], title: "pro.designs.ci@proton.me", meta: "sans échéance · posé à la main · 28 oct. 2026", body: "Revenu après suspension sous une nouvelle adresse.", actions: [act("Lever", ORA)] },
+      { f: ["PHONE"], chips: [chip("PHONE"), chip("Actif", YEL)], title: "+225 07 •• •• 41 18", meta: "sans échéance · posé à la main · 20 oct. 2026", actions: [act("Lever", ORA)] },
+      { f: ["EMAIL"], chips: [chip("EMAIL"), chip("Expiré", GRY)], title: "spam-bot@mail.ru", meta: "expiré le 1 nov. 2026 · posé le 1 mai 2026", note: "Ne bloque plus personne ; attend le ménage de nuit.", actions: [act("Retirer", ORA)], op: 0.55 }
+    ],
+    plain: { title: "Ce que la machine fait toute seule", text: "Suspendre un compte bloque ses adresses de connexion pour six mois ; lever la suspension les débloque. Le message opposé à une personne bloquée ne dit jamais ce qui l'a bloquée — le dire apprendrait comment contourner.", items: ["Expiration appliquée à la lecture", "Ménage de nuit", "Aucun motif montré à la personne bloquée"] }
   }
 };
 
@@ -2027,8 +2477,10 @@ class Component extends DCLogic {
   renderVals() {
     const role = this.state.role || this.props.role || "acheteur";
     const nav = NAV[role] || NAV.acheteur;
-    const key = (nav.some(n => n.key === this.state.key) && this.state.key) || nav[0].key;
-    const raw = PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || PAYOUT_PAGE[key] || OPS_PAGES[key] || {};
+    const sk = this.state.key;
+    const key = (sk && nav.some(n => n.key === (SUB_PARENT[sk] || sk)) && sk) || nav[0].key;
+    const navKey = SUB_PARENT[key] || key;
+    const raw = NEW_PAGES[key] || PAGES[key] || ADMIN_PAGES[key] || SYS_PAGES[key] || PAYOUT_PAGE[key] || OPS_PAGES[key] || {};
     const filters = raw.filters || [];
     const active = this.state.filter[key] || filters[0];
     const active2 = (this.state.tfilter || {})[key] || ((raw.table || {}).filters || [])[0];
@@ -2037,6 +2489,47 @@ class Component extends DCLogic {
       hasKpis: !!raw.kpis, hasChart: !!raw.chart, hasRows: !!raw.rows,
       hasGrid: !!raw.grid, hasPeople: !!raw.people, hasForm: !!raw.formBlocks,
       hasPlan: !!raw.plan, hasSteps: !!raw.steps, hasNotice: !!raw.notice,
+      hasTabs: !!raw.tabs,
+      tabs: (raw.tabs || []).map(([k, label]) => ({ label: label, bg: k === key ? INK : "transparent", fg: k === key ? W : INK, pick: () => this.setState({ key: k }) })),
+      hasCardsHead: !!(raw.cardsTitle || raw.cardFilters),
+      cardsTitle: raw.cardsTitle || "",
+      cardFilters: (raw.cardFilters || []).map((f, i) => {
+        const cur = (this.state.cf || {})[key] || (raw.cardFilters || [])[0];
+        const n = i === 0 && !["À traiter"].includes(f) ? (raw.cards || []).length : (raw.cards || []).filter(c => (c.f || []).includes(f)).length;
+        return { label: f + " · " + n, bg: cur === f ? INK : W, fg: cur === f ? W : INK, pick: () => this.setState(s => ({ cf: Object.assign({}, s.cf, { [key]: f }) })) };
+      }),
+      hasCards: !!raw.cards,
+      cards: (raw.cards || []).filter(c => {
+        const cur = (this.state.cf || {})[key] || (raw.cardFilters || [])[0];
+        const all = (raw.cardFilters || [])[0];
+        return !raw.cardFilters || (cur === all && all !== "À traiter") || (c.f || []).includes(cur);
+      }).map(c => Object.assign({}, c, {
+        bg: c.bg || W, op: c.op || 1, chips: c.chips || [],
+        hasThumb: !!(c.thumb || c.thumbLabel), thumb: c.thumb || LAV, thumbLabel: c.thumbLabel || "",
+        thumbW: c.thumbW || "120px", thumbH: c.thumbH || "90px", thumbR: c.thumbR || "12px",
+        hasMeta: !!c.meta, meta: c.meta || "", hasBody: !!c.body, body: c.body || "",
+        hasNote: !!c.note, note: c.note || "", hasStats: !!(c.stats && c.stats.length), stats: c.stats || [],
+        hasActions: !!(c.actions && c.actions.length), actions: c.actions || []
+      })),
+      hasToggles: !!raw.toggles,
+      toggles: (raw.toggles || []).map((sec, si) => Object.assign({}, sec, {
+        rows: sec.rows.map((r, ri) => ({
+          label: r.label, desc: r.desc, locked: !!r.locked,
+          channels: ["Courriel", "Sur le site", "Push"].map((ch, ci) => {
+            const id = key + ":" + si + ":" + ri + ":" + ci;
+            const push = ci === 2;
+            const tg = this.state.tg || {};
+            const on = push ? false : r.locked ? true : (id in tg ? tg[id] : !!(r.d || [1, 1])[ci]);
+            const frozen = push || r.locked;
+            return {
+              label: push ? "Push · bientôt" : ch, track: on ? INK : W, knobX: on ? "14px" : "0px",
+              op: frozen ? 0.5 : 1, cursor: frozen ? "not-allowed" : "pointer",
+              hint: push ? "Pas encore livré : rien ne part par ce canal." : r.locked ? "Cet avis ne se coupe pas." : "",
+              toggle: () => { if (frozen) return; this.setState(s => ({ tg: Object.assign({}, s.tg, { [id]: !on }) })); }
+            };
+          })
+        }))
+      })),
       notice: raw.notice || {},
 
       hasLibrary: !!raw.library,
@@ -2109,8 +2602,8 @@ class Component extends DCLogic {
       accountName: role === "admin" ? "Fatou Ndiaye" : "Dev.team",
       nav: nav.map(n => ({
         label: n.label, glyph: n.glyph, badge: !!n.badge, badgeLabel: n.badgeLabel,
-        bg: key === n.key ? YEL : "transparent",
-        iconBg: key === n.key ? W : LAV,
+        bg: navKey === n.key ? YEL : "transparent",
+        iconBg: navKey === n.key ? W : LAV,
         pick: () => this.setState({ key: n.key })
       })),
       page: page

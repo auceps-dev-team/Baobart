@@ -42,8 +42,11 @@
   /* --- Espacement (token manquant relevé §5 de l'analyse) ----------------- */
   --spacing-baobart: 4px; /* échelle 4/8/12/16/24/32/48 via multiples */
 
-  /* --- Mouvement ---------------------------------------------------------- */
-  --animate-duration-sticker: 130ms;
+  /* --- Mouvement — livraison « Halo » (D1, 13/11/2026) --------------------- */
+  /* Une seule courbe pour toute l'interface : sortie rapide, arrivée douce.
+     Jamais `ease-in` (le geste semble traîner), jamais `transition: all`.
+     Dans l'espace `--ease-*` de Tailwind : la classe `ease-sortie` existe. */
+  --ease-sortie: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* --- Contours & superposition (hors namespace @theme) --------------------- */
@@ -52,6 +55,10 @@
   --trait-fin: 1.5px; /* traitement « contour fin » */
   --trait-large: 3px; /* surfaces plein écran */
   --trait-petit: 2px; /* petits éléments */
+
+  /* Le geste de pression (livraison « Halo ») : 140 ms, réduit à 97 %. */
+  --duree-pression: 140ms;
+  --echelle-pression: 0.97;
 
   --z-nav: 50;
   --z-modal: 100;
@@ -133,21 +140,71 @@
   border: var(--trait-large) solid var(--color-encre);
 }
 
-/* Micro-interaction physique : survol -2/-2 + ombre +3 · clic +2/+2 ombre 0 */
-@utility sticker-press {
+/*
+  LE GESTE DE PRESSION — livraison « Halo » (D1, 13/11/2026)
+
+  Ce que dit « Baobart Design System.dc.html » pour chaque élément cliquable :
+  `transition: transform 140ms cubic-bezier(.23,1,.32,1)`, clic
+  `scale(0.97)`, `user-select: none`, `touch-action: manipulation`. Le clic
+  rétrécit l'élément au lieu de l'enfoncer de 2 px : il se lit au doigt sur un
+  téléphone, où l'enfoncement passait sous le pouce.
+
+  Un écart, voulu : la maquette n'anime QUE la transformation des boutons ;
+  l'ombre et le fond y changent d'un coup. On les anime aussi, sur la même
+  courbe et la même durée — c'était le cas avant (règle générale de la
+  maquette, 130 ms), et les arrêter ferait sauter l'ombre de chaque carte du
+  site pendant que la carte, elle, glisse.
+
+  `touch-action: manipulation` coupe le délai du double-tap sur mobile ; sans
+  lui, le premier toucher attend 300 ms de voir s'il en vient un second.
+
+  `prefers-reduced-motion` : la règle générale plus bas ramène toute durée à
+  0,01 ms. Le clic rétrécit encore, sans animation : c'est une réponse au
+  geste, pas un mouvement décoratif.
+
+  `pression` : le geste seul. `sticker-press` : le geste, plus le soulèvement
+  au survol (−2/−2, ombre +3). Les boutons dont le survol change le fond
+  (tertiaire, puce) prennent `pression`. L'ombre de survol se règle par
+  `--ombre-survol` : le bouton contrasté la veut orange.
+*/
+@utility pression {
   transition:
-    transform var(--animate-duration-sticker) cubic-bezier(0.2, 0.85, 0.3, 1),
-    box-shadow var(--animate-duration-sticker) cubic-bezier(0.2, 0.85, 0.3, 1),
-    background-color var(--animate-duration-sticker) ease,
-    color var(--animate-duration-sticker) ease;
+    transform var(--duree-pression) var(--ease-sortie),
+    box-shadow var(--duree-pression) var(--ease-sortie),
+    background-color var(--duree-pression) var(--ease-sortie),
+    color var(--duree-pression) var(--ease-sortie);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    transform: scale(var(--echelle-pression));
+    box-shadow: 0 0 0 var(--color-encre);
+  }
+}
+
+@utility sticker-press {
+  /* Les mêmes déclarations que `pression` — recopiées plutôt qu'appliquées :
+     l'ordre de `:hover` puis `:active` doit rester dans CE bloc, pour que le
+     clic l'emporte sur le survol pendant qu'on appuie. */
+  transition:
+    transform var(--duree-pression) var(--ease-sortie),
+    box-shadow var(--duree-pression) var(--ease-sortie),
+    background-color var(--duree-pression) var(--ease-sortie),
+    color var(--duree-pression) var(--ease-sortie);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
     transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-sticker-hover);
+    box-shadow: var(--ombre-survol, var(--shadow-sticker-hover));
   }
 
   &:active {
-    transform: translate(2px, 2px);
+    transform: scale(var(--echelle-pression));
     box-shadow: 0 0 0 var(--color-encre);
   }
 }

@@ -11,6 +11,7 @@ import {
   type Visibilite,
   type Visiteur,
 } from "@/lib/forum/acces";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Ce qu'on lit du forum.
@@ -250,9 +251,10 @@ export async function sujetsDe(
       isPinned: true,
       isLocked: true,
       createdAt: true,
+      // Pas d'`email` : une communauté publique se lit sans compte (B14,
+      // voir `nomPublic`).
       author: {
         select: {
-          email: true,
           profile: { select: { displayName: true, username: true } },
         },
       },
@@ -262,7 +264,7 @@ export async function sujetsDe(
   return lignes.map((t) => ({
     id: t.id,
     titre: t.title,
-    auteur: t.author.profile?.displayName ?? t.author.email,
+    auteur: nomPublic(t.author.profile),
     auteurUsername: t.author.profile?.username ?? null,
     reponses: t.repliesCount,
     vues: t.viewsCount,
@@ -348,7 +350,6 @@ export async function sujetAvecMessages(
           createdAt: true,
           author: {
             select: {
-              email: true,
               profile: { select: { displayName: true, username: true } },
             },
           },
@@ -370,7 +371,7 @@ export async function sujetAvecMessages(
     messages: t.posts.map((p) => ({
       id: p.id,
       corps: p.body,
-      auteur: p.author.profile?.displayName ?? p.author.email,
+      auteur: nomPublic(p.author.profile),
       auteurId: p.authorId,
       auteurUsername: p.author.profile?.username ?? null,
       likes: p.likesCount,

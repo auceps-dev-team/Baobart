@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Poppins:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="baobart-icons.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font-variant-numeric: tabular-nums; }
+  @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
+  a { color: #121212; text-decoration: underline; text-underline-offset: 3px; }
+  a:hover { color: #E2622C; }
+</style>
+</helmet>
+<div style="max-width:1200px; margin:0 auto; padding:40px 24px 80px; display:flex; flex-direction:column; gap:28px">
+
+  <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:20px">
+    <div>
+      <div style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase">Baobart · Design System</div>
+      <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(40px,7vw,76px); line-height:.95; text-transform:uppercase; letter-spacing:-2px; margin-top:8px">Icônes<br>Dashboard</div>
+    </div>
+    <div style="max-width:420px; font-size:15px; font-weight:500; line-height:1.5; text-wrap:pretty">48 icônes dessinées sur une grille de 24 px. Trait noir de 2 px, avec en dessous un aplat de couleur décalé de 1,6 px vers le bas à droite : la même ombre dure que les cartes Baobart.</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:12px">
+    <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; font-size:13px; font-weight:700"><span style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">GRILLE</span>24 × 24</div>
+    <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; font-size:13px; font-weight:700"><span style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">TRAIT</span>2 px · bouts ronds</div>
+    <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; font-size:13px; font-weight:700"><span style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">DÉCALAGE</span>+1,6 / +1,6</div>
+    <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; border:2.5px solid #121212; border-radius:999px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; font-size:13px; font-weight:700"><span style="font-family:'Space Mono',monospace; font-size:11px; opacity:.6">USAGE</span>&lt;bb-icon name="home"&gt;</div>
+  </div>
+
+  <sc-for list="{{ cats }}" as="c" hint-placeholder-count="7">
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:24px">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap">
+        <div style="font-family:'Archivo Black',sans-serif; font-size:22px; text-transform:uppercase; letter-spacing:-.5px">{{ c.num }} · {{ c.label }}</div>
+        <div style="font-family:'Space Mono',monospace; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; opacity:.6">{{ c.count }} icônes</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:12px; margin-top:18px">
+        <sc-for list="{{ c.icons }}" as="i" hint-placeholder-count="7">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px 8px 12px; border:2px solid #121212; border-radius:16px; background:#FBF8FF; cursor:pointer; transition:transform 130ms cubic-bezier(.23,1,.32,1), box-shadow 130ms cubic-bezier(.23,1,.32,1), background 130ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFFFFF; transform:translate(-2px,-2px); box-shadow:4px 4px 0 #121212" style-active="transform:scale(0.97)">
+            <bb-icon name="{{ i.id }}" color="{{ i.color }}" size="34" offset="{{ offset }}"></bb-icon>
+            <div style="text-align:center">
+              <div style="font-size:12px; font-weight:700">{{ i.fr }}</div>
+              <div style="font-family:'Space Mono',monospace; font-size:10px; opacity:.55">{{ i.id }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px">
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:24px">
+      <div style="font-family:'Archivo Black',sans-serif; font-size:20px; text-transform:uppercase">Tailles</div>
+      <div style="display:flex; align-items:flex-end; gap:22px; margin-top:20px; flex-wrap:wrap">
+        <sc-for list="{{ sizes }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:10px">
+            <bb-icon name="folder" color="#FFD84A" size="{{ s.px }}" offset="{{ offset }}"></bb-icon>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700">{{ s.px }} · {{ s.use }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:24px">
+      <div style="font-family:'Archivo Black',sans-serif; font-size:20px; text-transform:uppercase">Aplats</div>
+      <div style="display:flex; gap:18px; margin-top:20px; flex-wrap:wrap">
+        <sc-for list="{{ plates }}" as="p" hint-placeholder-count="4">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:10px">
+            <bb-icon name="bell" color="{{ p.hex }}" size="36" offset="{{ offset }}"></bb-icon>
+            <div style="font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700">{{ p.name }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:12.5px; font-weight:500; opacity:.75; margin-top:14px; line-height:1.45">Jaune : neutre. Orange : action ou alerte. Violet : social. Lavande : secondaire.</div>
+    </div>
+    <div style="border:2.5px solid #121212; border-radius:26px; background:#121212; color:#FFFFFF; box-shadow:6px 6px 0 #E2622C; padding:24px">
+      <div style="font-family:'Archivo Black',sans-serif; font-size:20px; text-transform:uppercase">Fond noir</div>
+      <div style="display:flex; gap:18px; margin-top:20px; flex-wrap:wrap">
+        <sc-for list="{{ darkSet }}" as="i" hint-placeholder-count="5">
+          <bb-icon name="{{ i.id }}" color="{{ i.color }}" line="#FFFFFF" size="32" offset="{{ offset }}"></bb-icon>
+        </sc-for>
+      </div>
+      <div style="font-size:12.5px; font-weight:500; opacity:.8; margin-top:14px; line-height:1.45">Le trait passe en blanc, l'aplat reste dans la palette.</div>
+    </div>
+  </div>
+
+  <div style="border:2.5px solid #121212; border-radius:26px; background:#FFFFFF; box-shadow:6px 6px 0 #121212; padding:24px">
+    <div style="font-family:'Archivo Black',sans-serif; font-size:20px; text-transform:uppercase">En contexte · sidebar dashboard</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:24px; margin-top:20px; align-items:start">
+      <div style="display:flex; flex-direction:column; gap:6px; padding:14px; border:2.5px solid #121212; border-radius:20px; background:#F4EEFC">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="6">
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border:2px solid {{ n.border }}; border-radius:12px; background:{{ n.bg }}; box-shadow:{{ n.shadow }}; font-size:14px; font-weight:700; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFFFFF" style-active="transform:scale(0.97)">
+            <bb-icon name="{{ n.id }}" color="{{ n.color }}" size="22" offset="{{ offset }}"></bb-icon>
+            <div style="flex:1">{{ n.fr }}</div>
+            <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}">
+              <div style="min-width:22px; height:22px; padding:0 6px; border:2px solid #121212; border-radius:99px; background:#E2622C; color:#FFFFFF; font-size:11px; font-weight:800; display:grid; place-items:center">{{ n.badge }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em">Boutons d'action</div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px">
+          <div style="display:flex; align-items:center; gap:10px; padding:12px 18px; border:2.5px solid #121212; border-radius:14px; background:#FFD84A; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:6px 6px 0 #121212" style-active="transform:scale(0.97)"><bb-icon name="plus" color="#FFFFFF" size="20" offset="{{ offset }}"></bb-icon>Nouveau projet</div>
+          <div style="display:flex; align-items:center; gap:10px; padding:12px 18px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; box-shadow:4px 4px 0 #121212; font-size:14px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:6px 6px 0 #121212" style-active="transform:scale(0.97)"><bb-icon name="upload" color="#C9A8F5" size="20" offset="{{ offset }}"></bb-icon>Importer</div>
+        </div>
+        <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-top:6px">Icônes seules</div>
+        <div style="display:flex; flex-wrap:wrap; gap:10px">
+          <sc-for list="{{ toolbar }}" as="t" hint-placeholder-count="5">
+            <div title="{{ t.fr }}" style="width:44px; height:44px; border:2.5px solid #121212; border-radius:12px; background:#FFFFFF; box-shadow:3px 3px 0 #121212; display:grid; place-items:center; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFD84A" style-active="transform:scale(0.97)">
+              <bb-icon name="{{ t.id }}" color="{{ t.color }}" size="20" offset="{{ offset }}"></bb-icon>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;plates&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Palette&quot;,&quot;Jaune&quot;,&quot;Orange&quot;,&quot;Violet&quot;,&quot;Lavande&quot;],&quot;default&quot;:&quot;Palette&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Icônes&quot;},&quot;offset&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:3,&quot;step&quot;:0.2,&quot;default&quot;:1.6,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Icônes&quot;}}">
+const W = "#FFFFFF", LAV = "#EADFF9", PUR = "#C9A8F5", YEL = "#FFD84A", ORA = "#E2622C";
+const CATS = [
+  ['Navigation', 'home:Accueil|dashboard:Tableau de bord|folder:Projets|message:Messages|calendar:Agenda|search:Recherche|compass:Explorer|users:Communauté'],
+  ['Actions', 'plus:Ajouter|edit:Éditer|trash:Supprimer|share:Partager|download:Télécharger|upload:Importer|filter:Filtrer|more:Plus'],
+  ['Fichiers & médias', 'file:Fichier|image:Image|video:Vidéo|mic:Audio|link:Lien|attach:Pièce jointe|camera:Photo'],
+  ['Paiement & commandes', 'card:Carte|cart:Panier|bag:Achat|wallet:Portefeuille|receipt:Facture|tag:Prix|coins:Revenus|truck:Livraison'],
+  ['Statuts & notifications', 'bell:Notification|check:Validé|alert:Alerte|info:Info|clock:En attente|star:Favori|heart:J\'aime'],
+  ['Profil & paramètres', 'user:Profil|sliders:Réglages|lock:Sécurité|logout:Déconnexion|shield:Confidentialité|eye:Visibilité'],
+  ['Analytique', 'bars:Statistiques|trend:Croissance|pie:Répartition|target:Objectif|trophy:Badges']
+];
+const ALERT = { trash: ORA, alert: ORA, heart: ORA, logout: ORA, bell: ORA };
+class Component extends DCLogic {
+  renderVals() {
+    const plateMode = this.props.plates ?? 'Palette';
+    const single = { Jaune: YEL, Orange: ORA, Violet: PUR, Lavande: LAV }[plateMode];
+    const rot = [YEL, PUR, LAV, YEL, ORA, PUR];
+    const col = (id, k) => single || ALERT[id] || rot[k % rot.length];
+    let k = 0;
+    const cats = CATS.map(([label, str], ci) => {
+      const icons = str.split('|').map(p => { const [id, fr] = p.split(':'); return { id, fr, color: col(id, k++) }; });
+      return { label, num: String(ci + 1).padStart(2, '0'), count: icons.length, icons };
+    });
+    const c = id => single || ALERT[id] || YEL;
+    return {
+      cats,
+      offset: String(this.props.offset ?? 1.6),
+      sizes: [{ px: 16, use: 'inline' }, { px: 20, use: 'bouton' }, { px: 24, use: 'nav' }, { px: 40, use: 'vide' }],
+      plates: [{ name: 'Jaune', hex: YEL }, { name: 'Orange', hex: ORA }, { name: 'Violet', hex: PUR }, { name: 'Lavande', hex: LAV }],
+      darkSet: ['home', 'message', 'bell', 'wallet', 'trend'].map((id, i) => ({ id, color: single || [YEL, PUR, ORA, YEL, PUR][i] })),
+      nav: [
+        { id: 'dashboard', fr: 'Tableau de bord', active: true }, { id: 'folder', fr: 'Projets' }, { id: 'message', fr: 'Messages', badge: '3' },
+        { id: 'bag', fr: 'Commandes' }, { id: 'bars', fr: 'Statistiques' }, { id: 'sliders', fr: 'Réglages' }
+      ].map(n => ({ ...n, badge: n.badge || false, color: n.active ? (single || W) : (single || YEL),
+        bg: n.active ? YEL : 'transparent', border: n.active ? '#121212' : 'transparent', shadow: n.active ? '3px 3px 0 #121212' : 'none' })),
+      toolbar: [['edit', 'Éditer'], ['share', 'Partager'], ['download', 'Télécharger'], ['filter', 'Filtrer'], ['trash', 'Supprimer']].map(([id, fr]) => ({ id, fr, color: c(id) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

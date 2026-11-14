@@ -14,12 +14,16 @@
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font-variant-numeric: tabular-nums; }
+  @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
   a { color: #121212; text-decoration: none; }
   a:hover { color: #E2622C; }
   ::selection { background: #FFD84A; }
   input::placeholder { color: rgba(18,18,18,.42); }
   input:focus { box-shadow: 4px 4px 0 #121212; }
-  [style*="cursor: pointer"] { transition: transform .13s cubic-bezier(.2,.85,.3,1), box-shadow .13s cubic-bezier(.2,.85,.3,1), background-color .13s ease, color .13s ease; }
+  [style*="cursor: pointer"] { transition: transform 130ms cubic-bezier(.23,1,.32,1), box-shadow 130ms cubic-bezier(.23,1,.32,1), background-color 130ms cubic-bezier(.23,1,.32,1), color 130ms cubic-bezier(.23,1,.32,1); }
   [style*="cursor: pointer"]:active { transform: translate(2px, 2px) scale(.99); box-shadow: 0 0 0 #121212 !important; }
   @keyframes popin { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
   @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
@@ -38,7 +42,7 @@
     </div>
     <div style="flex:1 1 auto; display:flex; flex-wrap:wrap; gap:7px">
       <sc-for list="{{ nav }}" as="n" hint-placeholder-count="6">
-        <div onClick="{{ n.pick }}" style="padding:9px 15px; border:2.5px solid #121212; border-radius:999px; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; background:{{ n.bg }}; color:{{ n.fg }}">{{ n.label }}</div>
+        <div onClick="{{ n.pick }}" style="padding:9px 15px; border:2.5px solid #121212; border-radius:999px; font-size:12.5px; font-weight:800; cursor:pointer; white-space:nowrap; background:{{ n.bg }}; color:{{ n.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ n.label }}</div>
       </sc-for>
     </div>
     <div style="flex:0 0 auto; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em; opacity:.55">{{ route }}</div>
@@ -58,14 +62,14 @@
           <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; opacity:.6">Pays de facturation</div>
           <div style="flex:1 1 auto"></div>
           <sc-for list="{{ countries }}" as="c" hint-placeholder-count="4">
-            <div onClick="{{ c.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ c.bg }}; color:{{ c.fg }}">{{ c.label }}</div>
+            <div onClick="{{ c.pick }}" style="padding:7px 13px; border:2px solid #121212; border-radius:999px; font-size:12px; font-weight:800; cursor:pointer; background:{{ c.bg }}; color:{{ c.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ c.label }}</div>
           </sc-for>
         </div>
         <div style="font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; margin-top:9px; opacity:.6">Seuls les rails actifs dans ce pays sont proposés — un opérateur grisé ne sert à rien.</div>
 
         <div style="display:flex; flex-direction:column; gap:11px; margin-top:20px">
           <sc-for list="{{ rails }}" as="r" hint-placeholder-count="4">
-            <div onClick="{{ r.pick }}" style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:16px; border:2.5px solid #121212; border-radius:18px; cursor:{{ r.cursor }}; background:{{ r.bg }}; box-shadow:{{ r.sh }}; opacity:{{ r.op }}">
+            <div onClick="{{ r.pick }}" style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:16px; border:2.5px solid #121212; border-radius:18px; cursor:{{ r.cursor }}; background:{{ r.bg }}; box-shadow:{{ r.sh }}; opacity:{{ r.op }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
               <div style="width:24px; height:24px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:12px; font-weight:800">{{ r.mark2 }}</div>
               <div style="width:44px; height:44px; flex:0 0 auto; border:2.5px solid #121212; border-radius:12px; background:{{ r.mark }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:15px; color:{{ r.markFg }}">{{ r.initials }}</div>
               <div style="flex:1 1 150px; min-width:0">
@@ -122,7 +126,7 @@
     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
       <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des quatre états — dans la vraie page, l'état vient du rappel de l'opérateur</div>
       <sc-for list="{{ payStates }}" as="s" hint-placeholder-count="4">
-        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ s.label }}</div>
       </sc-for>
     </div>
 
@@ -179,7 +183,7 @@
 
         <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:22px">
           <sc-for list="{{ ret.actions }}" as="a" hint-placeholder-count="2">
-            <div style="flex:1 1 190px; padding:15px 22px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:{{ a.sh }}" style-hover="transform:translate(-2px,-2px)">{{ a.label }}</div>
+            <div style="flex:1 1 190px; padding:15px 22px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:{{ a.sh }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px)" style-active="transform:scale(0.97)">{{ a.label }}</div>
           </sc-for>
         </div>
       </div>
@@ -187,8 +191,8 @@
       <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:16px 30px; border-top:3px dashed #121212; background:#F4EEFC">
         <div style="flex:1 1 220px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.6">Bac à sable — ces deux boutons n'existent pas en production</div>
         <div style="display:flex; gap:9px">
-          <div onClick="{{ sandboxOk }}" style="padding:9px 15px; border:2px dashed #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer">le paiement réussit</div>
-          <div onClick="{{ sandboxKo }}" style="padding:9px 15px; border:2px dashed #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer">le paiement échoue</div>
+          <div onClick="{{ sandboxOk }}" style="padding:9px 15px; border:2px dashed #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">le paiement réussit</div>
+          <div onClick="{{ sandboxKo }}" style="padding:9px 15px; border:2px dashed #121212; border-radius:11px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">le paiement échoue</div>
         </div>
       </div>
     </div>
@@ -202,7 +206,7 @@
     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
       <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des trois états de l'abonnement</div>
       <sc-for list="{{ renewStates }}" as="s" hint-placeholder-count="3">
-        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ s.label }}</div>
       </sc-for>
     </div>
 
@@ -273,7 +277,7 @@
           <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Moyen de renouvellement</div>
           <div style="display:flex; flex-direction:column; gap:9px; margin-top:14px">
             <sc-for list="{{ rails }}" as="r" hint-placeholder-count="4">
-              <div onClick="{{ r.pick }}" style="display:flex; align-items:center; gap:11px; padding:12px; border:2.5px solid #121212; border-radius:15px; cursor:{{ r.cursor }}; background:{{ r.bg }}; opacity:{{ r.op }}">
+              <div onClick="{{ r.pick }}" style="display:flex; align-items:center; gap:11px; padding:12px; border:2.5px solid #121212; border-radius:15px; cursor:{{ r.cursor }}; background:{{ r.bg }}; opacity:{{ r.op }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
                 <div style="width:22px; height:22px; flex:0 0 auto; border:2.5px solid #121212; border-radius:99px; background:#FFFFFF; display:grid; place-items:center; font-size:11px; font-weight:800">{{ r.mark2 }}</div>
                 <div style="width:34px; height:34px; flex:0 0 auto; border:2px solid #121212; border-radius:10px; background:{{ r.mark }}; color:{{ r.markFg }}; display:grid; place-items:center; font-family:'Archivo Black',sans-serif; font-size:12px">{{ r.initials }}</div>
                 <div style="flex:1 1 auto; min-width:0; font-size:13.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.label }}</div>
@@ -284,7 +288,7 @@
             <div style="font-size:14px; font-weight:800">À payer</div>
             <div style="font-family:'Archivo Black',sans-serif; font-size:28px">{{ rn.amount }}</div>
           </div>
-          <div style="padding:15px; margin-top:16px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:4px 4px 0 #121212; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ rn.cta }}</div>
+          <div style="padding:15px; margin-top:16px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:4px 4px 0 #121212; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212" style-active="transform:scale(0.97)">{{ rn.cta }}</div>
           <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-align:center; line-height:1.5; margin-top:11px; opacity:.65">Tu valides chez ton opérateur. Rien ne part avant.</div>
         </div>
       </div>
@@ -299,7 +303,7 @@
     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
       <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des trois états — l'information principale est l'échéance, pas le statut</div>
       <sc-for list="{{ renewRetStates }}" as="s" hint-placeholder-count="3">
-        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ s.label }}</div>
       </sc-for>
     </div>
 
@@ -350,7 +354,7 @@
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:20px">
           <sc-for list="{{ rr.actions }}" as="a" hint-placeholder-count="2">
-            <div style="flex:1 1 190px; padding:15px 22px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:{{ a.sh }}" style-hover="transform:translate(-2px,-2px)">{{ a.label }}</div>
+            <div style="flex:1 1 190px; padding:15px 22px; border:2.5px solid #121212; border-radius:15px; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; background:{{ a.bg }}; color:{{ a.fg }}; box-shadow:{{ a.sh }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px)" style-active="transform:scale(0.97)">{{ a.label }}</div>
           </sc-for>
         </div>
       </div>
@@ -365,7 +369,7 @@
     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-bottom:20px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
       <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des cinq états — un seul porte un bouton d'activation</div>
       <sc-for list="{{ notifStates }}" as="s" hint-placeholder-count="5">
-        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+        <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ s.label }}</div>
       </sc-for>
     </div>
 
@@ -387,7 +391,7 @@
 
       <sc-if value="{{ nf.hasButton }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:20px">
-          <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:{{ nf.ctaBg }}; box-shadow:4px 4px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212">{{ nf.cta }}</div>
+          <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:{{ nf.ctaBg }}; box-shadow:4px 4px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #121212" style-active="transform:scale(0.97)">{{ nf.cta }}</div>
           <div style="flex:1 1 220px; min-width:0; font-family:'Space Mono',monospace; font-size:10.5px; line-height:1.5; opacity:.65">{{ nf.note }}</div>
         </div>
       </sc-if>
@@ -414,8 +418,8 @@
           <div style="font-size:14.5px; font-weight:600; line-height:1.5; margin-top:11px; max-width:560px; text-wrap:pretty">Baobart s'installe comme une application : elle s'ouvre en plein écran, garde ta session, et c'est le seul moyen de recevoir les relances sur iPhone. Aucun téléchargement depuis un magasin.</div>
         </div>
         <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:10px">
-          <div onClick="{{ install }}" style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#121212; color:#FFFFFF; box-shadow:4px 4px 0 #FFFFFF; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #FFFFFF">Installer</div>
-          <div style="padding:13px 22px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Plus tard</div>
+          <div onClick="{{ install }}" style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#121212; color:#FFFFFF; box-shadow:4px 4px 0 #FFFFFF; text-align:center; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:7px 7px 0 #FFFFFF" style-active="transform:scale(0.97)">Installer</div>
+          <div style="padding:13px 22px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; text-align:center; font-size:13.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#F4EEFC" style-active="transform:scale(0.97)">Plus tard</div>
         </div>
       </div>
     </sc-if>
@@ -442,12 +446,12 @@
       <div style="font-family:'Archivo Black',sans-serif; font-size:clamp(24px,3vw,34px); line-height:1.05; letter-spacing:-1.4px; margin-top:14px; text-transform:uppercase">Cette page n'existe pas<span style="color:#E2622C">.</span></div>
       <p style="font-size:16px; font-weight:500; line-height:1.55; max-width:520px; margin:16px auto 0; opacity:.8; text-wrap:pretty">Elle a peut-être été retirée, ou l'adresse a été mal recopiée. Rien n'est cassé de notre côté.</p>
       <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:28px">
-        <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">Explorer les ressources</div>
-        <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC">Revenir à l'accueil</div>
+        <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFD84A; box-shadow:5px 5px 0 #121212; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212" style-active="transform:scale(0.97)">Explorer les ressources</div>
+        <div style="padding:15px 26px; border:2.5px solid #121212; border-radius:15px; background:#FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#F4EEFC" style-active="transform:scale(0.97)">Revenir à l'accueil</div>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:30px; padding-top:24px; border-top:2.5px solid #121212">
         <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="5">
-          <div style="padding:9px 16px; border:2px solid #121212; border-radius:999px; background:#F4EEFC; font-size:12.5px; font-weight:800; cursor:pointer" style-hover="background:#FFD84A">{{ s }}</div>
+          <div style="padding:9px 16px; border:2px solid #121212; border-radius:999px; background:#F4EEFC; font-size:12.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFD84A" style-active="transform:scale(0.97)">{{ s }}</div>
         </sc-for>
       </div>
     </div>
@@ -467,9 +471,9 @@
         </div>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:28px">
-        <div style="padding:15px 26px; border:3px solid #121212; border-radius:15px; background:#FFD84A; color:#121212; box-shadow:5px 5px 0 #FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #FFFFFF">Réessayer</div>
-        <div style="padding:15px 26px; border:3px solid #FFFFFF; border-radius:15px; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="background:rgba(255,255,255,.12)">Revenir à l'accueil</div>
-        <div style="padding:15px 26px; border:3px solid #FFFFFF; border-radius:15px; font-size:14.5px; font-weight:800; cursor:pointer" style-hover="background:rgba(255,255,255,.12)">Signaler au support</div>
+        <div style="padding:15px 26px; border:3px solid #121212; border-radius:15px; background:#FFD84A; color:#121212; box-shadow:5px 5px 0 #FFFFFF; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #FFFFFF" style-active="transform:scale(0.97)">Réessayer</div>
+        <div style="padding:15px 26px; border:3px solid #FFFFFF; border-radius:15px; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:rgba(255,255,255,.12)" style-active="transform:scale(0.97)">Revenir à l'accueil</div>
+        <div style="padding:15px 26px; border:3px solid #FFFFFF; border-radius:15px; font-size:14.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:rgba(255,255,255,.12)" style-active="transform:scale(0.97)">Signaler au support</div>
       </div>
       <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:28px; padding-top:22px; border-top:3px solid #FFFFFF">
         <div style="font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.6">Référence de l'incident</div>

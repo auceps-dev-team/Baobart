@@ -14,13 +14,17 @@
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #EADFF9; font-family: Poppins, sans-serif; color: #121212; -webkit-font-smoothing: antialiased; }
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font-variant-numeric: tabular-nums; }
+  @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
   a { color: #121212; text-decoration: none; }
   a:hover { color: #E2622C; }
   ::selection { background: #FFD84A; }
   input::placeholder { color: rgba(18,18,18,.42); }
-  input { transition: box-shadow .13s ease; }
+  input { transition: box-shadow 130ms cubic-bezier(.23,1,.32,1); }
   input:focus { box-shadow: 4px 4px 0 #121212; }
-  [style*="cursor: pointer"] { transition: transform .13s cubic-bezier(.2,.85,.3,1), box-shadow .13s cubic-bezier(.2,.85,.3,1), background-color .13s ease, color .13s ease; }
+  [style*="cursor: pointer"] { transition: transform 130ms cubic-bezier(.23,1,.32,1), box-shadow 130ms cubic-bezier(.23,1,.32,1), background-color 130ms cubic-bezier(.23,1,.32,1), color 130ms cubic-bezier(.23,1,.32,1); }
   [style*="cursor: pointer"]:active { transform: translate(2px, 2px) scale(.99); box-shadow: 0 0 0 #121212 !important; }
   @keyframes popin { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 </style>
@@ -34,7 +38,7 @@
     </div>
     <div style="display:flex; align-items:center; gap:12px">
       <div style="font-size:13px; font-weight:600; opacity:.7">{{ switchHint }}</div>
-      <div onClick="{{ switchMode }}" style="padding:10px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer" style-hover="background:#FFD84A">{{ switchLabel }}</div>
+      <div onClick="{{ switchMode }}" style="padding:10px 18px; border:2.5px solid #121212; border-radius:13px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#FFD84A" style-active="transform:scale(0.97)">{{ switchLabel }}</div>
     </div>
   </div>
 
@@ -65,9 +69,9 @@
 
       <div style="display:flex; align-items:center; gap:14px; padding:14px 16px; border:2.5px solid #121212; border-radius:18px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; max-width:460px">
         <div style="display:flex; flex:0 0 auto">
-          <div style="width:36px; height:36px; border:2.5px solid #FFFFFF; border-radius:99px; background:url('img/studio-01.png') center / cover no-repeat"></div>
-          <div style="width:36px; height:36px; margin-left:-12px; border:2.5px solid #FFFFFF; border-radius:99px; background:url('img/mode-blanc-01.png') center / cover no-repeat"></div>
-          <div style="width:36px; height:36px; margin-left:-12px; border:2.5px solid #FFFFFF; border-radius:99px; background:url('img/collage-lunettes.jpg') center / cover no-repeat"></div>
+          <div style="flex:none; width:36px; height:36px; border:2.5px solid #FFFFFF; border-radius:99px; background:url('img/studio-01.png') center / cover no-repeat"></div>
+          <div style="flex:none; width:36px; height:36px; margin-left:-12px; border:2.5px solid #FFFFFF; border-radius:99px; background:url('img/mode-blanc-01.png') center / cover no-repeat"></div>
+          <div style="flex:none; width:36px; height:36px; margin-left:-12px; border:2.5px solid #FFFFFF; border-radius:99px; background:url('img/collage-lunettes.jpg') center / cover no-repeat"></div>
         </div>
         <div style="font-size:13px; font-weight:600; line-height:1.4">Plus de <strong>4 200 créatifs</strong> partagent déjà leurs ressources sur Baobart.</div>
       </div>
@@ -80,7 +84,7 @@
         <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex; gap:6px; padding:5px; border:2.5px solid #121212; border-radius:16px; background:#F4EEFC">
             <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
-              <div onClick="{{ t.pick }}" style="flex:1 1 0; text-align:center; padding:11px 8px; border-radius:11px; font-size:13.5px; font-weight:800; cursor:pointer; background:{{ t.bg }}; color:{{ t.fg }}">{{ t.label }}</div>
+              <div onClick="{{ t.pick }}" style="flex:1 1 0; text-align:center; padding:11px 8px; border-radius:11px; font-size:13.5px; font-weight:800; cursor:pointer; background:{{ t.bg }}; color:{{ t.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ t.label }}</div>
             </sc-for>
           </div>
         </sc-if>
@@ -89,7 +93,7 @@
           <div style="display:flex; flex-wrap:wrap; align-items:center; gap:9px; padding:11px 13px; border:2.5px dashed #121212; border-radius:16px; background:#F4EEFC">
             <div style="flex:1 1 100%; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.12em; opacity:.55">Aperçu des états du lien</div>
             <sc-for list="{{ states }}" as="s" hint-placeholder-count="3">
-              <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}">{{ s.label }}</div>
+              <div onClick="{{ s.pick }}" style="padding:8px 14px; border:2px solid #121212; border-radius:999px; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; cursor:pointer; background:{{ s.bg }}; color:{{ s.fg }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ s.label }}</div>
             </sc-for>
           </div>
         </sc-if>
@@ -101,7 +105,7 @@
         <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
           <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:20px">
             <sc-for list="{{ accountTypes }}" as="a" hint-placeholder-count="2">
-              <div onClick="{{ a.pick }}" style="border:2.5px solid #121212; border-radius:18px; padding:14px; cursor:pointer; background:{{ a.bg }}; box-shadow:{{ a.sh }}">
+              <div onClick="{{ a.pick }}" style="border:2.5px solid #121212; border-radius:18px; padding:14px; cursor:pointer; background:{{ a.bg }}; box-shadow:{{ a.sh }}; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
                 <div style="display:flex; align-items:center; gap:9px">
                   <div style="width:30px; height:30px; border:2px solid #121212; border-radius:9px; background:#FFFFFF; display:grid; place-items:center; font-size:13px">{{ a.glyph }}</div>
                   <div style="font-size:14.5px; font-weight:800">{{ a.label }}</div>
@@ -121,7 +125,7 @@
               <div style="font-family:'Space Mono',monospace; font-size:11px; margin-top:4px; opacity:.7">Rien à remplir sur cet écran</div>
             </div>
           </div>
-          <div onClick="{{ goForgotFull }}" style="margin-top:18px; padding:16px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; text-align:center; font-size:15.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #E2622C">Demander un nouveau lien</div>
+          <div onClick="{{ goForgotFull }}" style="margin-top:18px; padding:16px; border:2.5px solid #121212; border-radius:16px; background:#121212; color:#FFFFFF; box-shadow:5px 5px 0 #E2622C; text-align:center; font-size:15.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #E2622C" style-active="transform:scale(0.97)">Demander un nouveau lien</div>
         </sc-if>
 
         <!-- CHAMPS -->
@@ -133,7 +137,7 @@
               <div style="position:relative; display:flex; align-items:center">
                 <input placeholder="{{ f.ph }}" type="{{ f.type }}" style="width:100%; min-width:0; font-family:Poppins,sans-serif; font-size:14px; font-weight:500; padding:13px 15px; border:2.5px solid #121212; border-radius:14px; background:#F4EEFC; outline:none" />
                 <sc-if value="{{ f.isPass }}" hint-placeholder-val="{{ false }}">
-                  <div onClick="{{ togglePass }}" style="position:absolute; right:10px; padding:5px 9px; border:2px solid #121212; border-radius:9px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; cursor:pointer">{{ passLabel }}</div>
+                  <div onClick="{{ togglePass }}" style="position:absolute; right:10px; padding:5px 9px; border:2px solid #121212; border-radius:9px; background:#FFFFFF; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ passLabel }}</div>
                 </sc-if>
               </div>
               <sc-if value="{{ f.meter }}" hint-placeholder-val="{{ false }}">
@@ -152,16 +156,16 @@
         <!-- OPTIONS -->
         <sc-if value="{{ hasFields }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:18px">
-          <div onClick="{{ toggleCheck }}" style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; max-width:340px">
+          <div onClick="{{ toggleCheck }}" style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; max-width:340px; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">
             <div style="width:24px; height:24px; flex:0 0 auto; border:2.5px solid #121212; border-radius:8px; display:grid; place-items:center; font-size:13px; font-weight:800; background:{{ checkBg }}">{{ checkMark }}</div>
             <div style="font-size:12.5px; font-weight:600; line-height:1.35; opacity:.85">{{ form.checkLabel }}</div>
           </div>
           <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
-            <div onClick="{{ goForgot }}" style="font-size:12.5px; font-weight:800; color:#E2622C; cursor:pointer; text-decoration:underline">Mot de passe oublié ?</div>
+            <div onClick="{{ goForgot }}" style="font-size:12.5px; font-weight:800; color:#E2622C; cursor:pointer; text-decoration:underline; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">Mot de passe oublié ?</div>
           </sc-if>
         </div>
 
-        <div onClick="{{ submit }}" style="margin-top:20px; padding:16px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; text-align:center; font-size:15.5px; font-weight:800; cursor:pointer" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212">{{ form.cta }}</div>
+        <div onClick="{{ submit }}" style="margin-top:20px; padding:16px; border:2.5px solid #121212; border-radius:16px; background:#FFD84A; box-shadow:5px 5px 0 #121212; text-align:center; font-size:15.5px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="transform:translate(-2px,-2px); box-shadow:8px 8px 0 #121212" style-active="transform:scale(0.97)">{{ form.cta }}</div>
         </sc-if>
 
         <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
@@ -177,14 +181,14 @@
           </div>
           <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px">
             <sc-for list="{{ socials }}" as="s" hint-placeholder-count="3">
-              <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 8px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer" style-hover="background:#F4EEFC; transform:translate(-1px,-1px); box-shadow:3px 3px 0 #121212">
+              <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 8px; border:2.5px solid #121212; border-radius:14px; background:#FFFFFF; font-size:13px; font-weight:800; cursor:pointer; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-hover="background:#F4EEFC; transform:translate(-1px,-1px); box-shadow:3px 3px 0 #121212" style-active="transform:scale(0.97)">
                 <span style="font-family:'Space Mono',monospace; font-size:14px">{{ s.glyph }}</span>{{ s.label }}
               </div>
             </sc-for>
           </div>
         </sc-if>
 
-        <div style="font-size:13px; font-weight:600; text-align:center; margin-top:20px; opacity:.8">{{ form.footerText }} <span onClick="{{ switchMode }}" style="font-weight:800; color:#E2622C; cursor:pointer; text-decoration:underline">{{ form.footerLink }}</span></div>
+        <div style="font-size:13px; font-weight:600; text-align:center; margin-top:20px; opacity:.8">{{ form.footerText }} <span onClick="{{ switchMode }}" style="font-weight:800; color:#E2622C; cursor:pointer; text-decoration:underline; transition:transform 140ms cubic-bezier(.23,1,.32,1); user-select:none; -webkit-user-select:none; touch-action:manipulation" style-active="transform:scale(0.97)">{{ form.footerLink }}</span></div>
       </div>
     </div>
   </div>

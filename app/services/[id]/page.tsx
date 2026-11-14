@@ -357,7 +357,15 @@ export default async function FicheServicePage({
                       }}
                     >
                       La commande se fait en direct avec{" "}
-                      {offre.createur.split(" ")[0]}.
+                      {/*
+                        Le prénom quand il y a un profil. Sans profil, le nom
+                        est « Membre Baobart » : son premier mot donnerait
+                        « avec Membre. ».
+                      */}
+                      {offre.createurUsername
+                        ? offre.createur.split(" ")[0]
+                        : "le créateur"}
+                      .
                     </div>
                   </>
                 )}
