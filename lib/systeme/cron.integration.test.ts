@@ -43,6 +43,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { GET as abonnements } from "@/app/api/cron/abonnements/route";
+import { GET as avis } from "@/app/api/cron/avis/route";
 import { GET as blog } from "@/app/api/cron/blog/route";
 import { GET as commandes } from "@/app/api/cron/commandes/route";
 import { GET as courriels } from "@/app/api/cron/courriels/route";
@@ -58,6 +59,7 @@ type Gestionnaire = (requete: Request) => Promise<Response>;
 /** Le chemin planifié → son gestionnaire. Tenu à jour par le dernier test. */
 const ROUTES: Record<string, Gestionnaire> = {
   "/api/cron/abonnements": abonnements,
+  "/api/cron/avis": avis,
   "/api/cron/blog": blog,
   "/api/cron/commandes": commandes,
   "/api/cron/courriels": courriels,

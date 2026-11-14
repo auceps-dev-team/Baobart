@@ -144,8 +144,8 @@ exports[`ce que le second passage de Stryker a trouvé (08/11) > ne change pas d
   },
   {
     "code": "WELL_RATED",
-    "critere": "Note moyenne d'au moins 4,5 sur au moins 20 avis.",
-    "enAttente": "Les avis notés n'existent pas encore sur Baobart.",
+    "critere": "Note moyenne d'au moins 4,5 sur au moins 20 avis, hors comptes suspendus et comptes de moins de 7 jours.",
+    "enAttente": null,
     "encre": "#121212",
     "famille": "QUALITE",
     "fond": "#FFD84A",
@@ -184,8 +184,8 @@ exports[`ce que le second passage de Stryker a trouvé (08/11) > ne change pas d
   },
   {
     "code": "HELPFUL_REVIEWER",
-    "critere": "Vingt-cinq avis rédigés.",
-    "enAttente": "Les avis notés n'existent pas encore sur Baobart.",
+    "critere": "Vingt-cinq avis rédigés, sur des ressources gardées.",
+    "enAttente": null,
     "encre": "#121212",
     "famille": "COMMUNAUTE",
     "fond": "#EADFF9",

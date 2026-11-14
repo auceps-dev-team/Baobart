@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DetailProduit, EnTeteFiche } from "@/components/product/detail";
 import { BoutonFermer, ModaleProduit } from "@/components/product/modal";
 import { sessionCourante } from "@/lib/auth/session";
+import { avisDeLaRessource } from "@/lib/avis/lecture";
 import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
 import { commentairesDe, etatSocial } from "@/lib/social/queries";
 
@@ -28,7 +29,7 @@ export default async function ModaleFicheProduit({
 
   if (!produit) notFound();
 
-  const [droit, social, commentaires] = await Promise.all([
+  const [droit, social, commentaires, avis] = await Promise.all([
     droitDeTelecharger(produit.id, utilisateur?.id ?? null),
     etatSocial({
       produitId: produit.id,
@@ -36,6 +37,7 @@ export default async function ModaleFicheProduit({
       userId: utilisateur?.id ?? null,
     }),
     commentairesDe(produit.id, utilisateur?.id ?? null, produit.auteur.id),
+    avisDeLaRessource(produit.id, utilisateur?.id ?? null),
   ]);
 
   return (
@@ -46,6 +48,7 @@ export default async function ModaleFicheProduit({
             droit={droit}
             social={{ ...social, connecte: utilisateur !== null }}
             commentaires={commentaires}
+            avis={avis}
           />
     </ModaleProduit>
   );

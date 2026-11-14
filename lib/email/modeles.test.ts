@@ -96,6 +96,8 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
     reglages: "https://baobart.test/dashboard/boutique",
   },
   CREATEUR_DU_MOIS: { nom: "Awa", jusquAu: "8 décembre 2026", lien: "https://baobart.test/dashboard/badges" },
+  AVIS_RECU: { nom: "Awa", ressource: "Pack textures", note: 4, extrait: "Les fichiers sources sont impeccables.", lien: "https://baobart.test/dashboard/avis" },
+  REPONSE_AVIS: { nom: "Mariam", ressource: "Pack textures", reponse: "Merci, une version SVG arrive.", lien: "https://baobart.test/products/pack-textures#avis" },
 };
 
 describe("modèles de courriel", () => {

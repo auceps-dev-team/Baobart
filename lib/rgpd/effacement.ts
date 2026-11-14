@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
+import { recompterAvis } from "@/lib/avis/recompte";
 import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import { masquerCompte } from "@/lib/payments/gains";
@@ -137,6 +138,10 @@ const A_SUPPRIMER: ReadonlyArray<readonly [modele: string, ...colonnes: string[]
   ["creatorMessage", "senderId", "recipientId"],
   // Une demande de remboursement porte le motif de son auteur.
   ["refundRequest", "buyerId"],
+  // Ses avis notés (note et texte) et ses réponses de créateur (lot 4). La
+  // note des ressources concernées se recompte dans la même transaction.
+  ["productReview", "authorId"],
+  ["productReviewResponse", "authorId"],
 
   // ── Ce qui s'engage ───────────────────────────────────────────────────
   ["cart", "userId"],
@@ -178,6 +183,13 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
 
   await db.$transaction(
     async (tx) => {
+      // ── Les ressources qu'il a notées, lues avant que ses avis partent ──
+      //
+      // Ses avis sortent par la boucle plus bas ; la note de chaque ressource,
+      // et celle de son créateur, se recomptent juste après, dans cette même
+      // transaction — sans attendre le balayage de la nuit (lot 4, 13/11/2026).
+      const notees = await tx.productReview.findMany({ where: { authorId: userId }, select: { productId: true } });
+
       // ── Rendre les places avant de supprimer les inscriptions ────────────
       //
       // La boucle ci-dessous supprime les lignes `EventRegistration` ; le
@@ -225,6 +237,8 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
         const { count } = await delegue.deleteMany({ where });
         if (count > 0) supprimees[table] = count;
       }
+
+      for (const { productId } of notees) await recompterAvis(productId, tx);
 
       // ── Ce qui se caviarde au lieu de partir ──────────────────────────
       //
