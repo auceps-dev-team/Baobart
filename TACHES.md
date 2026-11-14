@@ -101,7 +101,8 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
-| v1.107.0 | #51 | Lot 3 — « Devenir vendeur » : trois étapes vers la boutique (profil affichable comme la vitrine, compte de versement après 24 h, trois ressources) ; `/dashboard/boutique` ouvert à l'acheteur (option A). Écrit par Argon, relu par Claude. **Reste : Playwright + axe** (mission 4). |
+| — (tests) | #53 | Lot 3 au navigateur : Playwright + axe dans les trois états de « Devenir vendeur ». Écrit par Argon par le canal direct (sans copier-coller), lancé et éprouvé par Claude (trois casses attrapées). |
+| v1.107.0 | #51 | Lot 3 — « Devenir vendeur » : trois étapes vers la boutique (profil affichable comme la vitrine, compte de versement après 24 h, trois ressources) ; `/dashboard/boutique` ouvert à l'acheteur (option A). Écrit par Argon, relu par Claude. |
 | — (docs) | #39 | L'inventaire fonctionnalité par fonctionnalité (`Doc/INVENTAIRE_FONCTIONNALITES_2026-11.md`), auquel renvoient les identifiants A1…C10. |
 | v1.106.0 | #50 | Lot 4 — les avis notés : qui note, recompte à chaque mouvement d'argent, section « Avis » de la fiche, « Avis & commentaires », balayage nocturne, effacement RGPD des avis. |
 | — (docs) | #48 | Ce fichier, les règles communes en tête du `CLAUDE.md`, `Doc/PROCESS_COLLABORATEURS.md` à coller, la section « Contribuer » du README. |
