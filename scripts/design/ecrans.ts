@@ -222,13 +222,17 @@ export const ECRANS: EcranMaquette[] = [
   tableau("createur", "c_publier", "Ajouter un produit", "/dashboard/produits/nouveau"),
   tableau("createur", "c_revenus", "Gains", "/dashboard/gains"),
   tableau("createur", "c_commandes", "Commandes", "/dashboard/commandes"),
-  tableau("createur", "c_ventes", "Ventes", "/dashboard/ventes"),
-  tableau("createur", "c_ventes_ops", "Remboursements", "/dashboard/ventes/remboursements"),
+  tableau("createur", "c_ventes", "Ventes", "/dashboard/ventes", {
+    note: "La liste simple de la maquette n'existe pas : /dashboard/ventes affiche l'écran « Ventes · remboursement et accès » (c_ventes_ops)",
+  }),
+  // Associé par le CONTENU, pas par le libellé du menu : la maquette range sous « Remboursements » un
+  // écran titré « Ventes · remboursement et accès », qui est celui de /dashboard/ventes (relu le 14/11).
+  tableau("createur", "c_ventes_ops", "Remboursements", "/dashboard/ventes"),
   tableau("createur", "c_commissions", "Commissions", "/dashboard/commissions"),
   tableau("createur", "c_versements", "Versements", "/dashboard/versements"),
   tableau("createur", "c_promos", "Promotions", "/dashboard/promos"),
-  tableau("createur", "c_promos_upsell", "Promotions · Offres après achat", null, {
-    note: "Onglet de /dashboard/promos dans la maquette ; aucun équivalent trouvé dans app/ (à confirmer à la relecture)",
+  tableau("createur", "c_promos_upsell", "Promotions · Offres après achat", "/dashboard/promos", {
+    note: "Onglet dans la maquette ; section « Offres après achat » de la même page dans l'app (relu le 14/11)",
   }),
   tableau("createur", "c_stats", "Statistiques", "/dashboard/statistiques"),
   tableau("createur", "c_profil", "Profil de la boutique", "/dashboard/boutique"),
@@ -248,14 +252,17 @@ export const ECRANS: EcranMaquette[] = [
   tableau("admin", "a_signalements", "Signalements & DMCA", "/dashboard/signalements"),
   tableau("admin", "a_rembours", "Remboursements à trancher", "/dashboard/remboursements-a-trancher"),
   tableau("admin", "a_messages", "Messages reçus", "/dashboard/messages-recus"),
-  tableau("admin", "a_membres", "Membres", "/dashboard/systeme/membres"),
-  tableau("admin", "a_membres_risque", "Décisions de risque", null, {
-    note: "Aucune route dédiée dans app/ (à confirmer : peut-être dans /dashboard/systeme/membres)",
+  tableau("admin", "a_membres", "Membres", "/dashboard/systeme/membres", {
+    note: "La vue « Membres » de la maquette (chiffres, derniers comptes, vérifications) n'existe pas : la route affiche « Membres · décisions de risque » (a_membres_risque)",
   }),
+  // Même titre des deux côtés, « Membres · décisions de risque » (relu le 14/11).
+  tableau("admin", "a_membres_risque", "Décisions de risque", "/dashboard/systeme/membres"),
   tableau("admin", "a_boutiques", "Boutiques créateurs", null, { note: LOT6 }),
   tableau("admin", "a_catalogue", "Catalogue", null, { note: LOT6 }),
   tableau("admin", "a_finances", "Finances plateforme", null, { note: LOT6 }),
-  tableau("admin", "a_versements", "Versements créateurs", "/dashboard/systeme/versements"),
+  tableau("admin", "a_versements", "Versements créateurs", "/dashboard/systeme/versements", {
+    note: "La vue « Versements créateurs » de la maquette (bénéficiaires, À verser / Valider) n'existe pas : la route affiche « Système · Versements » (a_sys_versements)",
+  }),
   tableau("admin", "a_abonnements", "Abonnements", null, { note: LOT6 }),
   tableau("admin", "a_jobs", "Jobs & services", null, { note: "Aucune route d'administration des jobs dans app/" }),
   tableau("admin", "a_editorial", "Contenus éditoriaux", null, { note: "B2 / C10 — sélection éditoriale" }),
@@ -324,6 +331,11 @@ export const ROUTES_SANS_MAQUETTE: { route: string; compte?: Compte; note?: stri
   { route: "/dashboard/blog/{articleAdmin}", compte: "admin" },
   { route: "/dashboard/collections/{collection}", compte: "client" },
   { route: "/dashboard/produits/{produitCreateur}", compte: "createur" },
+  {
+    route: "/dashboard/ventes/remboursements",
+    compte: "createur",
+    note: "« Demandes de remboursement » : le délai de remboursement de la boutique. Le menu de la maquette nomme « Remboursements » un autre écran (c_ventes_ops)",
+  },
   { route: "/dashboard/remboursements", compte: "client", note: "Remboursements côté acheteur : absents du menu acheteur de la maquette" },
   { route: "/dashboard/statuts", compte: "admin" },
   { route: "/dashboard/temoignage", compte: "client" },

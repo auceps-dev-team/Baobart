@@ -116,6 +116,8 @@ const FIGER =
 interface Mesures {
   debordement: number;
   fautifs: string[];
+  coupes: number;
+  exemplesCoupes: string[];
   cibles: number;
   sous44: number;
   sous24: number;
@@ -130,6 +132,8 @@ interface Mesures {
 interface CaptureApp {
   largeur: Largeur;
   fichier?: string;
+  /** Largeur de l'image produite : plus grande que `largeur` = la page dépasse de l'écran. */
+  largeurCapture?: number;
   statut?: number;
   urlFinale?: string;
   redirige?: boolean;
@@ -245,7 +249,11 @@ async function resoudreParametres(db: PrismaClient, ids: Record<Compte, string>)
     }
   };
   const p: Record<string, string | null> = {
-    produit: await premier(`select slug as v from "Product" where status = 'PUBLISHED' order by "createdAt" limit 1`),
+    // Payant : /acheter renvoie un produit gratuit vers sa fiche (mesuré le 14/11 : la
+    // première ressource publiée de la démo est gratuite, et « Paiement » capturait la fiche).
+    produit: await premier(
+      `select slug as v from "Product" where status = 'PUBLISHED' and price > 0 order by "createdAt" limit 1`,
+    ),
     produitCreateur: await premier(`select id as v from "Product" where "sellerId" = $1 order by "createdAt" limit 1`, ids.createur),
     createur: await premier(`select username as v from "Profile" where "userId" = $1`, ids.createur),
     service: await premier(`select id as v from "ServiceOffer" limit 1`),
@@ -310,20 +318,37 @@ async function defiler(page: Page) {
   await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
 }
 
-function mesurer(): Mesures {
-  const vw = window.innerWidth;
+/**
+ * La largeur de l'écran est PASSÉE, pas lue : en émulation mobile, une page plus large que
+ * l'écran fait dézoomer Chrome comme un vrai téléphone, et `window.innerWidth` devient la
+ * largeur de la page. Comparer la page à elle-même trouvait 0 débordement partout (mesuré le
+ * 14/11 : 97 pages « sans débordement », dont 5 dont la capture faisait 528 ou 666 px de large).
+ */
+function mesurer(vw: number): Mesures {
   const decrire = (el: Element) => {
     const r = el.getBoundingClientRect();
     const texte = (el.textContent ?? el.getAttribute("aria-label") ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
     const classe = typeof el.className === "string" ? el.className.split(" ")[0] : "";
     return `${el.tagName.toLowerCase()}${classe ? "." + classe : ""} « ${texte} » ${Math.round(r.width)}×${Math.round(r.height)}`;
   };
+  // Visible ET atteignable : les pièges à robots (`societe`, `ouvertLe`) sont rendus hors de
+  // l'écran ou en 1 px exprès, et les textes `sr-only` font 1 px — aucun n'est une cible
+  // (constaté le 14/11 sur /connexion et l'accueil).
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
     const s = getComputedStyle(el);
-    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && s.opacity !== "0";
+    return (
+      r.width > 1 && r.height > 1 && r.right > 0 && r.bottom + window.scrollY > 0 &&
+      s.visibility !== "hidden" && s.display !== "none" && s.opacity !== "0"
+    );
   };
   const debordement = Math.max(0, document.documentElement.scrollWidth - vw);
+  // La page peut ne pas défiler de côté ET couper du contenu : un conteneur en `overflow:
+  // hidden | clip` plus étroit que ce qu'il porte. Volontaire pour un carrousel, pas ailleurs.
+  const coupes = [...document.body.querySelectorAll("*")].filter((el) => {
+    const s = getComputedStyle(el);
+    return /hidden|clip/.test(s.overflowX) && el.clientWidth > 1 && el.scrollWidth > el.clientWidth + 1 && visible(el);
+  });
   const fautifs: string[] = [];
   if (debordement > 0) {
     for (const el of document.body.querySelectorAll("*")) {
@@ -351,16 +376,21 @@ function mesurer(): Mesures {
     ...document.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea"),
   ].filter(visible);
   const champsSous16 = champs.filter((el) => Number.parseFloat(getComputedStyle(el).fontSize) < 16);
+  const coupe = (el: Element) => `${decrire(el).replace(/ « .* » /, " ")} porte ${el.scrollWidth} px`;
   return {
     debordement,
     fautifs,
+    coupes: coupes.length,
+    exemplesCoupes: coupes.slice(0, 3).map(coupe),
     cibles: cibles.length,
     sous44: sous44.length,
     sous24: sous24.length,
     exemplesSous44: sous44.slice(0, 5).map(decrire),
     champs: champs.length,
     champsSous16: champsSous16.length,
-    exemplesChamps: champsSous16.slice(0, 3).map(decrire),
+    exemplesChamps: champsSous16
+      .slice(0, 3)
+      .map((el) => `${el.tagName.toLowerCase()}[${(el as HTMLInputElement).name || (el as HTMLInputElement).type}] ${getComputedStyle(el).fontSize}`),
     titre: document.title,
     h1: document.querySelector("h1")?.textContent?.trim().replace(/\s+/g, " ").slice(0, 80) ?? null,
   };
@@ -380,11 +410,20 @@ async function capturerApp(
     await defiler(page);
     await page.evaluate(() => document.fonts.ready);
     // Mesurée à la taille d'écran réelle, AVANT le dépliage.
-    const mesures = await page.evaluate(mesurer);
+    const mesures = await page.evaluate(mesurer, largeur);
     await deplier(page, largeur);
     await page.screenshot({ path: fichier, fullPage: true });
+    // Second témoin, indépendant du premier : la largeur de l'image elle-même.
+    const largeurCapture = (await sharp(fichier).metadata()).width ?? largeur;
     const finale = page.url();
-    return { fichier, statut: reponse?.status() ?? 0, urlFinale: finale, redirige: new URL(finale).pathname !== new URL(url).pathname, mesures };
+    return {
+      fichier,
+      statut: reponse?.status() ?? 0,
+      urlFinale: finale,
+      redirige: new URL(finale).pathname !== new URL(url).pathname,
+      mesures,
+      largeurCapture,
+    };
   } finally {
     await page.close();
   }
@@ -431,6 +470,7 @@ function ecrireIndex(lignes: Ligne[], date: string) {
     const parts = [
       `HTTP ${a.statut}${a.redirige ? ` → ${echapper(new URL(a.urlFinale!).pathname)}` : ""}`,
       m.debordement > 0 ? `<span class="ko">déborde de ${m.debordement} px</span>` : "ne déborde pas",
+      m.coupes ? `${m.coupes} conteneur(s) coupé(s)` : "rien de coupé",
       `${m.sous44}/${m.cibles} cibles &lt; 44 px (${m.sous24} &lt; 24)`,
       m.champs ? `${m.champsSous16}/${m.champs} champs &lt; 16 px` : "aucun champ",
     ];
@@ -581,7 +621,15 @@ async function main() {
       console.log(`\napplication : ${lignes.reduce((n, l) => n + l.app.filter((a) => a.fichier).length, 0)} captures`);
     }
 
-    // 3. Planches
+    // 3. Planches. Sans nouvelle capture de maquette, on reprend celles du rapport précédent :
+    // relancer l'application seule (après un changement de code) ne perd pas la colonne de gauche.
+    const precedent = join(SORTIE, "rapport.json");
+    if (!AVEC_MAQUETTES && existsSync(precedent)) {
+      const ancien = new Map(
+        (JSON.parse(readFileSync(precedent, "utf8")) as { lignes: Ligne[] }).lignes.map((l) => [l.id, l.maquettes]),
+      );
+      for (const l of lignes) l.maquettes = (ancien.get(l.id) ?? []).filter((m) => !m.fichier || existsSync(m.fichier));
+    }
     for (const l of lignes) {
       for (const w of LARGEURS) {
         const m = l.maquettes.find((x) => x.largeur === w)?.fichier;
