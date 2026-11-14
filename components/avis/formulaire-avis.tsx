@@ -38,7 +38,7 @@ export function FormulaireAvis({
         ) : null}
         <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
           {Array.from({ length: NOTE_MAX }, (_, i) => i + 1).map((n) => (
-            <label key={n} style={{ cursor: "pointer", lineHeight: 1 }}>
+            <label key={n} style={{ position: "relative", display: "inline-flex", cursor: "pointer", lineHeight: 1 }}>
               <input
                 type="radio"
                 name="note"
@@ -46,7 +46,12 @@ export function FormulaireAvis({
                 checked={note === n}
                 onChange={() => setNote(n)}
                 required
-                style={{ position: "absolute", opacity: 0, width: 1, height: 1 }}
+                // Le bouton radio, invisible, couvre TOUTE l'étoile et passe
+                // au-dessus d'elle : c'est lui qui reçoit le clic. En 1 × 1 px
+                // sous l'icône, il était recouvert par son aplat (qui déborde
+                // de la grille) — Playwright refusait de le cocher, et la CI
+                // de la PR #56 expirait sur e2e/avis.spec.ts (14/11/2026).
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", margin: 0, opacity: 0, cursor: "pointer", zIndex: 1 }}
               />
               <span aria-hidden style={{ display: "inline-flex" }}>
                 <Icone
