@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 
-import { ORANGE_ETOILES } from "@/components/avis/etoiles";
+import { APLATS, Icone } from "@/components/icones/icone";
 import { enregistrerAvis, supprimerAvis, type ReponseAvis } from "@/lib/avis/actions";
 import { NOTE_MAX, TEXTE_MAX } from "@/lib/avis/regles";
 import { BLANC, ENCRE, JAUNE } from "@/lib/systeme/charte";
@@ -48,8 +48,13 @@ export function FormulaireAvis({
                 required
                 style={{ position: "absolute", opacity: 0, width: 1, height: 1 }}
               />
-              <span aria-hidden style={{ fontSize: 30, color: n <= note ? ORANGE_ETOILES : "#B9B3C3" }}>
-                ★
+              <span aria-hidden style={{ display: "inline-flex" }}>
+                <Icone
+                  nom="star"
+                  taille={30}
+                  aplat={n <= note ? APLATS.jaune : APLATS.lavande}
+                  style={n <= note ? undefined : { opacity: 0.5 }}
+                />
               </span>
               <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
                 {n} {n > 1 ? "étoiles" : "étoile"}

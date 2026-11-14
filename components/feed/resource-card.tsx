@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Eclats } from "@/components/anime/eclats";
+import { APLATS, Icone } from "@/components/icones/icone";
 import { MiniEcusson } from "@/components/badges/formes";
 
 import type { CarteRessource } from "@/lib/feed/types";
@@ -51,17 +52,16 @@ function trameDe(id: string): string {
  *
  * Une vidéo et une police sans couverture affichaient exactement la même
  * trame : on ne pouvait pas savoir, avant de cliquer, si l'on regardait un
- * motion design ou un fichier de fontes. Dire « ▶ » ne remplace pas un
+ * motion design ou un fichier de fontes. L'icône vidéo (Halo) ne remplace pas un
  * aperçu, mais c'est une information vraie, et elle coûte un caractère.
  *
  * On ne met rien sur les familles qui devraient, elles, avoir une image :
  * une illustration sans visuel est une fiche incomplète, et lui coller un
  * pictogramme masquerait ce qu'il faut corriger.
  */
-function glypheDe(famille: string | null): string {
-  if (famille === "Vidéo") return "▶ ";
-  if (famille === "Audio") return "♪ ";
-  return "";
+function glypheDe(famille: string | null): ReactNode {
+  const nom = famille === "Vidéo" ? "video" : famille === "Audio" ? "mic" : null;
+  return nom ? <Icone nom={nom} taille={14} style={{ verticalAlign: "-2px", marginRight: 4 }} /> : null;
 }
 
 /**
@@ -235,7 +235,7 @@ function ActionsSurvol({
         style={{ ...bouton(aime ? "#E2622C" : "#FFFFFF"), position: "relative" }}
       >
         <span key={salve} className={salve > 0 && aime ? "coeur-bat" : undefined}>
-          ♥
+          <Icone nom="heart" taille={18} aplat={aime ? APLATS.jaune : APLATS.lavande} />
         </span>
         {aime ? <Eclats salve={salve} /> : null}
       </button>
@@ -250,7 +250,7 @@ function ActionsSurvol({
         }}
         style={bouton(epingle ? "#FFD84A" : "#FFFFFF")}
       >
-        ⌸
+        <Icone nom="folder" taille={18} aplat={epingle ? APLATS.lavande : APLATS.jaune} />
       </button>
       {/*
         Le bouton arrêtait le clic et ne faisait rien (relevé le 04/10). Le
@@ -258,7 +258,7 @@ function ActionsSurvol({
         donc le clic la laisse s'ouvrir : il remonte jusqu'au lien de la carte.
       */}
       <span aria-hidden style={bouton("#FFFFFF")} title="Ouvrir la fiche pour télécharger">
-        ↓
+        <Icone nom="download" taille={18} />
       </span>
     </div>
   );
@@ -286,7 +286,7 @@ function PastilleSelection({ compacte }: { compacte: boolean }) {
         fontWeight: 800,
       }}
     >
-      ★ {compacte ? "Sélection" : "Sélection éditoriale"}
+      <Icone nom="star" taille={14} aplat={APLATS.orange} style={{ verticalAlign: "-2px" }} /> {compacte ? "Sélection" : "Sélection éditoriale"}
     </span>
   );
 }
@@ -312,7 +312,7 @@ export function CarteMosaique(props: CarteProps) {
 
   // L'extrait ne remplace que ce qui manque : une couverture choisie par le
   // créateur passe avant, toujours. On ne joue que la vidéo — un fichier audio
-  // n'a rien à montrer, il garde son « ♪ ».
+  // n'a rien à montrer, il garde son icône de micro.
   const apercuVideo =
     !r.coverUrl && r.extrait?.nature === "video" ? r.extrait.url : null;
 

@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -101,7 +102,7 @@ export default async function DeposerOffrePage() {
                 fontWeight: 800,
               }}
             >
-              !
+              <Icone nom="alert" taille={16} />
             </div>
             <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, textWrap: "pretty" }}>
               Ton offre passe par une relecture avant de paraître — compte un

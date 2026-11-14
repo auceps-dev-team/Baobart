@@ -1,5 +1,7 @@
 "use client";
 
+import { Icone } from "@/components/icones/icone";
+import type { NomIcone } from "@/lib/icones/donnees";
 import { useCallback, useEffect, useState } from "react";
 
 import { enregistrerAppareil, retirerAppareil } from "@/lib/push/actions";
@@ -46,7 +48,9 @@ type Etat = "chargement" | "impossible" | "sans-cle" | "refuse" | "inactif" | "a
 
 interface Allure {
   pastille: string;
-  glyphe: string;
+  /** Une icône Halo ; à défaut (✕, un nombre), le texte de `glyphe`. */
+  icone?: NomIcone;
+  glyphe?: string;
   titre: string;
   texte: string;
   puce: string;
@@ -60,7 +64,7 @@ interface Allure {
 const ALLURES: Record<Exclude<Etat, "chargement">, Allure> = {
   inactif: {
     pastille: LAVANDE,
-    glyphe: "◌",
+    icone: "bell",
     titre: "Recevoir les relances sur cet appareil",
     texte:
       "À quoi ça sert avant que tu décides : un rappel une semaine avant l'échéance, un autre la veille, et la confirmation quand un renouvellement aboutit. Rien d'autre — ni promotions, ni nouveautés.",
@@ -74,7 +78,7 @@ const ALLURES: Record<Exclude<Etat, "chargement">, Allure> = {
   },
   actif: {
     pastille: VERT,
-    glyphe: "✓",
+    icone: "check",
     titre: "Les notifications sont actives",
     texte:
       "Tu recevras les relances d'échéance et les confirmations de renouvellement sur cet appareil. Elles s'arrêtent si tu te déconnectes ou si tu désinstalles l'application.",
@@ -102,7 +106,7 @@ const ALLURES: Record<Exclude<Etat, "chargement">, Allure> = {
   },
   impossible: {
     pastille: GRIS,
-    glyphe: "◍",
+    icone: "download",
     titre: "Il faut d'abord installer Baobart",
     texte:
       "Sur iPhone et iPad, un site ouvert dans Safari ne peut pas envoyer de notifications. Une fois Baobart ajouté à ton écran d'accueil, il le peut — c'est une contrainte d'Apple, pas un choix de notre part.",
@@ -116,7 +120,7 @@ const ALLURES: Record<Exclude<Etat, "chargement">, Allure> = {
   },
   "sans-cle": {
     pastille: GRIS,
-    glyphe: "⚙",
+    icone: "sliders",
     titre: "Les notifications ne sont pas encore branchées",
     texte:
       "Aucune clé n'est configurée côté serveur : le bouton échouerait, donc on ne le montre pas. Ce n'est pas ton appareil, c'est nous.",
@@ -309,7 +313,7 @@ export function Notifications({
               fontSize: 22,
             }}
           >
-            {a.glyphe}
+            {a.icone ? <Icone nom={a.icone} taille={26} /> : a.glyphe}
           </div>
           <div style={{ flex: "1 1 260px", minWidth: 0 }}>
             <div
@@ -382,7 +386,7 @@ export function Notifications({
               fontWeight: 800,
             }}
           >
-            !
+            <Icone nom="alert" taille={16} />
           </div>
           <div
             style={{
@@ -542,7 +546,7 @@ export function Notifications({
               fontSize: 19,
             }}
           >
-            ✓
+            <Icone nom="check" taille={24} />
           </div>
           <div style={{ flex: "1 1 260px", minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 800 }}>

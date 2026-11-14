@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -206,7 +207,7 @@ function Carte({
         <div style={{ display: "flex", flexDirection: "column", gap: 9, flex: "1 1 auto" }}>
           {points.map((p) => (
             <div key={p} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13.5, fontWeight: 600, lineHeight: 1.4 }}>
-              <span style={{ flex: "0 0 auto", width: 18, height: 18, border: `2px solid ${ENCRE}`, borderRadius: 6, background: BLANC, display: "grid", placeItems: "center", fontSize: 11 }}>✓</span>
+              <span style={{ flex: "0 0 auto", width: 18, height: 18, border: `2px solid ${ENCRE}`, borderRadius: 6, background: BLANC, display: "grid", placeItems: "center", fontSize: 11 }}><Icone nom="check" taille={14} /></span>
               {p}
             </div>
           ))}

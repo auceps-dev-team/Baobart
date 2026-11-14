@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import type { ReactNode } from "react";
 
 import {
@@ -63,7 +64,7 @@ export function BandeauGravite({
           color: ENCRE,
         }}
       >
-        {b.glyphe}
+        {b.icone ? <Icone nom={b.icone} taille={26} /> : b.glyphe}
       </div>
 
       <div style={{ flex: "1 1 260px", minWidth: 0 }}>

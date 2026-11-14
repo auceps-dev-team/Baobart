@@ -1,6 +1,7 @@
 import { CarteAvis } from "@/components/avis/carte-avis";
 import { Etoiles } from "@/components/avis/etoiles";
 import { FormulaireAvis } from "@/components/avis/formulaire-avis";
+import { Icone } from "@/components/icones/icone";
 import type { AvisDeLaRessource } from "@/lib/avis/lecture";
 import { BLANC, ENCRE, JAUNE } from "@/lib/systeme/charte";
 
@@ -34,7 +35,9 @@ export function SectionAvis({ produitId, donnees, connecte }: { produitId: strin
           <ul aria-label="Répartition des notes" style={{ listStyle: "none", margin: 0, padding: 0, flex: "1 1 220px", display: "flex", flexDirection: "column", gap: 5 }}>
             {resume.repartition.map((r) => (
               <li key={r.note} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700 }}>
-                <span style={{ width: 22, fontFamily: "var(--font-mono)" }}>{r.note}★</span>
+                <span style={{ width: 22, fontFamily: "var(--font-mono)" }}>{r.note}
+                  <Icone nom="star" taille={11} decalage={1} style={{ verticalAlign: "-1px", marginLeft: 1 }} />
+                </span>
                 <span
                   role="progressbar"
                   aria-label={`${r.note} étoiles : ${r.pourcentage} %`}

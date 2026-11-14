@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { Icone } from "@/components/icones/icone";
+
 import {
   BLANC,
   ENCRE,
@@ -250,7 +252,7 @@ export function Rail({
                   background: actif ? BLANC : LAVANDE,
                 }}
               >
-                {n.glyph}
+                <Icone nom={n.icone} taille={20} />
               </span>
               {ouvert ? (
                 <span style={{ fontSize: 14, fontWeight: 800 }}>{n.label}</span>

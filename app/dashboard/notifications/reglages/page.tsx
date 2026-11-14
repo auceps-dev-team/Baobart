@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
@@ -103,7 +104,7 @@ export default async function ReglagesNotificationsPage() {
             fontWeight: 800,
           }}
         >
-          !
+          <Icone nom="alert" taille={16} />
         </div>
         <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, textWrap: "pretty" }}>
           Certains avis ne se coupent pas : ceux qui engagent de l&apos;argent —

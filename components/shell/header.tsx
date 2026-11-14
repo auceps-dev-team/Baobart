@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { usePlaceholderTape } from "@/components/anime/placeholder-tape";
+import { Icone } from "@/components/icones/icone";
 import { deconnecter } from "@/lib/auth/actions";
 
 import {
@@ -536,7 +537,7 @@ export function Header({
                           background: LAVANDE,
                         }}
                       >
-                        {m.glyph}
+                        <Icone nom={m.icone} taille={18} />
                       </span>
                       <span>
                         <span
