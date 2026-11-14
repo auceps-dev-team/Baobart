@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { ABONNE_COMPTE_APRES_JOURS, cyclesPayesDAffilee, type Mesures } from "@/lib/badges/merites";
+import { AVIS_COMPTE } from "@/lib/avis/recompte";
 import { db } from "@/lib/db";
 import { JOURS_DE_CADENCE, REGLAGES_PAR_DEFAUT, type Cadence } from "@/lib/ndank/cycle";
 import { lireQualifications } from "@/lib/services/qualifications";
@@ -123,7 +124,7 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
 
   const inscritAvant = new Date(maintenant.getTime() - ABONNE_COMPTE_APRES_JOURS * 86_400_000);
 
-  const [avant, ressourcesPubliees, acheteurs, abonnes, paiements, qualifications] = await Promise.all([
+  const [avant, ressourcesPubliees, acheteurs, abonnes, paiements, qualifications, avisRecus, avisRediges] = await Promise.all([
     // Le rang d'inscription. Un compte effacé est anonymisé, pas supprimé
     // (`lib/rgpd/effacement.ts`) : il garde sa place, et les rangs ne
     // glissent pas. L'identifiant départage deux inscriptions à la même
@@ -152,6 +153,22 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
       select: { cycleEnd: true, paidAt: true, subscriptionId: true, subscription: { select: { cadence: true } } },
     }),
     lireQualifications(userId, maintenant),
+    // Les avis comptés reçus, de comptes qui comptent : voir `Mesures.avisRecus`.
+    db.$queryRaw<Array<{ n: bigint | number; somme: bigint | number | null }>>`
+      SELECT COUNT(*) AS n, SUM(r."rating") AS somme
+      FROM "ProductReview" r
+      JOIN "Product" p ON p."id" = r."productId"
+      JOIN "User" a ON a."id" = r."authorId"
+      WHERE p."sellerId" = ${userId}
+        AND ${AVIS_COMPTE}
+        AND a."suspendedAt" IS NULL
+        AND a."anonymizedAt" IS NULL
+        AND a."createdAt" <= ${inscritAvant}`,
+    db.$queryRaw<Array<{ n: bigint | number }>>`
+      SELECT COUNT(*) AS n
+      FROM "ProductReview" r
+      JOIN "Product" p ON p."id" = r."productId"
+      WHERE r."authorId" = ${userId} AND ${AVIS_COMPTE}`,
   ]);
 
   const titre = compte.badges.find((b) => b.badge.code === "TOP_CREATOR");
@@ -179,5 +196,13 @@ export async function mesuresDe(userId: string, maintenant: Date = new Date()): 
     abonnementOuvert: qualifications.abonnementOuvert,
     createurDuMoisJusquAu: titre?.validUntil ?? null,
     vip: compte.badges.some((b) => b.badge.code === "VIP_CREATOR"),
+    avisRecus: {
+      nombre: Number(avisRecus[0]?.n ?? 0),
+      moyenne:
+        Number(avisRecus[0]?.n ?? 0) === 0
+          ? null
+          : Math.round((Number(avisRecus[0]!.somme ?? 0) / Number(avisRecus[0]!.n)) * 10) / 10,
+    },
+    avisRediges: Number(avisRediges[0]?.n ?? 0),
   };
 }

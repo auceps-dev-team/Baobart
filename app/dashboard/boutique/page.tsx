@@ -26,10 +26,11 @@ export const dynamic = "force-dynamic";
 export default async function BoutiquePage() {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/boutique");
-  // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
-  // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
-  // règle que `/dashboard` (`app/dashboard/page.tsx`).
-  if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
+  // Ouvert au palier ACHETEUR depuis le 09/11/2026 (option A de « Devenir
+  // vendeur ») : l'étape 1 (« Complète ton profil ») demande la spécialité, le
+  // portfolio et les réseaux, qui vivent ici dans la disposition « boutique »
+  // depuis le partage du 29/10 (v1.102.0, `ee17e3e`). L'entrée de la barre
+  // latérale reste masquée à l'acheteur ; on y arrive depuis `/dashboard/devenir-vendeur`.
   const profil = await lireProfilDashboard(utilisateur.id);
   const p = profil?.profile;
 
@@ -39,7 +40,11 @@ export default async function BoutiquePage() {
       titre="Profil public"
       description="Ce que les acheteurs voient avant de te confier un projet."
       action={
-        p?.username ? (
+        // `profilPublic(username)` (`lib/createurs/queries.ts:147`) rend `null`
+        // tant qu'aucune ressource n'est publiée : n'afficher le lien vers la
+        // vitrine publique qu'au palier `BOUTIQUE` évite un 404 à l'acheteur ou
+        // au créateur en `ATELIER` qui prépare son profil.
+        p?.username && utilisateur.progression.etape === "BOUTIQUE" ? (
           <Link
             href={`/@${p.username}` as Route}
             className="sticker-press"

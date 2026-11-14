@@ -1,5 +1,122 @@
 # Instructions — Baobart
 
+> **Plusieurs personnes et plusieurs agents travaillent sur ce dépôt.** Avant
+> toute chose : lire `TACHES.md` (ce qui est fait, en cours, à faire), puis les
+> quatre sections qui suivent. Elles valent pour tout le monde, humain ou agent.
+
+## Travailler à plusieurs
+
+Décidé le 13/11/2026 par le responsable du dépôt.
+
+### La langue
+
+Tout s'écrit en **français** : le code (noms, commentaires), les messages de
+commit, les descriptions de PR, les comptes rendus. Un compte rendu en anglais,
+même juste sur le fond, est à relire deux fois. Avant d'envoyer un texte long,
+relire son titre et la première phrase de chaque section.
+
+### La liste des tâches
+
+`TACHES.md` est la seule liste qui fait foi. On y prend une ligne, on la passe
+« En cours » à son nom **dans sa propre PR**, ouverte en brouillon dès le début,
+et la PR qui livre la passe dans « Fait ». Le mode d'emploi est en tête du
+fichier.
+
+### Git
+
+- **Personne ne pousse sur `main`.** Ni en avance rapide, ni « juste cette fois ».
+- **Une tâche = une branche = une PR.** Branche partie d'`origin/main` à jour :
+  `prenom/sujet` pour une personne, `claude/sujet` ou `gemini/sujet` pour un
+  agent.
+- **CI verte avant de demander la fusion.** Seul le **responsable du dépôt
+  fusionne**. On n'active pas la fusion automatique.
+- **Le numéro de version suit la nature du changement**, dans le même commit,
+  au champ `version` de `package.json` et au badge du `README.md` :
+  - fonctionnalité ou changement important : `+0.1.0` ;
+  - correction ou changement mineur : `+0.0.1` ;
+  - documentation, formatage, outillage : version inchangée.
+
+  Avant d'ouvrir la PR, vérifier qu'aucune PR ouverte n'annonce déjà ce numéro.
+- **Le message de commit et la PR disent ce qui est mesuré et ce qui est lu**,
+  avec la date (voir « Ce qu'on a le droit d'affirmer »).
+- **Un agent qui code pour un autre ne commite pas.** Celui qui a planifié
+  relit le diff entier, cherche les cas oubliés, relance typecheck, lint et
+  tests, puis commite. C'est le circuit appliqué avec Gemini Argon depuis le
+  30/10.
+
+### Travailler en même temps qu'un autre, sur la même machine
+
+Mesuré le 08/11/2026 : deux personnes sur la même machine partageaient sans le
+savoir le `node_modules` (une jonction), la base de test et le processeur. Un
+`prisma generate` de l'une réécrivait le client Prisma de l'autre.
+
+- **Ses propres dépendances.** Une copie de travail (`git worktree`) a son
+  `node_modules` à elle : `pnpm install` dedans, jamais une jonction vers celui
+  d'un autre.
+- **Sa propre base de test.** `DATABASE_URL_TEST` écrite **en clair**, sur un
+  nom à soi, puis `node scripts/setup-test-db.mjs` :
+  `postgresql://baobart:baobart@localhost:5433/baobart_test_<prenom>?schema=public`.
+- **Sa propre base et son propre port pour le navigateur.** `DATABASE_URL_E2E`
+  sur `baobart_e2e_<prenom>`, `E2E_PORT` libre. Piège : Playwright attend que
+  le serveur réponde **avant** de créer la base ; une base e2e neuve se crée
+  d'abord, à la main : `node scripts/setup-test-db.mjs e2e`.
+- **Une seule suite de tests à la fois sur la machine**, la sienne ou celle d'un
+  autre. Vérifier avant de lancer (voir « Isolation des tests »).
+
+## Avant chaque tâche : les quatre questions
+
+Règle posée par le responsable du dépôt (08/11 et 12/11/2026) : **aucune tâche
+ne commence sans sa fiche.** Quatre questions, répondues par écrit avant d'agir
+— et chaque réponse devient une partie du travail, pas une réflexion qu'on
+oublie une fois écrite.
+
+| Question | Ce que la réponse devient |
+| --- | --- |
+| 1. Que ferait le meilleur expert du domaine, qu'on ne m'a pas déjà demandé ? | **Le périmètre** : chaque point entre dans la liste de contrôle, ou en sort avec sa raison écrite. |
+| 2. Quelle est la matière la plus brute dont je partirai, plutôt que celle déjà disponible ? | **La première action** : la collecter ou la mesurer avant de construire. Si elle contredit le plan, le plan change d'abord. |
+| 3. Quels méthodes et outils précis utiliserait un expert ? | **Le mode opératoire** : outils installés, méthode écrite avant de commencer. |
+| 4. Qu'est-ce qui, à part moi ou la personne qui me l'a demandé, prouverait que les résultats sont bons ? | **Le critère de fin** : la tâche n'est finie que quand cette preuve existe, datée et jointe. |
+
+- **La fiche s'écrit avant, jamais après.** Écrite après coup, elle justifie ce
+  qu'on a fait ; elle ne l'oriente plus.
+- **Une case vide bloque le départ.** « Rien à ajouter » se justifie en une
+  phrase.
+- **La fiche ouvre la réponse**, en quatre lignes, avant le premier outil ; pour
+  une tâche longue, elle va aussi dans la description de la PR.
+- **Répondre ne suffit pas : chaque réponse s'applique.** Le compte rendu final
+  reprend les réponses point par point — **appliqué** (avec la preuve) ou **non
+  appliqué** (avec la raison, et ce qu'il faudrait pour l'appliquer). Un point
+  oublié en silence est la faute que cette règle doit empêcher.
+- **Une preuve qui ne vient que de soi laisse la tâche ouverte.** Un test
+  automatique, la CI, un outil tiers (axe, Lighthouse, Stryker), un vrai
+  utilisateur, une autre personne : voilà ce qui prouve.
+- Une question qui n'appelle aucun travail — expliquer, comparer, donner un
+  avis — se répond directement.
+
+## Les maquettes font foi
+
+Toutes les vues sont dessinées dans `Baobart Design/*.dc.html`. On les traduit
+**à l'identique** — valeurs exactes, états, ordre —, on ne s'en inspire pas.
+**Ne jamais affirmer qu'une maquette ne contient pas quelque chose sans l'avoir
+cherché dedans** : le 18/09/2026, un module entier a été refait parce que huit
+noms de fichiers avaient été lus, pas huit fichiers. Un chiffre ou une promesse
+de la maquette que le code ne tient pas ne s'affiche pas ; l'écart s'écrit en
+commentaire, avec sa raison.
+
+## La base de développement
+
+- **Elle n'a pas de table `_prisma_migrations`** (mesuré le 25/09/2026). Ne
+  jamais y lancer `prisma migrate deploy` ni `status` : ils rejoueraient tout.
+  Une migration s'y applique **à la main**, en nommant la base :
+  `docker exec -i baobart-postgres psql -U baobart -d baobart < migration.sql`.
+- **La base d'ombre se nomme en clair** (section « Une base d'ombre mal
+  écrite… » plus bas) : une concaténation a vidé la base de développement le
+  23/09.
+- **Les mots de passe des comptes de test ne se recopient pas.** Ils vivent dans
+  `scripts/comptes-de-test.ts` (et `Qualitytest.md`, pour les testeurs
+  humains), et nulle part ailleurs : ni dans un compte rendu, ni dans un
+  commit, ni dans une PR, ni dans un message.
+
 ## Comptes rendus de fin de tâche
 
 Quand une tâche est terminée, le compte rendu s'adresse à un **étudiant de première
@@ -146,7 +263,8 @@ Se corriger vite et nettement vaut mieux que ne jamais se tromper.
 ## Isolation des tests — ce qui est propre à Baobart
 
 Les règles générales — une suite à la fois, borner les processus, rejouer seul
-avant de conclure à une régression — vivent dans le `CLAUDE.md` global. Elles
+avant de conclure à une régression — vivent dans le `CLAUDE.md` global, que
+`Doc/PROCESS_COLLABORATEURS.md` reprend pour qui ne l’a pas. Elles
 traitent le cas le plus fréquent : des suites qui se **ralentissent** jusqu'à
 dépasser leur délai.
 
@@ -223,7 +341,7 @@ npm run db:seed && npm run db:seed:demo
 npm run db:demo:catalogue        # 90 produits, suppose MinIO déjà rempli
 pnpm apercus:regenerer -- --appliquer   # couvertures filigranées : sans lui, elles restent vides
 pnpm provenance:poser -- --appliquer    # grave les fichiers vendus et sort les copies de référence (litige)
-npm run comptes:test             # les quatre comptes, mot de passe Baobart2026!
+npm run comptes:test             # les quatre comptes (mot de passe : voir scripts/comptes-de-test.ts)
 ```
 
 C'est précisément ce qui rend l'incident peu coûteux et facile à répéter : rien

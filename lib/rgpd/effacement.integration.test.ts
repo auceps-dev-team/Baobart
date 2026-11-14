@@ -205,6 +205,47 @@ describe("le caviardage", () => {
     expect(await db.eventRegistration.count({ where: { eventId: evenement.id } })).toBe(1);
   });
 
+  it("retire ses avis notés et ses réponses, et recompte la ressource et son créateur", async () => {
+    // Lot 4 (13/11/2026) : la CI a trouvé ProductReview et ProductReviewResponse
+    // absents de l’effacement — un avis, texte compris, restait en ligne. Le
+    // compteur de la ressource, lui, aurait gardé l’avis parti jusqu’au
+    // balayage de la nuit.
+    const vendeur = await db.user.create({
+      data: { email: `vend-${suffixe()}@baobart.test`, profile: { create: { username: `vend-${suffixe()}`, displayName: "Vendeuse" } } },
+      select: { id: true },
+    });
+    const autre = await db.user.create({ data: { email: `autre-${suffixe()}@baobart.test` }, select: { id: true } });
+    const compte = await creerCompte();
+    const produit = await db.product.create({
+      data: { sellerId: vendeur.id, name: "Pack", slug: `pack-${suffixe()}`, price: 0, currency: "XOF", status: "PUBLISHED" },
+      select: { id: true },
+    });
+    for (const acheteur of [compte.id, autre.id]) {
+      await db.order.create({
+        data: { buyerId: acheteur, total: 0, currency: "XOF", items: { create: { productId: produit.id, quantity: 1, price: 0, state: "NOT_CHARGED" } } },
+      });
+    }
+    await db.productReview.create({ data: { authorId: compte.id, productId: produit.id, rating: 1, body: "Mon avis, avec mes mots." } });
+    const avisAutre = await db.productReview.create({ data: { authorId: autre.id, productId: produit.id, rating: 5 } });
+    // Ce que le compte a répondu, en créateur, sur un avis d’autrui.
+    await db.productReviewResponse.create({ data: { reviewId: avisAutre.id, authorId: compte.id, body: "Merci !" } });
+    await db.product.update({ where: { id: produit.id }, data: { ratingStars: [1, 0, 0, 0, 1], ratingCount: 2, ratingAvg: 3 } });
+
+    await anonymiser(compte.id);
+
+    expect(await db.productReview.count({ where: { authorId: compte.id } })).toBe(0);
+    expect(await db.productReviewResponse.count({ where: { authorId: compte.id } })).toBe(0);
+    // L’avis d’autrui reste, sans la réponse du compte effacé.
+    expect(await db.productReview.count({ where: { id: avisAutre.id } })).toBe(1);
+    // Recompté dans la même transaction : il ne reste qu’un avis à 5.
+    expect(await db.product.findUniqueOrThrow({ where: { id: produit.id }, select: { ratingStars: true, ratingCount: true } })).toEqual({
+      ratingStars: [0, 0, 0, 0, 1],
+      ratingCount: 1,
+    });
+    const profil = await db.profile.findUniqueOrThrow({ where: { userId: vendeur.id }, select: { ratingCount: true } });
+    expect(profil.ratingCount).toBe(1);
+  });
+
   it("archive les produits au lieu de les supprimer", async () => {
     // Ils ont été achetés : un `OrderItem` les désigne, et les supprimer
     // effacerait ce que des gens ont payé.

@@ -65,7 +65,11 @@ describe("palier acheteur", () => {
     const createurs = entrees("ACHETEUR").filter((e) => e.cle.startsWith("c_"));
 
     expect(createurs).toHaveLength(1);
-    expect(createurs[0]).toMatchObject({ label: "Devenir vendeur", actif: true });
+    expect(createurs[0]).toMatchObject({
+      label: "Devenir vendeur",
+      href: "/dashboard/devenir-vendeur",
+      actif: true,
+    });
   });
 
   it("garde toutes les entrées acheteur ouvertes", () => {

@@ -27,6 +27,8 @@ function mesures(partiel: Partial<Mesures> = {}): Mesures {
     abonnes: 0,
     cyclesPayesDAffilee: 0,
     abonnementOuvert: true,
+    avisRecus: { nombre: 0, moyenne: null },
+    avisRediges: 0,
     createurDuMoisJusquAu: null,
     vip: false,
     ...partiel,
@@ -41,9 +43,11 @@ describe("le catalogue", () => {
     expect(new Set(MERITES.map((m) => m.code)).size).toBe(20);
   });
 
-  it("garde « Bien noté », « Bon public » et « Répond vite » hors d'atteinte, avec leur raison", () => {
+  // Jusqu'au 09/11, « Bien noté » et « Bon public » étaient ici aussi : le lot 4
+  // (avis notés) les rend mesurables. Seul « Répond vite » attend (lot 10).
+  it("garde « Répond vite » hors d'atteinte, avec sa raison", () => {
     const enAttente = MERITES.filter((m) => m.enAttente !== null).map((m) => m.code).sort();
-    expect(enAttente).toEqual(["FAST_RESPONDER", "HELPFUL_REVIEWER", "WELL_RATED"]);
+    expect(enAttente).toEqual(["FAST_RESPONDER"]);
     // Un compte qui coche tout le reste ne les obtient pas pour autant.
     const tout = mesures({ ressourcesPubliees: 500, acheteurs: 5_000, acheteursDepuisLeDernierLitige: 5_000, abonnes: 9_000 });
     expect(codes(tout)).not.toContain("WELL_RATED");
@@ -378,5 +382,29 @@ describe("l'accord de la ligne de détail (vu sur la capture du 08/11)", () => {
     expect(meriteDe("LOYAL_SUBSCRIBER").progression(mesures({ cyclesPayesDAffilee: 1 }))!.detail).toBe(
       "1 cycle payé d'affilée sur 12 · un cycle manqué remet à zéro",
     );
+  });
+});
+
+describe("« Bien noté » et « Bon public », mesurables depuis le lot 4 (09/11)", () => {
+  it("exige la note ET le nombre : 4,5 sur 20 avis, pas 5,0 sur deux", () => {
+    expect(codes(mesures({ avisRecus: { nombre: 20, moyenne: 4.5 } }))).toContain("WELL_RATED");
+    expect(codes(mesures({ avisRecus: { nombre: 19, moyenne: 5 } }))).not.toContain("WELL_RATED");
+    expect(codes(mesures({ avisRecus: { nombre: 200, moyenne: 4.4 } }))).not.toContain("WELL_RATED");
+  });
+
+  it("dit la distance en avis tant qu'il en manque, et rien quand c'est la note qui manque", () => {
+    const p = meriteDe("WELL_RATED").progression(mesures({ avisRecus: { nombre: 12, moyenne: 4.8 } }))!;
+    expect(p.ecart).toBe("il te manque 8 avis");
+    expect(p.detail).toBe("12 avis comptés sur 20 · note actuelle 4,8");
+    expect(meriteDe("WELL_RATED").progression(mesures({ avisRecus: { nombre: 1, moyenne: 5 } }))!.detail).toBe(
+      "1 avis compté sur 20 · note actuelle 5",
+    );
+    expect(meriteDe("WELL_RATED").progression(mesures({ avisRecus: { nombre: 30, moyenne: 4.2 } }))).toBeNull();
+  });
+
+  it("donne « Bon public » au 25e avis rédigé", () => {
+    expect(codes(mesures({ avisRediges: 25 }))).toContain("HELPFUL_REVIEWER");
+    expect(codes(mesures({ avisRediges: 24 }))).not.toContain("HELPFUL_REVIEWER");
+    expect(meriteDe("HELPFUL_REVIEWER").progression(mesures({ avisRediges: 1 }))!.detail).toBe("1 avis rédigé sur 25");
   });
 });

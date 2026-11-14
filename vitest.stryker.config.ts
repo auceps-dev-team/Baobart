@@ -25,7 +25,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["lib/badges/*.test.ts", "lib/systeme/contraste.test.ts"],
+    include: ["lib/badges/*.test.ts", "lib/systeme/contraste.test.ts", "lib/avis/*.test.ts"],
     exclude: ["**/*.integration.test.ts"],
   },
 });

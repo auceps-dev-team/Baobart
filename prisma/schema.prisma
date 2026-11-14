@@ -525,12 +525,15 @@ model User {
   teamSeats   TeamMembership[] @relation("TeamSeller")
 
   // social visuel
-  workItems WorkItem[]
-  boards    Board[]
-  likes     Like[]
-  comments  Comment[]
-  following Follow[]   @relation("Follower")
-  followers Follow[]   @relation("Following")
+  workItems    WorkItem[]
+  boards       Board[]
+  likes        Like[]
+  comments     Comment[]
+  /// Les avis notés qu'il a rédigés, et ses réponses aux avis reçus (lot 4).
+  avisRediges  ProductReview[]         @relation("AvisRediges")
+  reponsesAvis ProductReviewResponse[] @relation("ReponsesAvis")
+  following    Follow[]                @relation("Follower")
+  followers    Follow[]                @relation("Following")
 
   // commerce
   products Product[]
@@ -1231,6 +1234,52 @@ model Like {
   @@index([userId, createdAt])
 }
 
+/// Un avis noté sur une ressource. Lot 4, 09/11/2026.
+///
+/// Un par compte et par ressource : on modifie le sien, on n'en empile pas.
+/// Quiconque a OBTENU la ressource peut noter, gratuite comprise (décision
+/// du 09/11) ; le vendeur, jamais la sienne.
+///
+/// Il ne COMPTE (moyenne, compteurs, « Bien noté ») que tant que la ressource
+/// reste à son auteur : un remboursement intégral, un litige ouvert ou perdu,
+/// un accès retiré le sortent des comptes sans l'effacer — un litige gagné
+/// l'y remet. La règle : `lib/avis/regles.ts` (TypeScript) et
+/// `lib/avis/recompte.ts` (SQL), comparées par un test.
+model ProductReview {
+  id        String    @id @default(cuid())
+  productId String
+  authorId  String
+  /// 1 à 5. La contrainte CHECK est posée par la migration.
+  rating    Int
+  body      String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  /// Retiré par la modération : ne s'affiche plus, ne compte plus.
+  hiddenAt  DateTime?
+
+  product  Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author   User                   @relation("AvisRediges", fields: [authorId], references: [id], onDelete: Cascade)
+  response ProductReviewResponse?
+
+  @@unique([authorId, productId])
+  @@index([productId, createdAt])
+}
+
+/// La réponse du créateur à un avis : une seule par avis, modifiable.
+/// Gumroad ne l'impose pas dans le modèle (`product_review_response.rb`) ;
+/// ici, l'unicité est au schéma.
+model ProductReviewResponse {
+  id        String   @id @default(cuid())
+  reviewId  String   @unique
+  authorId  String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  author User          @relation("ReponsesAvis", fields: [authorId], references: [id], onDelete: Cascade)
+}
+
 /// Même polymorphisme que `Like` : on commente un shot ou une ressource.
 model Comment {
   id         String    @id @default(cuid())
@@ -1427,13 +1476,19 @@ model Product {
   commentsCount  Int     @default(0)
   ratingAvg      Decimal @default(0) @db.Decimal(3, 2)
   ratingCount    Int     @default(0)
+  /// Les avis COMPTÉS, par étoile : [une, deux, trois, quatre, cinq].
+  /// Recomptés à chaque écriture (`lib/avis/recompte.ts`), jamais
+  /// incrémentés : Gumroad incrémente (`product_review_stat.rb`), et son
+  /// propre commentaire dit que l'ordre d'évaluation du SQL peut faire
+  /// dériver le total. `ratingAvg` et `ratingCount` en découlent.
+  ratingStars    Int[]   @default([0, 0, 0, 0, 0])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  seller      User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  workItem    WorkItem?     @relation(fields: [workItemId], references: [id])
-  licenseType LicenseType?  @relation(fields: [licenseTypeId], references: [id])
+  seller      User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  workItem    WorkItem?       @relation(fields: [workItemId], references: [id])
+  licenseType LicenseType?    @relation(fields: [licenseTypeId], references: [id])
   files       ProductFile[]
   tags        ProductTag[]
   variants    Variant[]
@@ -1441,6 +1496,7 @@ model Product {
   saves       Save[]
   likes       Like[]
   comments    Comment[]
+  reviews     ProductReview[]
 
   /// Les retraits juridiques qui la visent — voir LegalSuspension.
   legalSuspensions LegalSuspension[]
@@ -3565,6 +3621,10 @@ enum EmailTemplate {
   /// Ajouté le 08/11/2026 : le seul mérite qui s’annonce, « Créateur du mois »
   /// (lib/badges/createur-du-mois.ts). Sa perte ne s’annonce pas.
   CREATEUR_DU_MOIS
+  /// Ajoutés le 09/11/2026 avec les avis notés (lot 4) : le vendeur apprend un
+  /// avis, l’auteur une réponse.
+  AVIS_RECU
+  REPONSE_AVIS
 }
 
 /// File d'attente des messages transactionnels.

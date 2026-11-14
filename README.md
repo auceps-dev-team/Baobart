@@ -3,7 +3,7 @@
 > **Plateforme tout-en-un de création, découverte, partage et monétisation pour les créateurs africains.**  
 > Du premier croquis au premier encaissement en monnaie locale (FCFA, Mobile Money).
 
-[![Version](https://img.shields.io/badge/version-1.105.2-orange.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.107.1-orange.svg)](package.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5_App_Router-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](tsconfig.json)
 [![Prisma](https://img.shields.io/badge/Prisma-6.3-1b222d.svg)](prisma/schema.prisma)
@@ -161,6 +161,16 @@ pnpm dev             # Disponible sur http://localhost:3100
 ```
 
 ---
+
+## 🤝 Contribuer
+
+Plusieurs personnes et plusieurs agents travaillent sur ce dépôt. Avant toute chose :
+
+1. **[`TACHES.md`](TACHES.md)** — ce qui est fait, en cours (et par qui), à faire. On prend une ligne libre, sur une branche `prenom/sujet`, avec une PR en brouillon ouverte tout de suite.
+2. **[`CLAUDE.md`](CLAUDE.md)** — les règles du dépôt : git, les quatre questions avant chaque tâche, les maquettes, la base de développement. Une session Claude ouverte ici les charge d'elle-même.
+3. **[`Doc/PROCESS_COLLABORATEURS.md`](Doc/PROCESS_COLLABORATEURS.md)** — à coller dans sa session Claude : les règles générales (ce qu'on a le droit d'affirmer, l'isolation des tests).
+
+Personne ne pousse sur `main` ; une tâche = une PR ; CI verte ; le responsable du dépôt fusionne.
 
 ## 🛠 Commandes utiles
 
