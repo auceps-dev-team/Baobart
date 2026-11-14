@@ -39,7 +39,6 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. | CI verte ; relecture ; inventaire des écarts à 360 / 768 / 1440 px. |
-| **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. **La CI attend l'approbation du responsable du dépôt** (première contribution extérieure). | CI verte. |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
 
 ---
@@ -101,6 +100,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.107.1 | #49 | B14 — aucune page publique ne publie plus l'adresse d'un compte sans profil : les 9 lectures publiques (emplois, services, blog, événements, forum) ne la chargent plus ; « Membre Baobart » en repli. Le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau. |
 | — (tests) | #53 | Lot 3 au navigateur : Playwright + axe dans les trois états de « Devenir vendeur ». Écrit par Argon par le canal direct (sans copier-coller), lancé et éprouvé par Claude (trois casses attrapées). |
 | v1.107.0 | #51 | Lot 3 — « Devenir vendeur » : trois étapes vers la boutique (profil affichable comme la vitrine, compte de versement après 24 h, trois ressources) ; `/dashboard/boutique` ouvert à l'acheteur (option A). Écrit par Argon, relu par Claude. |
 | — (docs) | #39 | L'inventaire fonctionnalité par fonctionnalité (`Doc/INVENTAIRE_FONCTIONNALITES_2026-11.md`), auquel renvoient les identifiants A1…C10. |
