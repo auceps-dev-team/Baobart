@@ -23,8 +23,10 @@
    Chaque réponse devient une case de la liste de contrôle de la PR.
 3. **Une tâche = une PR.** Une tâche trop grosse se coupe en lignes ici d'abord.
 4. **Finir.** CI verte, la preuve du critère de fin jointe à la PR, la ligne
-   passée dans « Fait » avec le numéro de PR et la version. **Seul le
-   responsable du dépôt fusionne.** Personne ne pousse sur `main`.
+   passée dans « Fait » avec le numéro de PR et la version. **Son auteur la
+   fusionne** s'il a le droit d'écriture (voir `CLAUDE.md`, « Qui fusionne ») ;
+   un agent attend la demande du responsable. Personne ne pousse sur `main` :
+   la protection de la branche l'impose.
 5. **Bloqué ?** La ligne passe dans « Décisions attendues », avec la question
    posée. On ne contourne pas une décision en silence.
 6. **Deux personnes ne prennent jamais la même ligne.** En cas de doute, demander
@@ -39,7 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. | CI verte ; relecture ; inventaire des écarts à 360 / 768 / 1440 px. |
-| **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. **La CI attend l'approbation du responsable du dépôt** (première contribution extérieure). | CI verte. |
+| **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. Invité comme collaborateur (écriture) le 14/11 : il lance lui-même la CI, une fois l'invitation acceptée. Version à passer en **1.107.1** en se remettant à jour sur `main`. | CI verte. |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
 
 ---

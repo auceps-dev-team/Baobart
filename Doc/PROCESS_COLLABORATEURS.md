@@ -24,8 +24,10 @@
    suite une PR en brouillon qui passe la ligne « En cours » à son nom.
 5. Écrire la fiche (ci-dessous) dans la description de la PR, **avant** le
    premier fichier modifié.
-6. Finir : CI verte, preuve jointe, ligne passée dans « Fait ». **Seul le
-   responsable du dépôt fusionne.** Personne ne pousse sur `main`.
+6. Finir : CI verte, preuve jointe, ligne passée dans « Fait ». **L'auteur d'une
+   PR complète la fusionne** s'il a le droit d'écriture ; sinon le
+   responsable du dépôt. Personne ne pousse sur `main` : depuis le 14/11/2026,
+   la protection de la branche l'impose (PR obligatoire, cinq contrôles verts).
 
 Tout s'écrit en **français** : code, commits, PR, comptes rendus.
 
