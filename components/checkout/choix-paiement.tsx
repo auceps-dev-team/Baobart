@@ -1,5 +1,6 @@
 "use client";
 
+import { Icone } from "@/components/icones/icone";
 import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -609,7 +610,7 @@ export function ChoixPaiement({
               fontWeight: 800,
             }}
           >
-            i
+            <Icone nom="info" taille={16} />
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>
             {motNumero}

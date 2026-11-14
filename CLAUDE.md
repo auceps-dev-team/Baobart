@@ -182,9 +182,11 @@ du blog repose dessus. La preuve tenait en **un grep, quatre termes, un glob
 qui excluait `.mjs` et `.js`**.
 
 Revérifiée correctement, la conclusion tenait — mais pas telle qu'écrite :
-`innerHTML` apparaît cinq fois dans `Baobart Design/support.js`. Ce fichier
-n'est pas servi, donc la propriété vaut ; mais le prochain qui grep aurait
-trouvé ces cinq occurrences et cru que l'en-tête mentait.
+`innerHTML` et `outerHTML` apparaissent cinq fois dans `Baobart Design/support.js`
+(quatre et une). Ce fichier n'est pas servi, donc la propriété vaut ; mais le
+prochain qui grep aurait trouvé ces cinq occurrences et cru que l'en-tête
+mentait. Depuis le versement du 13/11/2026, `Baobart Design/baobart-icons.js`
+en ajoute deux, dans le même dossier non servi.
 
 ### Le silence d'une source n'est pas une preuve
 

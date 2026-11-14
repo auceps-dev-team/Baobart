@@ -1,3 +1,4 @@
+import type { NomIcone } from "@/lib/icones/donnees";
 import { peut, type Pouvoir, type RolePlateforme } from "@/lib/auth/administration";
 import type { EtapeCompte } from "@/lib/auth/roles";
 
@@ -21,7 +22,8 @@ import type { EtapeCompte } from "@/lib/auth/roles";
 export interface EntreeNav {
   cle: string;
   label: string;
-  glyph: string;
+  /** Une des 49 icônes Halo (lib/icones) — plus de glyphe Unicode depuis le 14/11/2026. */
+  icone: NomIcone;
   href: string | null;
   /** Pastille de la maquette (« NEW », un compteur…). */
   badge?: string;
@@ -59,43 +61,43 @@ export interface EntreeNavRendue extends EntreeNav {
 const ACHETEUR: EntreeNav[] = [
   // Sa propre adresse depuis le 27/10 : elle partageait `/dashboard` avec le
   // tableau de bord de la boutique, et un créateur ne voyait jamais son aperçu.
-  { cle: "apercu", label: "Aperçu", glyph: "◈", href: "/dashboard/apercu" },
+  { cle: "apercu", label: "Aperçu", icone: "dashboard", href: "/dashboard/apercu" },
   // Juste après l'aperçu, et dans le groupe acheteur : ce n'est pas un écran
   // de vendeur. Un acheteur y trouve ses reçus et, surtout, l'annulation de
   // l'événement où il s'était inscrit.
-  { cle: "notifications", label: "Notifications", glyph: "◔", href: "/dashboard/notifications" },
-  { cle: "profil", label: "Profil", glyph: "☺", href: "/dashboard/profil" },
+  { cle: "notifications", label: "Notifications", icone: "bell", href: "/dashboard/notifications" },
+  { cle: "profil", label: "Profil", icone: "user", href: "/dashboard/profil" },
   // Ajoutée le 05/11 : « Vos badges » de `SPEC_GAMIFICATION` §5. Côté
   // acheteur, donc à tous les paliers — un acheteur porte aussi des mérites.
-  { cle: "badges", label: "Mes badges", glyph: "◆", href: "/dashboard/badges" },
+  { cle: "badges", label: "Mes badges", icone: "trophy", href: "/dashboard/badges" },
   // Ajoutée le 31/10, à la place que lui donne la maquette : ce qu'on
   // possède, avant l'historique de ce qu'on a payé ou retiré.
-  { cle: "bibliotheque", label: "Ma bibliothèque", glyph: "▣", href: "/dashboard/bibliotheque" },
+  { cle: "bibliotheque", label: "Ma bibliothèque", icone: "file", href: "/dashboard/bibliotheque" },
   {
     cle: "achats",
     label: "Historique des achats",
-    glyph: "▤",
+    icone: "bag",
     href: "/dashboard/achats",
   },
   {
     cle: "telechargements",
     label: "Historique des téléchargements",
-    glyph: "↓",
+    icone: "download",
     href: "/dashboard/telechargements",
   },
   // Ajouté le 08/10 : demander un remboursement dans le délai du créateur.
-  { cle: "remboursements", label: "Remboursements", glyph: "↺", href: "/dashboard/remboursements" },
-  { cle: "suivis", label: "Éléments suivis", glyph: "♥", href: "/dashboard/suivis" },
-  { cle: "collections", label: "Mes collections", glyph: "⌸", href: "/dashboard/collections" },
+  { cle: "remboursements", label: "Remboursements", icone: "receipt", href: "/dashboard/remboursements" },
+  { cle: "suivis", label: "Éléments suivis", icone: "heart", href: "/dashboard/suivis" },
+  { cle: "collections", label: "Mes collections", icone: "folder", href: "/dashboard/collections" },
   {
     cle: "abonnements_suivis",
     label: "Abonnements",
-    glyph: "☍",
+    icone: "users",
     href: "/dashboard/abonnements",
   },
-  { cle: "abonnement", label: "Forfait & pass d'accès", glyph: "◉", href: "/dashboard/forfait" },
+  { cle: "abonnement", label: "Forfait & pass d'accès", icone: "card", href: "/dashboard/forfait" },
   // Décidé le 04/10 : les témoignages de l'accueil viennent des membres.
-  { cle: "temoignage", label: "Mon témoignage", glyph: "❝", href: "/dashboard/temoignage" },
+  { cle: "temoignage", label: "Mon témoignage", icone: "message", href: "/dashboard/temoignage" },
 ];
 
 /**
@@ -108,51 +110,51 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
   {
     cle: "c_apercu",
     label: "Tableau de bord",
-    glyph: "◈",
+    icone: "dashboard",
     href: "/dashboard",
     desLAtelier: true,
   },
   {
     cle: "c_produits",
     label: "Produits",
-    glyph: "▦",
+    icone: "image",
     href: "/dashboard/produits",
     desLAtelier: true,
   },
   {
     cle: "c_publier",
     label: "Ajouter un produit",
-    glyph: "+",
+    icone: "plus",
     href: "/dashboard/produits/nouveau",
     desLAtelier: true,
   },
   {
     cle: "c_promos",
     label: "Promotions",
-    glyph: "%",
+    icone: "tag",
     href: "/dashboard/promos",
   },
-  { cle: "c_revenus", label: "Gains", glyph: "◎", href: "/dashboard/gains" },
+  { cle: "c_revenus", label: "Gains", icone: "coins", href: "/dashboard/gains" },
   {
     cle: "c_versements",
     label: "Versements",
-    glyph: "◈",
+    icone: "wallet",
     href: "/dashboard/versements",
   },
-  { cle: "c_commandes", label: "Commandes", glyph: "▤", href: "/dashboard/commandes" },
-  { cle: "c_ventes", label: "Ventes", glyph: "◫", href: "/dashboard/ventes" },
-  { cle: "c_remboursements", label: "Demandes de remboursement", glyph: "↺", href: "/dashboard/ventes/remboursements" },
-  { cle: "c_commissions", label: "Commissions", glyph: "%", href: "/dashboard/commissions" },
-  { cle: "c_stats", label: "Statistiques", glyph: "▲", href: "/dashboard/statistiques" },
-  { cle: "c_profil", label: "Profil de la boutique", glyph: "☺", href: "/dashboard/boutique" },
-  { cle: "c_avis", label: "Créateur feedback", glyph: "✎", href: "/dashboard/avis" },
+  { cle: "c_commandes", label: "Commandes", icone: "cart", href: "/dashboard/commandes" },
+  { cle: "c_ventes", label: "Ventes", icone: "bag", href: "/dashboard/ventes" },
+  { cle: "c_remboursements", label: "Demandes de remboursement", icone: "receipt", href: "/dashboard/ventes/remboursements" },
+  { cle: "c_commissions", label: "Commissions", icone: "pie", href: "/dashboard/commissions" },
+  { cle: "c_stats", label: "Statistiques", icone: "bars", href: "/dashboard/statistiques" },
+  { cle: "c_profil", label: "Profil de la boutique", icone: "user", href: "/dashboard/boutique" },
+  { cle: "c_avis", label: "Créateur feedback", icone: "star", href: "/dashboard/avis" },
 ];
 
 /** La porte unique offerte à un acheteur qui n'a encore rien créé. */
 const PORTE_CREATION: EntreeNav = {
   cle: "c_publier",
   label: "Devenir vendeur",
-  glyph: "★",
+  icone: "target",
   href: "/dashboard/devenir-vendeur",
   badge: "NEW",
 };
@@ -205,7 +207,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
   {
     cle: "a_moderation",
     label: "File de modération",
-    glyph: "⚑",
+    icone: "shield",
     href: "/dashboard/moderation",
     // Deux pouvoirs, et un seul suffit : la file mélange Jobs et Services
     // (`moderer_le_contenu`) avec les événements (`publier_du_contenu`).
@@ -217,14 +219,14 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // services — le même pouvoir que trancher la file de modération.
     cle: "a_statuts",
     label: "Statuts",
-    glyph: "✓",
+    icone: "check",
     href: "/dashboard/statuts",
     pouvoir: "moderer_le_contenu" as const,
   },
   {
     cle: "a_blog",
     label: "Blog",
-    glyph: "✎",
+    icone: "edit",
     href: "/dashboard/blog",
     // Le seul des quatre CMS qui reste fermé (§18.1) : un article signé du
     // site engage le site. Pas de badge qui ouvre, comme pour les événements.
@@ -236,7 +238,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // est celui-là même. Voir `pouvoirDeModeration` dans `lib/cms/droits.ts`.
     cle: "a_evenements",
     label: "Événements",
-    glyph: "◈",
+    icone: "calendar",
     href: "/dashboard/evenements",
     pouvoir: "publier_du_contenu",
   },
@@ -246,7 +248,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // l'administration ET le marketing gèrent les bannières.
     cle: "a_publicites",
     label: "Publicités",
-    glyph: "▣",
+    icone: "eye",
     href: "/dashboard/publicites",
     pouvoir: "promouvoir_du_contenu",
   },
@@ -255,7 +257,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // en avant.
     cle: "a_temoignages",
     label: "Témoignages",
-    glyph: "❝",
+    icone: "star",
     href: "/dashboard/temoignages",
     pouvoir: "promouvoir_du_contenu",
   },
@@ -264,7 +266,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // définition de ce pouvoir.
     cle: "a_infolettre",
     label: "Lettre d'information",
-    glyph: "✉",
+    icone: "share",
     href: "/dashboard/infolettre",
     pouvoir: "promouvoir_du_contenu",
   },
@@ -273,7 +275,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // (08/10). « Rembourser, trancher un litige » : le pouvoir du support.
     cle: "a_remboursements",
     label: "Remboursements à trancher",
-    glyph: "↺",
+    icone: "receipt",
     href: "/dashboard/remboursements-a-trancher",
     pouvoir: "traiter_les_litiges",
   },
@@ -283,7 +285,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // sponsoring — chacun ne voit que les siens (`genresLusPar`).
     cle: "a_messages",
     label: "Messages reçus",
-    glyph: "✉",
+    icone: "message",
     href: "/dashboard/messages-recus",
     pouvoir: ["traiter_les_litiges", "promouvoir_du_contenu"],
   },
@@ -291,21 +293,21 @@ const ADMINISTRATION: EntreeAdmin[] = [
     cle: "a_sys_config",
     pouvoir: "consulter_le_systeme" as const,
     label: "Système · Configuration",
-    glyph: "◧",
+    icone: "sliders",
     href: "/dashboard/systeme/configuration",
   },
   {
     cle: "a_sys_emails",
     pouvoir: "consulter_le_systeme" as const,
     label: "Système · Emails",
-    glyph: "✉",
+    icone: "clock",
     href: "/dashboard/systeme/emails",
   },
   {
     cle: "a_sys_paiements",
     pouvoir: "consulter_le_systeme" as const,
     label: "Système · Paiements",
-    glyph: "⇄",
+    icone: "card",
     href: "/dashboard/systeme/paiements",
   },
   {
@@ -315,14 +317,14 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // doit annoncer ce que la page exige, pas ce qu'on aurait aimé.
     pouvoir: "consulter_le_systeme" as const,
     label: "Versements créateurs",
-    glyph: "%",
+    icone: "wallet",
     href: "/dashboard/systeme/versements",
   },
   {
     cle: "a_membres",
     pouvoir: "consulter_le_systeme" as const,
     label: "Membres",
-    glyph: "☺",
+    icone: "users",
     href: "/dashboard/systeme/membres",
   },
   {
@@ -333,7 +335,7 @@ const ADMINISTRATION: EntreeAdmin[] = [
     // l'exige — le menu annonce ce que la page ouvre, pas ce qu'elle permet.
     pouvoir: "consulter_le_systeme" as const,
     label: "Liste de blocage",
-    glyph: "⊘",
+    icone: "lock",
     href: "/dashboard/systeme/blocklist",
   },
 ];
@@ -360,7 +362,7 @@ const ORGANISATEUR: EntreeNav[] = [
   {
     cle: "o_evenements",
     label: "Mes événements",
-    glyph: "◈",
+    icone: "calendar",
     href: "/dashboard/evenements",
   },
 ];
@@ -480,7 +482,7 @@ export function navigationPour(
     return {
       cle: e.cle,
       label: e.label,
-      glyph: e.glyph,
+      icone: e.icone,
       href: e.href,
       ...(e.badge ? { badge: e.badge } : {}),
       actif,

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { Icone } from "@/components/icones/icone";
 import { BLANC, ENCRE, JAUNE, LAVANDE, ORANGE } from "@/components/shell/nav-data";
 import { entreeCourante, type Groupe } from "@/lib/dashboard/nav";
 
@@ -122,7 +123,7 @@ function Groupes({ groupes, courante, sansTitres }: { groupes: Groupe[]; courant
                 background: courant ? BLANC : n.actif ? LAVANDE : BLANC,
               }}
             >
-              {n.glyph}
+              <Icone nom={n.icone} taille={18} />
             </span>
             <span style={{ flex: "1 1 auto", fontSize: 13.5, fontWeight: 700, lineHeight: 1.25 }}>{n.label}</span>
             {n.badge ? (
@@ -142,7 +143,7 @@ function Groupes({ groupes, courante, sansTitres }: { groupes: Groupe[]; courant
             ) : null}
             {!n.actif ? (
               <span style={{ fontSize: 12, opacity: 0.5 }} aria-hidden>
-                ⌁
+                <Icone nom="lock" taille={14} />
               </span>
             ) : null}
           </>

@@ -8,11 +8,12 @@
  */
 
 import type { Filtre } from "@/lib/feed/types";
+import type { NomIcone } from "@/lib/icones/donnees";
 
 export interface EntreeMenu {
   label: string;
   hint: string;
-  glyph: string;
+  icone: NomIcone;
   href: string | null;
 }
 
@@ -32,19 +33,19 @@ export const MENUS: GroupeMenu[] = [
       {
         label: "Explorer les ressources",
         hint: "Toute la bibliothèque",
-        glyph: "▣",
+        icone: "compass",
         href: "/explore",
       },
       {
         label: "Concours & Événements",
         hint: "Ateliers, concours et expositions",
-        glyph: "★",
+        icone: "trophy",
         href: "/evenements",
       },
       {
         label: "Sponsoriser",
         hint: "Formats & partenariats",
-        glyph: "◆",
+        icone: "target",
         href: "/sponsoriser",
       },
     ],
@@ -55,9 +56,9 @@ export const MENUS: GroupeMenu[] = [
     // Le titre du groupe menait à « # » ; il mène à l'annuaire, sa première entrée.
     href: "/createurs",
     items: [
-      { label: "Créateurs", hint: "Annuaire des membres", glyph: "☺", href: "/createurs" },
-      { label: "Services", hint: "Prestations des membres", glyph: "✦", href: "/services" },
-      { label: "Jobs", hint: "Missions à saisir", glyph: "▤", href: "/jobs" },
+      { label: "Créateurs", hint: "Annuaire des membres", icone: "user", href: "/createurs" },
+      { label: "Services", hint: "Prestations des membres", icone: "tag", href: "/services" },
+      { label: "Jobs", hint: "Missions à saisir", icone: "folder", href: "/jobs" },
     ],
   },
   {
@@ -69,13 +70,13 @@ export const MENUS: GroupeMenu[] = [
       {
         label: "Licences Baobart",
         hint: "Ce que tu peux faire des fichiers",
-        glyph: "§",
+        icone: "shield",
         href: "/licences",
       },
       {
         label: "Règles de publication",
         hint: "Pour les contributeurs",
-        glyph: "✎",
+        icone: "check",
         href: "/regles-de-publication",
       },
       {
@@ -90,7 +91,7 @@ export const MENUS: GroupeMenu[] = [
         // est corrigé, la place et l'intention de la maquette sont gardées.
         label: "Signalement & retrait",
         hint: "Signaler un contenu",
-        glyph: "!",
+        icone: "alert",
         href: "/signalement",
       },
       {
@@ -100,7 +101,7 @@ export const MENUS: GroupeMenu[] = [
         // libellé perd « (UE) » ; la place et l'intention sont gardées.
         label: "Politique de cookies",
         hint: "Traceurs & consentement",
-        glyph: "◍",
+        icone: "eye",
         href: "/cookies",
       },
     ],
@@ -113,23 +114,23 @@ export const MENUS: GroupeMenu[] = [
       {
         label: "Communautés",
         hint: "Des espaces où les créateurs se parlent",
-        glyph: "◍",
+        icone: "users",
         href: "/communautes",
       },
-      { label: "À propos", hint: "Notre histoire", glyph: "◈", href: "/a-propos" },
-      { label: "Contact", hint: "Nous écrire", glyph: "✉", href: "/contact" },
-      { label: "Blogs", hint: "Articles et coulisses", glyph: "▤", href: "/blog" },
-      { label: "Support", hint: "Aide et litiges", glyph: "?", href: "/support" },
+      { label: "À propos", hint: "Notre histoire", icone: "heart", href: "/a-propos" },
+      { label: "Contact", hint: "Nous écrire", icone: "message", href: "/contact" },
+      { label: "Blogs", hint: "Articles et coulisses", icone: "edit", href: "/blog" },
+      { label: "Support", hint: "Aide et litiges", icone: "info", href: "/support" },
       {
         label: "Documentation Baobart",
         hint: "Guides d'utilisation",
-        glyph: "▦",
+        icone: "file",
         href: "/documentation",
       },
       {
         label: "Changelog",
         hint: "Nouveautés de la plateforme",
-        glyph: "★",
+        icone: "clock",
         href: "/changelog",
       },
     ],
@@ -140,23 +141,23 @@ export const MENUS: GroupeMenu[] = [
 
 export interface EntreeRail {
   label: string;
-  glyph: string;
+  icone: NomIcone;
   filtre: Filtre;
 }
 
 /** Les onze entrées du rail, dans l'ordre de la maquette. */
 export const ENTREES_RAIL: EntreeRail[] = [
-  { label: "Accueil", glyph: "⌂", filtre: "Tous" },
-  { label: "Arts", glyph: "◈", filtre: "Art" },
-  { label: "Audios", glyph: "♪", filtre: "Audio" },
-  { label: "Fonts", glyph: "A", filtre: "Font" },
-  { label: "Icons", glyph: "✦", filtre: "Icône" },
-  { label: "Illustrations", glyph: "✎", filtre: "Illustration" },
-  { label: "Images", glyph: "▣", filtre: "Photo" },
-  { label: "Logos", glyph: "◎", filtre: "Logo" },
-  { label: "Mockups", glyph: "▤", filtre: "Mockup" },
-  { label: "Packs", glyph: "▦", filtre: "Pack" },
-  { label: "Vidéos", glyph: "▶", filtre: "Vidéo" },
+  { label: "Accueil", icone: "home", filtre: "Tous" },
+  { label: "Arts", icone: "image", filtre: "Art" },
+  { label: "Audios", icone: "mic", filtre: "Audio" },
+  { label: "Fonts", icone: "file", filtre: "Font" },
+  { label: "Icons", icone: "star", filtre: "Icône" },
+  { label: "Illustrations", icone: "edit", filtre: "Illustration" },
+  { label: "Images", icone: "camera", filtre: "Photo" },
+  { label: "Logos", icone: "tag", filtre: "Logo" },
+  { label: "Mockups", icone: "card", filtre: "Mockup" },
+  { label: "Packs", icone: "folder", filtre: "Pack" },
+  { label: "Vidéos", icone: "video", filtre: "Vidéo" },
 ];
 
 export const RESEAUX = ["f", "X", "P", "ig", "in"] as const;

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Eclats } from "@/components/anime/eclats";
+import { APLATS, Icone } from "@/components/icones/icone";
 import { basculerLike, basculerSuivi } from "@/lib/social/actions";
 
 const ENCRE = "#121212";
@@ -131,7 +132,7 @@ export function BoutonJaime({
         {/* Le cœur bat et éclate quand on aime (09/10, labo « explorations »). */}
         <span style={{ position: "relative", display: "inline-block" }}>
           <span key={salve} className={salve > 0 && actif ? "coeur-bat" : undefined}>
-            ♥
+            <Icone nom="heart" taille={16} aplat={actif ? APLATS.orange : APLATS.lavande} style={{ verticalAlign: "-3px" }} />
           </span>
           {actif ? <Eclats salve={salve} /> : null}
         </span>{" "}

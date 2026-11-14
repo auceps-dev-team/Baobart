@@ -101,6 +101,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.109.0 | #56 | Les icônes Halo à la place des glyphes : 71 entrées de menu (tableau de bord, site, rail), 18 médaillons et coches, 8 pastilles « ! » / « i », les pictogrammes des cartes et les étoiles de note. 176 symboles avant, 90 après — tous dans la liste de ce qui reste, figée par un test-cliquet. Part de #52. |
 | — (tests) | #53 | Lot 3 au navigateur : Playwright + axe dans les trois états de « Devenir vendeur ». Écrit par Argon par le canal direct (sans copier-coller), lancé et éprouvé par Claude (trois casses attrapées). |
 | v1.107.0 | #51 | Lot 3 — « Devenir vendeur » : trois étapes vers la boutique (profil affichable comme la vitrine, compte de versement après 24 h, trois ressources) ; `/dashboard/boutique` ouvert à l'acheteur (option A). Écrit par Argon, relu par Claude. |
 | — (docs) | #39 | L'inventaire fonctionnalité par fonctionnalité (`Doc/INVENTAIRE_FONCTIONNALITES_2026-11.md`), auquel renvoient les identifiants A1…C10. |

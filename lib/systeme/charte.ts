@@ -1,3 +1,4 @@
+import type { NomIcone } from "@/lib/icones/donnees";
 import type { Gravite } from "@/lib/systeme/diagnostic";
 
 /**
@@ -52,7 +53,9 @@ export interface Bandeau {
   encre: string;
   /** Fond du médaillon — contrasté avec le bandeau, jamais confondu avec lui. */
   medaillon: string;
-  glyphe: string;
+  /** Une icône Halo ; à défaut (✕, un nombre), le texte de `glyphe`. */
+  icone?: NomIcone;
+  glyphe?: string;
   surtitre: string;
   texte: string;
 }
@@ -62,7 +65,7 @@ export const BANDEAU: Record<Gravite, Bandeau> = {
     fond: BLANC,
     encre: ENCRE,
     medaillon: BLANC,
-    glyphe: "✓",
+    icone: "check",
     surtitre: "Gravité globale · OK",
     texte: "Tout ce qui est livré fonctionne.",
   },
@@ -70,7 +73,7 @@ export const BANDEAU: Record<Gravite, Bandeau> = {
     fond: JAUNE,
     encre: ENCRE,
     medaillon: BLANC,
-    glyphe: "!",
+    icone: "alert",
     surtitre: "Gravité globale · À VOIR",
     texte: "La plateforme sert, mais quelque chose mérite un regard.",
   },

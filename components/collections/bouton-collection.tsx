@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ChoixEpingle } from "@/components/collections/choix-epingle";
+import { Icone } from "@/components/icones/icone";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
@@ -53,7 +54,7 @@ export function BoutonCollection({
           cursor: "pointer",
         }}
       >
-        ⌸ {rangee ? "Rangée" : "Collection"}
+        <Icone nom="folder" taille={16} style={{ verticalAlign: "-3px" }} /> {rangee ? "Rangée" : "Collection"}
       </button>
       {ouvert ? (
         <ChoixEpingle

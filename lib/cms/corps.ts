@@ -45,7 +45,10 @@
  *   — `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` :
  *     cinq occurrences, toutes dans `Baobart Design/support.js` — l'outillage
  *     des maquettes, exclu de `tsconfig.json` et absent de `public/`, donc
- *     jamais servi ;
+ *     jamais servi. Mesuré le 13/11/2026, au versement de la livraison de
+ *     design : sept, les deux nouvelles dans `Baobart Design/baobart-icons.js`
+ *     (le jeu d'icônes des maquettes, même dossier, même exclusion). Les
+ *     icônes servies sont dans `components/icones/`, sans aucune ;
  *   — les 34 dépendances déclarées : aucune ne produit ni ne nettoie d'HTML.
  *
  * Ce qui n'a PAS été vérifié : le contenu de `public/sw.js`, et le code
