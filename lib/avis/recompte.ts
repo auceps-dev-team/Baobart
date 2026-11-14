@@ -38,7 +38,19 @@ import { journal } from "@/lib/observabilite/journal";
 export const AVIS_COMPTE = Prisma.sql`(
   r."hiddenAt" IS NULL
   AND r."authorId" <> p."sellerId"
-  AND EXISTS (
+  AND (
+    -- Une ressource offerte se retire sans commande (Q-19, 14/11/2026) : le
+    -- pendant SQL de estOfferte (lib/commerce/montant.ts) et du
+    -- ConsumptionEvent que la route de téléchargement écrit.
+    (
+      p."price" = 0
+      AND p."pricingMode"::text <> 'LIBRE'
+      AND EXISTS (
+        SELECT 1 FROM "ConsumptionEvent" ce
+        WHERE ce."productId" = r."productId" AND ce."userId" = r."authorId"
+      )
+    )
+    OR EXISTS (
     SELECT 1
     FROM "OrderItem" oi
     JOIN "Order" o ON o."id" = oi."orderId"
@@ -51,6 +63,7 @@ export const AVIS_COMPTE = Prisma.sql`(
       )
       AND (oi."chargebackAt" IS NULL OR oi."chargebackReversedAt" IS NOT NULL)
       AND oi."accessRevokedAt" IS NULL
+    )
   )
 )`;
 
