@@ -108,15 +108,18 @@ export function menuDashboard(source: string): Record<string, { cle: string; lib
   return roles;
 }
 
-/** Dashboard : les sous-écrans atteints par onglets (`const …_TABS`), hors l'onglet parent. */
-export function ongletsDashboard(source: string): { cle: string; libelle: string; parent: string }[] {
-  const onglets: { cle: string; libelle: string; parent: string }[] = [];
-  for (const m of source.matchAll(/\nconst \w+_TABS = (\[.*\]);/g)) {
-    const paires = JSON.parse(m[1]!) as [string, string][];
-    const parent = paires[0]![0];
-    for (const [cle, libelle] of paires.slice(1)) onglets.push({ cle, libelle, parent });
-  }
-  return onglets;
+/**
+ * Dashboard : les sous-écrans, et l'entrée de menu dont chacun dépend.
+ *
+ * Lus dans `SUB_PARENT`, pas dans les onglets : c'est cette table que le rendu
+ * consulte pour accepter une clé hors du menu (`nav.some(n => n.key ===
+ * (SUB_PARENT[sk] || sk))`). Une première version lisait les constantes
+ * `…_TABS` et manquait les deux écrans de réglages des notifications, définis
+ * dans un objet (`tabs: [[base, …], [base + "_reglages", …]]`) — trouvé le
+ * 14/11 en croisant avec `Baobart Design/github.md`, la carte du designer.
+ */
+export function sousEcransDashboard(source: string): { cle: string; parent: string }[] {
+  return [...bloc(source, "SUB_PARENT").matchAll(/(\w+): "(\w+)"/g)].map((m) => ({ cle: m[1]!, parent: m[2]! }));
 }
 
 /** Accueil : les valeurs que prend `screen`, telles que le rendu les compare. */

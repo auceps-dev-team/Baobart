@@ -42,7 +42,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join, resolve, sep } from "node:path";
 
-import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, type BrowserContext, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import sharp from "sharp";
 
@@ -210,9 +210,8 @@ async function deplier(page: Page, largeur: Largeur) {
   }
 }
 
-async function capturerMaquette(navigateur: Browser, e: EcranMaquette, largeur: Largeur, fichier: string) {
-  const page = await navigateur.newPage({ viewport: { width: largeur, height: HAUTEUR[largeur] }, reducedMotion: "reduce" });
-  await page.addInitScript(NOMMER);
+async function capturerMaquette(contexte: BrowserContext, e: EcranMaquette, largeur: Largeur, fichier: string) {
+  const page = await contexte.newPage();
   try {
     const url = await servirMaquettes(page, FICHIER_MAQUETTE[e.maquette], e.etat);
     await page.goto(url, { waitUntil: "load", timeout: 60_000 });
@@ -465,7 +464,7 @@ async function main() {
   for (const d of ["maquettes", "app", "planches"]) mkdirSync(join(SORTIE, d), { recursive: true });
   const nomFichier = (id: string) => id.replace(/[^\w-]+/g, "_");
 
-  const lignes: Ligne[] = [
+  const toutes: Ligne[] = [
     ...ECRANS.map<Ligne>((e) => ({
       id: e.id,
       maquette: e.maquette,
@@ -490,7 +489,8 @@ async function main() {
       app: [],
       planches: [],
     })),
-  ].filter((l) => !SEULEMENT || l.id.includes(SEULEMENT));
+  ];
+  const lignes = toutes.filter((l) => !SEULEMENT || l.id.includes(SEULEMENT));
 
   const navigateur = await chromium.launch();
   const db = new PrismaClient();
@@ -498,6 +498,17 @@ async function main() {
   try {
     // 1. Maquettes
     if (AVEC_MAQUETTES) {
+      // Un contexte par largeur : React, ReactDOM et Babel (≈ 3 Mo) restent en cache d'un écran à l'autre.
+      const contextes = new Map<Largeur, BrowserContext>();
+      const contexteMaquette = async (w: Largeur) => {
+        let c = contextes.get(w);
+        if (!c) {
+          c = await navigateur.newContext({ viewport: { width: w, height: HAUTEUR[w] }, reducedMotion: "reduce" });
+          await c.addInitScript(NOMMER);
+          contextes.set(w, c);
+        }
+        return c;
+      };
       for (const l of lignes) {
         const e = ECRANS.find((x) => x.id === l.id);
         if (!e) continue;
@@ -506,7 +517,7 @@ async function main() {
         for (const w of largeurs) {
           const fichier = join(SORTIE, "maquettes", `${nomFichier(e.id)}@${w}.png`);
           try {
-            await capturerMaquette(navigateur, e, w, fichier);
+            await capturerMaquette(await contexteMaquette(w), e, w, fichier);
             const empreinte = createHash("sha256").update(readFileSync(fichier)).digest("hex").slice(0, 16);
             l.maquettes.push({ largeur: w, fichier, empreinte });
           } catch (err) {
@@ -515,16 +526,7 @@ async function main() {
           process.stdout.write(".");
         }
       }
-      // Garde contre le repli silencieux : deux écrans différents, une même image.
-      for (const l of lignes) {
-        for (const m of l.maquettes) {
-          if (!m.empreinte) continue;
-          const memes = lignes.filter(
-            (o) => o.id !== l.id && o.maquettes.some((x) => x.largeur === m.largeur && x.empreinte === m.empreinte),
-          );
-          if (memes.length) l.doublons = [...new Set([...(l.doublons ?? []), ...memes.map((o) => `${o.id}@${m.largeur}`)])];
-        }
-      }
+      for (const c of contextes.values()) await c.close();
       console.log(`\nmaquettes : ${lignes.reduce((n, l) => n + l.maquettes.filter((m) => m.fichier).length, 0)} captures`);
     }
 
@@ -591,8 +593,33 @@ async function main() {
       }
     }
 
-    writeFileSync(join(SORTIE, "rapport.json"), JSON.stringify({ date, base: BASE, lignes }, null, 2));
-    ecrireIndex(lignes, date);
+    // Un passage partiel (--seulement) se fond dans le rapport existant au lieu de l'écraser ;
+    // les lignes qui ne sont plus dans la table (écran renommé, route déplacée) en sortent.
+    let finales = lignes;
+    const cheminRapport = join(SORTIE, "rapport.json");
+    if (SEULEMENT && existsSync(cheminRapport)) {
+      const ancien = JSON.parse(readFileSync(cheminRapport, "utf8")) as { lignes: Ligne[] };
+      const ordre = new Map(toutes.map((l, i) => [l.id, i]));
+      const refaites = new Set(lignes.map((l) => l.id));
+      finales = [...ancien.lignes.filter((l) => ordre.has(l.id) && !refaites.has(l.id)), ...lignes].sort(
+        (a, b) => ordre.get(a.id)! - ordre.get(b.id)!,
+      );
+    }
+
+    // Garde contre le repli silencieux : deux écrans différents, une même image de maquette.
+    for (const l of finales) {
+      l.doublons = undefined;
+      for (const m of l.maquettes) {
+        if (!m.empreinte) continue;
+        const memes = finales.filter(
+          (o) => o.id !== l.id && o.maquettes.some((x) => x.largeur === m.largeur && x.empreinte === m.empreinte),
+        );
+        if (memes.length) l.doublons = [...new Set([...(l.doublons ?? []), ...memes.map((o) => `${o.id}@${m.largeur}`)])];
+      }
+    }
+
+    writeFileSync(cheminRapport, JSON.stringify({ date, base: BASE, lignes: finales }, null, 2));
+    ecrireIndex(finales, date);
     console.log(`→ ${join(SORTIE, "index.html")}`);
   } finally {
     if (sessions.length) await db.session.deleteMany({ where: { id: { in: sessions } } });

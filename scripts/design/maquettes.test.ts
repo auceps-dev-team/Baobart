@@ -10,8 +10,8 @@ import {
   ecransMobile,
   lireProps,
   menuDashboard,
-  ongletsDashboard,
   poserEtat,
+  sousEcransDashboard,
 } from "./maquettes";
 
 /**
@@ -77,18 +77,24 @@ describe("la table des écrans, contre le source des maquettes", () => {
     expect(ids.length).toBe(new Set(ids).size);
   });
 
-  it("Dashboard : chaque entrée de menu et chaque onglet, ni plus ni moins, au bon rôle", () => {
+  it("Dashboard : chaque entrée de menu et chaque sous-écran, ni plus ni moins, au bon rôle", () => {
     const attendu = new Map<string, string>();
     for (const [role, entrees] of Object.entries(menuDashboard(DASHBOARD))) {
       for (const e of entrees) attendu.set(e.cle, role);
     }
-    for (const o of ongletsDashboard(DASHBOARD)) attendu.set(o.cle, attendu.get(o.parent)!);
+    for (const s of sousEcransDashboard(DASHBOARD)) attendu.set(s.cle, attendu.get(s.parent)!);
 
     const table = new Map(
       ECRANS.filter((e) => e.maquette === "Dashboard").map((e) => [String(e.etat!.key), String(e.etat!.role)]),
     );
     expect(Object.fromEntries(table)).toEqual(Object.fromEntries(attendu));
-    expect(attendu.size).toBe(59 + 7); // compté à la main le 14/11 : 11 + 20 + 28 entrées, 7 onglets
+    // Compté le 14/11 : 11 + 20 + 28 entrées de menu, 9 sous-écrans (SUB_PARENT).
+    expect(attendu.size).toBe(59 + 9);
+  });
+
+  it("Dashboard : chaque sous-écran pointe vers une entrée de menu existante", () => {
+    const menu = new Set(Object.values(menuDashboard(DASHBOARD)).flat().map((e) => e.cle));
+    expect(sousEcransDashboard(DASHBOARD).filter((s) => !menu.has(s.parent))).toEqual([]);
   });
 
   it("Accueil : chaque valeur de `screen` et chaque page de documentation", () => {
