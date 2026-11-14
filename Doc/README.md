@@ -233,6 +233,7 @@ La documentation vit dans `Doc/`. Les maquettes de référence sont dans `Baobar
 | [`DESIGN_SYSTEM_BAOBART.md`](DESIGN_SYSTEM_BAOBART.md) | **Design system canonique** (logo, couleurs, typo, composants, règles d'usage) — version officielle, planches 00 à 05 |
 | [`CHARTE_EDITORIALE_BAOBART.md`](CHARTE_EDITORIALE_BAOBART.md) | Charte éditoriale (ton inspiré de Gumroad) |
 | [`MARKETING/`](MARKETING/README.md) | **Dossier marketing** : audit technique, bilan marketing (SWOT, personas, avantages), calendrier de contenu 4 mois jusqu'au lancement |
+| [`QA_PERSONAS_2026-11-14.md`](QA_PERSONAS_2026-11-14.md) | **Recette par personas du 14/11/2026** sur la v1.107.0 : méthode, environnement, 36 défauts (10 majeurs) avec les étapes pour les rejouer, ce qui marche, ce qui n'a pas été testé, l'avis de chaque persona. Outillage et captures dans [`QA_PERSONAS_2026-11-14/`](QA_PERSONAS_2026-11-14/) |
 | [`MODELE_ECONOMIQUE_BAOBART.xlsx`](MODELE_ECONOMIQUE_BAOBART.xlsx) | Modèle économique chiffré (hypothèses, projection 24 mois) |
 | [`Baobart Design/`](../Baobart%20Design/) | Maquettes de référence (accueil, auth, tableau de bord, parcours d'achat, badges, design system…). Le `MAQUETTES_BAOBART.html` qu'annonçait cette ligne n'est pas dans le dépôt |
 
