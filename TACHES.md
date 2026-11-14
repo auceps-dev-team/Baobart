@@ -38,7 +38,8 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
-| **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. | CI verte ; relecture ; inventaire des écarts à 360 / 768 / 1440 px. |
+| **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. Mise à jour avec `main` le 14/11 (v1.108.0). L'inventaire des écarts, coupé le 14/11, devient D1b. | CI verte ; relecture. |
+| **Design — D1b inventaire des écarts** | aucepsdev (collaborateur) | `claude/design-ecarts` — **PR #54** (brouillon, part de #52) | Ouverte le 14/11. Compté : ≈ 107 écrans dessinés, 107 routes. Base de développement semée sur ce poste. | Chaque écran de maquette associé à sa route (ou « absente ») ; captures à 360 / 768 / 1440 px régénérables par une commande ; mesures automatiques (débordement, cibles < 44 px, champs < 16 px) ; relecture du responsable. |
 | **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. **La CI attend l'approbation du responsable du dépôt** (première contribution extérieure). | CI verte. |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
 
