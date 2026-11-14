@@ -282,6 +282,7 @@ ressources que deux exécutions se **corrompent** vraiment.
 | PostgreSQL | port hôte **5433**, jamais 5432 | `docker-compose.yml` |
 | Serveur de développement | port **3100**, fixé | `package.json` |
 | Serveur e2e | port **3200**, distinct du précédent | `playwright.config.ts` |
+| Serveur des captures de design | port **3300**, sur la base de développement | `scripts/design/captures.ts` |
 | Redis | préfixe `baobart:` sur toutes les clés | `lib/securite/pilotes.ts` |
 
 **Le verrou plutôt qu'un schéma par exécution.** Un schéma PostgreSQL par
