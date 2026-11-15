@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
+| **Recette par personas — les défauts en tests au navigateur**, la suite de la recette et son mode d'emploi pour l'admin | Claude, à la demande d'aucepsdev | `claude/qa-tests-personas`, empilée sur #57 | Ouverte le 15/11. Les 11 tests existent (écrits le 14/11 sur v1.107.0) ; à rejouer sur le `main` actuel. | CI verte, « Parcours au navigateur » compris ; les 11 tests rouges avec `QA_DEFAUTS_STRICTS=1` ; un admin les rejoue avec le seul mode d'emploi. |
 
 ---
 
