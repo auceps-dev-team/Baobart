@@ -101,6 +101,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.108.2 | #57 | Deux correctifs nés de la recette par personas du 14/11 (`Doc/QA_PERSONAS_2026-11-14.md`, versée avec) : une ressource offerte téléchargée se note (Q-19, v1.108.1) ; le fil d'une communauté trie de façon stable (v1.108.2). Restent les autres défauts de la recette, à traiter par familles. |
 | — (docs, outillage) | #54 | D1b — l'inventaire des écarts maquettes ↔ écrans (`Doc/DESIGN_ECARTS_2026-11.md`) : 118 écrans relevés dans le source des maquettes, chacun associé à sa route ; 89 regardés côte à côte ; mesures à 360 / 768 / 1440 px sur 97 pages (2 débordent à 360, 49 % des cibles sous 44 px, aucun champ à 16 px). `pnpm design:captures` les rejoue. Part de #52. |
 | v1.108.0 | #52, par #54 | D1 — fondations du design « Halo » : la livraison versée dans `Baobart Design/`, les 49 icônes en composant React sans `innerHTML`, le geste de pression (140 ms, 97 %) dans `sticker-press`. Écrit par aucepsdev, relu par Claude ; entré dans `main` avec #54, qui contient ses commits. |
 | v1.107.1 | #49 | B14 — aucune page publique ne publie plus l'adresse d'un compte sans profil : les 9 lectures publiques (emplois, services, blog, événements, forum) ne la chargent plus ; « Membre Baobart » en repli. Le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau. |
