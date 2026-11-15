@@ -35,6 +35,12 @@ import { db, nouveauCompte, ressourceVendable, unique } from "./fixtures/donnees
  *
  * Mesuré le 14/11/2026, sur `main` v1.107.0 (132c75e) : onze rouges sur onze
  * avec ce réglage, chacun pour la raison que son commentaire annonce.
+ * Rejoué le 15/11/2026 sur `main` + #57 (v1.108.2) : les mêmes onze rouges,
+ * aux mêmes valeurs ; sans le réglage, la suite navigateur complète passe
+ * (43 verts, 1 désactivé).
+ *
+ * Le mode d'emploi pour rejouer tout cela sans l'auteur, régie comprise :
+ * `Doc/QA_PERSONAS_2026-11-14/REJOUER.md`.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * CE QUI N'EST PAS ICI, ET POURQUOI

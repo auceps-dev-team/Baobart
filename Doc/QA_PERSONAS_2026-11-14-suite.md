@@ -11,6 +11,9 @@
 > partagé peut avoir évolué depuis : en cas d'écart, il fait foi pour les
 > commentaires, ce fichier pour l'historique du dépôt.
 >
+> **Pour rejouer sans l'auteur**, tests, régie et pistes : le mode d'emploi pas à
+> pas est [`QA_PERSONAS_2026-11-14/REJOUER.md`](QA_PERSONAS_2026-11-14/REJOUER.md).
+>
 > Les chemins `qa/…` cités plus bas supposent qu'on a copié
 > `Doc/QA_PERSONAS_2026-11-14/outils/` dans `qa/` à la racine (voir « Refaire
 > soi-même »).
