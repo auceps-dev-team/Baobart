@@ -41,7 +41,6 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
-| **Recette par personas — les défauts en tests au navigateur**, la suite de la recette et son mode d'emploi pour l'admin | Claude, à la demande d'aucepsdev | `claude/qa-tests-personas`, empilée sur #57 | Ouverte le 15/11. Les 11 tests existent (écrits le 14/11 sur v1.107.0) ; à rejouer sur le `main` actuel. | CI verte, « Parcours au navigateur » compris ; les 11 tests rouges avec `QA_DEFAUTS_STRICTS=1` ; un admin les rejoue avec le seul mode d'emploi. |
 
 ---
 
@@ -102,6 +101,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| — (tests, docs) | #58 | Les défauts de la recette par personas en tests au navigateur (`e2e/qa-personas.spec.ts`) : 11 défauts (Q-02 à Q-10, Q-37, Q-38), verts tant qu'ils existent, rouges un par un avec `QA_DEFAUTS_STRICTS=1` ; Q-01 écrit, désactivé. Avec la suite de la recette (`Doc/QA_PERSONAS_2026-11-14-suite.md`, Q-37 à Q-44), la régie, et le mode d'emploi pour l'admin (`Doc/QA_PERSONAS_2026-11-14/REJOUER.md`). CI verte le 15/11 (navigateur : 43 verts, 1 désactivé). Restent : le rejeu par l'admin ; Q-01 et Q-39 à Q-44, non automatisés. |
 | v1.108.2 | #57 | Deux correctifs nés de la recette par personas du 14/11 (`Doc/QA_PERSONAS_2026-11-14.md`, versée avec) : une ressource offerte téléchargée se note (Q-19, v1.108.1) ; le fil d'une communauté trie de façon stable (v1.108.2). Restent les autres défauts de la recette, à traiter par familles. |
 | — (docs, outillage) | #54 | D1b — l'inventaire des écarts maquettes ↔ écrans (`Doc/DESIGN_ECARTS_2026-11.md`) : 118 écrans relevés dans le source des maquettes, chacun associé à sa route ; 89 regardés côte à côte ; mesures à 360 / 768 / 1440 px sur 97 pages (2 débordent à 360, 49 % des cibles sous 44 px, aucun champ à 16 px). `pnpm design:captures` les rejoue. Part de #52. |
 | v1.108.0 | #52, par #54 | D1 — fondations du design « Halo » : la livraison versée dans `Baobart Design/`, les 49 icônes en composant React sans `innerHTML`, le geste de pression (140 ms, 97 %) dans `sticker-press`. Écrit par aucepsdev, relu par Claude ; entré dans `main` avec #54, qui contient ses commits. |

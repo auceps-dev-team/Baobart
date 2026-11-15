@@ -127,7 +127,7 @@ Mesurés le 14/11/2026. Les six pièges de la première campagne restent valable
 
 ## La première campagne : 36 défauts
 
-La recette du 14/11/2026 au matin a relevé 36 défauts, dont 10 majeurs, en faisant jouer l'application à quatre clients types et une administratrice. Le détail, étape par étape, est dans `Doc/QA_PERSONAS_2026-11-14.md` sur la branche `claude/qa-personas`.
+La recette du 14/11/2026 au matin a relevé 36 défauts, dont 10 majeurs, en faisant jouer l'application à quatre clients types et une administratrice. Le détail, étape par étape, est dans `Doc/QA_PERSONAS_2026-11-14.md`, versé au dépôt par la PR #57.
 
 Le cœur fonctionne : publier, acheter, télécharger, rembourser, commenter, postuler, écrire au support. Aucun doublon n'a été créé, même en tapotant les boutons sur réseau lent. Ce qui coince, c'est l'entrée (l'inscription) et le téléphone.
 
@@ -308,7 +308,7 @@ La promesse « ton solde part chaque semaine » n'est pas tenue par défaut. Une
 
 Onze défauts ont maintenant chacun un test de navigateur qui les rejoue sans intervention humaine. C'est la première preuve qui ne vient pas de l'auteur de la recette : n'importe qui peut lancer la commande et lire le même résultat.
 
-Le fichier est `e2e/qa-personas.spec.ts`, sur la branche `claude/qa-personas`.
+Le fichier est `e2e/qa-personas.spec.ts`, dans la PR #58.
 
 ### Verts aujourd'hui, rouges le jour de la correction
 
@@ -348,7 +348,7 @@ Les préparatifs (créer un compte, acheter, ouvrir la page) restent hors de l'e
 
 ### La limite de cette preuve
 
-Les tests ont tourné sur le poste de l'auteur, pas dans l'intégration continue du dépôt : aucune demande de fusion n'est ouverte. Le critère « quelqu'un d'autre l'a vérifié » ne sera rempli que le jour où la chaîne de l'équipe, ou une autre personne, les aura lancés.
+Mesuré le 15/11/2026 : les tests ont été rejoués sur le `main` du jour (avec #57), puis dans l'intégration continue du dépôt, sur la PR #58. Les cinq contrôles sont verts ; « Parcours au navigateur » : 43 verts, 1 désactivé, comme sur le poste de l'auteur. Reste un rejeu par une autre personne, avec le seul mode d'emploi `Doc/QA_PERSONAS_2026-11-14/REJOUER.md`.
 
 ## Piste 5 — Yao en anglais
 
@@ -505,20 +505,20 @@ Le taux de réussite de chaque tâche, par profil, comparé aux hypothèses ci-d
 
 | Preuve | Où elle en est |
 | --- | --- |
-| Les défauts rejoués par quelqu'un d'autre que l'auteur | Les onze tests le permettent ; personne ne l'a encore fait |
-| Les tests dans l'intégration continue du dépôt | Pas de demande de fusion ouverte |
+| Les défauts rejoués par quelqu'un d'autre que l'auteur | Les onze tests et `REJOUER.md` le permettent ; personne ne l'a encore fait |
+| Les tests dans l'intégration continue du dépôt | Fait le 15/11 : PR #58, cinq contrôles verts |
 | Q-41 : choix assumé ou défaut ? | À trancher par le responsable des versements |
 | Les hypothèses de la piste 6 | Demandent de vrais utilisateurs |
 
 ## Refaire soi-même : la régie, les outils, les commandes
 
-Tout l'outillage est sur la branche `claude/qa-personas`, dans `Doc/QA_PERSONAS_2026-11-14/outils/`. On le copie dans un dossier `qa/` à la racine de sa copie de travail, et toutes les commandes ci-dessous se lancent depuis cette racine :
+Tout l'outillage est dans le dépôt (PR #58), dans `Doc/QA_PERSONAS_2026-11-14/outils/`. On le copie dans un dossier `qa/` à la racine de sa copie de travail, et toutes les commandes ci-dessous se lancent depuis cette racine :
 
 ```sh
 cp -r Doc/QA_PERSONAS_2026-11-14/outils qa
 ```
 
-L'environnement lui-même (copie de travail, base, ports, stockage, courriels) se prépare comme décrit dans la section « L'environnement de test ».
+L'environnement lui-même (copie de travail, base, ports, stockage, courriels) se prépare comme décrit dans la section « L'environnement de test ». Le mode d'emploi pas à pas, écrit pour l'administrateur du dépôt, est `Doc/QA_PERSONAS_2026-11-14/REJOUER.md` : tests, régie et pistes, sans l'auteur.
 
 ### La régie : regarder les personas agir, en direct
 
