@@ -5,6 +5,13 @@
 > Mis à jour le 2 septembre 2026 : les trois écrans de la section **A.4** ont
 > été dessinés puis câblés. Il reste trois écrans à dessiner.
 
+> **Relevé antérieur à la livraison « Halo » (versée le 13/11/2026, PR #52).**
+> Ce document parle de « quatre maquettes » ; il y en a dix depuis. La livraison
+> dessine notamment A.2 (`Baobart Parcours Achat.dc.html`, écran « Retour
+> opérateur ») et A.3 (écrans « 404 », « Erreur », « Chargement »). Pour l'état
+> écran par écran au 14/11/2026, dans les deux sens, voir
+> [`DESIGN_ECARTS_2026-11.md`](DESIGN_ECARTS_2026-11.md).
+
 ---
 
 ## Comment lire ce document

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 
 import type { Droits } from "@/lib/forum/acces";
 import type { Contexte } from "@/lib/forum/queries";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Les collections partagées avec une communauté.
@@ -103,8 +104,10 @@ export async function collectionsDe(
       isPublic: true,
       ownerId: true,
       createdAt: true,
+      // Pas d'`email` : les collections d'une communauté publique se lisent
+      // sans compte (B14, voir `nomPublic`).
       owner: {
-        select: { email: true, profile: { select: { displayName: true } } },
+        select: { profile: { select: { displayName: true } } },
       },
       _count: { select: { saves: true } },
       saves: {
@@ -125,7 +128,7 @@ export async function collectionsDe(
     description: b.description,
     privee: !b.isPublic,
     proprietaireId: b.ownerId,
-    proprietaire: b.owner.profile?.displayName ?? b.owner.email,
+    proprietaire: nomPublic(b.owner.profile),
     ressources: b._count.saves,
     apercu: b.saves.map((s) => ({
       id: s.id,

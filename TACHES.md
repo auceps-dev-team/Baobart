@@ -23,8 +23,10 @@
    Chaque réponse devient une case de la liste de contrôle de la PR.
 3. **Une tâche = une PR.** Une tâche trop grosse se coupe en lignes ici d'abord.
 4. **Finir.** CI verte, la preuve du critère de fin jointe à la PR, la ligne
-   passée dans « Fait » avec le numéro de PR et la version. **Seul le
-   responsable du dépôt fusionne.** Personne ne pousse sur `main`.
+   passée dans « Fait » avec le numéro de PR et la version. **Son auteur la
+   fusionne** s'il a le droit d'écriture (voir `CLAUDE.md`, « Qui fusionne ») ;
+   un agent attend la demande du responsable. Personne ne pousse sur `main` :
+   la protection de la branche l'impose.
 5. **Bloqué ?** La ligne passe dans « Décisions attendues », avec la question
    posée. On ne contourne pas une décision en silence.
 6. **Deux personnes ne prennent jamais la même ligne.** En cas de doute, demander
@@ -38,8 +40,6 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
-| **Design — D1 fondations** | aucepsdev (collaborateur) | `claude/design-fondations` — **PR #52** | Ouverte le 13/11. À relire par Claude. | CI verte ; relecture ; inventaire des écarts à 360 / 768 / 1440 px. |
-| **B14 — Adresse publiée d'un compte sans profil** ⚠️ | aucepsdev (collaborateur), relu par Claude | `claude/adresse-publique` — **PR #49** (brouillon, depuis une copie extérieure) | Relu le 13/11 : 9 lectures publiques corrigées ; le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau ; types et style verts. **La CI attend l'approbation du responsable du dépôt** (première contribution extérieure). | CI verte. |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
 
 ---
@@ -102,6 +102,9 @@ décidé — à placer avec le responsable du dépôt :
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
 | v1.109.0 | #56 | Les icônes Halo à la place des glyphes : 71 entrées de menu (tableau de bord, site, rail), 18 médaillons et coches, 8 pastilles « ! » / « i », les pictogrammes des cartes et les étoiles de note. 176 symboles avant, 90 après — tous dans la liste de ce qui reste, figée par un test-cliquet. Part de #52. |
+| — (docs, outillage) | #54 | D1b — l'inventaire des écarts maquettes ↔ écrans (`Doc/DESIGN_ECARTS_2026-11.md`) : 118 écrans relevés dans le source des maquettes, chacun associé à sa route ; 89 regardés côte à côte ; mesures à 360 / 768 / 1440 px sur 97 pages (2 débordent à 360, 49 % des cibles sous 44 px, aucun champ à 16 px). `pnpm design:captures` les rejoue. Part de #52. |
+| v1.108.0 | #52, par #54 | D1 — fondations du design « Halo » : la livraison versée dans `Baobart Design/`, les 49 icônes en composant React sans `innerHTML`, le geste de pression (140 ms, 97 %) dans `sticker-press`. Écrit par aucepsdev, relu par Claude ; entré dans `main` avec #54, qui contient ses commits. |
+| v1.107.1 | #49 | B14 — aucune page publique ne publie plus l'adresse d'un compte sans profil : les 9 lectures publiques (emplois, services, blog, événements, forum) ne la chargent plus ; « Membre Baobart » en repli. Le test échoue 6/6 sur l'ancien code et passe 6/6 sur le nouveau. |
 | — (tests) | #53 | Lot 3 au navigateur : Playwright + axe dans les trois états de « Devenir vendeur ». Écrit par Argon par le canal direct (sans copier-coller), lancé et éprouvé par Claude (trois casses attrapées). |
 | v1.107.0 | #51 | Lot 3 — « Devenir vendeur » : trois étapes vers la boutique (profil affichable comme la vitrine, compte de versement après 24 h, trois ressources) ; `/dashboard/boutique` ouvert à l'acheteur (option A). Écrit par Argon, relu par Claude. |
 | — (docs) | #39 | L'inventaire fonctionnalité par fonctionnalité (`Doc/INVENTAIRE_FONCTIONNALITES_2026-11.md`), auquel renvoient les identifiants A1…C10. |

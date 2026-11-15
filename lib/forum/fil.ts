@@ -7,6 +7,7 @@ import { notifier } from "@/lib/notifications/aiguilleur";
 import type { Droits } from "@/lib/forum/acces";
 import type { Contexte } from "@/lib/forum/queries";
 import { validerMessage, type Refus } from "@/lib/forum/validation";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Le fil d'une communauté.
@@ -88,9 +89,10 @@ export async function filDe(
       authorId: true,
       isFlagged: true,
       createdAt: true,
+      // Pas d'`email` : le fil d'une communauté publique se lit sans compte
+      // (B14, voir `nomPublic`).
       author: {
         select: {
-          email: true,
           profile: { select: { displayName: true, username: true } },
         },
       },
@@ -100,7 +102,7 @@ export async function filDe(
   return lignes.reverse().map((m) => ({
     id: m.id,
     corps: m.body,
-    auteur: m.author.profile?.displayName ?? m.author.email,
+    auteur: nomPublic(m.author.profile),
     auteurId: m.authorId,
     auteurUsername: m.author.profile?.username ?? null,
     signale: m.isFlagged,

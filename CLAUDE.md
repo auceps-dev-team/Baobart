@@ -25,11 +25,18 @@ fichier.
 ### Git
 
 - **Personne ne pousse sur `main`.** Ni en avance rapide, ni « juste cette fois ».
+  Depuis le 14/11/2026, GitHub l'impose : `main` est protégée (PR obligatoire,
+  cinq contrôles de CI verts, branche à jour avec `main`, ni push forcé ni
+  suppression).
 - **Une tâche = une branche = une PR.** Branche partie d'`origin/main` à jour :
   `prenom/sujet` pour une personne, `claude/sujet` ou `gemini/sujet` pour un
   agent.
-- **CI verte avant de demander la fusion.** Seul le **responsable du dépôt
-  fusionne**. On n'active pas la fusion automatique.
+- **Qui fusionne.** Quand la PR est **complète** — cinq contrôles de CI verts
+  (la protection l'impose), preuve du critère de fin jointe, liste de contrôle
+  cochée, ligne de `TACHES.md` passée dans « Fait » —, **son auteur la
+  fusionne**, s'il a le droit d'écriture : le responsable du dépôt et, depuis
+  le 14/11/2026, `aucepsdev`. Les agents (Claude, Gemini) ne fusionnent que
+  sur demande du responsable. On n'active pas la fusion automatique.
 - **Le numéro de version suit la nature du changement**, dans le même commit,
   au champ `version` de `package.json` et au badge du `README.md` :
   - fonctionnalité ou changement important : `+0.1.0` ;
@@ -282,6 +289,7 @@ ressources que deux exécutions se **corrompent** vraiment.
 | PostgreSQL | port hôte **5433**, jamais 5432 | `docker-compose.yml` |
 | Serveur de développement | port **3100**, fixé | `package.json` |
 | Serveur e2e | port **3200**, distinct du précédent | `playwright.config.ts` |
+| Serveur des captures de design | port **3300**, sur la base de développement | `scripts/design/captures.ts` |
 | Redis | préfixe `baobart:` sur toutes les clés | `lib/securite/pilotes.ts` |
 
 **Le verrou plutôt qu'un schéma par exécution.** Un schéma PostgreSQL par

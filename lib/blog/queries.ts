@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EtatContenu } from "@/lib/cms/cycle";
 import { db } from "@/lib/db";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Ce qu'on lit du blog.
@@ -166,9 +167,10 @@ const SELECTION_PUBLIQUE = {
   publishedAt: true,
   viewsCount: true,
   category: { select: { name: true, slug: true } },
+  // Pas d'`email` : l'auteur part dans la page ET dans le JSON-LD, lu par les
+  // moteurs de recherche (B14, voir `nomPublic`).
   author: {
     select: {
-      email: true,
       profile: { select: { displayName: true, username: true } },
     },
   },
@@ -207,7 +209,6 @@ type LignePublique = {
   viewsCount: number;
   category: { name: string; slug: string } | null;
   author: {
-    email: string;
     profile: { displayName: string; username: string | null } | null;
   };
 };
@@ -230,7 +231,7 @@ function versPublic(a: LignePublique): ArticlePublic {
     publieLe: a.publishedAt,
     vues: a.viewsCount,
     categorie: a.category ? { nom: a.category.name, slug: a.category.slug } : null,
-    auteur: a.author.profile?.displayName ?? a.author.email,
+    auteur: nomPublic(a.author.profile),
     auteurUsername: a.author.profile?.username ?? null,
   };
 }

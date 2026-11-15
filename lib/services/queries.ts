@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { nomPublic } from "@/lib/profil/nom-public";
 
 /**
  * Ce que le public voit du CMS Services.
@@ -109,10 +110,10 @@ export async function listerOffres(input: {
       ratingCount: true,
       createdAt: true,
       category: { select: { id: true, slug: true, name: true } },
+      // Pas d'`email` : la liste est lue sans compte (B14, voir `nomPublic`).
       creator: {
         select: {
           profile: { select: { displayName: true, username: true } },
-          email: true,
         },
       },
     },
@@ -130,7 +131,7 @@ export async function listerOffres(input: {
     miseEnAvant: o.isFeatured,
     ratingAvg: Number(o.ratingAvg),
     ratingCount: o.ratingCount,
-    createur: o.creator.profile?.displayName ?? o.creator.email,
+    createur: nomPublic(o.creator.profile),
     createurUsername: o.creator.profile?.username ?? null,
   }));
 }
@@ -154,6 +155,9 @@ export async function offrePublique(id: string): Promise<OffreComplete | null> {
       category: { select: { id: true, slug: true, name: true } },
       creator: {
         select: {
+          // Lue pour `createurEmail` seulement — l'adresse de contact que la
+          // fiche affiche exprès (voir `app/services/[id]/page.tsx`). Jamais
+          // à la place du nom.
           email: true,
           profile: { select: { displayName: true, username: true } },
         },
@@ -176,7 +180,7 @@ export async function offrePublique(id: string): Promise<OffreComplete | null> {
     miseEnAvant: o.isFeatured,
     ratingAvg: Number(o.ratingAvg),
     ratingCount: o.ratingCount,
-    createur: o.creator.profile?.displayName ?? o.creator.email,
+    createur: nomPublic(o.creator.profile),
     createurUsername: o.creator.profile?.username ?? null,
     createurEmail: o.creator.email,
     createurId: o.creatorId,
