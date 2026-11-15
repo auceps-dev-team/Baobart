@@ -170,7 +170,7 @@ Plusieurs personnes et plusieurs agents travaillent sur ce dépôt. Avant toute 
 2. **[`CLAUDE.md`](CLAUDE.md)** — les règles du dépôt : git, les quatre questions avant chaque tâche, les maquettes, la base de développement. Une session Claude ouverte ici les charge d'elle-même.
 3. **[`Doc/PROCESS_COLLABORATEURS.md`](Doc/PROCESS_COLLABORATEURS.md)** — à coller dans sa session Claude : les règles générales (ce qu'on a le droit d'affirmer, l'isolation des tests).
 
-Personne ne pousse sur `main` ; une tâche = une PR ; CI verte ; le responsable du dépôt fusionne.
+Personne ne pousse sur `main` (la branche est protégée) ; une tâche = une PR ; CI verte ; l'auteur d'une PR complète la fusionne s'il a le droit d'écriture.
 
 ## 🛠 Commandes utiles
 

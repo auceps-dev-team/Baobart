@@ -23,8 +23,10 @@
    Chaque réponse devient une case de la liste de contrôle de la PR.
 3. **Une tâche = une PR.** Une tâche trop grosse se coupe en lignes ici d'abord.
 4. **Finir.** CI verte, la preuve du critère de fin jointe à la PR, la ligne
-   passée dans « Fait » avec le numéro de PR et la version. **Seul le
-   responsable du dépôt fusionne.** Personne ne pousse sur `main`.
+   passée dans « Fait » avec le numéro de PR et la version. **Son auteur la
+   fusionne** s'il a le droit d'écriture (voir `CLAUDE.md`, « Qui fusionne ») ;
+   un agent attend la demande du responsable. Personne ne pousse sur `main` :
+   la protection de la branche l'impose.
 5. **Bloqué ?** La ligne passe dans « Décisions attendues », avec la question
    posée. On ne contourne pas une décision en silence.
 6. **Deux personnes ne prennent jamais la même ligne.** En cas de doute, demander
