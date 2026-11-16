@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
+import { sansRemiseAZero } from "@/lib/formulaires/sans-remise";
+
 import {
   BLANC,
   ENCRE,
@@ -152,7 +154,8 @@ export function AuthForm({
         {sousTitre}
       </p>
 
-      <form action={envoyer} style={{ position: "relative" }}>
+      {/* `sansRemiseAZero` : un refus ne vide plus les champs (Q-02, 14/11/2026). */}
+      <form action={envoyer} onSubmit={sansRemiseAZero(envoyer)} style={{ position: "relative" }}>
         {/*
           Sur les trois modes, pas seulement l'inscription : un robot qui
           essaie des mots de passe volés ou qui sonde les adresses existantes

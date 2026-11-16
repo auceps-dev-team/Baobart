@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+
+import { sansRemiseAZero } from "@/lib/formulaires/sans-remise";
 
 import { VisuelsProfil } from "@/components/dashboard/visuels-profil";
 import { Medaillon } from "@/components/reseaux/logos";
@@ -54,9 +56,24 @@ export function FormulaireProfil({
   const changeDAdresse = username.trim() !== depart.username;
   const refus = etat && !etat.ok ? etat : null;
 
+  // Le refus s'affiche en tête du formulaire ; le bouton est tout en bas —
+  // sur un téléphone, près de quatre écrans plus loin (mesuré le 14/11/2026,
+  // Q-07 : message à 1 155 px, bouton à 4 055 px, rien ne bougeait). On amène
+  // donc le message sous les yeux, et le focus avec lui pour un lecteur
+  // d'écran. `etat` change d'identité à chaque réponse : un second refus
+  // identique ramène aussi.
+  const alerte = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (etat && !etat.ok && alerte.current) {
+      alerte.current.scrollIntoView({ block: "center" });
+      alerte.current.focus({ preventScroll: true });
+    }
+  }, [etat]);
+
   return (
     <form
       action={envoyer}
+      onSubmit={sansRemiseAZero(envoyer)}
       // Identité : une colonne, que la page pose à gauche. Boutique : deux
       // colonnes, « Vitrine » | « Liens & services », comme la maquette (27/10).
       style={{
@@ -69,6 +86,8 @@ export function FormulaireProfil({
     >
       {refus ? (
         <div
+          ref={alerte}
+          tabIndex={-1}
           role="alert"
           style={{
             gridColumn: "1 / -1",

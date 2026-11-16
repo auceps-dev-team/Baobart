@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 
+import { sansRemiseAZero } from "@/lib/formulaires/sans-remise";
+
 import { deposerOffre, type EtatDepot } from "@/lib/jobs/actions";
 import { LIBELLE_MODE, LIBELLE_TYPE, MODES, TYPES } from "@/lib/jobs/enums";
 import { PAYS } from "@/lib/payments/rails";
@@ -69,6 +71,9 @@ export function FormulaireOffre() {
   return (
     <form
       action={envoyer}
+      // Un refus ne ramène plus les trois listes à leur valeur par défaut
+      // (Q-05, 14/11/2026 : « Stage » partait enregistré en « Freelance »).
+      onSubmit={sansRemiseAZero(envoyer)}
       style={{
         border: CADRE,
         borderRadius: 24,
