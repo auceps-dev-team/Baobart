@@ -3,8 +3,10 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
+import { Pagination } from "@/components/dashboard/pagination";
 import { FormulaireDemande } from "@/components/remboursements/gestes";
 import { sessionCourante } from "@/lib/auth/session";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { MESSAGES_REFUS } from "@/lib/remboursements/regles";
 import { achatsRemboursables } from "@/lib/remboursements/service";
 import { BLANC, CADRE, ENCRE, GRIS, JAUNE, VERT } from "@/lib/systeme/charte";
@@ -28,10 +30,19 @@ const STATUT = {
  * jours, le support tranche. Il n'y avait jusque-là aucun moyen de demander
  * quoi que ce soit depuis le site (relevé le 04/10).
  */
-export default async function RemboursementsPage() {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) : sous
+ * les trois étapes, la liste commence à 408 px, un achat tous les 151 px (139 de haut, avec
+ * son formulaire de demande). Sous un menu qui descend au moins à 900 px, barre de
+ * pagination comprise : 2 achats. Peu, parce que chaque ligne porte son formulaire.
+ */
+const PAR_PAGE = 2;
+
+export default async function RemboursementsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
   const achats = await achatsRemboursables(utilisateur.id);
+  const paginees = paginer(achats, (await searchParams).page, PAR_PAGE);
 
   return (
     <DashboardFrame
@@ -76,7 +87,7 @@ export default async function RemboursementsPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {achats.map((a) => (
+          {paginees.visibles.map((a) => (
             <div key={a.orderItemId} data-achat={a.orderItemId} style={{ border: CADRE, borderRadius: 20, background: BLANC, boxShadow: `4px 4px 0 ${ENCRE}`, padding: 16, color: ENCRE }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "baseline" }}>
                 <Link href={`/products/${a.slug}` as Route} style={{ fontSize: 15, fontWeight: 800, color: ENCRE }}>
@@ -105,6 +116,7 @@ export default async function RemboursementsPage() {
           ))}
         </div>
       )}
+      <Pagination page={paginees.page} pages={paginees.pages} adresse={(n) => adressePaginee("/dashboard/remboursements", {}, n)} />
     </DashboardFrame>
   );
 }

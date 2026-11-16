@@ -9,6 +9,7 @@ import {
   filtreAchats,
 } from "@/lib/dashboard/historique";
 import { encaissementPossible } from "@/lib/checkout/achat";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { historiqueDesAchats } from "@/lib/dashboard/queries";
 import { formatMoney, formatPrice } from "@/lib/i18n/money";
 
@@ -25,15 +26,23 @@ const DATE = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) :
+ * la liste commence à 404 px, une ligne tous les 96 px (84 de haut). Sous un menu
+ * qui descend au moins à 900 px, barre de pagination comprise (56 px) : 4 lignes.
+ */
+const PAR_PAGE = 4;
+
 export default async function HistoriqueDesAchatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtre?: string }>;
+  searchParams: Promise<{ filtre?: string; page?: string }>;
 }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
-  const filtre = filtreAchats((await searchParams).filtre);
+  const parametres = await searchParams;
+  const filtre = filtreAchats(parametres.filtre);
   const achats = await historiqueDesAchats(utilisateur.id, filtre);
 
   const lignesCommandes: Ligne[] = achats.commandes.map((c) => ({
@@ -71,7 +80,7 @@ export default async function HistoriqueDesAchatsPage({
     action: undefined,
   }));
 
-  const lignes = [...lignesAbonnements, ...lignesCommandes];
+  const paginees = paginer([...lignesAbonnements, ...lignesCommandes], parametres.page, PAR_PAGE);
   const nb = achats.commandes.length;
   const { bilan } = achats;
 
@@ -127,7 +136,12 @@ export default async function HistoriqueDesAchatsPage({
             href: `/dashboard/achats?filtre=${encodeURIComponent(f)}`,
             actif: f === filtre,
           })),
-          lignes,
+          lignes: paginees.visibles,
+          pagination: {
+            page: paginees.page,
+            pages: paginees.pages,
+            adresse: (n) => adressePaginee("/dashboard/achats", { filtre: parametres.filtre }, n),
+          },
           vide: {
             titre:
               filtre === "Abonnement"

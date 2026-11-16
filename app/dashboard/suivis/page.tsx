@@ -3,13 +3,20 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { ilYA } from "@/lib/social/regles";
 import { elementsAimes } from "@/lib/social/queries";
 
 export const metadata = { title: "Éléments suivis — Baobart." };
 export const dynamic = "force-dynamic";
 
-export default async function ElementsSuivisPage() {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) :
+ * la liste commence à 370 px, une ligne tous les 96 px (84 de haut) : 5 lignes sous un menu qui descend au moins à 900 px, barre de pagination comprise.
+ */
+const PAR_PAGE = 5;
+
+export default async function ElementsSuivisPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
@@ -27,6 +34,8 @@ export default async function ElementsSuivisPage() {
   }));
 
   const offertes = aimes.filter((r) => r.offerte).length;
+
+  const paginees = paginer(lignes, (await searchParams).page, PAR_PAGE);
 
   return (
     <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
@@ -56,7 +65,8 @@ export default async function ElementsSuivisPage() {
         ]}
         blocLignes={{
           titre: `${aimes.length} ressource${aimes.length > 1 ? "s" : ""}`,
-          lignes,
+          lignes: paginees.visibles,
+          pagination: { page: paginees.page, pages: paginees.pages, adresse: (n) => adressePaginee("/dashboard/suivis", {}, n) },
           vide: {
             titre: "Rien d'aimé pour l'instant",
             texte:

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { formatCount } from "@/lib/i18n/money";
 import { createursSuivis } from "@/lib/social/queries";
 import { ilYA } from "@/lib/social/regles";
@@ -10,7 +11,13 @@ import { ilYA } from "@/lib/social/regles";
 export const metadata = { title: "Abonnements — Baobart." };
 export const dynamic = "force-dynamic";
 
-export default async function AbonnementsPage() {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) :
+ * la liste commence à 370 px, une ligne tous les 96 px (84 de haut) : 5 lignes sous un menu qui descend au moins à 900 px, barre de pagination comprise.
+ */
+const PAR_PAGE = 5;
+
+export default async function AbonnementsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
 
@@ -38,6 +45,8 @@ export default async function AbonnementsPage() {
   }));
 
   const publiantes = suivis.filter((c) => c.ressourcesPubliees > 0).length;
+
+  const paginees = paginer(lignes, (await searchParams).page, PAR_PAGE);
 
   return (
     <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
@@ -73,7 +82,8 @@ export default async function AbonnementsPage() {
         ]}
         blocLignes={{
           titre: `${suivis.length} créateur${suivis.length > 1 ? "s" : ""}`,
-          lignes,
+          lignes: paginees.visibles,
+          pagination: { page: paginees.page, pages: paginees.pages, adresse: (n) => adressePaginee("/dashboard/abonnements", {}, n) },
           vide: {
             titre: "Tu ne suis personne",
             texte:

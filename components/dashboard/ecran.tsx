@@ -3,6 +3,7 @@ import type { Route } from "next";
 import type { ReactNode } from "react";
 
 import { LigneEspace } from "@/components/dashboard/espace";
+import { Pagination } from "@/components/dashboard/pagination";
 
 /**
  * Coquille d'un écran de tableau de bord, traduite de « Baobart Dashboard.dc.html ».
@@ -77,6 +78,8 @@ export function EcranDashboard({
     lignes: Ligne[];
     /** Ce qu'on dit quand il n'y a rien — jamais un tableau vide muet. */
     vide: { titre: string; texte: string; action?: { label: string; href: string } };
+    /** Les lignes passées sont DÉJÀ celles de la page (voir `paginer`, lib/dashboard/pagination.ts). */
+    pagination?: { page: number; pages: number; adresse: (n: number) => string };
   };
   enfants?: ReactNode;
 }) {
@@ -246,6 +249,7 @@ export function EcranDashboard({
               ))}
             </div>
           )}
+          {blocLignes.pagination ? <Pagination {...blocLignes.pagination} /> : null}
         </div>
       ) : null}
 

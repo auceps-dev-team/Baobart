@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 
 import { FormulaireCollection } from "@/components/collections/formulaire";
 import { DashboardFrame } from "@/components/dashboard/frame";
+import { Pagination } from "@/components/dashboard/pagination";
 import { sessionCourante } from "@/lib/auth/session";
 import { mesCollections } from "@/lib/collections/service";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Collections — Baobart." };
@@ -21,10 +23,19 @@ const TRAME = `repeating-linear-gradient(135deg,${LAVANDE} 0 7px,${BLANC} 7px 16
  * « Épingler » des cartes, et on partage une collection depuis la page d'une
  * communauté.
  */
-export default async function CollectionsPage() {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) : la
+ * grille commence à 499 px (sous le formulaire de création), quatre cartes par rangée,
+ * une rangée tous les 215 px (199 de haut). Sous un menu qui descend au moins à 900 px,
+ * barre de pagination comprise : une rangée, soit 4 collections.
+ */
+const PAR_PAGE = 4;
+
+export default async function CollectionsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion");
   const collections = await mesCollections(utilisateur.id);
+  const paginees = paginer(collections, (await searchParams).page, PAR_PAGE);
 
   return (
     <DashboardFrame utilisateur={utilisateur} titre="Mes collections" description="Range les ressources d'un projet. Épingle-les depuis les cartes de la mosaïque.">
@@ -41,7 +52,7 @@ export default async function CollectionsPage() {
           </p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(240px,100%),1fr))", gap: 16 }}>
-            {collections.map((c) => (
+            {paginees.visibles.map((c) => (
               <Link
                 key={c.id}
                 href={`/dashboard/collections/${c.id}` as Route}
@@ -70,6 +81,7 @@ export default async function CollectionsPage() {
             ))}
           </div>
         )}
+        <Pagination page={paginees.page} pages={paginees.pages} adresse={(n) => adressePaginee("/dashboard/collections", {}, n)} />
       </div>
     </DashboardFrame>
   );

@@ -29,8 +29,5 @@ export function Pagination({ page, pages, adresse }: { page: number; pages: numb
   );
 }
 
-/** La page demandée, ramenée entre 1 et `pages`. */
-export function pageDemandee(brut: string | undefined, pages: number): number {
-  const n = Number.parseInt(brut ?? "1", 10);
-  return Math.min(Math.max(1, Number.isFinite(n) ? n : 1), Math.max(1, pages));
-}
+/** Une seule définition, dans lib/ (testée par lib/dashboard/pagination.test.ts). */
+export { pageDemandee } from "@/lib/dashboard/pagination";

@@ -3,10 +3,12 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { BLANC, CADRE, DashboardFrame, EmptyState, ENCRE, JAUNE, MetricCard } from "@/components/dashboard/frame";
+import { Pagination } from "@/components/dashboard/pagination";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
 import { bibliothequeDe, type RessourcePossedee } from "@/lib/dashboard/bibliotheque";
 import { poidsLisible } from "@/lib/dashboard/bibliotheque-regles";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { formatCount } from "@/lib/i18n/money";
 
 export const metadata = { title: "Ma bibliothèque — Baobart." };
@@ -26,11 +28,19 @@ const DATE = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", 
  *     litige). Un bouton qui n'ouvrirait sur rien vaut moins que son absence ;
  *   — pas de ressources « PASS EXPIRÉ » : voir `lib/dashboard/bibliotheque.ts`.
  */
-export default async function BibliothequePage() {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) : la
+ * liste commence à 332 px, une ligne tous les 129 px (116 de haut). Sous un menu qui
+ * descend au moins à 900 px, barre de pagination comprise : 4 lignes.
+ */
+const PAR_PAGE = 4;
+
+export default async function BibliothequePage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/bibliotheque");
   const b = await bibliothequeDe(utilisateur.id);
   const poidsTotal = poidsLisible(b.octets);
+  const paginees = paginer(b.ressources, (await searchParams).page, PAR_PAGE);
 
   return (
     <DashboardFrame
@@ -57,9 +67,14 @@ export default async function BibliothequePage() {
             texte="Ce que tu achètes arrive ici, prêt à télécharger, même si tu ne l'as jamais ouvert."
           />
         ) : (
-          b.ressources.map((r) => <Entree key={r.orderItemId} r={r} />)
+          paginees.visibles.map((r) => <Entree key={r.orderItemId} r={r} />)
         )}
       </div>
+      <Pagination
+        page={paginees.page}
+        pages={paginees.pages}
+        adresse={(n) => adressePaginee("/dashboard/bibliotheque", {}, n)}
+      />
     </DashboardFrame>
   );
 }
