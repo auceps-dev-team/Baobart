@@ -41,7 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
-| **Design — les listes du tableau de bord paginées sous le menu** | aucepsdev (collaborateur) | `claude/pagination-dashboard` — PR à venir | Ouverte le 16/11, demandée par aucepsdev le 14/11 (« ne jamais dépasser la barre latérale », jugé à 1440 × 900). | Chaque liste paginée tient sous le menu à 1440 × 900, mesuré sur des listes remplies (`pnpm design:remplir-listes`) ; un test au navigateur le garde ; CI verte. |
+| **Design — les listes du tableau de bord paginées sous le menu** | aucepsdev (collaborateur) | `claude/pagination-dashboard` — **PR #60** (brouillon) | Ouverte le 16/11, demandée par aucepsdev le 14/11 (« ne jamais dépasser la barre latérale », jugé à 1440 × 900). | Chaque liste paginée tient sous le menu à 1440 × 900, mesuré sur des listes remplies (`pnpm design:remplir-listes`) ; un test au navigateur le garde ; CI verte. |
 
 ---
 
