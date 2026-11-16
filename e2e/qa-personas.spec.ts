@@ -146,7 +146,12 @@ test.describe("l'inscription", () => {
   // lui-même une adresse par test (`x-real-ip`) ; ce procédé touche à une
   // défense, et le responsable du dépôt a retiré tout test de sécurité du
   // périmètre de la recette. À rallumer par quelqu'un qui en a le mandat.
-  test.fixme("Q-01 — cinq formulaires refusés ne ferment pas l'inscription au visiteur suivant", async ({ browser }) => {
+  //
+  // Rallumé le 16/11/2026, avec la correction : les envois refusés ne
+  // consomment plus le quota des comptes, mais une enveloppe de trente envois
+  // par heure. Ce test en prend six et crée un compte : il ne ferme plus rien
+  // aux autres. Décidé par le responsable du dépôt.
+  test("Q-01 — cinq formulaires refusés ne ferment pas l'inscription au visiteur suivant", async ({ browser }) => {
     const premier = await browser.newContext();
     const page = await premier.newPage();
     for (let essai = 0; essai < 5; essai += 1) {
