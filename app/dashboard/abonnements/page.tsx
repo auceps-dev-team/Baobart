@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
  * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) :
  * la liste commence à 370 px, une ligne tous les 96 px (84 de haut) : 5 lignes sous un menu qui descend au moins à 900 px, barre de pagination comprise.
  */
-const PAR_PAGE = 5;
+// Ramené de 5 à 4 par la mesure d'après (16/11) : à 5, la LISTE tenait sous le menu,
+// mais la page entière descendait 9 px sous le menu (marges du panneau, 62 px sous la barre). Le choix retenu le 14/11 : la page s'arrête avec le menu.
+const PAR_PAGE = 4;
 
 export default async function AbonnementsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();

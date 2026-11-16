@@ -43,7 +43,9 @@ export const dynamic = "force-dynamic";
  * liste commence à 231 px, une notification tous les 99 px (89 de haut). Sous un menu qui
  * descend au moins à 900 px, barre de pagination comprise : 6 notifications.
  */
-const PAR_PAGE = 6;
+// Ramené de 6 à 5 par la mesure d'après (16/11) : à 6, la LISTE tenait sous le menu,
+// mais la page entière descendait 11 px sous un menu à 900 px (marges du cadre, 40 px sous la barre). Le choix retenu le 14/11 : la page s'arrête avec le menu.
+const PAR_PAGE = 5;
 
 export default async function NotificationsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();

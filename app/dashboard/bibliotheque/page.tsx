@@ -33,7 +33,9 @@ const DATE = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", 
  * liste commence à 332 px, une ligne tous les 129 px (116 de haut). Sous un menu qui
  * descend au moins à 900 px, barre de pagination comprise : 4 lignes.
  */
-const PAR_PAGE = 4;
+// Ramené de 4 à 3 par la mesure d'après (16/11) : à 4, la LISTE tenait sous le menu,
+// mais la page entière descendait 31 px sous le menu (marges du cadre, 40 px sous la barre). Le choix retenu le 14/11 : la page s'arrête avec le menu.
+const PAR_PAGE = 3;
 
 export default async function BibliothequePage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();

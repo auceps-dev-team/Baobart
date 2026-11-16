@@ -39,7 +39,9 @@ const FILTRES: Array<{ cle: string; libelle: string; statuts: ProductStatus[] | 
  * liste commence à 246 px, une ressource tous les 84 px (74 de haut). Sous un menu qui
  * descend au moins à 900 px, barre de pagination comprise : 7 ressources.
  */
-const PAR_PAGE = 7;
+// Ramené de 7 à 6 par la mesure d'après (16/11) : à 7, la LISTE tenait sous le menu,
+// mais la page entière descendait 32 px sous le menu (marges du panneau, 62 px sous la barre). Le choix retenu le 14/11 : la page s'arrête avec le menu.
+const PAR_PAGE = 6;
 
 export default async function MesProduitsPage({ searchParams }: { searchParams: Promise<{ statut?: string; page?: string }> }) {
   const utilisateur = await sessionCourante();

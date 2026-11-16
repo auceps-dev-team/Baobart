@@ -83,7 +83,11 @@ async function mesurer(page: Page) {
       Number.parseFloat(s.paddingBottom);
     const basMenu = Math.max(innerHeight, menu.getBoundingClientRect().top + scrollY + naturelle);
     const barre = document.querySelector<HTMLElement>('nav[aria-label="Pages"]');
-    return { basMenu, basListe: barre ? barre.getBoundingClientRect().bottom + scrollY : null };
+    return {
+      basMenu,
+      basListe: barre ? barre.getBoundingClientRect().bottom + scrollY : null,
+      hauteurPage: document.documentElement.scrollHeight,
+    };
   });
 }
 
@@ -105,9 +109,12 @@ test.describe("les listes paginées tiennent sous le menu", () => {
       await expect(barre).toBeVisible();
       await expect(barre).toContainText("page 1 sur");
 
-      const { basMenu, basListe } = await mesurer(page);
+      const { basMenu, basListe, hauteurPage } = await mesurer(page);
       expect(basListe, "la barre de pagination est rendue").not.toBeNull();
       expect(basListe!, `bas de la liste ${Math.round(basListe!)} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(basMenu);
+      // Et la page entière, marges comprises (choix du 14/11 : « la page s'arrête avec le menu »).
+      // Sur ces quatre écrans, rien ne suit la liste que la marge de son cadre.
+      expect(hauteurPage, `page ${hauteurPage} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(Math.ceil(basMenu));
     });
   }
 
