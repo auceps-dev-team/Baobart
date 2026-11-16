@@ -108,6 +108,25 @@ export function ChoixPaiement({
 
   const manqueLeNumero = veutLeNumero && telephone.trim().length < 8;
 
+  // ── Ce que le bouton annonce (Q-09, recette du 14/11/2026) ────────────────
+  //
+  // « Payer 1 500 F » restait affiché quel que soit le montant libre choisi,
+  // et « Payer 3 500 F » sous une ligne « tu paieras 2 800 F ». Le montant
+  // débité était le bon : c'est le serveur qui le calcule, et il continue.
+  // Ce nombre-ci n'est qu'un affichage, tiré de ce que l'écran sait déjà —
+  // la remise vérifiée, ou le montant que la personne vient de choisir.
+  const chiffres = (texte: string) => Number(texte.replace(/D/g, ""));
+  const base = remise && remise.ok ? remise.prixFinal : montantLibre && chiffres(montant) > 0 ? chiffres(montant) : null;
+  const aPayer = base === null ? prixFormate : `${(base + chiffres(pourboire)).toLocaleString("fr-FR")} F`;
+
+  // ── Un code que la vérification vient de refuser ne part pas (Q-10) ───────
+  //
+  // « Ce code n'existe pas. » s'affichait, le code restait dans le champ, et
+  // le paiement l'envoyait : le serveur refusait tout l'achat et renvoyait à
+  // la fiche, pays et moyen de paiement perdus. La personne a lu le refus ;
+  // elle paie donc sans le code — et l'écran le lui dit.
+  const codeRefuse = remise !== null && !remise.ok;
+
   function changerPays(code: string) {
     setPays(code);
     // Le rail choisi peut ne pas exister dans le nouveau pays. Le garder
@@ -352,7 +371,7 @@ export function ChoixPaiement({
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input
             id="codePromo"
-            name="codePromo"
+            name={codeRefuse ? undefined : "codePromo"}
             value={codePromo}
             onChange={(e) => {
               setCodePromo(e.target.value);
@@ -411,7 +430,7 @@ export function ChoixPaiement({
               color: "#E2622C",
             }}
           >
-            {remise.message}
+            {remise.message} Le paiement se fera sans ce code.
           </p>
         ) : null}
       </div>
@@ -619,7 +638,7 @@ export function ChoixPaiement({
       )}
 
       {/* ── Partir chez l'opérateur ─────────────────────────────────────── */}
-      <BoutonPayer bloque={manqueLeNumero} prixFormate={prixFormate} />
+      <BoutonPayer bloque={manqueLeNumero} prixFormate={aPayer} />
 
       <div
         style={{

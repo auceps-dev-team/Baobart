@@ -42,11 +42,29 @@ export interface LigneObtenue extends LigneAchetee {
 }
 
 /**
+ * Une ressource OFFERTE se retire sans commande : la route de téléchargement
+ * n'écrit qu'un `ConsumptionEvent` (`lib/domain/downloads.ts`, branche
+ * `estOfferte`). Trouvé par la recette du 14/11/2026 (Q-19) : la règle ne
+ * lisait que les commandes, et « gratuit compris » ne valait pour personne.
+ *
+ * `offerte` se lit MAINTENANT : devenue payante, la ressource ne se note plus
+ * sur un téléchargement passé — la route ne la servirait plus sans achat, et
+ * un téléchargement n'est pas une possession.
+ */
+export interface Offerte {
+  /** `estOfferte(produit)`, aujourd'hui. */
+  offerte: boolean;
+  /** Le compte a-t-il un `ConsumptionEvent` sur cette ressource ? */
+  telechargee: boolean;
+}
+
+/**
  * La ressource a-t-elle été obtenue, et reste-t-elle à son acheteur ?
  * Une seule ligne suffit : un second achat après un remboursement redonne le
  * droit.
  */
-export function aObtenu(lignes: readonly LigneObtenue[]): boolean {
+export function aObtenu(lignes: readonly LigneObtenue[], offerte?: Offerte): boolean {
+  if (offerte && offerte.offerte && offerte.telechargee) return true;
   return lignes.some((l) => (l.state === "SUCCESSFUL" || l.state === "NOT_CHARGED") && resteAToi(l));
 }
 

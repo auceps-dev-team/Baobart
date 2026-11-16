@@ -1,7 +1,8 @@
 import "server-only";
 
-import { aObtenu, lireNote, lireTexte, REPONSE_MAX, TEXTE_MAX } from "@/lib/avis/regles";
+import { aObtenu, type Offerte, lireNote, lireTexte, REPONSE_MAX, TEXTE_MAX } from "@/lib/avis/regles";
 import { recompterAvis } from "@/lib/avis/recompte";
+import { estOfferte } from "@/lib/commerce/montant";
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
 import { notifier } from "@/lib/notifications/aiguilleur";
@@ -34,6 +35,13 @@ export const MESSAGES_AVIS: Record<MotifAvis, string> = {
   TEXTE_TROP_LONG: "Ton avis est trop long.",
 };
 
+/** La ressource est-elle offerte, et ce compte l'a-t-il retirée ? Voir `Offerte`. */
+export async function offerteA(compteId: string, produitId: string, produit: { price: number; pricingMode: string }): Promise<Offerte> {
+  if (!estOfferte(produit)) return { offerte: false, telechargee: false };
+  const retrait = await db.consumptionEvent.findFirst({ where: { productId: produitId, userId: compteId }, select: { id: true } });
+  return { offerte: true, telechargee: retrait !== null };
+}
+
 async function lignesDe(auteurId: string, produitId: string) {
   return db.orderItem.findMany({
     where: { productId: produitId, order: { buyerId: auteurId } },
@@ -65,11 +73,11 @@ export async function laisserUnAvis(input: { auteurId: string; produitId: string
 
   const produit = await db.product.findUnique({
     where: { id: input.produitId },
-    select: { slug: true, name: true, sellerId: true },
+    select: { slug: true, name: true, sellerId: true, price: true, pricingMode: true },
   });
   if (!produit) return { ok: false, motif: "INTROUVABLE" };
   if (produit.sellerId === input.auteurId) return { ok: false, motif: "SA_RESSOURCE" };
-  if (!aObtenu(await lignesDe(input.auteurId, input.produitId))) return { ok: false, motif: "NON_OBTENU" };
+  if (!aObtenu(await lignesDe(input.auteurId, input.produitId), await offerteA(input.auteurId, input.produitId, produit))) return { ok: false, motif: "NON_OBTENU" };
 
   const { avisId, nouveau } = await db.$transaction(async (tx) => {
     const avant = await tx.productReview.findUnique({

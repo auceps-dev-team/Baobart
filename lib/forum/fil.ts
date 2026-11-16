@@ -81,7 +81,11 @@ export async function filDe(
 
   const lignes = await db.communityChatMessage.findMany({
     where: { communityId: contexte.communaute.id },
-    orderBy: { createdAt: "desc" },
+    // L'identifiant départage deux messages de la même milliseconde. Sans
+    // lui, leur ordre est laissé à PostgreSQL : la CI l'a vu s'inverser le
+    // 14/11/2026 (« Message cinq » avant « Message quatre », PR #54), puis
+    // repasser au vert sur le même code.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: Math.min(limite, 500),
     select: {
       id: true,
