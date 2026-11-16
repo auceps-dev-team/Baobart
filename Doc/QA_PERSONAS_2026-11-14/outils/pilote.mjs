@@ -8,6 +8,22 @@
  *
  *   node qa/pilote.mjs            → démarre (port 3499)
  *   node qa/c.mjs awa < geste.js  → joue un geste dans la session d'Awa
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * LA RÉGIE : REGARDER LES PERSONAS EN DIRECT
+ *
+ *   QA_REGIE=1 node qa/pilote.mjs     puis ouvrir http://127.0.0.1:3499/regie
+ *
+ * Une seule page montre les quatre personas côte à côte, en direct : les deux
+ * téléphones à gauche, les deux ordinateurs à droite. Chaque écran est à sa
+ * vraie taille, simplement réduit pour tenir dans la page — les navigateurs
+ * des personas, eux, ne changent pas : ce qu'on regarde est ce qui est mesuré.
+ * Pour qu'on puisse suivre, ce sont les gestes qui prennent leur temps (frappe
+ * caractère par caractère, pauses) : voir `qa/demo-*.js`.
+ *
+ * Quatre fenêtres de navigateur côte à côte avaient été essayées d'abord.
+ * Mesuré le 14/11 : Chromium refuse une fenêtre de moins de 516 px de large,
+ * et quatre ne tiennent pas sur un écran de 1366 px.
  */
 
 import http from "node:http";
@@ -19,8 +35,12 @@ import { chromium } from "@playwright/test";
 
 const BASE = process.env.QA_BASE ?? "http://127.0.0.1:3400";
 const PORT = Number(process.env.QA_PILOTE_PORT ?? 3499);
-const CAPTURES = process.env.QA_CAPTURES ?? join(process.cwd(), "qa", "captures") /* hors dépôt : qa/ est ignoré par le contrôle de style et les captures pèsent lourd */;
+const CAPTURES = process.env.QA_CAPTURES ?? join(process.cwd(), "qa", "captures");
 mkdirSync(CAPTURES, { recursive: true });
+
+const REGIE = process.env.QA_REGIE === "1";
+/** Les quatre écrans de la régie, dans l'ordre où ils s'affichent. */
+const EN_REGIE = (process.env.QA_REGIE_PERSONAS ?? "awa,yao,serge,fatou").split(",");
 
 const MOBILE_ANDROID =
   "Mozilla/5.0 (Linux; Android 12; SM-A135F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36";
@@ -37,8 +57,16 @@ const PROFILS = {
   fatou: { viewport: { width: 1280, height: 800 }, locale: "fr-FR", timezoneId: "Europe/Paris" },
 };
 const DEFAUT = { viewport: { width: 1366, height: 800 }, locale: "fr-FR", timezoneId: "Africa/Abidjan" };
+const QUI = {
+  awa: "Awa · vendeuse, Dakar · téléphone 360 × 740",
+  yao: "Yao · étudiant, Accra · téléphone 390 × 780",
+  serge: "Serge · agence, Abidjan · ordinateur 1440 × 900",
+  fatou: "Fatou · directrice artistique, Paris · portable 1280 × 800",
+};
 
-const navigateur = await chromium.launch();
+// QA_LENTEUR_MS ralentit chaque opération du navigateur — captures de la régie
+// comprises. À 0 par défaut : ce sont les gestes qui portent leurs pauses.
+const navigateur = await chromium.launch(REGIE ? { slowMo: Number(process.env.QA_LENTEUR_MS ?? 0) } : {});
 const sessions = new Map();
 let numero = 0;
 
@@ -67,9 +95,45 @@ async function session(nom) {
     if (!cause.includes("ERR_ABORTED")) evenements.push(`réseau: ${cause} ${r.url().slice(0, 200)}`);
   });
   const page = await contexte.newPage();
-  const s = { contexte, page, evenements };
+  const s = { contexte, page, evenements, image: null, vuLe: 0, enCours: "" };
   sessions.set(nom, s);
+  if (REGIE) await filmer(s);
   return s;
+}
+
+/**
+ * Filme la page d'une session : une capture toutes les 300 ms, tant que la
+ * régie a demandé une image dans les cinq dernières secondes. La régie vient
+ * chercher la dernière capture elle-même (`/image`), écran par écran.
+ *
+ * Deux façons plus « directes » ont été essayées d'abord, mesuré le 14/11 :
+ *   - le « screencast » de Chromium : sans fenêtre, il n'envoyait d'images que
+ *     pour un écran sur quatre ;
+ *   - un flux d'images continu (multipart) : le navigateur n'affiche une image
+ *     qu'à l'arrivée de la suivante, donc jamais pour une page immobile.
+ */
+async function filmer(s) {
+  let cdp = null;
+  let filmee = null;
+  let occupe = false;
+  setInterval(async () => {
+    if (occupe || Date.now() - s.vuLe > 5_000 || s.page.isClosed()) return;
+    occupe = true;
+    try {
+      // La session peut changer de page (un nouvel onglet) : on suit la page courante.
+      if (filmee !== s.page) {
+        cdp = await s.contexte.newCDPSession(s.page);
+        filmee = s.page;
+      }
+      const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 60 });
+      const image = Buffer.from(data, "base64");
+      s.image = image;
+    } catch {
+      filmee = null;
+    } finally {
+      occupe = false;
+    }
+  }, 300);
 }
 
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
@@ -89,7 +153,10 @@ async function jouer(nom, code, options) {
     },
     /** Passe la session sur une autre page (nouvel onglet, par exemple). */
     prendre: (p) => { s.page = p; },
+    /** Écrit, sous l'écran du persona dans la régie, ce qu'il est en train de faire. */
+    dire: (texte) => { s.enCours = String(texte).slice(0, 140); },
   };
+  s.enCours = "";
   const sortie = { persona: nom };
   try {
     const resultat = await new AsyncFunction("page", "context", "h", code)(s.page, s.contexte, aides);
@@ -120,6 +187,61 @@ async function jouer(nom, code, options) {
   return sortie;
 }
 
+/** La page de la régie : quatre écrans, leur légende, et ce que chacun fait. */
+function pageDeRegie() {
+  const ecran = (nom) => {
+    const p = PROFILS[nom] ?? DEFAUT;
+    return `<figure class="${p.isMobile ? "tel" : "ordi"}" style="--l:${p.viewport.width};--h:${p.viewport.height}"><img data-persona="${nom}" alt="Écran de ${nom}"><figcaption><b>${QUI[nom] ?? nom}</b><span id="etat-${nom}">en attente</span></figcaption></figure>`;
+  };
+  const tels = EN_REGIE.filter((n) => (PROFILS[n] ?? DEFAUT).isMobile);
+  const ordis = EN_REGIE.filter((n) => !(PROFILS[n] ?? DEFAUT).isMobile);
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="pinterest" content="nopin"><title>Régie QA — Baobart</title><style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:#14121a;color:#eee;font:13px/1.35 system-ui,sans-serif;display:flex;gap:10px;padding:10px;overflow:hidden}
+.tels{display:flex;gap:10px;flex:none}.ordis{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+figure{margin:0;display:flex;flex-direction:column;min-height:0;min-width:0}
+.tel{height:100%}.ordi{flex:1}
+img{display:block;background:#2a2733;border:2px solid #3b3747;border-radius:8px;object-fit:contain;object-position:center top;min-height:0;flex:1}
+.tel img{height:calc(100vh - 62px);flex:none;aspect-ratio:var(--l)/var(--h);width:auto}
+.ordi img{width:100%}
+figcaption{padding:4px 2px 0;display:flex;flex-direction:column;height:38px;overflow:hidden}
+figcaption b{color:#ffd84a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+figcaption span{color:#b9b4c7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+figure.actif img{border-color:#ffd84a}
+</style></head><body><div class="tels">${tels.map(ecran).join("")}</div><div class="ordis">${ordis.map(ecran).join("")}</div>
+<script>
+// Chaque écran va chercher sa dernière image, l'affiche, puis recommence.
+for (const img of document.querySelectorAll("img[data-persona]")) {
+  let precedente = null;
+  const suivante = async () => {
+    try {
+      const r = await fetch("/image?persona=" + img.dataset.persona + "&t=" + Date.now(), { cache: "no-store" });
+      if (r.status === 200) {
+        const url = URL.createObjectURL(await r.blob());
+        img.src = url;
+        if (precedente) URL.revokeObjectURL(precedente);
+        precedente = url;
+      }
+    } catch {}
+    setTimeout(suivante, 300);
+  };
+  suivante();
+}
+setInterval(async () => {
+  try {
+    const etats = await (await fetch("/etat")).json();
+    for (const [nom, e] of Object.entries(etats)) {
+      const el = document.getElementById("etat-" + nom); if (!el) continue;
+      el.textContent = (e.enCours ? e.enCours + " — " : "") + e.chemin;
+      el.closest("figure").classList.toggle("actif", e.actif);
+    }
+  } catch {}
+}, 700);
+</script></body></html>`;
+}
+
+let actif = "";
+
 http
   .createServer(async (req, res) => {
     const adresse = new URL(req.url, "http://x");
@@ -128,10 +250,52 @@ http
       await navigateur.close();
       process.exit(0);
     }
+    if (adresse.pathname === "/regie") {
+      res.setHeader("content-type", "text/html; charset=utf-8");
+      res.end(pageDeRegie());
+      return;
+    }
+    if (adresse.pathname === "/etat") {
+      const chemin = (s) => {
+        try {
+          const u = new URL(s.page.url());
+          return u.pathname + u.search;
+        } catch {
+          return "";
+        }
+      };
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.end(JSON.stringify(Object.fromEntries([...sessions].map(([nom, s]) => [nom, { enCours: s.enCours, actif: nom === actif, chemin: chemin(s) }]))));
+      return;
+    }
+    if (adresse.pathname === "/image") {
+      // La dernière capture d'un écran. La régie la redemande dès qu'elle l'a affichée.
+      const s = await session(adresse.searchParams.get("persona") ?? "anonyme");
+      s.vuLe = Date.now();
+      if (!s.image) {
+        res.writeHead(204, { "cache-control": "no-store" });
+        res.end();
+        return;
+      }
+      res.writeHead(200, { "content-type": "image/jpeg", "cache-control": "no-store" });
+      res.end(s.image);
+      return;
+    }
     let code = "";
     for await (const morceau of req) code += morceau;
-    const sortie = await jouer(adresse.searchParams.get("persona") ?? "anonyme", code, Object.fromEntries(adresse.searchParams));
+    actif = adresse.searchParams.get("persona") ?? "anonyme";
+    const sortie = await jouer(actif, code, Object.fromEntries(adresse.searchParams));
     res.setHeader("content-type", "application/json; charset=utf-8");
     res.end(JSON.stringify(sortie));
   })
-  .listen(PORT, "127.0.0.1", () => console.log(`pilote prêt sur ${PORT}, application ${BASE}`));
+  .listen(PORT, "127.0.0.1", async () => {
+    console.log(`pilote prêt sur ${PORT}, application ${BASE}`);
+    if (REGIE) {
+      // Les quatre écrans existent dès le départ, sur l'accueil : la régie a tout de suite quelque chose à montrer.
+      for (const nom of EN_REGIE) {
+        const s = await session(nom);
+        await s.page.goto("/", { waitUntil: "domcontentloaded" }).catch(() => {});
+      }
+      console.log(`régie : http://127.0.0.1:${PORT}/regie`);
+    }
+  });
