@@ -41,7 +41,6 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
-| **Design — les listes du tableau de bord paginées sous le menu** | aucepsdev (collaborateur) | `claude/pagination-dashboard` — **PR #60** (brouillon) | Ouverte le 16/11, demandée par aucepsdev le 14/11 (« ne jamais dépasser la barre latérale », jugé à 1440 × 900). | Chaque liste paginée tient sous le menu à 1440 × 900, mesuré sur des listes remplies (`pnpm design:remplir-listes`) ; un test au navigateur le garde ; CI verte. |
 
 ---
 
@@ -102,6 +101,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.110.0 | #60 | Les listes du tableau de bord paginées sous le menu (demande du 14/11) : dix listes dont la taille de page est mesurée à 1440 × 900 sur des listes pleines (`pnpm design:remplir-listes`) ; la page s'arrête avec le menu sur neuf, la liste sur les dix. Restent hors d'atteinte sans redessin : Ventes, Statuts, Membres. Un test au navigateur garde la règle. |
 | v1.108.3 | #59 | Sept défauts de la recette par personas corrigés, chacun gardé par son test de `e2e/qa-personas.spec.ts` : la saisie n'est plus perdue après un refus (Q-02, Q-05, Q-38), le refus du profil vient sous les yeux (Q-07), « Rembourser » se confirme (Q-08, Q-40), « Payer » annonce le bon montant (Q-09), un code promo refusé ne part plus (Q-10). Restent Q-01, Q-03, Q-04, Q-06, Q-37. |
 | — (tests, docs) | #58 | Les défauts de la recette par personas en tests au navigateur (`e2e/qa-personas.spec.ts`) : 11 défauts (Q-02 à Q-10, Q-37, Q-38), verts tant qu'ils existent, rouges un par un avec `QA_DEFAUTS_STRICTS=1` ; Q-01 écrit, désactivé. Avec la suite de la recette (`Doc/QA_PERSONAS_2026-11-14-suite.md`, Q-37 à Q-44), la régie, et le mode d'emploi pour l'admin (`Doc/QA_PERSONAS_2026-11-14/REJOUER.md`). CI verte le 15/11 (navigateur : 43 verts, 1 désactivé). Restent : le rejeu par l'admin ; Q-01 et Q-39 à Q-44, non automatisés. |
 | v1.108.2 | #57 | Deux correctifs nés de la recette par personas du 14/11 (`Doc/QA_PERSONAS_2026-11-14.md`, versée avec) : une ressource offerte téléchargée se note (Q-19, v1.108.1) ; le fil d'une communauté trie de façon stable (v1.108.2). Restent les autres défauts de la recette, à traiter par familles. |
