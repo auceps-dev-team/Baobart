@@ -22,6 +22,7 @@ import { BON_PUBLIC_AVIS } from "@/lib/badges/merites";
 import { mesuresDe } from "@/lib/badges/mesures";
 import { db } from "@/lib/db";
 import { rendreAcces, retirerAcces } from "@/lib/domain/acces";
+import { autoriserTelechargement } from "@/lib/domain/downloads";
 import { enregistrerLitige, litigeGagne } from "@/lib/domain/litiges";
 import { encaisserLigne, rembourserLigne } from "@/lib/domain/orders";
 
@@ -324,5 +325,55 @@ describe("« Bon public » à côté d'un avis", () => {
     await recevoirGratuit(auteur.id, produits.at(-1)!.id);
     expect(await pastille()).toBe(true);
     expect(await merite()).toBe(true);
+  });
+});
+
+describe("une ressource offerte, par le VRAI chemin (Q-19, recette du 14/11/2026)", () => {
+  // La recette par personas l'a mesuré : une ressource offerte se télécharge
+  // SANS commande (`lib/domain/downloads.ts`, branche `estOfferte` — seul un
+  // `ConsumptionEvent` est écrit). Le test « gratuit » plus haut posait une
+  // commande NOT_CHARGED à la main : il prouvait la règle sur un chemin que
+  // l'application n'emprunte pas. Celui-ci passe par la vraie fonction.
+  async function fichierDe(produitId: string, vendeurId: string) {
+    const m = await db.mediaAsset.create({
+      data: { ownerId: vendeurId, purpose: "product", s3Key: `produits/${produitId}/f.zip`, checksum: "x", contentType: "application/zip", sizeBytes: 1024, status: "READY" },
+      select: { id: true },
+    });
+    return db.productFile.create({ data: { productId: produitId, mediaId: m.id, filename: "f.zip", sizeBytes: 1024, role: "SOURCE", position: 0 }, select: { id: true } });
+  }
+
+  it("qui l'a téléchargée la note, et son avis compte ; qui ne l'a pas téléchargée, non", async () => {
+    const vendeur = await compte("v");
+    const telechargeur = await compte("t");
+    const passant = await compte("p");
+    const offerte = await ressource(vendeur.id, 0);
+    const fichier = await fichierDe(offerte.id, vendeur.id);
+
+    expect((await avisDeLaRessource(offerte.id, telechargeur.id))!.peutNoter).toBe(false);
+    expect((await autoriserTelechargement({ userId: telechargeur.id, productFileId: fichier.id })).decision.autorise).toBe(true);
+    expect(await db.orderItem.count({ where: { productId: offerte.id } })).toBe(0);
+
+    expect((await avisDeLaRessource(offerte.id, telechargeur.id))!.peutNoter).toBe(true);
+    expect(await laisserUnAvis({ auteurId: telechargeur.id, produitId: offerte.id, note: 5, texte: "Merci !" })).toMatchObject({ ok: true });
+    expect(await laisserUnAvis({ auteurId: passant.id, produitId: offerte.id, note: 1, texte: "" })).toEqual({ ok: false, motif: "NON_OBTENU" });
+    expect(await stats(offerte.id)).toMatchObject({ ratingStars: [0, 0, 0, 0, 1], ratingCount: 1 });
+    expect((await avisDeLaRessource(offerte.id, telechargeur.id))!.monAvis).toMatchObject({ note: 5, compte: true });
+  });
+
+  it("devenue payante, elle ne se note plus sur un simple téléchargement passé", async () => {
+    // Un téléchargement n'est pas une possession : la route ne le servirait
+    // plus sans achat. L'avis sort des comptes, comme après un remboursement.
+    const vendeur = await compte("v");
+    const telechargeur = await compte("t");
+    const offerte = await ressource(vendeur.id, 0);
+    const fichier = await fichierDe(offerte.id, vendeur.id);
+    await autoriserTelechargement({ userId: telechargeur.id, productFileId: fichier.id });
+    await laisserUnAvis({ auteurId: telechargeur.id, produitId: offerte.id, note: 4, texte: "" });
+
+    await db.product.update({ where: { id: offerte.id }, data: { price: 2_000 } });
+    await recompterTousLesAvis();
+
+    expect((await stats(offerte.id)).ratingCount).toBe(0);
+    expect((await avisDeLaRessource(offerte.id, telechargeur.id))!.peutNoter).toBe(false);
   });
 });

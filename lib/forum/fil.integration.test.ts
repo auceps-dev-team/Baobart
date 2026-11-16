@@ -184,6 +184,25 @@ describe("lire le fil", () => {
     expect(fil.map((m) => m.corps)).toEqual(["Message quatre", "Message cinq"]);
   });
 
+  it("rend toujours le même ordre pour des messages de la même milliseconde", async () => {
+    // Posés à la main, à la même date : c'est l'état que deux écritures
+    // rapprochées produisent parfois, et qu'aucun appel ne produit à coup sûr.
+    // Sur l'ancien tri, l'ordre dépendait de PostgreSQL — ce test pouvait
+    // donc y passer par chance ; il fixe la règle, il ne la démontre pas.
+    const e = await espace();
+    const ctx = await contexteDeQui(e.slug, e.createur.id);
+    const instant = new Date("2026-11-14T10:00:00.000Z");
+    const ids = ["m-a", "m-b", "m-c", "m-d"].map((p) => `${p}-${e.slug}`);
+    // Insérés dans le désordre, pour que l'ordre d'insertion n'aide pas.
+    for (const id of [ids[2]!, ids[0]!, ids[3]!, ids[1]!]) {
+      await db.communityChatMessage.create({ data: { id, communityId: e.id, authorId: e.createur.id, body: id, createdAt: instant } });
+    }
+
+    const fil = await filDe(ctx);
+    expect(fil.map((m) => m.id)).toEqual(ids);
+    expect((await filDe(ctx, 2)).map((m) => m.id)).toEqual(ids.slice(2));
+  });
+
   it("ne sort pas d'une communauté fermée", async () => {
     // Fermer veut dire fermer, y compris pour le créateur : `contexteDe` rend
     // `null`, et il n'y a donc même pas de contexte avec lequel appeler `filDe`.

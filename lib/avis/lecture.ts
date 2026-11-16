@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { BON_PUBLIC_AVIS } from "@/lib/badges/merites";
 import { aObtenu, resumeDesNotes, type Resume } from "@/lib/avis/regles";
 import { AVIS_COMPTE } from "@/lib/avis/recompte";
+import { offerteA } from "@/lib/avis/service";
 import { db } from "@/lib/db";
 
 /**
@@ -112,7 +113,7 @@ async function lireDansLOrdre(ids: readonly string[]): Promise<AvisLu[]> {
 }
 
 export async function avisDeLaRessource(produitId: string, visiteurId: string | null): Promise<AvisDeLaRessource | null> {
-  const produit = await db.product.findUnique({ where: { id: produitId }, select: { sellerId: true, ratingStars: true } });
+  const produit = await db.product.findUnique({ where: { id: produitId }, select: { sellerId: true, ratingStars: true, price: true, pricingMode: true } });
   if (!produit) return null;
 
   const ids = await idsComptes(Prisma.sql`r."productId" = ${produitId}`, AVIS_PAR_FICHE);
@@ -133,7 +134,7 @@ export async function avisDeLaRessource(produitId: string, visiteurId: string | 
         select: { state: true, price: true, quantity: true, tipAmount: true, refundedAmount: true, chargebackAt: true, chargebackReversedAt: true, accessRevokedAt: true },
       }),
     ]);
-    peutNoter = aObtenu(lignes);
+    peutNoter = aObtenu(lignes, await offerteA(visiteurId, produitId, produit));
     if (mien) {
       const compte = (await idsComptes(Prisma.sql`r."id" = ${mien.id}`, 1)).length === 1;
       monAvis = { note: mien.rating, texte: mien.body, compte };
