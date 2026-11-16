@@ -191,10 +191,10 @@ test.describe("l'inscription", () => {
       "quota d'inscription épuisé sur ce serveur (Q-01) : rejouer après redémarrage",
     );
 
-    await defautOuvert("Q-02", async () => {
-      await expect(page.getByLabel("Email")).toHaveValue(compte.email, { timeout: 3_000 });
-      await expect(page.getByLabel("Prénom")).toHaveValue(compte.prenom, { timeout: 3_000 });
-    });
+    // Q-02 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(page.getByLabel("Email")).toHaveValue(compte.email, { timeout: 3_000 });
+    await expect(page.getByLabel("Prénom")).toHaveValue(compte.prenom, { timeout: 3_000 });
   });
 });
 
@@ -255,9 +255,9 @@ test.describe("sur un téléphone", () => {
 
     // Mesuré le 14/11 : le message est à 1 155 px, le bouton à 4 055 px, et
     // rien ne défile. À l'écran, il ne se passe rien.
-    await defautOuvert("Q-07", async () => {
-      await expect(message).toBeInViewport({ timeout: 3_000 });
-    });
+    // Q-07 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(message).toBeInViewport({ timeout: 3_000 });
   });
 });
 
@@ -288,11 +288,11 @@ test.describe("les offres d'emploi", () => {
 
     // Mesuré le 14/11 : les trois listes reviennent à Freelance / À distance /
     // Non précisé, et l'offre corrigée part avec ces valeurs-là.
-    await defautOuvert("Q-05", async () => {
-      await expect(page.locator("select[name=type]")).toHaveValue("INTERN", { timeout: 3_000 });
-      await expect(page.locator("select[name=mode]")).toHaveValue("HYBRID", { timeout: 3_000 });
-      await expect(page.locator("select[name=pays]")).toHaveValue("CI", { timeout: 3_000 });
-    });
+    // Q-05 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(page.locator("select[name=type]")).toHaveValue("INTERN", { timeout: 3_000 });
+    await expect(page.locator("select[name=mode]")).toHaveValue("HYBRID", { timeout: 3_000 });
+    await expect(page.locator("select[name=pays]")).toHaveValue("CI", { timeout: 3_000 });
   });
 });
 
@@ -345,9 +345,9 @@ test.describe("le paiement", () => {
     // Mesuré le 14/11 : « Payer 1 500 F » quel que soit le montant choisi ;
     // et « Payer 3 500 F » après un code promo qui ramène le prix à 2 800 F.
     // Le montant débité, lui, est le bon.
-    await defautOuvert("Q-09", async () => {
-      await expect(page.getByRole("button", { name: /^payer/i })).toHaveText(/2\s500/, { timeout: 3_000 });
-    });
+    // Q-09 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(page.getByRole("button", { name: /^payer/i })).toHaveText(/2\s500/, { timeout: 3_000 });
   });
 
   test("Q-10 — un code promo inconnu ne fait pas sortir du paiement", async ({ page, context, baseURL }) => {
@@ -367,9 +367,9 @@ test.describe("le paiement", () => {
     // Mesuré le 14/11 : retour sur la fiche avec « Ce code promo n'a pas pu
     // être appliqué », pays et moyen de paiement perdus. Attendu : l'achat
     // aboutit sans le code, ou la page de paiement reste ouverte.
-    await defautOuvert("Q-10", async () => {
-      await expect(page).toHaveURL(/achat=ok|\/acheter\//, { timeout: 5_000 });
-    });
+    // Q-10 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(page).toHaveURL(/achat=ok|\/acheter\//, { timeout: 5_000 });
   });
 });
 
@@ -404,9 +404,16 @@ test.describe("après la vente", () => {
       where: { productId: ressource.produitId },
       select: { refundedAmount: true },
     });
-    await defautOuvert("Q-08", async () => {
-      expect(ligne.refundedAmount).toBe(0);
-    });
+    // Q-08 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    expect(ligne.refundedAmount).toBe(0);
+
+    // Et la confirmation, elle, rembourse : sans ce second temps, un bouton
+    // qui ne ferait plus rien du tout passerait le test ci-dessus.
+    await page.getByRole("button", { name: "Confirmer le remboursement" }).click();
+    await expect
+      .poll(async () => (await db.orderItem.findFirstOrThrow({ where: { productId: ressource.produitId }, select: { refundedAmount: true } })).refundedAmount)
+      .toBe(4_000);
   });
 
   test("Q-37 — l'acheteur d'une ressource dépubliée retrouve ses fichiers depuis sa bibliothèque", async ({ page, context, baseURL }) => {
@@ -445,8 +452,8 @@ test.describe("après la vente", () => {
 
     // Mesuré le 14/11 : le message dit « 7 jours », la liste réaffiche
     // « 30 jours » jusqu'au rechargement. Même mécanisme que Q-05.
-    await defautOuvert("Q-38", async () => {
-      await expect(liste).toHaveValue("7", { timeout: 3_000 });
-    });
+    // Q-38 corrigé le 16/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(liste).toHaveValue("7", { timeout: 3_000 });
   });
 });
