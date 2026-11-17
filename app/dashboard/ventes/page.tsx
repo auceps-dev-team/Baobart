@@ -195,6 +195,7 @@ export default async function VentesPage({
         </p>
 
         <PanneauOperations
+          legendeRepliee
           legendeTitre="États d'une vente"
           legende={legende}
           rechercherPlaceholder="Rechercher une vente ou un acheteur…"
