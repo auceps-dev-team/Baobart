@@ -30,6 +30,7 @@ import {
   premierBlocage,
 } from "@/lib/securite/blocklist";
 import { verifierLimiteAction } from "@/lib/securite/garde";
+import { refusInscription } from "@/lib/profil/validation";
 import { deposer } from "@/lib/email/outbox";
 
 /**
@@ -247,6 +248,10 @@ export async function inscrire(
       champ: "username",
     };
   }
+  // Les bornes hautes, les mêmes qu'au profil (revue du 20/11) : sans elles, un
+  // nom trop long passait ici, puis bloquait l'enregistrement du profil.
+  const tropLong = refusInscription(prenom, nom, username);
+  if (tropLong) return tropLong;
   if (!email.includes("@")) {
     return { erreur: "Cette adresse ne ressemble pas à un e-mail.", champ: "email" };
   }
