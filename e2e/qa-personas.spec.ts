@@ -327,9 +327,9 @@ test.describe("les collections partagées", () => {
 
     // Mesuré le 14/11 : le bloc affiche le titre, le nombre de membres et de
     // ressources, et aucun lien. Un clic sur le titre ne fait rien.
-    await defautOuvert("Q-06", async () => {
-      await expect(page.getByRole("link", { name: new RegExp(marque) }).first()).toBeVisible({ timeout: 3_000 });
-    });
+    // Q-06 corrigé le 20/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(page.getByRole("link", { name: new RegExp(marque) }).first()).toBeVisible({ timeout: 3_000 });
   });
 });
 
@@ -439,9 +439,9 @@ test.describe("après la vente", () => {
     // Mesuré le 14/11 : tous les liens de la bibliothèque mènent à la fiche
     // publique, qui répond « Cette page n'existe pas ». Les règles de
     // publication promettent : « ceux qui l'ont achetée gardent leurs fichiers ».
-    await defautOuvert("Q-37", async () => {
-      await expect(page.getByRole("heading", { name: /n.existe pas/i })).toHaveCount(0, { timeout: 3_000 });
-    });
+    // Q-37 corrigé le 20/11/2026 : l'enveloppe defautOuvert() est retirée, ce
+    // test garde désormais la correction.
+    await expect(page.getByRole("heading", { name: /n.existe pas/i })).toHaveCount(0, { timeout: 3_000 });
   });
 
   test("Q-38 — après l'enregistrement, la liste du délai de remboursement affiche le délai enregistré", async ({ page, context, baseURL }) => {
