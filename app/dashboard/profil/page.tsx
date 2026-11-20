@@ -36,6 +36,7 @@ import {
 import { etatEffacement } from "@/lib/rgpd/effacement";
 import { lireProfilDashboard } from "@/lib/dashboard/lectures";
 import { departDuProfil } from "@/lib/profil/depart";
+import { paysTries } from "@/lib/i18n/pays";
 
 export const metadata = { title: "Profil — Baobart." };
 export const dynamic = "force-dynamic";
@@ -131,6 +132,7 @@ export default async function ProfilPage() {
         depart={depart}
         visuels={{ avatarUrl: p?.avatarUrl ?? null, bannerUrl: p?.bannerUrl ?? null }}
         email={utilisateur.email}
+        pays={paysTries()}
       />
 
       <div style={{ display: "grid", gap: 20, minWidth: 0 }}>

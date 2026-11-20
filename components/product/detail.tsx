@@ -506,6 +506,26 @@ export function DetailProduit({
           défilent au doigt et s'arrêtent sur une vignette, pas entre deux. Sur
           grand écran, les quatre tiennent et rien ne défile.
         */}
+        {/* Q-25 (recette du 14/11/2026) : sans légende, ces vignettes se lisaient
+            comme d'autres vues de la MÊME ressource. Le nom de la région était
+            là pour les lecteurs d'écran ; il l'est désormais pour tout le monde. */}
+        {produit.duMemeCreateur.length > 0 ? (
+          <div
+            data-legende-meme-createur
+            aria-hidden="true"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              opacity: 0.7,
+              marginBottom: -8,
+            }}
+          >
+            Du même créateur
+          </div>
+        ) : null}
         {produit.duMemeCreateur.length > 0 ? (
           <div
             className="ruban-aimante"

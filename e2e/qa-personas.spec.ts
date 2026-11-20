@@ -262,11 +262,13 @@ test.describe("sur un téléphone", () => {
     await seConnecter(context, membre.id, baseURL!);
     await page.goto("/dashboard/boutique");
     await fermerLeBandeau(page);
-    await page.getByLabel(/^pays/i).first().fill("Sénégal");
+    // Le pays est une liste depuis Q-32 : on ne peut plus y écrire « Sénégal ».
+    // Le refus vient d'une adresse en http, que le serveur refuse toujours.
+    await page.getByLabel(/^portfolio/i).first().fill("http://mon-site.ci");
     await page.getByRole("button", { name: "Enregistrer mon profil" }).tap();
 
-    const message = page.getByText(/code à deux lettres/i).first();
-    await expect(message, "le serveur doit refuser « Sénégal » là où il attend « SN »").toBeAttached();
+    const message = page.getByText(/commencer par https/i).first();
+    await expect(message, "le serveur doit refuser une adresse en http").toBeAttached();
 
     // Mesuré le 14/11 : le message est à 1 155 px, le bouton à 4 055 px, et
     // rien ne défile. À l'écran, il ne se passe rien.

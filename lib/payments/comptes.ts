@@ -1,4 +1,5 @@
 import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
+import { versE164 } from "@/lib/sms/numero";
 
 /**
  * Règles du compte de versement.
@@ -12,6 +13,7 @@ export type RefusCompte =
   | "RAIL_INCONNU"
   | "NUMERO_VIDE"
   | "NUMERO_INVALIDE"
+  | "INDICATIF_MANQUANT"
   | "IBAN_INVALIDE"
   | "TITULAIRE_MANQUANT";
 
@@ -29,6 +31,8 @@ const MESSAGES: Record<RefusCompte, string> = {
   NUMERO_VIDE: "Entre le numéro qui doit recevoir l'argent.",
   NUMERO_INVALIDE:
     "Ce numéro ne ressemble pas à un numéro de téléphone. Vérifie l'indicatif et les chiffres.",
+  INDICATIF_MANQUANT:
+    "Choisis le pays du numéro, ou écris-le avec son indicatif (+221, +225…) : Wave, Orange Money et MTN couvrent plusieurs pays, et sans lui l'opérateur ne sait pas où envoyer l'argent.",
   IBAN_INVALIDE:
     "Cet identifiant bancaire semble incomplet. Un IBAN fait entre 15 et 34 caractères.",
   TITULAIRE_MANQUANT:
@@ -57,6 +61,12 @@ export function verifierCompte(input: {
   provider: string;
   reference: string;
   titulaire?: string;
+  /**
+   * Le pays du numéro (ISO, « CI »), quand il est écrit sans indicatif. Q-22
+   * (recette du 14/11/2026) : « 77 123 45 67 » passait sans qu'on sache s'il
+   * était sénégalais ou ivoirien — Wave couvre les deux.
+   */
+  pays?: string;
 }): VerdictCompte {
   const refus = (r: RefusCompte): VerdictCompte => ({
     accepte: false,
@@ -82,6 +92,17 @@ export function verifierCompte(input: {
       return refus("TITULAIRE_MANQUANT");
     }
     return { accepte: true, reference: iban, method: "BANK" };
+  }
+
+  // Un numéro national ne se devine pas : son pays le complète (indicatif,
+  // zéro de tête selon le plan du pays — versE164, lib/sms/numero.ts). Sans
+  // pays, on le refuse plutôt que d'envoyer l'argent au hasard.
+  const international = brut.startsWith("+") || normaliserNumero(brut).startsWith("+");
+  if (!international) {
+    if (!input.pays) return refus("INDICATIF_MANQUANT");
+    const e164 = versE164(brut, input.pays);
+    if (!e164) return refus("NUMERO_INVALIDE");
+    return { accepte: true, reference: e164, method: "MOBILE_MONEY" };
   }
 
   const numero = normaliserNumero(brut);
