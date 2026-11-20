@@ -65,10 +65,10 @@ export default async function FicheProduitPage({
 }) {
   const { slug } = await params;
   const { achat, montant, minimum } = await searchParams;
-  const [produit, utilisateur] = await Promise.all([
-    obtenirProduit(slug),
-    sessionCourante(),
-  ]);
+  // La session d'abord : une ressource retirée de la vente ne s'ouvre qu'à
+  // celui qui l'a obtenue (Q-37, voir `obtenirProduit`).
+  const utilisateur = await sessionCourante();
+  const produit = await obtenirProduit(slug, utilisateur?.id ?? null);
 
   if (!produit) notFound();
 

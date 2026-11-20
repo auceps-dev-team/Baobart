@@ -1,5 +1,6 @@
 import "server-only";
 
+import { aObtenu } from "@/lib/avis/regles";
 import { encaissementPossible } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
 import { encaisseDe } from "@/lib/domain/encaisse";
@@ -28,6 +29,11 @@ const LICENCE_PAR_DEFAUT = "Licence commerciale";
 
 /** Tout ce qu'affiche la fiche d'une ressource. */
 export interface FicheProduit {
+  /**
+   * Vrai quand la ressource n'est plus en vente et que la fiche n'est rendue
+   * qu'à celui qui l'a obtenue — voir `obtenirProduit`.
+   */
+  retiree: boolean;
   id: string;
   slug: string;
   titre: string;
@@ -230,7 +236,21 @@ function formatDeContenu(contentType: string, filename: string): string {
   return contentType.split("/").pop()?.toUpperCase() ?? "FICHIER";
 }
 
-export async function obtenirProduit(slug: string): Promise<FicheProduit | null> {
+/**
+ * La fiche d'une ressource.
+ *
+ * `acquereurId` : le visiteur connecté, s'il y en a un. Une ressource
+ * dépubliée ou archivée par son créateur n'a plus de fiche publique — mais
+ * celui qui l'a OBTENUE la retrouve, avec ses fichiers. Les règles de
+ * publication le promettent (« ceux qui l'ont achetée gardent leurs
+ * fichiers »), la route de téléchargement le tenait déjà, et la bibliothèque
+ * y menait : seule la fiche répondait « Cette page n'existe pas » (recette du
+ * 14/11/2026, Q-37).
+ *
+ * Un retrait juridique (`SUSPENDED`) ne s'ouvre à personne : la route de
+ * téléchargement ne sert plus ces fichiers non plus.
+ */
+export async function obtenirProduit(slug: string, acquereurId: string | null = null): Promise<FicheProduit | null> {
   const p = await db.product.findUnique({
     where: { slug },
     select: {
@@ -288,7 +308,19 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
 
   // Une ressource non publiée n'a pas de fiche publique : on répond comme si
   // elle n'existait pas, plutôt que de révéler qu'un brouillon porte ce slug.
-  if (!p || p.status !== "PUBLISHED") return null;
+  if (!p) return null;
+  let retiree = false;
+  if (p.status !== "PUBLISHED") {
+    if (p.status === "SUSPENDED" || !acquereurId) return null;
+    // La même règle que la bibliothèque et que les avis : obtenue, et
+    // toujours à lui (ni remboursée en entier, ni contestée, ni retirée).
+    const lignes = await db.orderItem.findMany({
+      where: { productId: p.id, order: { buyerId: acquereurId } },
+      select: { state: true, price: true, quantity: true, tipAmount: true, refundedAmount: true, chargebackAt: true, chargebackReversedAt: true, accessRevokedAt: true },
+    });
+    if (!aObtenu(lignes)) return null;
+    retiree = true;
+  }
 
   const autres: RessourceLiee[] = await db.product.findMany({
     where: {
@@ -307,6 +339,7 @@ export async function obtenirProduit(slug: string): Promise<FicheProduit | null>
   ];
 
   return {
+    retiree,
     id: p.id,
     slug: p.slug,
     titre: p.name,
