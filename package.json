@@ -35,6 +35,8 @@
     "comptes:test": "tsx --conditions=react-server --env-file=.env scripts/comptes-de-test.ts",
     "db:e2e:setup": "node scripts/setup-test-db.mjs e2e",
     "icones:generer": "tsx scripts/generer-icones.ts",
+    "design:revue": "tsx --env-file=.env scripts/design/revue-skills.ts",
+    "design:pire-cas": "tsx --env-file=.env scripts/design/pire-cas.ts",
     "design:captures": "tsx --env-file=.env scripts/design/captures.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
