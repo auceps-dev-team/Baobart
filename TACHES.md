@@ -82,6 +82,7 @@ décidé — à placer avec le responsable du dépôt :
 | C6 — Pages catégorie | Une page par catégorie, utile au référencement. |
 | C7 — Devises | Conversion entre devises. |
 | C8 — Tâches de fond auto-hébergées | `JOBS_DRIVER` déclaré sans lecteur. |
+| L1 — Exceptions `react-hooks` 7 (#65) | 11 `set-state-in-effect` désactivées à la ligne, chacune motivée : migrer les lectures du navigateur vers `useSyncExternalStore`, les réponses d'action vers un état dérivé au rendu. Et les 6 `window.location.href` internes (avertissements) vers `router.push`, si le rechargement complet n'est pas voulu. |
 
 ---
 
@@ -90,7 +91,7 @@ décidé — à placer avec le responsable du dépôt :
 | Question | Ce qui en dépend |
 | --- | --- |
 | **Facturation** : forfaits payants (B3) et reçus / factures (C3) | Plusieurs écrans d'abonnement ; le mérite « Fidèle » (personne ne peut l'obtenir tant que seul le forfait gratuit est ouvert). |
-| **Mises à jour majeures** : Next 16 (#46), `eslint-config-next` 16 (#47), Vitest 5 (#45) | Chacune est un lot à part, avec la suite complète et le navigateur. Ne pas les fusionner en même temps qu'autre chose. |
+| **Mises à jour majeures** : Next 16 (#46), Vitest 5 (#45) — `eslint-config-next` 16 réglé par #65 | Chacune est un lot à part, avec la suite complète et le navigateur. Ne pas les fusionner en même temps qu'autre chose. Avec Next 16 : retirer la garde `useEffectEvent` de `eslint.config.mjs`. Avec Prisma 7 : retirer le forçage d'`effect` (#63). |
 | **JSON-LD sur les fiches** (note des avis pour Google) | La règle du dépôt n'autorise qu'**un** `dangerouslySetInnerHTML` (le blog). Un second se décide, il ne s'ajoute pas en passant. Lot C2. |
 | **Canal direct vers Gemini** (`agy -p`, outil `confier-a-gemini.sh` hors dépôt) | Pour qu'Argon écrive et teste sans intervention : une liste d'autorisations dans les réglages globaux d'Antigravity (proposée, non appliquée) et des crédits Argon (épuisés le 13/11). La lecture seule marche déjà. |
 | **Textes de loi sur les avis** (lois 2016-412 et 91-1000) | Lus par un juriste avant d'afficher les notes en production. |
@@ -101,6 +102,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.108.7 | #65 | `eslint-config-next` 16 sans `FlatCompat` (remplace #47) : la configuration « flat » étalée telle quelle, six paquets devenus inutiles retirés, 86 règles actives au lieu de 71, aucune perdue (mesuré, sentinelles attrapées). Un vrai défaut trouvé par `react-hooks/immutability` : Échap dans la fenêtre d'épingle annonçait « rangée nulle part » et le bouton repassait à « Collection » (`e2e/collections.spec.ts`, rouge avant). Garde `no-restricted-imports` sur `useEffectEvent`, absent du React de Next 15.5. |
 | v1.108.6 | #63 | Trois défauts de la recette par personas corrigés, chacun gardé par son test de `e2e/qa-personas.spec.ts` sans enveloppe : l'inscription compte cinq **comptes** par heure, plus une enveloppe de trente envois, et une faute de frappe ne ferme plus la porte (Q-01) ; la fiche d'une ressource retirée se rouvre à celui qui l'a obtenue, et à lui seul (Q-37, `lib/products/fiche-retiree.integration.test.ts`) ; la collection partagée s'ouvre depuis sa communauté (Q-06). Restent Q-03 et Q-04 (avec D2), Q-39 et Q-41 (décisions), Q-44. Plus quatre avis publiés le 20/11, qui bloquaient toutes les PR : `next` 15.5.29, et `effect` forcé à 3.22.4 dans `pnpm.overrides` (Prisma 6 le fige à 3.21.0), **à retirer au passage à Prisma 7**. |
 | v1.108.3 | #59 | Sept défauts de la recette par personas corrigés, chacun gardé par son test de `e2e/qa-personas.spec.ts` : la saisie n'est plus perdue après un refus (Q-02, Q-05, Q-38), le refus du profil vient sous les yeux (Q-07), « Rembourser » se confirme (Q-08, Q-40), « Payer » annonce le bon montant (Q-09), un code promo refusé ne part plus (Q-10). Restent Q-01, Q-03, Q-04, Q-06, Q-37. |
 | — (tests, docs) | #58 | Les défauts de la recette par personas en tests au navigateur (`e2e/qa-personas.spec.ts`) : 11 défauts (Q-02 à Q-10, Q-37, Q-38), verts tant qu'ils existent, rouges un par un avec `QA_DEFAUTS_STRICTS=1` ; Q-01 écrit, désactivé. Avec la suite de la recette (`Doc/QA_PERSONAS_2026-11-14-suite.md`, Q-37 à Q-44), la régie, et le mode d'emploi pour l'admin (`Doc/QA_PERSONAS_2026-11-14/REJOUER.md`). CI verte le 15/11 (navigateur : 43 verts, 1 désactivé). Restent : le rejeu par l'admin ; Q-01 et Q-39 à Q-44, non automatisés. |
