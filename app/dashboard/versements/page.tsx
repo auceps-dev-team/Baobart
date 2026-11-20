@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import { redirect } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
@@ -123,7 +124,7 @@ export default async function VersementsPage() {
                 fontSize: 20,
               }}
             >
-              !
+              <Icone nom="alert" taille={26} />
             </span>
             <div style={{ flex: "1 1 300px", minWidth: 0 }}>
               <div

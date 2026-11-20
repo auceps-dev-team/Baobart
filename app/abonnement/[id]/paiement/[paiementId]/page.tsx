@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -117,7 +118,7 @@ export default async function RetourRenouvellementPage({
         fond: JAUNE,
         encre: ENCRE,
         pastille: BLANC,
-        glyphe: "⏱",
+        icone: "clock" as const,
         dateLabel: "Prochaine échéance",
         dateValeur: "en attente",
         dateNote:
@@ -132,7 +133,7 @@ export default async function RetourRenouvellementPage({
           fond: VERT,
           encre: ENCRE,
           pastille: BLANC,
-          glyphe: "✓",
+          icone: "check" as const,
           dateLabel: "Prochaine échéance",
           dateValeur: dateLongue(echeance),
           dateNote: noteDesRelances(echeance),
@@ -206,7 +207,7 @@ export default async function RetourRenouvellementPage({
                   fontSize: 25,
                 }}
               >
-                {allure.glyphe}
+                {allure.icone ? <Icone nom={allure.icone} taille={26} /> : allure.glyphe}
               </div>
               <div style={{ flex: "1 1 280px", minWidth: 0 }}>
                 <div
