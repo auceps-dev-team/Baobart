@@ -7,6 +7,7 @@ import { Frise } from "@/components/anime/frise";
 import { BacASable } from "@/components/checkout/bac-a-sable";
 import { declencherRappel } from "@/lib/payments/encaissement/bac-a-sable";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { offreApresAchat } from "@/lib/commerce/upsell";
 import { formatMoney } from "@/lib/i18n/money";
@@ -135,7 +136,7 @@ export default async function RetourPaiementPage({
   params: Promise<{ orderId: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/achat/${(await params).orderId}`));
 
   const { orderId } = await params;
 

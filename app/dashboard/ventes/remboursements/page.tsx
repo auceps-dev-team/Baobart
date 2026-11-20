@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { DecisionDemande, ReglageDelai } from "@/components/remboursements/gestes";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { DELAIS } from "@/lib/remboursements/regles";
 import { demandesRecues } from "@/lib/remboursements/service";
@@ -22,7 +23,7 @@ const DATE = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", t
  */
 export default async function DemandesDeRemboursementPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/ventes/remboursements"));
   // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
   // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
   // règle que `/dashboard` (`app/dashboard/page.tsx`).

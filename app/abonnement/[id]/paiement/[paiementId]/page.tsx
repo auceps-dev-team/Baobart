@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { BacASable } from "@/components/checkout/bac-a-sable";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { REGLAGES_PAR_DEFAUT, ajouterJours, joursEntre } from "@/lib/ndank/cycle";
@@ -56,7 +57,7 @@ export default async function RetourRenouvellementPage({
   searchParams: Promise<{ t?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/abonnement/${(await params).id}/paiement/${(await params).paiementId}`));
 
   const { id, paiementId } = await params;
   const { t } = await searchParams;

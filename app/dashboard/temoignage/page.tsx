@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { FormulaireTemoignage } from "@/components/temoignages/formulaire";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { LIBELLE_STATUT } from "@/lib/temoignages/regles";
 import { monTemoignage } from "@/lib/temoignages/service";
@@ -22,7 +23,7 @@ const FOND = { PENDING: JAUNE, APPROVED: VERT, REJECTED: GRIS } as const;
  */
 export default async function MonTemoignagePage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/temoignage"));
 
   const [t, profil] = await Promise.all([
     monTemoignage(utilisateur.id),

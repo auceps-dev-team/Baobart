@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 
 import {
@@ -374,7 +375,7 @@ export function FormulaireProduit({
             >
               {enCours ? "Enregistrement…" : libelleBouton}
             </button>
-            <a
+            <Link
               href="/dashboard"
               style={{
                 padding: "14px 24px",
@@ -386,7 +387,7 @@ export function FormulaireProduit({
               }}
             >
               Annuler
-            </a>
+            </Link>
           </div>
         </div>
       </Bloc>

@@ -5,6 +5,7 @@ import { FileUploader } from "@/components/dashboard/file-uploader";
 import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
 import { FormulaireProduit } from "@/components/dashboard/product-form";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { LIBELLE_STATUT } from "@/lib/dashboard/lectures";
 import { db } from "@/lib/db";
 import { dossiersQuiRetiennent } from "@/lib/juridique/retrait";
@@ -71,7 +72,7 @@ export default async function ProduitDuTableauDeBord({
   searchParams: Promise<{ erreur?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/dashboard/produits/${(await params).id}`));
 
   const { id } = await params;
   const { erreur } = await searchParams;

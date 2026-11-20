@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import {
   FILTRES_ACHATS,
   commandeTelechargeable,
@@ -31,7 +32,7 @@ export default async function HistoriqueDesAchatsPage({
   searchParams: Promise<{ filtre?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/achats"));
 
   const filtre = filtreAchats((await searchParams).filtre);
   const achats = await historiqueDesAchats(utilisateur.id, filtre);

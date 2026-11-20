@@ -7,8 +7,10 @@ import {
   JAUNE,
   LAVANDE_CLAIR,
   ORANGE,
+  ORANGE_PALE,
 } from "@/components/shell/nav-data";
 import { NavEntrees } from "@/components/dashboard/nav-entrees";
+import { deconnecter } from "@/lib/auth/actions";
 import type { EtapeCompte } from "@/lib/auth/roles";
 import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
@@ -171,6 +173,30 @@ export async function DashboardSidebar({
           </span>
         </span>
       </div>
+
+      {/* Q-16 (recette du 14/11/2026) : l'acheteur n'avait aucun moyen de se
+          déconnecter depuis son tableau de bord — le bouton n'existait que dans
+          le menu du compte du site public, et sur l'accueil du créateur. Le
+          même fond que l'entrée « Déconnexion » de ce menu (maquette). */}
+      <form action={deconnecter}>
+        <button
+          type="submit"
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            border: CADRE,
+            borderRadius: 13,
+            background: ORANGE_PALE,
+            color: ENCRE,
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          Se déconnecter
+        </button>
+      </form>
     </aside>
   );
 }

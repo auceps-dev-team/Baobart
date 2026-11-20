@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { formatMoney } from "@/lib/i18n/money";
 import { REFUS_COURT } from "@/lib/payments/eligibilite";
 import { gainsDe } from "@/lib/payments/gains";
@@ -44,7 +45,7 @@ const ETATS: Record<string, { libelle: string; fond?: string }> = {
 
 export default async function GainsPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/gains"));
   // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
   // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
   // règle que `/dashboard` (`app/dashboard/page.tsx`).

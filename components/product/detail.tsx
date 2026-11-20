@@ -1,6 +1,8 @@
 import type { Route } from "next";
 import Link from "next/link";
 
+import { connexionPuis } from "@/lib/auth/suite";
+
 import {
   BLANC,
   ENCRE,
@@ -191,9 +193,9 @@ function BoutonTelechargement({
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, marginTop: 4, overflowWrap: "anywhere", userSelect: "all" }}>
               {droit.licence.cle}
             </div>
-            <a href="/licences" style={{ display: "inline-block", marginTop: 6, fontSize: 11.5, fontWeight: 700, color: ENCRE, textDecoration: "underline" }}>
+            <Link href="/licences" style={{ display: "inline-block", marginTop: 6, fontSize: 11.5, fontWeight: 700, color: ENCRE, textDecoration: "underline" }}>
               Ce que ta licence permet
-            </a>
+            </Link>
           </div>
         ) : null}
       </div>
@@ -202,13 +204,13 @@ function BoutonTelechargement({
 
   if (droit.etat === "A_CONNECTER") {
     return (
-      <a
-        href="/connexion"
+      <Link
+        href={connexionPuis(`/products/${slug}`)}
         className="sticker-press"
         style={{ ...base, background: JAUNE, color: ENCRE }}
       >
         Se connecter pour télécharger
-      </a>
+      </Link>
     );
   }
 
@@ -647,9 +649,9 @@ export function DetailProduit({
               {produit.prixAffiche}
             </div>
             <div style={{ display: "grid", justifyItems: "end", gap: 2 }}>
-              <a href="/licences" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE, textDecoration: "underline" }}>
+              <Link href="/licences" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE, textDecoration: "underline" }}>
                 {produit.licence.toLowerCase()}
-              </a>
+              </Link>
               {produit.remboursement ? (
                 <span data-remboursement style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
                   {produit.remboursement}

@@ -331,6 +331,7 @@ export const ROUTES_SANS_MAQUETTE: { route: string; compte?: Compte; note?: stri
   { route: "/jobs/deposer", compte: "agence" },
   { route: "/jobs/{job}/postuler", compte: "client" },
   { route: "/jobs/mes-propositions", compte: "client" },
+  { route: "/jobs/mes-offres", compte: "agence", note: "Q-26 : pendant de « Mes propositions », pour le recruteur" },
   { route: "/services/deposer", compte: "agence" },
   { route: "/signalement/deposer" },
   { route: "/dashboard/blog/{articleAdmin}", compte: "admin" },

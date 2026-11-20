@@ -63,12 +63,19 @@ export function ChoixEpingle({
   // Pas `useEffectEvent` : stable dans React 19.2, mais absent du React que
   // Next 15.5 embarque (19.2.0-canary du 18/08/2025) — mesuré le 20/11, la
   // construction ne le signale que par un avertissement et la fenêtre plante.
+  //
+  // En CAPTURE sur `window`, et la propagation s'arrête là : la fiche ouverte
+  // en fenêtre écoute Échap sur `document`, et un seul appui fermait les deux
+  // — retour à la liste (Q-11, recette du 14/11/2026, 3 fois sur 3). La
+  // capture sur `window` passe avant tout autre écouteur de la page.
   useEffect(() => {
     const echap = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onFerme(rangee);
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      onFerme(rangee);
     };
-    window.addEventListener("keydown", echap);
-    return () => window.removeEventListener("keydown", echap);
+    window.addEventListener("keydown", echap, true);
+    return () => window.removeEventListener("keydown", echap, true);
   }, [rangee, onFerme]);
 
   const basculer = (c: Collection) =>

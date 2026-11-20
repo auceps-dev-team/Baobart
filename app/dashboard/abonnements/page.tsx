@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { formatCount } from "@/lib/i18n/money";
 import { createursSuivis } from "@/lib/social/queries";
 import { ilYA } from "@/lib/social/regles";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AbonnementsPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/abonnements"));
 
   const suivis = await createursSuivis(utilisateur.id);
 

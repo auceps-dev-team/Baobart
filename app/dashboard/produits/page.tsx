@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { DashboardFrame, DashboardPanel, EmptyState } from "@/components/dashboard/frame";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { LIBELLE_STATUT } from "@/lib/dashboard/lectures";
 import { db } from "@/lib/db";
 import type { Currency, ProductFamily, ProductStatus } from "@/lib/domain/prisma-types";
@@ -34,7 +35,7 @@ const FILTRES: Array<{ cle: string; libelle: string; statuts: ProductStatus[] | 
 
 export default async function MesProduitsPage({ searchParams }: { searchParams: Promise<{ statut?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/produits"));
 
   const demande = (await searchParams).statut;
   const filtre = FILTRES.find((f) => f.cle === demande) ?? FILTRES[0]!;

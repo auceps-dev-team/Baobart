@@ -6,6 +6,7 @@ import { DashboardFrame, DashboardPanel, EmptyState } from "@/components/dashboa
 import { Pagination, pageDemandee } from "@/components/dashboard/pagination";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { etatCommande, type EtatCommande } from "@/lib/dashboard/historique";
 import { lireCommandesVendeur } from "@/lib/dashboard/lectures";
 import { debutDuMois } from "@/lib/dashboard/mois";
@@ -43,7 +44,7 @@ const PAR_PAGE = 12;
 
 export default async function CommandesVendeurPage({ searchParams }: { searchParams: Promise<{ etat?: string; page?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/commandes"));
 
   const { etat: demande, page: pageBrute } = await searchParams;
   const filtre = FILTRES.find((f) => f.cle === demande) ?? FILTRES[0]!;

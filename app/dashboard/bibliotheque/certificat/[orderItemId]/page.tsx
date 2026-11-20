@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { BoutonImpression } from "@/components/dashboard/bouton-impression";
 import { BLANC, CADRE, DashboardFrame, ENCRE, JAUNE } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { formatPrice } from "@/lib/i18n/money";
 import { lireCertificat } from "@/lib/licences/certificat-lecture";
 
@@ -34,7 +35,7 @@ export default async function CertificatLicencePage({
   params: Promise<{ orderItemId: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/dashboard/bibliotheque/certificat/${(await params).orderItemId}`));
 
   const { orderItemId } = await params;
   const cert = await lireCertificat(orderItemId, utilisateur.id);
