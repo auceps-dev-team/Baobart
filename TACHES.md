@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
+| **D2b, première tranche — l'en-tête mobile compact et la barre d'onglets** | Claude (session d'aucepsdev) | `claude/mobile-ecrans`, posée sur #69 et #56 | Commencée le 20/11 : sous 620 px, l'en-tête de la maquette (logo, cloche, recherche), les menus derrière un bouton, la barre d'onglets en bas (écrans 03 et 04 de `Baobart Mobile.dc.html`). | Un test au navigateur borne la hauteur de l'en-tête à 360 px et vérifie la barre (cibles ≥ 44 px, page active) ; Q-03 reste vert ; planche maquette | application relue ; CI verte. |
 
 ---
 
