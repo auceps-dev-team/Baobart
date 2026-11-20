@@ -182,6 +182,7 @@ export function Notifications({
   }, [clePublique]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- relit l'abonnement du service worker, un système extérieur à React.
     void relire();
 
     // Installée ? Le mode d'affichage le dit, et `standalone` couvre iOS, qui

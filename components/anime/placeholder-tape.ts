@@ -55,6 +55,7 @@ export function usePlaceholderTape({
     // une frappe à chaque clic deviendrait du bruit. Stockage indisponible
     // (navigation privée, données bloquées) : on joue, simplement.
     if (dejaJoue(cleSession)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- le stockage de session ne se lit qu'après le montage ; l'animation se règle ici.
       setFini(true);
       return;
     }

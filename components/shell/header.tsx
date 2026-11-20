@@ -209,6 +209,7 @@ export function Header({
   // écart assumé avec la maquette, qui filtrait un tableau en dur.
   useEffect(() => {
     if (q.trim().length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- vide les suggestions d'une recherche vide ; le reste de l'effet interroge le serveur.
       setSuggestions([]);
       setEtatRecherche("repos");
       return;

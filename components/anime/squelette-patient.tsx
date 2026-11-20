@@ -68,6 +68,7 @@ export function Revelation({ squelette, children }: { squelette: ReactNode; chil
     visibleDepuis = null;
     if (reste === 0) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- posé avant la première peinture, à dessein : c'est l'objet de ce useLayoutEffect.
     setVoile("pose");
     const lever = window.setTimeout(() => setVoile("leve"), reste);
     const retirer = window.setTimeout(() => setVoile(null), reste + FONDU_MS);
