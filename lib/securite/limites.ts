@@ -76,12 +76,39 @@ export const REGLES = {
   "courriel.code": { quota: 5, fenetreMs: 60 * 60_000 },
 
   /**
-   * Inscription. Cinq comptes par heure et par adresse.
+   * Inscription. Cinq COMPTES par heure et par adresse.
    *
    * Une famille derrière un même routeur peut en créer plusieurs le même jour ;
    * cinq par heure ne gêne personne et arrête la création en masse.
+   *
+   * ───────────────────────────────────────────────────────────────────
+   * DES COMPTES, PAS DES ENVOIS
+   *
+   * Jusqu'au 16/11/2026, cette règle était consommée à chaque ENVOI du
+   * formulaire, avant tout examen : un formulaire vide, un mot de passe trop
+   * court, un envoi jugé « trop rapide » par l'anti-bot coûtaient chacun un
+   * des cinq essais de toute la connexion. Mesuré par la recette du
+   * 14/11/2026 (Q-01, « la salle de classe ») : 4 comptes créés sur 30
+   * élèves, 37 envois sur 42 refusés sans avoir été lus.
+   *
+   * Elle n'est plus consommée que par ce qui la concerne : un formulaire
+   * valide qui va créer un compte — ou qui apprend à son auteur qu'une
+   * adresse existe déjà chez nous, pour que cette question-là ne se pose pas
+   * plus de cinq fois par heure non plus (`lib/auth/actions.ts`).
+   *
+   * Ce que cela ne règle PAS : une classe de trente reste à cinq comptes par
+   * heure. C'est le chiffre lui-même, et il se décide, il ne se corrige pas.
    */
   inscription: { quota: 5, fenetreMs: 60 * 60_000 },
+
+  /**
+   * Envois du formulaire d'inscription. Trente par heure et par adresse.
+   *
+   * L'enveloppe large qui reste devant tout le reste : elle borne ce qu'un
+   * automate peut faire travailler (validation, anti-bot) sans punir cinq
+   * personnes qui se trompent chacune une fois. Voir `inscription`.
+   */
+  "inscription.envoi": { quota: 30, fenetreMs: 60 * 60_000 },
 
   /**
    * Oubli de mot de passe. Cinq demandes par quart d'heure et par adresse.

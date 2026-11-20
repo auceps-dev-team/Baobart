@@ -220,7 +220,10 @@ export async function inscrire(
   _precedent: EtatFormulaire,
   donnees: FormData,
 ): Promise<EtatFormulaire> {
-  const borne = await verifierLimiteAction("inscription");
+  // L'enveloppe large, sur les ENVOIS. Le quota des comptes, lui, n'est
+  // consommé que plus bas, par un formulaire valide — voir `inscription`
+  // dans `lib/securite/limites.ts` (Q-01, 16/11/2026).
+  const borne = await verifierLimiteAction("inscription.envoi");
   if (!borne.autorise) return tropDEssais(borne.dansSecondes);
 
   // Avec plancher de temps : six champs ne se remplissent pas en deux
@@ -274,6 +277,15 @@ export async function inscrire(
     db.user.findUnique({ where: { email }, select: { id: true } }),
     db.profile.findUnique({ where: { username }, select: { id: true } }),
   ]);
+
+  // Le quota des COMPTES, consommé ici seulement : par le formulaire qui va
+  // créer un compte, et par celui qui apprend qu'une adresse existe déjà —
+  // sans quoi cinq par heure deviendraient trente pour qui sonde des
+  // adresses. Un nom d'utilisateur déjà pris ne coûte rien : il est public.
+  if (emailPris || !usernamePris) {
+    const comptes = await verifierLimiteAction("inscription");
+    if (!comptes.autorise) return tropDEssais(comptes.dansSecondes);
+  }
 
   if (emailPris) {
     // VULN-05 : Choix produit documenté et assumé — Le message explicite

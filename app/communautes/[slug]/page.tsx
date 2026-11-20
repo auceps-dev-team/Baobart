@@ -189,7 +189,21 @@ export default async function CommunautePage({
                         Collection
                       </div>
                       <div style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>
-                        {c.titre}
+                        {/*
+                          Le titre ouvre la collection (recette du 14/11/2026,
+                          Q-06 : le bloc n'avait aucun lien, et un membre ne
+                          pouvait pas voir ce qu'on partageait avec lui). La
+                          page relit le droit de voir côté serveur
+                          (`collectionAVoir`) ; elle demande un compte, d'où
+                          le texte seul pour un visiteur sans session.
+                        */}
+                        {visiteur ? (
+                          <Link href={`/dashboard/collections/${c.id}` as Route} style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>
+                            {c.titre}
+                          </Link>
+                        ) : (
+                          c.titre
+                        )}
                       </div>
                       <div style={{ fontSize: 12.5, opacity: 0.65, marginTop: 4 }}>
                         {ctx.communaute.membres} membre
