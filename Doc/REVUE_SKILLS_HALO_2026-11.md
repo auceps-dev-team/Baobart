@@ -278,10 +278,16 @@ débordent** avec le pire cas, contre 9 avec la démonstration ;
 - **« Mes achats »** tient : les lignes s'empilent.
 - **Les fiches** au titre court, emoji, arabe et échappé ne débordent pas.
 
-**Non vu.** Le créateur au nom court (« Jo ») a répondu 404 : un compte sans
-ressource n'a pas de vitrine, et c'est voulu (`app/createurs/[username]/page.tsx`,
-l. 100). Le jeu devrait lui donner une ressource. Le nom court a été vu sur la
-fiche « Zen », qui tient.
+**Non vu.**
+- Le créateur au nom court (« Jo ») a répondu 404 : un compte sans ressource
+  n'a pas de vitrine, et c'est voulu (`app/createurs/[username]/page.tsx`,
+  l. 100). Le jeu devrait lui donner une ressource. Le nom court a été vu sur
+  la fiche « Zen », qui tient.
+- Le skill demande aussi le **zoom à 200 %**, le **mode sombre** et le
+  **sens droite-à-gauche**. Le premier n'a pas été essayé. Les deux autres ne
+  s'appliquent pas : Baobart n'a ni mode sombre ni interface en arabe.
+- Les **listes à 1 000 lignes** : toutes les listes du tableau de bord sont
+  paginées par #60, et leur rendu à 30 éléments a été mesuré là.
 
 ### `emil-design-eng` et `apple-design` — finition et repères
 
