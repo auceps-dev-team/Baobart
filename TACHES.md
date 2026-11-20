@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
+| **D2a — le mobile utilisable** (Q-03, Q-04) | Claude (session d'aucepsdev) | `claude/mobile-socle`, posée sur #66 | Commencée le 20/11 : les sous-menus au toucher (Q-03), le contenu sous le menu (Q-04 : tableau de bord à 942 px, achat à 1 737 px), les 7 débordements du tableau de bord à 320 px, la grille du héros. | Q-03 et Q-04 de `e2e/qa-personas.spec.ts` passent de « défaut ouvert » à « correction gardée » ; 0 débordement à 320 px ; CI verte. Pas de vrai téléphone : dit comme tel. |
 
 ---
 
@@ -51,7 +52,7 @@ juste après le lot 4).
 
 | # | Tâche | Contenu | Notes |
 | :-: | --- | --- | --- |
-| 1 | **Design — D2 mobile** | Les 10 écrans de `Baobart Mobile.dc.html`. | Cibles ≥ 44 px, champs ≥ 16 px, essai à 360 px. |
+| 1 | **Design — D2b mobile, les écrans dessinés** | Les écrans de `Baobart Mobile.dc.html` que l'application n'a pas : accueil en deux colonnes avec barre d'onglets, catalogue, fiche avec barre d'achat fixe, tableau de bord créateur, « Mes produits » en cartes, statistiques, profil et badges, connexion (D1b, « Mobile »). | Coupé du D2 le 20/11. Après D2a. 🧭 Le panier (écran 08) attend le responsable. |
 | 2 | **Design — D3/D4 Dashboard** | Aligner les ~20 écrans nouvellement dessinés (blog, événements, infolettre, publicités, remboursements, liste noire, témoignages, candidatures, dossiers, promos, réglages…). | La plupart des fonctionnalités existent : on aligne, on ne construit pas. |
 | 3 | **Lot 5 — Abonnés du créateur** (A5) | La liste de ceux qui suivent, et le fil « Suivre les détails ». | Le compteur est juste depuis v1.105.1. |
 | 4 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
