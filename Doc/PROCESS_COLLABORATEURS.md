@@ -20,6 +20,9 @@
 2. Lire `TACHES.md` : ce qui est fait, ce qui est en cours et par qui, ce qui
    reste. **On prend une ligne « À faire » libre, jamais une ligne déjà prise.**
 3. Lire le `CLAUDE.md` du dépôt, ses quatre premières sections au moins.
+   Une session Claude Code lit aussi **l'issue épinglée #61**, où les sessions
+   du responsable et du collaborateur se coordonnent (`gh issue view 61
+   --comments`), et y annonce ce qu'elle prend.
 4. Créer sa branche `prenom/sujet` depuis `origin/main` à jour, ouvrir tout de
    suite une PR en brouillon qui passe la ligne « En cours » à son nom.
 5. Écrire la fiche (ci-dessous) dans la description de la PR, **avant** le
