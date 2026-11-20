@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { normaliserUsername, valider, type Saisie } from "@/lib/profil/validation";
+import { normaliserUsername, refusInscription, valider, type Saisie } from "@/lib/profil/validation";
 import { RESEAUX, type Reseau } from "@/lib/reseaux/reseaux";
 
 function saisie(
@@ -63,6 +63,38 @@ describe("le nom d'utilisateur", () => {
     expect(v.ok).toBe(false);
     if (v.ok) return;
     expect(v.refus.champ).toBe("username");
+  });
+});
+
+describe("ce que l'inscription accepte, le profil l'accepte aussi (revue du 20/11)", () => {
+  // Un prénom et un nom réels, mis bout à bout jusqu'à la limite.
+  const prenom = "Marie-Françoise Aïssatou";
+  const nom80 = "Ndiaye-Kouyaté épouse Diallo, Studio Graphique Dakar-Plateau".slice(0, 80 - prenom.length - 1);
+
+  it("laisse passer 80 caractères, et le profil les garde", () => {
+    expect(`${prenom} ${nom80}`).toHaveLength(80);
+    expect(refusInscription(prenom, nom80, "awa-diallo")).toBeNull();
+    expect(valider(saisie({ nomAffiche: `${prenom} ${nom80}` })).ok).toBe(true);
+  });
+
+  it("refuse 81 caractères dès l'inscription, sur le champ du nom", () => {
+    expect(refusInscription(prenom, `${nom80}x`, "awa-diallo")).toEqual(expect.objectContaining({ champ: "nom" }));
+    // C'est ce que le profil aurait refusé plus tard, à quelqu'un qui n'y avait pas touché.
+    expect(valider(saisie({ nomAffiche: `${prenom} ${nom80}x` })).ok).toBe(false);
+  });
+
+  it("compte le nom comme le profil : espaces répétés ramenés à un", () => {
+    expect(refusInscription(`  ${prenom}  `, `  ${nom80}`, "awa-diallo")).toBeNull();
+  });
+
+  it("borne l'identifiant à 40, après normalisation, comme le profil", () => {
+    const quarante = "studiographiqueindependantdakarplateau01";
+    expect(quarante).toHaveLength(40);
+    expect(refusInscription("Awa", "Diallo", quarante)).toBeNull();
+    expect(refusInscription("Awa", "Diallo", `${quarante}2`)).toEqual(expect.objectContaining({ champ: "username" }));
+    expect(valider(saisie({ username: `${quarante}2` })).ok).toBe(false);
+    // Les accents et les espaces se normalisent avant de compter.
+    expect(refusInscription("Awa", "Diallo", "Studio Graphique Indépendant Dakar")).toBeNull();
   });
 });
 

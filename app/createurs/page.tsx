@@ -263,6 +263,12 @@ export default async function CreateursPage({
                               display: "grid",
                               placeItems: "center",
                               padding: 6,
+                              // Le titre reste dans sa vignette : il débordait de
+                              // la carte, jusqu'à 472 px à 320 de large (20/11,
+                              // `break-ui`). Il se lit en entier au survol (`title`)
+                              // et au lecteur d'écran (`aria-label`).
+                              overflow: "hidden",
+                              overflowWrap: "anywhere",
                               fontFamily: "var(--font-mono)",
                               fontSize: 10.5,
                               textAlign: "center",

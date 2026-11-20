@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -75,7 +76,7 @@ export default async function NouvelEvenementPage() {
             fontWeight: 800,
           }}
         >
-          !
+          <Icone nom="alert" taille={16} />
         </div>
         <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, textWrap: "pretty" }}>
           Les heures se saisissent à l&apos;heure d&apos;Abidjan (GMT). C&apos;est
