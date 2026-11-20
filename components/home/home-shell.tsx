@@ -39,7 +39,11 @@ export function HomeShell({
         // conteneur de défilement — qui ne défile pas. Les animations au
         // défilement (`view()`) s'y accrochaient et restaient inertes.
         overflowX: "clip",
-        transition: "padding-left .18s ease",
+        // « Baobart Accueil.dc.html », l. 46 : 180 ms, `--ease-sortie` (c'était
+        // `ease`). Que la page entière suive le rail est dessiné ainsi ; le skill
+        // `animation-performance` le déconseille — décision ouverte, voir
+        // Doc/REVUE_SKILLS_HALO_2026-11.md.
+        transition: "padding-left 180ms var(--ease-sortie)",
         paddingLeft: railOuvert ? 268 : 112,
       }}
     >
