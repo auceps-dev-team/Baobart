@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
+| **Revue de chaque vue avec les skills Halo** (demande d'aucepsdev du 14/11) | Claude (session d'aucepsdev) | `claude/revue-skills` | Commencée le 20/11 : les 12 skills lus ; 9 s'appliquent (3 vue par vue, 6 au code entier), 3 ne sont pas des outils de revue. | axe sur chaque vue, et les règles mesurables des skills dans un test au navigateur vert en CI ; l'inventaire relu par le responsable. |
 
 ---
 
