@@ -44,7 +44,7 @@ export function RepliMobile({ children }: { children: ReactNode }) {
         onClick={() => setOuvert((o) => !o)}
       >
         <span>Menu de l&apos;espace</span>
-        <span aria-hidden="true">{ouvert ? "▲" : "▼"}</span>
+        <span aria-hidden="true">{ouvert ? "▾" : "▸"}</span>
       </button>
       <div id="menu-espace" className="repli-mobile-corps">
         {children}
