@@ -1,8 +1,7 @@
-import { createHash, randomBytes } from "node:crypto";
-
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 import { db, ressourceVendable, unique } from "./fixtures/donnees";
+import { fermerLeBandeau, seConnecter } from "./fixtures/session";
 
 /**
  * Ranger une ressource dans une collection, depuis sa fiche.
@@ -15,22 +14,6 @@ import { db, ressourceVendable, unique } from "./fixtures/donnees";
  * le restait jusqu'au rechargement. Le clic sur le fond, lui, était juste :
  * c'est le témoin ci-dessous.
  */
-
-// Les mêmes que dans `qa-personas.spec.ts` : une session posée en base, sans
-// passer par l'écran de connexion — ce n'est pas lui qu'on teste ici.
-async function seConnecter(context: BrowserContext, userId: string, baseURL: string) {
-  await context.clearCookies();
-  const jeton = randomBytes(32).toString("base64url");
-  await db.session.create({
-    data: { userId, token: createHash("sha256").update(jeton).digest("hex"), expiresAt: new Date(Date.now() + 3_600_000) },
-  });
-  await context.addCookies([{ name: "baobart_session", value: jeton, url: baseURL }]);
-}
-
-async function fermerLeBandeau(page: Page) {
-  const refuser = page.getByRole("dialog", { name: /cookie/i }).getByRole("button", { name: "Refuser" });
-  if (await refuser.count()) await refuser.click();
-}
 
 /** Un membre, une collection vide à lui, une ressource publiée ; la fiche ouverte, la fenêtre d'épingle aussi. */
 async function ouvrirLeChoix(page: Page, context: BrowserContext, baseURL: string, prefixe: string) {

@@ -40,7 +40,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
-| **Lot 7 — Certificat de licence** (A7) | Argon (Gemini) | `gemini/certificat-licence` (non poussée, non commitée) | Dans la copie principale. Pas encore relu. | Comme le lot 3. |
+| Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
 
 ---
 
@@ -102,6 +102,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.111.0 | (à venir) | **Lot 7 — Certificat de licence** (A7), écrit par Argon, relu et reporté sur `main` : « Licence » dans la bibliothèque ouvre `/dashboard/bibliotheque/certificat/<ligne>`, imprimable (le menu disparaît à l’impression), RÉVOQUÉ avec son motif après un remboursement intégral, une contestation ou un retrait d’accès. Refusé (404) à tout autre compte, prouvé par mutation. Sans QR ni empreinte : écart assumé avec `SPEC_LICENCES` §3. |
 | v1.108.7 | #65 | `eslint-config-next` 16 sans `FlatCompat` (remplace #47) : la configuration « flat » étalée telle quelle, six paquets devenus inutiles retirés, 86 règles actives au lieu de 71, aucune perdue (mesuré, sentinelles attrapées). Un vrai défaut trouvé par `react-hooks/immutability` : Échap dans la fenêtre d'épingle annonçait « rangée nulle part » et le bouton repassait à « Collection » (`e2e/collections.spec.ts`, rouge avant). Garde `no-restricted-imports` sur `useEffectEvent`, absent du React de Next 15.5. |
 | v1.108.6 | #63 | Trois défauts de la recette par personas corrigés, chacun gardé par son test de `e2e/qa-personas.spec.ts` sans enveloppe : l'inscription compte cinq **comptes** par heure, plus une enveloppe de trente envois, et une faute de frappe ne ferme plus la porte (Q-01) ; la fiche d'une ressource retirée se rouvre à celui qui l'a obtenue, et à lui seul (Q-37, `lib/products/fiche-retiree.integration.test.ts`) ; la collection partagée s'ouvre depuis sa communauté (Q-06). Restent Q-03 et Q-04 (avec D2), Q-39 et Q-41 (décisions), Q-44. Plus quatre avis publiés le 20/11, qui bloquaient toutes les PR : `next` 15.5.29, et `effect` forcé à 3.22.4 dans `pnpm.overrides` (Prisma 6 le fige à 3.21.0), **à retirer au passage à Prisma 7**. |
 | v1.108.3 | #59 | Sept défauts de la recette par personas corrigés, chacun gardé par son test de `e2e/qa-personas.spec.ts` : la saisie n'est plus perdue après un refus (Q-02, Q-05, Q-38), le refus du profil vient sous les yeux (Q-07), « Rembourser » se confirme (Q-08, Q-40), « Payer » annonce le bon montant (Q-09), un code promo refusé ne part plus (Q-10). Restent Q-01, Q-03, Q-04, Q-06, Q-37. |

@@ -7,6 +7,7 @@ import { encaisseDe } from "@/lib/domain/encaisse";
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
 import type { Currency } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE, type Filtre } from "@/lib/feed/types";
+import { LICENCE_PAR_DEFAUT } from "@/lib/licences/conditions";
 import { hoteDuLien } from "@/lib/products/lien-externe";
 import { formatDe } from "@/lib/upload/formats";
 import { libelleDelai } from "@/lib/remboursements/regles";
@@ -23,9 +24,6 @@ import { libelleDelai } from "@/lib/remboursements/regles";
 // l'action refuse promet un écran qui n'ouvre sur rien.
 
 type RessourceLiee = { slug: string; name: string; coverUrl: string | null };
-
-/** Le titre du type COMMERCIAL (`prisma/seed.ts`), pour une ressource sans licence choisie. */
-const LICENCE_PAR_DEFAUT = "Licence commerciale";
 
 /** Tout ce qu'affiche la fiche d'une ressource. */
 export interface FicheProduit {

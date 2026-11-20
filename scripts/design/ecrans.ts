@@ -314,6 +314,11 @@ export const ECRANS: EcranMaquette[] = [
 export const ROUTES_SANS_MAQUETTE: { route: string; compte?: Compte; note?: string }[] = [
   { route: "/blog/{blog}", note: "Un article ; la maquette ne dessine que la liste (« Blogs »)" },
   { route: "/communautes" },
+  {
+    route: "/dashboard/bibliotheque/certificat/{ligneAchetee}",
+    compte: "client",
+    note: "Le certificat de licence (lot 7) : aucun écran dessiné ; le Design System réserve l'écusson aux certificats",
+  },
   { route: "/communautes/{communaute}" },
   { route: "/communautes/nouvelle", compte: "createur" },
   { route: "/conditions" },

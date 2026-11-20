@@ -2,6 +2,7 @@ import { DocListe, DocSection, DocTexte, PageDocument } from "@/components/doc/p
 import { sessionCourante } from "@/lib/auth/session";
 import { urlDuSite } from "@/lib/config/site";
 import { db } from "@/lib/db";
+import { conditionsDeLicence } from "@/lib/licences/conditions";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
 
 export const metadata = {
@@ -10,16 +11,6 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-/** Les conditions rangées avec chaque type (`LicenseType.conditions`), dites en clair. */
-const CONDITIONS: Record<string, string> = {
-  commercial: "projets commerciaux et travaux pour un client",
-  print: "impression",
-  edition: "édition (livres, magazines, affiches grand format)",
-  broadcast: "diffusion (télévision, cinéma, plateformes vidéo)",
-  merchandising: "produits dérivés (textile, objets)",
-  resale: "revente du fichier tel quel",
-};
 
 /**
  * Les licences.
@@ -61,9 +52,7 @@ export default async function LicencesPage() {
         </DocTexte>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(260px,100%),1fr))", gap: 12, marginTop: 12 }}>
           {types.map((t) => {
-            const c = (t.conditions ?? {}) as Record<string, boolean>;
-            const permis = Object.entries(CONDITIONS).filter(([k]) => c[k] === true).map(([, v]) => v);
-            const interdits = Object.entries(CONDITIONS).filter(([k]) => c[k] === false).map(([, v]) => v);
+            const { permises: permis, interdites: interdits } = conditionsDeLicence(t.conditions);
             return (
               <div key={t.code} data-licence-type={t.code} style={{ border: CADRE, borderRadius: 18, background: t.code === "COMMERCIAL" ? LAVANDE : BLANC, padding: 16 }}>
                 <div style={{ fontSize: 16, fontWeight: 800 }}>{t.title}</div>

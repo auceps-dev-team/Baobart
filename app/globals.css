@@ -1123,3 +1123,36 @@ button:active > .reseau-pastille {
   transform: translate(-2px, -2px);
   box-shadow: 5px 5px 0 var(--color-encre);
 }
+
+/* ============================================================================
+   CERTIFICAT DE LICENCE — IMPRESSION (@media print)
+   ============================================================================ */
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  [data-sidebar] {
+    display: none !important;
+  }
+  [data-shell] {
+    display: block !important;
+    background: #ffffff !important;
+    min-height: 0 !important;
+  }
+  [data-shell] > main > header {
+    display: none !important;
+  }
+  [data-shell] > main > div {
+    padding: 0 !important;
+  }
+  [data-print-hide],
+  [role="dialog"][aria-labelledby="cookies-titre"] {
+    display: none !important;
+  }
+  [data-certificat] {
+    box-shadow: none !important;
+    max-width: none !important;
+    break-inside: avoid;
+  }
+}
