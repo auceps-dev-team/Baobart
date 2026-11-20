@@ -76,13 +76,16 @@ function useBascule(
  */
 function Nombre({ total, abouge }: { total: number; abouge: boolean }) {
   if (total <= 0) return null;
+  // Un seul élément, jamais un morceau de texte nu : la traduction du
+  // navigateur remplace les nœuds de texte, et React plantait en retirant
+  // le « · » qu'il croyait tenir (Q-44, recette du 14/11/2026).
   return (
-    <>
+    <span>
       {" · "}
       <span key={total} className={abouge ? "rebond" : undefined}>
         {total}
       </span>
-    </>
+    </span>
   );
 }
 
@@ -135,7 +138,9 @@ export function BoutonJaime({
           </span>
           {actif ? <Eclats salve={salve} /> : null}
         </span>{" "}
-        {actif ? "Aimé" : "J'aime"}
+        {/* Une clé par état : React remplace l'élément au lieu de réécrire un
+            texte que la traduction du navigateur a déjà remplacé (Q-44). */}
+        <span key={actif ? "aime" : "neutre"}>{actif ? "Aimé" : "J'aime"}</span>
         <Nombre total={total} abouge={abouge} />
       </button>
 
@@ -204,7 +209,9 @@ export function BoutonSuivre({
             `text/swap-text`, voir components/labo/explorations/panier.tsx).
             Les deux lignes visuelles sont cachées aux lecteurs d'écran : ils
             n'entendent que l'état vrai, une fois. */}
-        <span className="sr-only">{actif ? "Abonné" : "Suivre"}</span>
+        <span key={actif ? "abonne" : "suivre"} className="sr-only">
+          {actif ? "Abonné" : "Suivre"}
+        </span>
         <span aria-hidden className="bascule" data-actif={actif || undefined}>
           <span>Suivre</span>
           <span>Abonné</span>

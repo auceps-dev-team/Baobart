@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo_Black, Poppins, Space_Mono } from "next/font/google";
 
 import { BanniereCookies } from "@/components/consentement/banniere-cookies";
+import { GardeTraduction } from "@/components/systeme/garde-traduction";
 import { urlDuSite } from "@/lib/config/site";
 
 import "./globals.css";
@@ -138,6 +139,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>
+        {/* Le filet sous la traduction du navigateur (Q-44), posé avant le reste. */}
+        <GardeTraduction />
         {children}
         {modal}
         {/* Partout, administration comprise : un cookie se refuse où qu'on soit. */}
