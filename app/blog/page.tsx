@@ -10,6 +10,7 @@ import {
   listerPublics,
 } from "@/lib/blog/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE } from "@/lib/systeme/charte";
+import { blogVide } from "@/lib/blog/liste";
 
 export const metadata = {
   title: "Le blog — Baobart.",
@@ -169,7 +170,10 @@ export default async function BlogPage({
           ) : null}
 
           {/* ── La suite ────────────────────────────────────────────────── */}
-          {suite.length === 0 ? (
+          {/* Q-33 (recette du 14/11/2026) : avec un seul article, la suite est vide
+              et la carte disait « Rien pour l'instant » sous l'article à la une, comme
+              si le blog l'était. Vide seulement s'il n'y a VRAIMENT rien à lire. */}
+          {blogVide({ suite: suite.length, rubrique: Boolean(rubrique), une: Boolean(une) }) ? (
             <div
               style={{
                 marginTop: 28,

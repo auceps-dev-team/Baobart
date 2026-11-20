@@ -7,6 +7,7 @@ import { APLATS, Icone } from "@/components/icones/icone";
 import { MiniEcusson } from "@/components/badges/formes";
 
 import type { CarteRessource } from "@/lib/feed/types";
+import { accorde } from "@/lib/i18n/accord";
 import { formatCount } from "@/lib/i18n/money";
 import { vignetteDe } from "@/lib/upload/vignette";
 
@@ -467,7 +468,7 @@ export function CarteMosaique(props: CarteProps) {
                 marginTop: 2,
               }}
             >
-              {formatCount(r.downloadsCount)} dl · {formatCount(r.salesCount)} ventes
+              {formatCount(r.downloadsCount)} dl · {formatCount(r.salesCount)} {accorde(r.salesCount, "vente")}
             </div>
           </div>
           <div
@@ -595,8 +596,8 @@ export function CarteAlaUne(props: CarteProps) {
                 marginTop: 4,
               }}
             >
-              {formatCount(r.downloadsCount)} téléchargements ·{" "}
-              {formatCount(r.salesCount)} ventes
+              {formatCount(r.downloadsCount)} {accorde(r.downloadsCount, "téléchargement")} ·{" "}
+              {formatCount(r.salesCount)} {accorde(r.salesCount, "vente")}
             </div>
           </div>
           <div

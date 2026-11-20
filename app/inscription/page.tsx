@@ -32,7 +32,7 @@ export default async function InscriptionPage({
         texte:
           "Un compte gratuit suffit pour télécharger, enregistrer et collaborer. Passe créateur quand tu veux, sans exclusivité.",
         points: [
-          "Des téléchargements gratuits chaque mois",
+          "Toutes les ressources offertes, sans limite",
           `${partCreateur} du prix reversé aux créateurs`,
           "Paiement Mobile Money et carte bancaire",
         ],

@@ -98,8 +98,8 @@ function liensCompte(username: string | null): LienCompte[] {
       label: username ? "Mon profil public" : "Compléter mon profil",
       href: username ? `/createurs/${username}` : "/dashboard/profil",
     },
-    { label: "Règles de publication", href: null },
-    { label: "Support", href: null },
+    { label: "Règles de publication", href: "/regles-de-publication" },
+    { label: "Support", href: "/support" },
   ];
 }
 

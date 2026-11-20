@@ -452,7 +452,7 @@ export function AuthForm({
                 opacity: 0.6,
               }}
             >
-              ou continuer avec
+              {fournisseurs.some((f) => f.actif) ? "ou continuer avec" : "bientôt, avec"}
             </span>
             <span style={{ flex: "1 1 auto", height: 2.5, background: ENCRE }} />
           </div>

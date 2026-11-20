@@ -106,9 +106,9 @@ export default async function AProposPage() {
               Fixe ton prix, offre une ressource, ou laisse l&apos;acheteur choisir au-dessus d&apos;un minimum. Choisis ta
               licence. Aucune exclusivité : ce que tu vends ici, tu peux le vendre ailleurs.
             </Bloc>
-            <Bloc fond={MAUVE} titre="Vends à tout le monde">
+            <Bloc fond={MAUVE} titre="Vends en Afrique de l'Ouest">
               Tes acheteurs paient en francs CFA, par carte ou mobile money, sur la page sécurisée de l&apos;opérateur. Toi,
-              tu reçois chaque semaine par {moyens.slice(0, -1).join(", ")} ou {moyens.at(-1)}.
+              tu reçois chaque mois — ou chaque semaine, à ton choix — par {moyens.slice(0, -1).join(", ")} ou {moyens.at(-1)}.
             </Bloc>
             <Bloc fond={BLANC} titre="Vends partout">
               Chaque ressource a sa page, et ton profil la sienne. Leur lien se partage où sont tes clients : WhatsApp,

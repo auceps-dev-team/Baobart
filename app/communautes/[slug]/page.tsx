@@ -139,7 +139,7 @@ export default async function CommunautePage({
                 </Etiquette>
                 {ctx.communaute.monRole && ctx.communaute.monRole !== "MEMBER" ? (
                   <Etiquette fond={VERT}>
-                    {ctx.communaute.monRole === "ADMIN" ? "Administratrice" : "Modération"}
+                    {ctx.communaute.monRole === "ADMIN" ? "Administration" : "Modération"}
                   </Etiquette>
                 ) : null}
               </div>

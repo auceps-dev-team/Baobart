@@ -61,7 +61,8 @@ const FOND_ETAPE: Record<CleEtapeVendeur, string> = {
  *    du créateur (`partDuCreateur()`).
  *
  * 4. **Calendrier de versement** : la maquette indique « 7 jours après la fin
- *    du mois » (`Baobart Dashboard.dc.html:1555`). Le code verse chaque semaine
+ *    du mois » (`Baobart Dashboard.dc.html:1555`). Le code verse chaque mois par
+ *    défaut (`CADENCE_PAR_DEFAUT`, `lib/payments/cadences.ts`), chaque semaine au choix,
  *    au jour propre à chaque rail (`RAILS_BAOBART`, `lib/payments/payout-schedule.ts:66`),
  *    après `CONFIG_PAR_DEFAUT.delayDays` jours de rétention.
  */
@@ -317,8 +318,8 @@ export default async function DevenirVendeurPage() {
           />
           <MetricCard
             label="Cycles de versement"
-            value="Hebdomadaire"
-            hint={`${joursParRail.join(" · ")} · rétention ${CONFIG_PAR_DEFAUT.delayDays} j`}
+            value="Mensuel"
+            hint={`ou hebdomadaire, à ton choix · ${joursParRail.join(" · ")} · rétention ${CONFIG_PAR_DEFAUT.delayDays} j`}
           />
         </div>
       </div>

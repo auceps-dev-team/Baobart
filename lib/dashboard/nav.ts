@@ -147,7 +147,7 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
   { cle: "c_commissions", label: "Commissions", icone: "pie", href: "/dashboard/commissions" },
   { cle: "c_stats", label: "Statistiques", icone: "bars", href: "/dashboard/statistiques" },
   { cle: "c_profil", label: "Profil de la boutique", icone: "user", href: "/dashboard/boutique" },
-  { cle: "c_avis", label: "Créateur feedback", icone: "star", href: "/dashboard/avis" },
+  { cle: "c_avis", label: "Avis & commentaires", icone: "star", href: "/dashboard/avis" },
 ];
 
 /** La porte unique offerte à un acheteur qui n'a encore rien créé. */

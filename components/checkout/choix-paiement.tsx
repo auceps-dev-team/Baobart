@@ -15,6 +15,7 @@ import {
   railsDe,
 } from "@/lib/payments/rails";
 import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { nomAfficheDuPilote } from "@/lib/payments/encaissement/noms";
 
 /** La lavande claire de la charte, pour les fonds secondaires. */
 const LAVANDE_CLAIR = "#F4EEFC";
@@ -649,8 +650,11 @@ export function ChoixPaiement({
           textWrap: "pretty",
         }}
       >
-        Tu seras redirigé vers {disponibles.find((r) => r.code === choisi)?.label}.
-        Rien n&apos;est débité avant ta confirmation chez eux.
+        {/* « Tu seras redirigé vers Carte bancaire » (Q-35) : la carte est le moyen,
+            pas la destination — c'est l'opérateur qui reçoit. */}
+        {nomAfficheDuPilote(operateur)
+          ? `Tu seras redirigé vers ${nomAfficheDuPilote(operateur)} pour payer par ${disponibles.find((r) => r.code === choisi)?.label ?? "le moyen choisi"}. Rien n'est débité avant ta confirmation chez eux.`
+          : `Paiement simulé (${disponibles.find((r) => r.code === choisi)?.label ?? "moyen choisi"}) : environnement de test, rien n'est débité.`}
       </div>
     </form>
   );

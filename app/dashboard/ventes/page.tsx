@@ -13,6 +13,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { connexionPuis } from "@/lib/auth/suite";
 import { lireVentesCreateur } from "@/lib/dashboard/lectures";
 import { encaisseDe } from "@/lib/domain/encaisse";
+import { accorde } from "@/lib/i18n/accord";
 import { formatMoney } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE, JAUNE, TON_ETAT } from "@/lib/systeme/charte";
 import { agirSurLaVente } from "@/lib/ventes/actions";
@@ -126,6 +127,7 @@ export default async function VentesPage({
 
   const legende: LegendeOps[] = ORDRE_VENTE.map((e) => ({
     code: e,
+    libelle: ETATS_VENTE[e].libelle,
     fond: TON_ETAT[ETATS_VENTE[e].ton]!.fond,
     encre: TON_ETAT[ETATS_VENTE[e].ton]!.encre,
     nombre: actionsDe(e, 1).length,
@@ -141,7 +143,7 @@ export default async function VentesPage({
     },
     ...ORDRE_VENTE.map((e) => ({
       code: e,
-      libelle: e,
+      libelle: ETATS_VENTE[e].libelle,
       actif: filtre === e,
       href: `/dashboard/ventes?etat=${e}`,
     })),
@@ -156,7 +158,7 @@ export default async function VentesPage({
       formatMoney(brutMontant, v.product.currency),
       formatMoney(restant, v.product.currency),
     ],
-    etat,
+    etat: ETATS_VENTE[etat].libelle,
     etatFond: TON_ETAT[ETATS_VENTE[etat].ton]!.fond,
     etatEncre: TON_ETAT[ETATS_VENTE[etat].ton]!.encre,
     sens: ETATS_VENTE[etat].sens,
@@ -208,7 +210,7 @@ export default async function VentesPage({
             "Reste remboursable",
           ]}
           lignes={lignes}
-          pied={`${filtrees.length} ventes sur ${toutes.length} · un remboursement te débite la totalité payée, pas seulement ta part`}
+          pied={`${filtrees.length} ${accorde(filtrees.length, "vente")} sur ${toutes.length} · un remboursement te débite la totalité payée, pas seulement ta part`}
           peutAgir
           executer={agirSurLaVente}
         />

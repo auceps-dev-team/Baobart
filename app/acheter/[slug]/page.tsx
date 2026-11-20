@@ -9,6 +9,7 @@ import { minimumLibre, montantsSuggeres } from "@/lib/commerce/montant";
 import { sessionCourante } from "@/lib/auth/session";
 import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
+import { nomAfficheDuPilote } from "@/lib/payments/encaissement/noms";
 import { formatMoney } from "@/lib/i18n/money";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import { droitDeTelecharger } from "@/lib/products/queries";
@@ -234,8 +235,16 @@ export default async function ChoisirLePaiementPage({
               textWrap: "pretty",
             }}
           >
-            Paiement traité par{" "}
-            <span style={{ color: ORANGE, fontWeight: 800 }}>{operateur}</span>.
+            {/* « Paiement traité par aucun. » sous la simulation (Q-35) : le code
+                interne du pilote. Sans opérateur, on dit que c'est un essai. */}
+            {nomAfficheDuPilote(operateur) ? (
+              <>
+                Paiement traité par{" "}
+                <span style={{ color: ORANGE, fontWeight: 800 }}>{nomAfficheDuPilote(operateur)}</span>.
+              </>
+            ) : (
+              <>Paiement simulé : environnement de test, rien n&apos;est débité.</>
+            )}
           </div>
         </div>
       </div>
