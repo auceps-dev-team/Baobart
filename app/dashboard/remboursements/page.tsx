@@ -79,7 +79,8 @@ export default async function RemboursementsPage() {
           {achats.map((a) => (
             <div key={a.orderItemId} data-achat={a.orderItemId} style={{ border: CADRE, borderRadius: 20, background: BLANC, boxShadow: `4px 4px 0 ${ENCRE}`, padding: 16, color: ENCRE }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "baseline" }}>
-                <Link href={`/products/${a.slug}` as Route} style={{ fontSize: 15, fontWeight: 800, color: ENCRE }}>
+                {/* `anywhere` : un nom de fichier sans espace débordait de 262 px à 320 (20/11, `break-ui`). */}
+                <Link href={`/products/${a.slug}` as Route} style={{ fontSize: 15, fontWeight: 800, color: ENCRE, minWidth: 0, overflowWrap: "anywhere" }}>
                   {a.ressource}
                 </Link>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, opacity: 0.65 }}>{a.montant}</span>

@@ -155,9 +155,12 @@ export function DashboardPanel({
         padding: 20,
       }}
     >
+      {/* `flexWrap` : à 320 px, l'action (« 6 derniers mois ») passe sous le
+          titre au lieu de déborder de 30 px (mesuré le 20/11, D2a). */}
       <div
         style={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 16,

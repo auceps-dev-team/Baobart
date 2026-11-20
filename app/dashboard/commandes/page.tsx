@@ -88,7 +88,7 @@ export default async function CommandesVendeurPage({ searchParams }: { searchPar
             texte={commandes.length === 0 ? "Tes futures ventes apparaîtront ici, regroupées par commande." : "Choisis un autre état pour retrouver tes commandes."}
           />
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
             {visibles.map((c) => (
               <div key={c.id} data-commande style={{ display: "flex", alignItems: "center", gap: 13, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                 <Vignette couverture={c.premiere.product.coverUrl} titre={c.premiere.product.name} />

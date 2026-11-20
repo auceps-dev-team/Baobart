@@ -106,6 +106,40 @@
     font-size: 15px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    /* Chiffres de même largeur : un prix ou un compteur qui change ne fait
+       plus bouger ce qui le suit. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+    La base que portent les dix maquettes de la livraison Halo, lignes 17 à 19
+    de chacune (relue le 20/11/2026) — reprise ici à l'identique. Elle
+    manquait, sauf la surbrillance, posée seulement sur `pression`.
+
+    - Pas de voile gris au toucher sur un lien : chaque élément pressable a
+      déjà sa réponse (`pression`), le voile la recouvrait.
+    - Pas de grossissement automatique du texte quand le téléphone pivote.
+    - Sous un pointeur grossier (un doigt), un champ fait au moins 16 px :
+      en dessous, iOS zoome sur le champ et ne dézoome pas en sortant. C'est
+      la bonne réponse au zoom — pas `maximum-scale`, que `layout.tsx`
+      refuse à raison. `!important` : il l'emporte aussi sur les tailles
+      écrites en style en ligne dans les composants.
+
+    Skill Halo `mobile-native`, §2 et §4. La surbrillance et le pivotement ne
+    se voient que sur un vrai téléphone : Chromium sans écran les déclare déjà
+    « transparent » et « 100 % » (mesuré le 20/11, scripts/design/revue-skills.ts).
+  */
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   a {
@@ -198,9 +232,15 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 
-  &:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--ombre-survol, var(--shadow-sticker-hover));
+  /* Le soulèvement ne vaut que pour une souris : un téléphone simule le
+     survol au toucher et le laisse en place jusqu'au toucher suivant — le
+     bouton touché restait soulevé (skill Halo `mobile-native` §1, revue du
+     20/11). Rien ne change à la souris. Gardé par lib/systeme/mouvement.test.ts. */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--ombre-survol, var(--shadow-sticker-hover));
+    }
   }
 
   &:active {
@@ -256,7 +296,12 @@
   }
 }
 
-/* Flottement léger des cartes de hero — repris de la maquette. */
+/* Flottement léger des cartes de hero — repris de la maquette. Posé par la
+   classe `flotte` (et non plus en style en ligne) : la liste du mouvement
+   réduit, plus bas, doit pouvoir l'arrêter. */
+.flotte {
+  animation: floaty 7s ease-in-out infinite;
+}
 @keyframes floaty {
   0%,
   100% {
@@ -301,6 +346,189 @@
   [data-shell] [style*="grid-template-columns"] {
     grid-template-columns: minmax(0, 1fr) !important;
   }
+  /* Même raison qu'à 900 px, plus bas : un `span` dans une grille ramenée à une colonne. */
+  [data-shell] [style*="grid-template-columns"] > [style*="span"] {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/*
+ * L'en-tête du téléphone (D2b) — voir components/shell/header.tsx. Valeurs de
+ * `Baobart Mobile.dc.html`, écran 03, l. 83-88 : une ligne pour le logo
+ * (pastille de 38 px, mot en 20 px) et la cloche (44 × 44, ombre de 3 px), une
+ * pour la recherche. Les menus et le compte, derrière « Menu », s'ouvrent en
+ * dessous. Au-dessus de 620 px, rien ne change : la cloche et « Menu » s'y cachent.
+ */
+.entete-cloche,
+.entete-bouton-menu,
+.entete-recherche-icone {
+  display: none;
+}
+@media (max-width: 620px) {
+  /* Pas de carte : la maquette pose le logo et la cloche sur le fond, à 18 × 20 px du bord. */
+  [data-entete] {
+    padding: 18px 20px 0 !important;
+  }
+  .entete-barre {
+    padding: 0 !important;
+    gap: 14px 10px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  /* La recherche de la maquette : blanche, bordée, ombrée, la loupe à gauche.
+     Le champ reste à 16 px au doigt (règle de base, plus haut) et non 14 comme
+     la maquette : en dessous, iOS zoome sur le champ. */
+  .entete-recherche-icone {
+    display: block;
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    line-height: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .entete-recherche > input {
+    padding: 13px 14px 13px 44px !important;
+    background: var(--color-blanc) !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 var(--color-encre) !important;
+  }
+  .entete-logo {
+    order: 1;
+    flex: 1 1 auto !important;
+  }
+  .entete-logo .logo-pastille {
+    width: 38px !important;
+    height: 38px !important;
+  }
+  .entete-logo .logo-mot {
+    font-size: 20px !important;
+    letter-spacing: -0.6px !important;
+  }
+  .entete-cloche,
+  .entete-bouton-menu {
+    order: 2;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2.5px solid var(--color-encre);
+    border-radius: 12px;
+    background: var(--color-blanc);
+    box-shadow: 3px 3px 0 var(--color-encre);
+    cursor: pointer;
+  }
+  .entete-bouton-menu {
+    order: 3;
+  }
+  .entete-recherche {
+    order: 4;
+    flex: 1 1 100% !important;
+    max-width: none !important;
+  }
+  .entete-menus {
+    order: 5;
+    flex: 1 1 100% !important;
+    justify-content: flex-start !important;
+  }
+  .entete-compte {
+    order: 6;
+  }
+  .entete-barre[data-menus="fermes"] > .entete-menus,
+  .entete-barre[data-menus="fermes"] > .entete-compte {
+    display: none !important;
+  }
+}
+
+/*
+ * La barre d'onglets du téléphone (D2b) — voir components/shell/barre-onglets.tsx,
+ * valeurs de `Baobart Mobile.dc.html`, l. 114. Sous 620 px seulement. La page
+ * garde en bas la place de la barre (76 px, plus l'encoche), sans quoi le
+ * dernier bloc passerait dessous.
+ */
+.barre-onglets {
+  display: none;
+}
+@media (max-width: 620px) {
+  .barre-onglets {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-nav);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 2.5px solid var(--color-encre);
+    background: var(--color-blanc);
+  }
+  .barre-onglets-onglet {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 56px;
+    color: var(--color-encre);
+  }
+  .barre-onglets-pastille {
+    width: 52px;
+    height: 32px;
+    border: 2px solid transparent;
+    border-radius: 99px;
+    display: grid;
+    place-items: center;
+  }
+  body:has(.barre-onglets) {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/*
+ * Le menu du tableau de bord, replié sous 980 px (D2a, Q-04) — voir
+ * components/dashboard/repli-mobile.tsx. Au-dessus, l'enveloppe est
+ * transparente (`display: contents`) : le menu et la carte du compte restent
+ * des enfants de la barre latérale, et la carte garde sa place en bas.
+ */
+.repli-mobile,
+.repli-mobile-corps {
+  display: contents;
+}
+.repli-mobile-bouton {
+  display: none;
+}
+@media (max-width: 980px) {
+  .repli-mobile {
+    display: block;
+  }
+  .repli-mobile-corps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .repli-mobile[data-repli="replie"] > .repli-mobile-corps {
+    display: none;
+  }
+  .repli-mobile-bouton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 2.5px solid var(--color-encre);
+    border-radius: 14px;
+    background: var(--color-blanc);
+    color: var(--color-encre);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
 }
 
 /*
@@ -312,6 +540,29 @@
 @media (max-width: 900px) {
   [style*="grid-template-columns"] {
     grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /*
+   * Un enfant qui demandait plusieurs colonnes (`span 2`) en réclame encore
+   * deux dans une grille ramenée à une : la grille en ajoute une, implicite,
+   * et les voisins s'y écrasent — la petite carte du héros faisait 42 px de
+   * large à 320 (mesuré le 20/11, revue Halo). Il prend toute la largeur.
+   */
+  [style*="grid-template-columns"] > [style*="span"] {
+    grid-column: 1 / -1 !important;
+  }
+  /*
+   * La fiche sous 900 px (D2a, Q-04) : le média, puis les informations et le
+   * prix, puis la discussion. Sans cela, « Télécharger » venait après le
+   * partage, les avis et les commentaires. Voir components/product/detail.tsx.
+   */
+  [data-fiche-gauche] {
+    display: contents !important;
+  }
+  [data-fiche-droite] {
+    order: 2;
+  }
+  [data-fiche-apres] {
+    order: 3;
   }
 }
 
@@ -461,28 +712,43 @@
 .logo-anime .logo-pastille {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.logo-anime:hover .logo-pastille,
+/* Le focus clavier n'est pas un survol : il reste sans filtre. Le survol,
+   lui, ne vaut que pour une souris (voir `sticker-press`). */
 .logo-anime:focus-visible .logo-pastille {
   transform: rotate(-12deg) scale(1.08);
+}
+@media (hover: hover) and (pointer: fine) {
+  .logo-anime:hover .logo-pastille {
+    transform: rotate(-12deg) scale(1.08);
+  }
 }
 .logo-anime .logo-mot {
   position: relative;
 }
+/* Le trait grandit par `scaleX`, et non plus par `width` : même dessin, mais
+   sans recalcul de mise en page à chaque image (skill Halo
+   `animation-performance`, « Swapping down a tier », revue du 20/11). Il part
+   du centre, comme avant. */
 .logo-anime .logo-mot::after {
   content: "";
   position: absolute;
   left: 50%;
   bottom: -3px;
-  width: 0;
+  width: 100%;
   height: 2.5px;
   border-radius: 999px;
   background: var(--color-orange);
   translate: -50% 0;
-  transition: width 0.3s ease-out;
+  transform: scaleX(0);
+  transition: transform 0.3s ease-out;
 }
-.logo-anime:hover .logo-mot::after,
 .logo-anime:focus-visible .logo-mot::after {
-  width: 100%;
+  transform: scaleX(1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .logo-anime:hover .logo-mot::after {
+    transform: scaleX(1);
+  }
 }
 
 /* --- Squelettes : repris de « Baobart Parcours Achat.dc.html », l. 24-27 ----
@@ -668,6 +934,7 @@
  * de ce décalage.
  */
 @media (prefers-reduced-motion: reduce) {
+  .flotte,
   .defile-x,
   .defile-y,
   .squelette-balaye,
@@ -709,8 +976,11 @@
 .mot-tourne[data-etat="entre"] {
   animation: mot-entre 450ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
 }
+/* La sortie suivait `ease-in`, que l'en-tête du mouvement interdit (plus
+   haut) : le mot démarrait lentement, au moment où l'œil le suit. Même durée,
+   la courbe de la maison (revue du 20/11, skill Halo `review-animations`). */
 .mot-tourne[data-etat="sort"] {
-  animation: mot-sort 300ms ease-in both;
+  animation: mot-sort 300ms var(--ease-sortie) both;
 }
 @keyframes mot-entre {
   from {
@@ -1072,10 +1342,13 @@
     transform 130ms,
     box-shadow 130ms;
 }
-a:hover > .reseau-pastille,
-button:hover > .reseau-pastille {
-  transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0 var(--color-encre);
+/* Les survols des logos ne valent que pour une souris (voir `sticker-press`). */
+@media (hover: hover) and (pointer: fine) {
+  a:hover > .reseau-pastille,
+  button:hover > .reseau-pastille {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 var(--color-encre);
+  }
 }
 a:active > .reseau-pastille,
 button:active > .reseau-pastille {
@@ -1098,10 +1371,12 @@ button:active > .reseau-pastille {
     box-shadow 130ms,
     background-color 130ms;
 }
-.reseau-tuile:hover {
-  background: var(--color-jaune);
-  transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0 var(--color-encre);
+@media (hover: hover) and (pointer: fine) {
+  .reseau-tuile:hover {
+    background: var(--color-jaune);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--color-encre);
+  }
 }
 
 .reseau-lien {
@@ -1119,7 +1394,9 @@ button:active > .reseau-pastille {
     transform 130ms,
     box-shadow 130ms;
 }
-.reseau-lien:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0 var(--color-encre);
+@media (hover: hover) and (pointer: fine) {
+  .reseau-lien:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--color-encre);
+  }
 }

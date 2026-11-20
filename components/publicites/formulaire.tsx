@@ -160,7 +160,11 @@ export function FormulairePublicite({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 700 }}>Tous les</span>
+            {/* `Champ` écrit son libellé dans un <span>, sans lien avec le champ :
+                axe le relevait sans nom (revue du 20/11). Un <label> autour ne
+                va pas partout — le champ « Nature » contient déjà des <label>. */}
             <input
+              aria-label="Fréquence : une bannière tous les combien de produits"
               type="number"
               name="frequence"
               min={FREQUENCE_MIN}
@@ -175,10 +179,10 @@ export function FormulairePublicite({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Champ label="Début" aide="Vide : tout de suite. Heure d'Abidjan (GMT)." faute={faute === "debut"}>
-            <input type="datetime-local" name="debut" defaultValue={v?.debut ?? ""} style={saisie} />
+            <input aria-label="Début" type="datetime-local" name="debut" defaultValue={v?.debut ?? ""} style={saisie} />
           </Champ>
           <Champ label="Fin" aide="Vide : jusqu'à ce qu'on l'arrête." faute={faute === "fin"}>
-            <input type="datetime-local" name="fin" defaultValue={v?.fin ?? ""} style={saisie} />
+            <input aria-label="Fin" type="datetime-local" name="fin" defaultValue={v?.fin ?? ""} style={saisie} />
           </Champ>
         </div>
 
