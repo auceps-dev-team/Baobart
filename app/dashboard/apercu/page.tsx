@@ -57,7 +57,7 @@ export default async function ApercuPage() {
           {a.recents.length === 0 ? (
             <EmptyState titre="Rien encore" texte="Tes téléchargements et tes achats apparaîtront ici." />
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
               {a.recents.map((r) => (
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 13, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                   <Vignette couverture={r.couverture} titre={r.nom} />

@@ -116,7 +116,7 @@ export default async function MesProduitsPage({ searchParams }: { searchParams: 
             texte={produits.length === 0 ? "Ajoute une première ressource : elle restera en brouillon tant que tu ne la publies pas." : "Choisis un autre statut pour retrouver tes ressources."}
           />
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
             {visibles.map((p) => (
               <div key={p.id} data-ressource style={{ display: "flex", alignItems: "center", gap: 14, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                 <Vignette couverture={p.coverUrl} titre={p.name} taille={46} />

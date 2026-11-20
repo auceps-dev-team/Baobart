@@ -6,6 +6,9 @@ import { useState, useTransition } from "react";
 import { Eclats } from "@/components/anime/eclats";
 import { basculerLike, basculerSuivi } from "@/lib/social/actions";
 
+/** Le format de `enNombre` (components/anime/compteur.tsx), sans tirer `motion` dans ces boutons. */
+const enNombre = (v: number) => new Intl.NumberFormat("fr-FR").format(v);
+
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const ORANGE = "#E2622C";
@@ -79,8 +82,10 @@ function Nombre({ total, abouge }: { total: number; abouge: boolean }) {
   return (
     <>
       {" · "}
+      {/* Au format ivoirien, comme les compteurs du héros : « 1 000 000 », et
+          non « 1000000 » (vu le 20/11 avec le pire cas de `break-ui`). */}
       <span key={total} className={abouge ? "rebond" : undefined}>
-        {total}
+        {enNombre(total)}
       </span>
     </>
   );
@@ -110,7 +115,12 @@ export function BoutonJaime({
         onClick={basculer}
         disabled={enCours}
         aria-pressed={actif}
-        aria-label={actif ? "Retirer mon j'aime" : "J'aime"}
+        // Pas d'`aria-label` : le nom est le texte visible (« J'aime · 99 »),
+        // et `aria-pressed` dit l'état. L'ancien libellé, « J'aime » ou
+        // « Retirer mon j'aime », ne contenait ni « Aimé » ni le compteur :
+        // une commande vocale qui prononce ce qu'elle voit ne trouvait pas le
+        // bouton (axe, label-content-name-mismatch, WCAG 2.5.3 — vu le 20/11
+        // dès qu'un compteur s'affiche).
         className="sticker-press"
         style={{
           width: pleineLargeur ? "100%" : undefined,
@@ -129,7 +139,7 @@ export function BoutonJaime({
         }}
       >
         {/* Le cœur bat et éclate quand on aime (09/10, labo « explorations »). */}
-        <span style={{ position: "relative", display: "inline-block" }}>
+        <span aria-hidden="true" style={{ position: "relative", display: "inline-block" }}>
           <span key={salve} className={salve > 0 && actif ? "coeur-bat" : undefined}>
             ♥
           </span>
@@ -175,7 +185,7 @@ export function BoutonSuivre({
           whiteSpace: "nowrap",
         }}
       >
-        {total} abonné{total > 1 ? "s" : ""}
+        {enNombre(total)} abonné{total > 1 ? "s" : ""}
       </span>
     );
   }

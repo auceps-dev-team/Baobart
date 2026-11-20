@@ -52,7 +52,11 @@ export interface Filtre {
  * tirée au hasard à chaque rendu ferait clignoter la liste.
  */
 export function trameDe(cle: string): string {
-  const teintes = ["#C9A8F5", "#E2622C", "#FFD84A", "#EADFF9", BLANC];
+  // Sans le blanc : posé sur des rayures blanches, il donnait une vignette
+  // vide, une ligne sur cinq (vu le 20/11, revue `break-ui`, « Mes achats »).
+  // La maquette ne marie jamais blanc sur blanc (`stripe(…)`, Dashboard,
+  // l. 1249-1287) ; les quatre teintes restantes y figurent toutes.
+  const teintes = ["#C9A8F5", "#E2622C", "#FFD84A", "#EADFF9"];
   let somme = 0;
   for (let i = 0; i < cle.length; i += 1) somme = (somme + cle.charCodeAt(i)) % 997;
   const accent = teintes[somme % teintes.length];
