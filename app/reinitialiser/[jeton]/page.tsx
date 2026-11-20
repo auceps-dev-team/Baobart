@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 
 import { AuthForm } from "@/components/auth/auth-form";
@@ -87,14 +88,14 @@ const MORTS = {
     titre: "Ce lien ne marche plus",
     sousTitre:
       "Il a déjà servi, ou l'heure de validité est passée. C'est voulu : un lien de réinitialisation est une clé, et une clé qui traîne indéfiniment dans une boîte mail finit par être ramassée par quelqu'un d'autre.",
-    glyphe: "⏱",
+    icone: "clock" as const,
     etiquette: "Lien périmé ou déjà utilisé",
   },
   inconnu: {
     titre: "Ce lien est inconnu",
     sousTitre:
       "Il ne correspond à aucune demande. Vérifie que tu l'as copié en entier — les messageries en coupent parfois la fin.",
-    glyphe: "?",
+    icone: "info" as const,
     etiquette: "Aucune demande correspondante",
   },
 };
@@ -171,7 +172,7 @@ export default async function ReinitialiserPage({
               fontSize: 21,
             }}
           >
-            {mort.glyphe}
+            <Icone nom={mort.icone} taille={26} />
           </div>
           <div style={{ flex: "1 1 auto", minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>{mort.etiquette}</div>

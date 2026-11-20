@@ -52,7 +52,7 @@ export default async function StatistiquesPage() {
           {s.meilleures.length === 0 ? (
             <EmptyState titre="Pas encore de classement" texte="Tes ressources les plus vendues et téléchargées apparaîtront ici." />
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
               {s.meilleures.map((r, i) => (
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 13, border: "2px solid #121212", borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                   <Vignette couverture={r.couverture} titre={r.nom} />

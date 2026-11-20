@@ -1,3 +1,5 @@
+import { Icone } from "@/components/icones/icone";
+import type { NomIcone } from "@/lib/icones/donnees";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -44,7 +46,9 @@ export const metadata = { title: "Ton paiement — Baobart." };
 export const dynamic = "force-dynamic";
 
 interface Etat {
-  glyphe: string;
+  /** Une icône Halo ; à défaut (✕, un nombre), le texte de `glyphe`. */
+  icone?: NomIcone;
+  glyphe?: string;
   fond: string;
   kicker: string;
   titre: string;
@@ -53,7 +57,7 @@ interface Etat {
 
 const ETATS: Record<string, Etat> = {
   IN_PROGRESS: {
-    glyphe: "⏳",
+    icone: "clock",
     fond: JAUNE,
     kicker: "Paiement en cours",
     titre: "On attend la confirmation",
@@ -61,7 +65,7 @@ const ETATS: Record<string, Etat> = {
       "Ton opérateur ne nous a pas encore répondu. C'est normal : il lui faut parfois une minute ou deux, et il arrive qu'il prenne plus longtemps après un incident chez lui.",
   },
   SUCCESSFUL: {
-    glyphe: "✓",
+    icone: "check",
     fond: VERT,
     kicker: "Paiement confirmé",
     titre: "C'est payé",
@@ -69,7 +73,7 @@ const ETATS: Record<string, Etat> = {
       "Ton paiement est confirmé et la ressource est dans ton espace. Un reçu part vers ton adresse.",
   },
   NOT_CHARGED: {
-    glyphe: "✓",
+    icone: "check",
     fond: VERT,
     kicker: "Ressource gratuite",
     titre: "C'est à toi",
@@ -251,7 +255,7 @@ export default async function RetourPaiementPage({
                   fontWeight: 800,
                 }}
               >
-                {etat.glyphe}
+                {etat.icone ? <Icone nom={etat.icone} taille={26} /> : etat.glyphe}
               </div>
 
               <div style={{ minWidth: 0 }}>

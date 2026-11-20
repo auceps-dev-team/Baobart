@@ -56,7 +56,9 @@ test.describe("la page traduite par le navigateur", () => {
     await fermerLeBandeau(page);
     await traduire(page);
 
-    const jaime = page.getByRole("button", { name: /j'aime/i }).first();
+    // Par son état, pas par son nom : le nom est le texte visible (#66), « J'aime »
+    // puis « Aimé » — et entre crochets une fois traduit.
+    const jaime = page.locator("button[aria-pressed]").filter({ hasText: /J'aime|Aimé/ }).first();
     await jaime.click();
     await expect(jaime).toHaveAttribute("aria-pressed", "true");
     await jaime.click();

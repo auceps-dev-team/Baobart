@@ -81,7 +81,7 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
           {r.parRessource.length === 0 ? (
             <EmptyState titre="Rien sur cette période" texte="Ce que chaque ressource te rapporte apparaîtra ici, vente après vente." />
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
               {r.parRessource.map((l) => {
                 const statut = l.net < 0 ? { libelle: "RÉVOQUÉE", fond: BLANC } : l.impaye > 0 ? { libelle: "IMPAYÉE", fond: MAUVE } : { libelle: "VERSÉE", fond: JAUNE };
                 return (

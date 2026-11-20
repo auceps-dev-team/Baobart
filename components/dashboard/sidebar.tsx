@@ -11,6 +11,7 @@ import {
 } from "@/components/shell/nav-data";
 import { NavEntrees } from "@/components/dashboard/nav-entrees";
 import { deconnecter } from "@/lib/auth/actions";
+import { RepliMobile } from "@/components/dashboard/repli-mobile";
 import type { EtapeCompte } from "@/lib/auth/roles";
 import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
@@ -130,6 +131,8 @@ export async function DashboardSidebar({
         </span>
       </Link>
 
+      {/* Replié sous 980 px, transparent au-dessus : voir `RepliMobile` (D2a, Q-04). */}
+      <RepliMobile>
       {/* « Super admin » pour qui l'est ; un modérateur ou un comptable voit « Équipe ». */}
       <NavEntrees groupes={groupes} actif={actif} libelleEquipe={role === "SUPER_ADMIN" ? "Super admin" : "Équipe"} />
 
@@ -197,6 +200,7 @@ export async function DashboardSidebar({
           Se déconnecter
         </button>
       </form>
+      </RepliMobile>
     </aside>
   );
 }

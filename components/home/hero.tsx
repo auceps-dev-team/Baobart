@@ -285,9 +285,16 @@ export function HeroB({
           {/* Les deux petites cartes glissent à contre-sens au défilement
               (parallaxe, 08/10) : 50 px d'écart sur toute la traversée, pour
               décoller les plans sans les promener. */}
+          {/* La première flotte (`flotte`, globals.css). Sur une ENVELOPPE, et
+              non plus sur le lien (revue du 20/11) : l'animation y écrasait le
+              `transform` du geste de pression — la carte ne se soulevait ni ne
+              se réduisait au clic tant qu'elle flottait. Et la classe, que la
+              liste du mouvement réduit arrête : en style en ligne, la boucle
+              tournait à 0,01 ms par tour, sans fin (mesuré le 20/11). */}
           {[vitrine.gratuite, vitrine.payante].map((c, i) =>
             c ? (
               <Parallaxe key={c.slug} amplitude={i === 0 ? 50 : -50}>
+                <div className={i === 0 ? "flotte" : undefined}>
                 <Link
                   href={`/products/${c.slug}`}
                   scroll={false}
@@ -300,7 +307,6 @@ export function HeroB({
                     boxShadow: `6px 6px 0 ${ENCRE}`,
                     padding: 16,
                     color: ENCRE,
-                    animation: i === 0 ? "floaty 7s ease-in-out infinite" : undefined,
                   }}
                 >
                   <div
@@ -314,6 +320,7 @@ export function HeroB({
                   <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800 }}>{c.titre}</div>
                   <div style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.75 }}>{c.detail}</div>
                 </Link>
+                </div>
               </Parallaxe>
             ) : null,
           )}

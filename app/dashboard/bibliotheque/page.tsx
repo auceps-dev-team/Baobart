@@ -99,7 +99,9 @@ function Entree({ r }: { r: RessourcePossedee }) {
       <Vignette couverture={r.couverture} titre={r.titre} taille={82} />
       <div style={{ flex: "1 1 240px", minWidth: 0 }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-          <Link href={`/products/${r.slug}` as Route} style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.25 }}>
+          {/* `anywhere` : un titre sans espace (un nom de fichier) se coupe au lieu
+              de déborder — 314 px à 320 de large, mesuré le 20/11 (`break-ui`). */}
+          <Link href={`/products/${r.slug}` as Route} style={{ fontSize: 16.5, fontWeight: 800, lineHeight: 1.25, minWidth: 0, overflowWrap: "anywhere" }}>
             {r.titre}
           </Link>
           <span

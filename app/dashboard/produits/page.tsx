@@ -117,11 +117,15 @@ export default async function MesProduitsPage({ searchParams }: { searchParams: 
             texte={produits.length === 0 ? "Ajoute une première ressource : elle restera en brouillon tant que tu ne la publies pas." : "Choisis un autre statut pour retrouver tes ressources."}
           />
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
+            {/* `flexWrap`, et un titre de base 160 px : sur un téléphone, le titre garde
+                la première ligne, le prix, l'état et « Modifier » passent dessous (la
+                ligne débordait de 80 px à 320, mesuré le 20/11, D2a). Au bureau, tout
+                tient sur une ligne, comme avant. */}
             {visibles.map((p) => (
-              <div key={p.id} data-ressource style={{ display: "flex", alignItems: "center", gap: 14, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
+              <div key={p.id} data-ressource style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                 <Vignette couverture={p.coverUrl} titre={p.name} taille={46} />
-                <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+                <span style={{ flex: "1 1 160px", minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 15, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                   <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.62 }}>
                     {p.family ? LIBELLE_PAR_FAMILLE[p.family] : "sans catégorie"} · {formatCount(p.downloadsCount)} dl

@@ -1,3 +1,4 @@
+import { Icone } from "@/components/icones/icone";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -238,7 +239,7 @@ export function AuthShell({
                     fontWeight: 800,
                   }}
                 >
-                  ✓
+                  <Icone nom="check" taille={18} aplat="#FFFFFF" />
                 </span>
                 <span style={{ fontSize: 13.5, fontWeight: 700 }}>{p}</span>
               </div>

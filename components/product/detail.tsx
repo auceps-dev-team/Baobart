@@ -73,7 +73,7 @@ function Identite({ auteur }: { auteur: FicheProduit["auteur"] }) {
         }}
       />
       <span style={{ flex: "1 1 auto", minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 13.5, fontWeight: 800 }}>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 800, overflowWrap: "anywhere" }}>
           {auteur.nom}
           {auteur.verifie ? " ✓" : ""}
         </span>
@@ -362,7 +362,15 @@ export function DetailProduit({
           Cette ressource n&apos;est plus en vente. Tu l&apos;as obtenue : tes fichiers restent à toi.
         </p>
       ) : null}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/*
+        Sous 900 px, la grille s'empile, et le prix arrivait APRÈS le partage,
+        les avis et les commentaires : « Télécharger » à 1 737 px pour un écran
+        de 780 (Q-04, recette du 14/11). `globals.css` (« La fiche sous 900 px »)
+        rend alors cette colonne transparente et ordonne : le média, puis les
+        informations et le prix (`data-fiche-droite`), puis la discussion
+        (`data-fiche-apres`). Au-dessus de 900 px, rien ne change.
+      */}
+      <div data-fiche-gauche style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {extraitEnPrincipal && produit.extrait ? (
           <div
             style={{
@@ -433,6 +441,9 @@ export function DetailProduit({
                   background: BLANC,
                   fontFamily: "var(--font-mono)",
                   fontSize: 13,
+                  // Un titre sans espace (un nom de fichier) se coupe au lieu de
+                  // sortir de la carte : 608 px à 320 de large, mesuré le 20/11.
+                  overflowWrap: "anywhere",
                 }}
               >
                 {produit.titre}
@@ -526,6 +537,7 @@ export function DetailProduit({
           venu voir, avant la discussion (demandé le 15/10). Le bouton
           « Partager ↗ » de la carte de prix reste celui de la maquette.
         */}
+        <div data-fiche-apres style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <BarrePartage
           chemin={`/products/${produit.slug}`}
           titre={produit.titre}
@@ -544,9 +556,10 @@ export function DetailProduit({
           total={social.commentaires}
           connecte={social.connecte}
         />
+        </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div data-fiche-droite style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div
           style={{
             border: CADRE,
@@ -577,11 +590,15 @@ export function DetailProduit({
               lineHeight: 1.05,
               letterSpacing: "-.8px",
               marginTop: 12,
+              overflowWrap: "anywhere",
             }}
           >
             {produit.titre}
           </div>
           {produit.description ? (
+            // `pre-line` : les paragraphes que le créateur tape dans sa zone de
+            // texte restent des paragraphes. Ils se fondaient en un seul bloc
+            // (vu le 20/11, revue `break-ui`, description en six parties).
             <p
               style={{
                 fontSize: 13.5,
@@ -589,15 +606,24 @@ export function DetailProduit({
                 lineHeight: 1.5,
                 opacity: 0.75,
                 margin: "10px 0 0",
+                whiteSpace: "pre-line",
               }}
             >
               {produit.description}
             </p>
           ) : null}
 
+          {/*
+            `flexWrap` : un nom long fait passer « Suivre » à la ligne. Sans
+            lui, à 320 px, le nom tenait dans une colonne d'une quarantaine de
+            pixels et ses mots passaient SOUS le bouton (vu le 20/11, revue
+            `break-ui`, nom affiché de 86 caractères). Un nom court garde le
+            bouton à côté.
+          */}
           <div
             style={{
               display: "flex",
+              flexWrap: "wrap",
               alignItems: "center",
               gap: 10,
               marginTop: 14,
@@ -637,15 +663,23 @@ export function DetailProduit({
             padding: 18,
           }}
         >
+          {/*
+            `flexWrap` : la licence passe sous le prix quand la place manque.
+            Sans lui, un prix de huit chiffres (« 12 345 678 F ») à 320 px
+            poussait la licence hors de la carte et la page débordait de
+            43 px (mesuré le 20/11, revue `break-ui`). Rien ne change quand
+            tout tient sur une ligne.
+          */}
           <div
             style={{
               display: "flex",
+              flexWrap: "wrap",
               alignItems: "baseline",
               justifyContent: "space-between",
               gap: 10,
             }}
           >
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 30 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 30, whiteSpace: "nowrap" }}>
               {produit.prixAffiche}
             </div>
             <div style={{ display: "grid", justifyItems: "end", gap: 2 }}>
@@ -783,7 +817,7 @@ export function EnTeteFiche({
       >
         Ressource
       </div>
-      <div style={{ flex: "1 1 auto", fontSize: 15, fontWeight: 800 }}>{titre}</div>
+      <div style={{ flex: "1 1 auto", minWidth: 0, fontSize: 15, fontWeight: 800, overflowWrap: "anywhere" }}>{titre}</div>
       {action}
     </div>
   );
