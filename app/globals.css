@@ -353,6 +353,141 @@
 }
 
 /*
+ * L'en-tête du téléphone (D2b) — voir components/shell/header.tsx. Valeurs de
+ * `Baobart Mobile.dc.html`, écran 03, l. 83-88 : une ligne pour le logo
+ * (pastille de 38 px, mot en 20 px) et la cloche (44 × 44, ombre de 3 px), une
+ * pour la recherche. Les menus et le compte, derrière « Menu », s'ouvrent en
+ * dessous. Au-dessus de 620 px, rien ne change : la cloche et « Menu » s'y cachent.
+ */
+.entete-cloche,
+.entete-bouton-menu,
+.entete-recherche-icone {
+  display: none;
+}
+@media (max-width: 620px) {
+  /* Pas de carte : la maquette pose le logo et la cloche sur le fond, à 18 × 20 px du bord. */
+  [data-entete] {
+    padding: 18px 20px 0 !important;
+  }
+  .entete-barre {
+    padding: 0 !important;
+    gap: 14px 10px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  /* La recherche de la maquette : blanche, bordée, ombrée, la loupe à gauche.
+     Le champ reste à 16 px au doigt (règle de base, plus haut) et non 14 comme
+     la maquette : en dessous, iOS zoome sur le champ. */
+  .entete-recherche-icone {
+    display: block;
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    line-height: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .entete-recherche > input {
+    padding: 13px 14px 13px 44px !important;
+    background: var(--color-blanc) !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 var(--color-encre) !important;
+  }
+  .entete-logo {
+    order: 1;
+    flex: 1 1 auto !important;
+  }
+  .entete-logo .logo-pastille {
+    width: 38px !important;
+    height: 38px !important;
+  }
+  .entete-logo .logo-mot {
+    font-size: 20px !important;
+    letter-spacing: -0.6px !important;
+  }
+  .entete-cloche,
+  .entete-bouton-menu {
+    order: 2;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2.5px solid var(--color-encre);
+    border-radius: 12px;
+    background: var(--color-blanc);
+    box-shadow: 3px 3px 0 var(--color-encre);
+    cursor: pointer;
+  }
+  .entete-bouton-menu {
+    order: 3;
+  }
+  .entete-recherche {
+    order: 4;
+    flex: 1 1 100% !important;
+    max-width: none !important;
+  }
+  .entete-menus {
+    order: 5;
+    flex: 1 1 100% !important;
+    justify-content: flex-start !important;
+  }
+  .entete-compte {
+    order: 6;
+  }
+  .entete-barre[data-menus="fermes"] > .entete-menus,
+  .entete-barre[data-menus="fermes"] > .entete-compte {
+    display: none !important;
+  }
+}
+
+/*
+ * La barre d'onglets du téléphone (D2b) — voir components/shell/barre-onglets.tsx,
+ * valeurs de `Baobart Mobile.dc.html`, l. 114. Sous 620 px seulement. La page
+ * garde en bas la place de la barre (76 px, plus l'encoche), sans quoi le
+ * dernier bloc passerait dessous.
+ */
+.barre-onglets {
+  display: none;
+}
+@media (max-width: 620px) {
+  .barre-onglets {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-nav);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 2.5px solid var(--color-encre);
+    background: var(--color-blanc);
+  }
+  .barre-onglets-onglet {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 56px;
+    color: var(--color-encre);
+  }
+  .barre-onglets-pastille {
+    width: 52px;
+    height: 32px;
+    border: 2px solid transparent;
+    border-radius: 99px;
+    display: grid;
+    place-items: center;
+  }
+  body:has(.barre-onglets) {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/*
  * Le menu du tableau de bord, replié sous 980 px (D2a, Q-04) — voir
  * components/dashboard/repli-mobile.tsx. Au-dessus, l'enveloppe est
  * transparente (`display: contents`) : le menu et la carte du compte restent

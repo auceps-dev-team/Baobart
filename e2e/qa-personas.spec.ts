@@ -209,6 +209,14 @@ test.describe("sur un téléphone", () => {
   test("Q-03 — les rubriques des sous-menus s'atteignent au toucher", async ({ page }) => {
     await page.goto("/");
     await fermerLeBandeau(page);
+    // Depuis D2b (#70), les menus se rangent sous 620 px derrière « Menu » : on
+    // l'ouvre d'abord, comme le ferait la personne. Ce que le test prouve ne
+    // change pas — les rubriques s'atteignent au doigt.
+    const ouvrirLesMenus = async () => {
+      const menu = page.getByRole("button", { name: "Menu", exact: true });
+      if (await menu.isVisible()) await menu.tap();
+    };
+    await ouvrirLesMenus();
     const entrees = page.getByRole("navigation").first().getByRole("link", { name: /▼/ });
     await expect(entrees.first()).toBeVisible();
     const nombre = await entrees.count();
@@ -220,6 +228,7 @@ test.describe("sur un téléphone", () => {
     const atteints = new Set<string>();
     for (let i = 0; i < nombre; i += 1) {
       await page.goto("/");
+      await ouvrirLesMenus();
       await page.getByRole("navigation").first().getByRole("link", { name: /▼/ }).nth(i).tap();
       await page.waitForTimeout(600);
       const liens = await page.locator("a:visible").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));

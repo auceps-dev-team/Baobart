@@ -150,6 +150,8 @@ export function Header({
   const router = useRouter();
   const [menuOuvert, setMenuOuvert] = useState<string | null>(null);
   const [compteOuvert, setCompteOuvert] = useState(false);
+  // Sous 620 px, les menus et le compte se rangent derrière « Menu » (D2b).
+  const [menusOuverts, setMenusOuverts] = useState(false);
 
   /**
    * ══════════════════════════════════════════════════════════════════════════
@@ -262,7 +264,27 @@ export function Header({
 
   return (
     <div ref={entete} data-entete="1" style={{ position: "sticky", top: 0, zIndex: 40, padding: "18px 32px 0" }}>
+      {/*
+        ══════════════════════════════════════════════════════════════════════
+        SOUS 620 PX, L'EN-TÊTE DE LA MAQUETTE MOBILE (D2b, 20/11/2026)
+
+        `Baobart Mobile.dc.html`, écran 03 : une ligne pour le logo et la
+        cloche, une pour la recherche — et rien d'autre. L'en-tête du bureau,
+        replié sur un téléphone, faisait quatre lignes de menus et environ
+        330 px de haut à 360 de large.
+
+        Les classes `entete-*` le réordonnent dans `globals.css`, sans toucher
+        au bureau. Les menus et le compte passent derrière « Menu » : un AJOUT,
+        que la maquette ne dessine pas, parce que ses cinq onglets ne mènent pas
+        aux onze rubriques des sous-menus (Jobs, Services, Concours… — Q-03).
+
+        La cloche n'a pas la pastille jaune de la maquette : l'en-tête ne sait
+        pas s'il y a du non-lu, et une pastille toujours allumée serait une
+        promesse qu'il ne tient pas.
+      */}
       <div
+        className="entete-barre"
+        data-menus={menusOuverts ? "ouverts" : "fermes"}
         style={{
           maxWidth: 1400,
           margin: "0 auto",
@@ -280,7 +302,7 @@ export function Header({
       >
         <Link
           href="/"
-          className="logo-anime"
+          className="logo-anime entete-logo"
           style={{
             display: "flex",
             alignItems: "center",
@@ -323,6 +345,21 @@ export function Header({
           </span>
         </Link>
 
+        {/* La cloche et « Menu » : cachés au-dessus de 620 px (voir plus haut). */}
+        <Link href="/dashboard/notifications" className="entete-cloche pression" aria-label="Notifications">
+          <Icone nom="bell" taille={20} aplat="#E2622C" />
+        </Link>
+        <button
+          type="button"
+          className="entete-bouton-menu pression"
+          aria-label="Menu"
+          aria-expanded={menusOuverts}
+          aria-controls="entete-menus"
+          onClick={() => setMenusOuverts((o) => !o)}
+        >
+          <Icone nom="more" taille={20} aplat="#C9A8F5" />
+        </button>
+
         {/*
           Base de 110 px, et non 190 : dans un conteneur qui passe à la ligne,
           la coupure se décide sur la base, avant tout rétrécissement. Avec 190,
@@ -332,6 +369,7 @@ export function Header({
           d'où aussi les écarts resserrés (16 entre blocs, 12 entre menus).
         */}
         <div
+          className="entete-recherche"
           style={{
             flex: "1 1 110px",
             maxWidth: 300,
@@ -339,6 +377,10 @@ export function Header({
             minWidth: 0,
           }}
         >
+          {/* La loupe de la maquette mobile (écran 03), cachée au-dessus de 620 px. */}
+          <span className="entete-recherche-icone" aria-hidden="true">
+            <Icone nom="search" taille={20} aplat="#FFD84A" />
+          </span>
           <input
             value={q}
             onChange={(e) => {
@@ -434,6 +476,8 @@ export function Header({
         </div>
 
         <nav
+          id="entete-menus"
+          className="entete-menus"
           style={{
             display: "flex",
             alignItems: "center",
@@ -616,7 +660,7 @@ export function Header({
           ))}
         </nav>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
+        <div className="entete-compte" style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
           {/*
             Le bouton « PANIER » de la maquette est retiré (09/10, décision
             après les tests QA) : il n'existe pas de panier — l'achat se fait

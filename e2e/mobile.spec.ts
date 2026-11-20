@@ -18,6 +18,13 @@ import { db, ressourceVendable } from "./fixtures/donnees";
 
 const TELEPHONE = { viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true };
 
+/**
+ * La hauteur de l'en-tête à 360 px, au plus (D2b). Mesuré le 20/11/2026 : 112 px
+ * à 320, 360 et 390 (environ 330 avant D2b). 130 laisse la place d'une police
+ * qui charge plus tard, pas celle d'une ligne de menus en plus.
+ */
+const HAUTEUR_ENTETE = 130;
+
 async function seConnecter(context: BrowserContext, userId: string, baseURL: string) {
   await context.clearCookies();
   const jeton = randomBytes(32).toString("base64url");
@@ -87,4 +94,58 @@ test("au bureau, le menu du tableau de bord reste déplié, sans bouton", async 
   await page.goto("/dashboard/produits");
   await expect(page.getByRole("button", { name: /Menu de l.espace/ })).toBeHidden();
   await expect(page.locator("[data-sidebar]").getByRole("link", { name: /Produits/ })).toBeVisible();
+});
+
+/**
+ * D2b, première tranche (#70) : l'en-tête et la barre d'onglets de
+ * `Baobart Mobile.dc.html`, écrans 03 et 04.
+ */
+test.describe("D2b — sur un téléphone de 360 px", () => {
+  test.use(TELEPHONE);
+
+  test("l'en-tête tient en deux lignes : logo et cloche, puis la recherche", async ({ page }) => {
+    await page.goto("/");
+    const entete = page.locator("[data-entete] > .entete-barre");
+    const hauteur = (await entete.boundingBox())!.height;
+    // Avant D2b : environ 330 px (quatre lignes de menus). Mesuré après : voir HAUTEUR_ENTETE.
+    expect(hauteur).toBeLessThanOrEqual(HAUTEUR_ENTETE);
+    await expect(page.getByRole("link", { name: "Notifications" })).toBeVisible();
+    // Les menus sont rangés, et s'ouvrent par « Menu ».
+    const menu = page.getByRole("button", { name: "Menu", exact: true });
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator("#entete-menus")).toBeHidden();
+    await menu.tap();
+    await expect(page.locator("#entete-menus")).toBeVisible();
+  });
+
+  test("la barre d'onglets : cinq onglets d'au moins 44 px, l'onglet de la page marqué", async ({ page }) => {
+    await page.goto("/");
+    const barre = page.getByRole("navigation", { name: "Onglets" });
+    await expect(barre).toBeVisible();
+    const onglets = barre.getByRole("link");
+    await expect(onglets).toHaveCount(5);
+    for (const boite of await onglets.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()))) {
+      expect(boite.width).toBeGreaterThanOrEqual(44);
+      expect(boite.height).toBeGreaterThanOrEqual(44);
+    }
+    await expect(barre.getByRole("link", { name: "Accueil" })).toHaveAttribute("aria-current", "page");
+
+    await page.goto("/explore");
+    await expect(page.getByRole("navigation", { name: "Onglets" }).getByRole("link", { name: "Explorer" })).toHaveAttribute("aria-current", "page");
+  });
+
+  test("pas de barre là où la maquette n'en dessine pas : la fiche, la connexion", async ({ page }) => {
+    const r = await ressourceVendable();
+    await page.goto(`/products/${r.slug}`);
+    await expect(page.getByRole("navigation", { name: "Onglets" })).toHaveCount(0);
+    await page.goto("/connexion");
+    await expect(page.getByRole("navigation", { name: "Onglets" })).toHaveCount(0);
+  });
+});
+
+test("au bureau, ni barre d'onglets, ni cloche, ni « Menu » : l'en-tête est inchangé", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "Onglets" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Menu", exact: true })).toBeHidden();
+  await expect(page.locator("#entete-menus")).toBeVisible();
 });
