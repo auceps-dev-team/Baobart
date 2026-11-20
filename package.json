@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.108.3",
+  "version": "1.108.6",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -56,7 +56,8 @@
       "nanoid": "3.3.18",
       "sharp": "0.35.5",
       "deepmerge-ts": "8.0.2",
-      "vite": "7.3.7"
+      "vite": "7.3.7",
+      "effect": "3.22.4"
     },
     "auditConfig": {
       "ignoreGhsas": [
@@ -72,7 +73,7 @@
     "@simplewebauthn/server": "^14.0.2",
     "ioredis": "^6.0.0",
     "motion": "^12.43.0",
-    "next": "^15.5.28",
+    "next": "^15.5.29",
     "nodemailer": "^10.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

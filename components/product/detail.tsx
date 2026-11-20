@@ -354,6 +354,12 @@ export function DetailProduit({
         padding: 22,
       }}
     >
+      {produit.retiree ? (
+        // Rendue seulement à qui l'a obtenue (Q-37, voir `obtenirProduit`).
+        <p role="status" data-retiree style={{ gridColumn: "1 / -1", margin: 0, padding: "12px 15px", border: CADRE, borderRadius: 14, background: JAUNE, color: ENCRE, fontSize: 13.5, fontWeight: 700 }}>
+          Cette ressource n&apos;est plus en vente. Tu l&apos;as obtenue : tes fichiers restent à toi.
+        </p>
+      ) : null}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {extraitEnPrincipal && produit.extrait ? (
           <div
