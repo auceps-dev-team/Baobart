@@ -67,7 +67,7 @@ async function acheteurCharge(n: number) {
       corps: "Posée par e2e/pagination.spec.ts.",
     })),
   });
-  return acheteur;
+  return { id: acheteur.id, vendeur: vendeur.id };
 }
 
 /** Le bas naturel du menu, et le bas de la barre de pagination, en px depuis le haut de la page. */
@@ -134,5 +134,24 @@ test.describe("les listes paginées tiennent sous le menu", () => {
     const texte = (await barre.textContent()) ?? "";
     const [, courante, total] = texte.match(/page (\d+) sur (\d+)/) ?? [];
     expect(courante).toBe(total);
+  });
+
+  test("Ventes : la légende repliée s'ouvre d'un geste, et la liste tient sous le menu", async ({ page, context, baseURL }) => {
+    // Le vendeur de `acheteurCharge` a vendu ses quatorze ressources : quatorze ventes.
+    const { vendeur } = await acheteurCharge(14);
+    await seConnecter(context, vendeur, baseURL!);
+
+    await page.goto("/dashboard/ventes");
+    const legende = page.locator('details[data-legende="repliee"]');
+    await expect(legende).toBeVisible();
+    await expect(legende).not.toHaveAttribute("open"); // fermée au chargement : c'est ce qui fait monter la liste
+    await legende.locator("summary").click();
+    await expect(legende).toHaveAttribute("open", "");
+
+    await page.reload(); // de nouveau fermée, pour mesurer la page telle qu'elle s'ouvre
+    await expect(page.getByRole("navigation", { name: "Pages" })).toContainText("page 1 sur");
+    const { basMenu, basListe } = await mesurer(page);
+    // La liste seulement : la carte « Ce qu'un remboursement te coûte » la suit, ce n'est pas la liste.
+    expect(basListe!, `bas de la liste ${Math.round(basListe!)} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(basMenu);
   });
 });
