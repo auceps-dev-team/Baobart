@@ -60,6 +60,7 @@ export function MenuPartage({
 
   // L'origine n'est connue que dans le navigateur.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- l'origine et navigator.share n'existent que dans le navigateur : les lire au rendu casserait l'hydratation.
     setOrigine(window.location.origin);
     setUrl(`${window.location.origin}${chemin}`);
     setNatif(typeof navigator.share === "function");

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { candidaturesRecues } from "@/lib/jobs/postuler";
 import { BLANC, CADRE, ENCRE, JAUNE } from "@/lib/systeme/charte";
@@ -35,7 +36,7 @@ export default async function CandidaturesRecuesPage({
   params: Promise<{ id: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/dashboard/jobs/${(await params).id}/candidatures`));
 
   const { id } = await params;
 

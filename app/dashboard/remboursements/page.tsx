@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { FormulaireDemande } from "@/components/remboursements/gestes";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { MESSAGES_REFUS } from "@/lib/remboursements/regles";
 import { achatsRemboursables } from "@/lib/remboursements/service";
 import { BLANC, CADRE, ENCRE, GRIS, JAUNE, VERT } from "@/lib/systeme/charte";
@@ -30,7 +31,7 @@ const STATUT = {
  */
 export default async function RemboursementsPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/remboursements"));
   const achats = await achatsRemboursables(utilisateur.id);
 
   return (

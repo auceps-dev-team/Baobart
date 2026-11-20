@@ -114,6 +114,7 @@ export function EtapesTelephone({
 
   useEffect(() => {
     if (!etatDemande) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- suit la DERNIÈRE réponse des deux actions, passées sans enveloppe (redirection de Next).
     setMessage(etatDemande);
     if (etatDemande.etape) setEtape(etatDemande.etape);
     if (etatDemande.numeroMasque) setMasque(etatDemande.numeroMasque);
@@ -121,6 +122,7 @@ export function EtapesTelephone({
 
   useEffect(() => {
     if (!etatCode) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- suit la DERNIÈRE réponse des deux actions, passées sans enveloppe (redirection de Next).
     setMessage(etatCode);
     if (etatCode.etape) setEtape(etatCode.etape);
   }, [etatCode]);

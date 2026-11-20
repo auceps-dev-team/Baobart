@@ -109,6 +109,7 @@ function CompteDeVersement({
   const [codeConsomme, setCodeConsomme] = useState<EtatCode | null>(null);
   useEffect(() => {
     if (etat?.ok) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- réagit à un enregistrement réussi, rendu par l'action serveur.
       setOuvert(false);
       setReference("");
       setCodeConsomme(demande);

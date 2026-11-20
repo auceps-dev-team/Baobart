@@ -140,7 +140,10 @@ function Entree({ r }: { r: RessourcePossedee }) {
             {r.fichiers.length > 1 ? `Les ${r.fichiers.length} fichiers` : "Voir la fiche"}
           </Link>
         )}
-        <Link href="/licences" style={{ padding: "13px 18px", border: `2.5px solid ${ENCRE}`, borderRadius: 14, background: BLANC, fontSize: 13.5, fontWeight: 800 }}>
+        <Link
+          href={`/dashboard/bibliotheque/certificat/${r.orderItemId}` as Route}
+          style={{ padding: "13px 18px", border: `2.5px solid ${ENCRE}`, borderRadius: 14, background: BLANC, fontSize: 13.5, fontWeight: 800 }}
+        >
           Licence
         </Link>
       </div>

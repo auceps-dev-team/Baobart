@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
 
 import {
@@ -8,6 +9,7 @@ import {
   retirerCommentaire,
   type ReponseCommentaire,
 } from "@/lib/social/actions";
+import { connexionPuis } from "@/lib/auth/suite";
 import { COMMENTAIRE_MAX, COMMENTAIRE_RETIRE, ilYA } from "@/lib/social/regles";
 import type { CommentaireRendu } from "@/lib/social/queries";
 
@@ -292,6 +294,8 @@ function Formulaire({
     null,
   );
   const routeur = useRouter();
+  // Pour revenir ici après la connexion (Q-18).
+  const chemin = usePathname() ?? "/";
 
   const refus = etat && !etat.ok ? etat : null;
   const publie = etat?.ok === true;
@@ -310,9 +314,9 @@ function Formulaire({
   if (!connecte) {
     return (
       <p style={{ fontSize: 13, fontWeight: 700, marginTop: 14 }}>
-        <a href="/connexion" style={{ textDecoration: "underline" }}>
+        <Link href={connexionPuis(chemin)} style={{ textDecoration: "underline" }}>
           Connecte-toi
-        </a>{" "}
+        </Link>{" "}
         pour commenter.
       </p>
     );

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { FormulaireProduit } from "@/components/dashboard/product-form";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { creerBrouillon } from "@/lib/products/actions";
 
 export const metadata = { title: "Publier une ressource — Baobart." };
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function NouveauProduitPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/produits/nouveau"));
 
   return (
     <DashboardFrame

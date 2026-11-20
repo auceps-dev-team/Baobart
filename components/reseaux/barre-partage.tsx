@@ -43,6 +43,7 @@ export function BarrePartage({
   const [copie, setCopie] = useState<"" | "ok" | "echec">("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- l'origine et navigator.share n'existent que dans le navigateur : les lire au rendu casserait l'hydratation.
     setOrigine(window.location.origin);
     setNatif(typeof navigator.share === "function");
   }, []);

@@ -35,6 +35,9 @@ export function ChoixEpingle({
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
 
+  const rangee = (collections ?? []).some((c) => c.contient);
+  const fermer = () => onFerme(rangee);
+
   useEffect(() => {
     let vivant = true;
     void choixPourEpingler(produitId).then((r) => {
@@ -45,18 +48,35 @@ export function ChoixEpingle({
       }
       setCollections(r.collections);
     });
-    const echap = (e: KeyboardEvent) => {
-      if (e.key === "Escape") fermer();
-    };
-    window.addEventListener("keydown", echap);
     return () => {
       vivant = false;
-      window.removeEventListener("keydown", echap);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [produitId]);
 
-  const fermer = () => onFerme((collections ?? []).some((c) => c.contient));
+  // Échap doit lire la liste du moment où on appuie. Posé dans l'effet
+  // ci-dessus, une seule fois, l'écouteur gardait le `fermer` du premier
+  // rendu — liste pas encore chargée — et annonçait toujours « rangée nulle
+  // part » : le bouton repassait à « Collection » juste après un rangement
+  // (relevé le 20/11/2026 par `react-hooks/immutability`, gardé par
+  // e2e/collections.spec.ts). Il se repose donc à chaque changement de `rangee`.
+  //
+  // Pas `useEffectEvent` : stable dans React 19.2, mais absent du React que
+  // Next 15.5 embarque (19.2.0-canary du 18/08/2025) — mesuré le 20/11, la
+  // construction ne le signale que par un avertissement et la fenêtre plante.
+  //
+  // En CAPTURE sur `window`, et la propagation s'arrête là : la fiche ouverte
+  // en fenêtre écoute Échap sur `document`, et un seul appui fermait les deux
+  // — retour à la liste (Q-11, recette du 14/11/2026, 3 fois sur 3). La
+  // capture sur `window` passe avant tout autre écouteur de la page.
+  useEffect(() => {
+    const echap = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      onFerme(rangee);
+    };
+    window.addEventListener("keydown", echap, true);
+    return () => window.removeEventListener("keydown", echap, true);
+  }, [rangee, onFerme]);
 
   const basculer = (c: Collection) =>
     demarrer(async () => {

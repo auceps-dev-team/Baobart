@@ -393,6 +393,16 @@ export async function demanderReinitialisation(
   const borne = await verifierLimiteAction("oubli");
   if (!borne.autorise) return tropDEssais(borne.dansSecondes);
 
+  // La case était affichée et jamais lue : non cochée, le lien partait quand
+  // même (Q-17, recette du 14/11/2026). Comme à l'inscription et à la
+  // réinitialisation, elle se lit ici, pas seulement dans le navigateur.
+  if (donnees.get("conditions") !== "on") {
+    return {
+      erreur: "Coche la case : le lien part à cette adresse, elle doit être la tienne.",
+      champ: "conditions",
+    };
+  }
+
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
 
   if (!email.includes("@")) {

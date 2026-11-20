@@ -7,6 +7,7 @@ import { apercuDuCode } from "@/lib/commerce/actions-promo";
 import { champsDe } from "@/lib/commerce/champs";
 import { minimumLibre, montantsSuggeres } from "@/lib/commerce/montant";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
@@ -38,7 +39,7 @@ export default async function ChoisirLePaiementPage({
   params: Promise<{ slug: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/acheter/${(await params).slug}`));
 
   const { slug } = await params;
 

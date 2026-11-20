@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { FormulaireCollection } from "@/components/collections/formulaire";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { mesCollections } from "@/lib/collections/service";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
 
@@ -23,7 +24,7 @@ const TRAME = `repeating-linear-gradient(135deg,${LAVANDE} 0 7px,${BLANC} 7px 16
  */
 export default async function CollectionsPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/collections"));
   const collections = await mesCollections(utilisateur.id);
 
   return (

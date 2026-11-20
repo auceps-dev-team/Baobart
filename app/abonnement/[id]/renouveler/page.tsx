@@ -12,6 +12,7 @@ import {
   type MotifRefus,
 } from "@/lib/abonnements/renouvellement";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import {
@@ -85,7 +86,7 @@ export default async function RenouvelerPage({
   searchParams: Promise<{ paiement?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/abonnement/${(await params).id}/renouveler`));
 
   const { id } = await params;
   const { paiement: refus } = await searchParams;

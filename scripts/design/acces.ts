@@ -55,6 +55,11 @@ export async function resoudreParametres(db: PrismaClient, ids: Record<Compte, s
     job: await premier(`select id as v from "JobPosting" limit 1`),
     jobAgence: await premier(`select id as v from "JobPosting" where "recruiterId" = $1 limit 1`, ids.agence),
     commande: await premier(`select id as v from "Order" limit 1`),
+    // Une ligne aboutie du compte client : le certificat ne s'ouvre qu'à son acheteur.
+    ligneAchetee: await premier(
+      `select oi.id as v from "OrderItem" oi join "Order" o on o.id = oi."orderId" where o."buyerId" = $1 and oi.state in ('SUCCESSFUL', 'NOT_CHARGED') order by oi."createdAt" limit 1`,
+      ids.client,
+    ),
     abonnement: await premier(`select id as v from "Subscription" where "userId" = $1 limit 1`, ids.agence),
     paiementAbonnement: await premier(`select id as v from "SubscriptionPayment" limit 1`),
     evenement: await premier(`select id as v from "Event" limit 1`),

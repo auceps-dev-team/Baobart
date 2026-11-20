@@ -196,7 +196,14 @@ describe("deux passages en même temps", () => {
 
     const [a, b] = await Promise.all([vider(20), vider(20)]);
 
-    expect(a.traites + b.traites).toBe(10);
+    // Un échec doit dire CE qui reste : c'est ce relevé qui a donné la cause
+    // de #64 (des `nextAttemptAt` posés par l'horloge du moteur de Prisma,
+    // en avance sur celle de `reclamer`).
+    const restes = await db.emailOutbox.findMany({
+      where: { status: { not: "SENT" } },
+      select: { idempotencyKey: true, status: true, nextAttemptAt: true, claimedAt: true },
+    });
+    expect(a.traites + b.traites, `a=${a.traites} b=${b.traites}, restent : ${JSON.stringify(restes)}`).toBe(10);
     expect(a.envoyes + b.envoyes).toBe(10);
 
     const envoyes = await db.emailOutbox.count({ where: { status: "SENT" } });

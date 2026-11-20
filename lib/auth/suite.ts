@@ -64,3 +64,16 @@ export function suiteSure(brut: unknown): Route | null {
 export function destination(brut: unknown): Route {
   return suiteSure(brut) ?? DESTINATION_PAR_DEFAUT;
 }
+
+/**
+ * Le lien vers la connexion qui ramène ici après : `/connexion?suite=<chemin>`.
+ *
+ * Vingt-cinq pages renvoyaient à `/connexion` tout court : Yao, renvoyé
+ * depuis `/dashboard/achats`, atterrissait sur l'aperçu et devait retrouver
+ * sa page (Q-18, recette du 14/11/2026). Le chemin passe par `suiteSure`,
+ * comme à l'arrivée : un chemin refusé donne la connexion sans suite.
+ */
+export function connexionPuis(chemin: string): Route {
+  const sur = suiteSure(chemin);
+  return (sur ? `/connexion?suite=${encodeURIComponent(sur)}` : "/connexion") as Route;
+}

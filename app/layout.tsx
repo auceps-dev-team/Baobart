@@ -3,6 +3,7 @@ import { Archivo_Black, Poppins, Space_Mono } from "next/font/google";
 
 import { BanniereCookies } from "@/components/consentement/banniere-cookies";
 import { BarreOnglets } from "@/components/shell/barre-onglets";
+import { GardeTraduction } from "@/components/systeme/garde-traduction";
 import { urlDuSite } from "@/lib/config/site";
 
 import "./globals.css";
@@ -139,6 +140,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>
+        {/* Le filet sous la traduction du navigateur (Q-44), posé avant le reste. */}
+        <GardeTraduction />
         {children}
         {modal}
         {/* Sous 620 px, sur les écrans où la maquette mobile la dessine (D2b). */}

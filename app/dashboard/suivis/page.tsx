@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { ilYA } from "@/lib/social/regles";
 import { elementsAimes } from "@/lib/social/queries";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ElementsSuivisPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/suivis"));
 
   const aimes = await elementsAimes(utilisateur.id);
 
