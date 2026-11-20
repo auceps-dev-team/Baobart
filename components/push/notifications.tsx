@@ -492,7 +492,10 @@ export function Notifications({
           >
             Ce que tu reçois, et rien de plus :
           </div>
-          <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 9 }}>
+          {/* `1 1 240px` et `minWidth: 0` : la rangée rétrécit, et ses pastilles passent
+              à la ligne. En `0 0 auto`, elle gardait la largeur des quatre sur une ligne
+              (461 px) et la page débordait de 208 px à 320 (mesuré le 20/11, D2a). */}
+          <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexWrap: "wrap", gap: 9 }}>
             {relances.map((r) => (
               <span
                 key={r}

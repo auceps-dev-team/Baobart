@@ -360,7 +360,15 @@ export function DetailProduit({
           Cette ressource n&apos;est plus en vente. Tu l&apos;as obtenue : tes fichiers restent à toi.
         </p>
       ) : null}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/*
+        Sous 900 px, la grille s'empile, et le prix arrivait APRÈS le partage,
+        les avis et les commentaires : « Télécharger » à 1 737 px pour un écran
+        de 780 (Q-04, recette du 14/11). `globals.css` (« La fiche sous 900 px »)
+        rend alors cette colonne transparente et ordonne : le média, puis les
+        informations et le prix (`data-fiche-droite`), puis la discussion
+        (`data-fiche-apres`). Au-dessus de 900 px, rien ne change.
+      */}
+      <div data-fiche-gauche style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {extraitEnPrincipal && produit.extrait ? (
           <div
             style={{
@@ -527,6 +535,7 @@ export function DetailProduit({
           venu voir, avant la discussion (demandé le 15/10). Le bouton
           « Partager ↗ » de la carte de prix reste celui de la maquette.
         */}
+        <div data-fiche-apres style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <BarrePartage
           chemin={`/products/${produit.slug}`}
           titre={produit.titre}
@@ -545,9 +554,10 @@ export function DetailProduit({
           total={social.commentaires}
           connecte={social.connecte}
         />
+        </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div data-fiche-droite style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div
           style={{
             border: CADRE,

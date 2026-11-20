@@ -187,6 +187,24 @@ export function Header({
   // Un minuteur qui survit au démontage rappellerait un `setState` sur un
   // composant disparu.
   useEffect(() => annulerFermeture, [annulerFermeture]);
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════════
+   * AU DOIGT, LE PREMIER TOUCHER OUVRE LE SOUS-MENU (Q-03, recette du 14/11)
+   *
+   * Sur un écran tactile, il n'y a pas de survol. Le navigateur émet, dans
+   * l'ordre : `pointerdown`, puis les événements de souris de compatibilité
+   * (`mouseenter`, qui ouvrait bien le sous-menu), puis `click` — qui suivait
+   * le lien de l'entrée. Le sous-menu s'ouvrait donc et la page changeait
+   * aussitôt : Jobs, Services, Concours et huit autres rubriques n'étaient
+   * atteignables qu'en tapant leur adresse (mesuré le 20/11 : 0 sur 3).
+   *
+   * D'où : au doigt (ou au stylet), un toucher sur une entrée fermée ouvre
+   * son sous-menu et ne navigue pas ; le toucher suivant suit le lien.
+   * « Fermée » se lit au `pointerdown`, AVANT que `mouseenter` ne l'ouvre.
+   * À la souris, rien ne change : le survol ouvre, le clic navigue.
+   */
+  const toucher = useRef<{ type: string; ouvertAvant: boolean }>({ type: "mouse", ouvertAvant: false });
   const dernier = useRef(0);
 
   // La hauteur réelle de l'en-tête, pour que le rail fixe se cale dessous.
@@ -438,9 +456,24 @@ export function Header({
               onMouseLeave={() => fermerBientot(() => setMenuOuvert(null))}
               style={{ position: "relative" }}
             >
-              {/* Pourquoi un `<Link>` : voir `LienOuLibelle`. */}
+              {/* Pourquoi un `<Link>` : voir `LienOuLibelle`. Le toucher : voir `toucher`. */}
               <LienOuLibelle
                 href={groupe.href}
+                aria-expanded={groupe.items.length > 0 ? menuOuvert === groupe.key : undefined}
+                onPointerDown={(e) => {
+                  toucher.current = { type: e.pointerType, ouvertAvant: menuOuvert === groupe.key };
+                }}
+                onClick={(e) => {
+                  const t = toucher.current;
+                  toucher.current = { type: "mouse", ouvertAvant: false };
+                  // Au clavier (`detail === 0`), Entrée suit le lien, comme avant.
+                  if (e.detail === 0) return;
+                  if (groupe.items.length > 0 && t.type !== "mouse" && !t.ouvertAvant) {
+                    e.preventDefault();
+                    annulerFermeture();
+                    setMenuOuvert(groupe.key);
+                  }
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
