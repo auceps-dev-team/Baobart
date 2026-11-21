@@ -153,7 +153,10 @@ test.describe("D2b — sur un téléphone de 360 px", () => {
  *
  * Avec des montants longs, pas des zéros : une vente de 1 234 567 F par mois
  * s'écrit « 1 234,6k » : 51 px, pour une colonne de 31 à 360 px (mesuré le
- * 21/11). D'où les montants retirés sous 620 px, comme dans la maquette mobile.
+ * 21/11). Et en CI, à 320 px, « sept. » fait 36 px pour 30 — ses polices sont
+ * plus larges que celles de ce poste, où il tenait. D'où, sous 620 px, ni
+ * montant ni mois sous les barres, mais le premier et le dernier mois dessous,
+ * comme l'écran 10 de la maquette mobile.
  */
 async function ventesSurSixMois(userId: string, montant: number) {
   const maintenant = new Date();
@@ -196,11 +199,22 @@ for (const largeur of [360, 320]) test.describe(`à ${largeur} px, le graphique 
         expect(m.right).toBeLessThanOrEqual(cadre.right + 1);
       }
       expect(textesCoupes, "chaque texte tient dans sa colonne").toEqual([]);
+
+      // Le premier et le dernier mois, sous le graphique, sur toute sa largeur.
+      const bornes = page.locator(".graphique-mois-bornes");
+      await expect(bornes).toBeVisible();
+      const { textes, deborde } = await bornes.evaluate((el) => ({
+        textes: [...el.children].map((c) => c.textContent?.trim() ?? ""),
+        deborde: el.scrollWidth > el.clientWidth + 1,
+      }));
+      expect(textes).toHaveLength(2);
+      expect(textes.every((t) => t.length > 0), "deux mois nommés").toBe(true);
+      expect(deborde, "les bornes tiennent dans la largeur du graphique").toBe(false);
     });
   }
 });
 
-test("au bureau, le graphique par mois garde ses montants au-dessus des barres", async ({ page, context, baseURL }) => {
+test("au bureau, le graphique par mois garde ses montants et ses mois sur chaque barre", async ({ page, context, baseURL }) => {
   const r = await ressourceVendable();
   await ventesSurSixMois(r.vendeurId, 1_234_567);
   await seConnecter(context, r.vendeurId, baseURL!);
@@ -211,6 +225,10 @@ test("au bureau, le graphique par mois garde ses montants au-dessus des barres",
   const montants = graphique.getByText(/^1\s234,6k$/);
   await expect(montants).toHaveCount(6);
   for (const montant of await montants.all()) await expect(montant).toBeVisible();
+  const libelles = page.locator(".graphique-mois-libelle");
+  await expect(libelles).toHaveCount(6);
+  for (const libelle of await libelles.all()) await expect(libelle).toBeVisible();
+  await expect(page.locator(".graphique-mois-bornes")).toBeHidden();
 });
 
 test("au bureau, ni barre d'onglets, ni cloche, ni « Menu » : l'en-tête est inchangé", async ({ page }) => {
