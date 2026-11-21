@@ -261,3 +261,21 @@ describe("le courriel de bienvenue (Q-28)", () => {
     expect(rendre("BIENVENUE", { nom: "Yao" }).texte).not.toContain("http");
   });
 });
+
+describe("« Nouvel abonné » nomme le suiveur (décision du 21/11)", () => {
+  it("dit le nom affiché de qui suit", () => {
+    const m = rendre("NOUVEL_ABONNE", { nom: "Awa", suiveur: "Kofi Mensah" });
+    expect(m.texte).toContain("Kofi Mensah suit désormais ta boutique.");
+    expect(m.texte).not.toContain("Quelqu'un");
+  });
+
+  it("un courriel déposé avant cette version, sans le champ, part encore", () => {
+    // Sinon, les courriels en file au déploiement échoueraient à l'envoi.
+    const m = rendre("NOUVEL_ABONNE", { nom: "Awa" });
+    expect(m.texte).toContain("Quelqu'un suit désormais ta boutique.");
+  });
+
+  it("un nom vide est refusé au dépôt, pas envoyé tel quel", () => {
+    expect(() => rendre("NOUVEL_ABONNE", { nom: "Awa", suiveur: "" })).toThrow(ChargeInvalide);
+  });
+});

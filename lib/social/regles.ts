@@ -251,3 +251,28 @@ export function suitDepuis(quand: Date, maintenant: Date = new Date()): string {
   if (relatif.startsWith("il y a ")) return `te suit depuis ${relatif.slice("il y a ".length)}`;
   return `te suit depuis le ${relatif}`;
 }
+
+// ─────────────────────────────────────────────────── l'avis « Nouvel abonné » ──
+
+/**
+ * La clé de l'avis « Nouvel abonné » : une par couple (suiveur, créateur), pour
+ * qu'un suivi défait puis refait ne prévienne pas deux fois (`basculerSuiviDe`).
+ *
+ * Elle commence par le suiveur, et c'est voulu : depuis le 21/11, l'avis porte
+ * son NOM (décision du responsable). Effacer son compte doit donc retirer ces
+ * avis chez chaque créateur qu'il suivait — `prefixeAvisAbonne` les retrouve
+ * tous d'un seul `startsWith` (lib/rgpd/effacement.ts). Le tiret final compte :
+ * sans lui, un identifiant serait le préfixe d'un autre plus long.
+ */
+export function cleAvisAbonne(suiveurId: string, createurId: string): string {
+  return `${prefixeAvisAbonne(suiveurId)}${createurId}`;
+}
+
+export function prefixeAvisAbonne(suiveurId: string): string {
+  return `abonne-${suiveurId}-`;
+}
+
+/** Le nom que l'avis donne au suiveur : son nom affiché, jamais son adresse. */
+export function nomDansLAvis(displayName: string | null | undefined): string {
+  return displayName?.trim() || "Un membre Baobart";
+}

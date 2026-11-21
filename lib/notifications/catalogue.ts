@@ -300,7 +300,8 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
   NOUVEL_ABONNE: {
     audience: "vendeur",
     libelle: "Nouvel abonné",
-    explication: "Quelqu'un suit désormais ta boutique.",
+    // Lue dans les réglages des notifications. L'avis lui-même nomme la personne (21/11).
+    explication: "Quelqu'un suit désormais ta boutique : l'avis te dit qui.",
     modele: "NOUVEL_ABONNE",
     // Même raison : c'est l'événement le plus fréquent et le moins actionnable.
     defauts: { COURRIEL: false, IN_APP: true, PUSH: false },

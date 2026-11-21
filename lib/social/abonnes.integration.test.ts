@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { anonymiser } from "@/lib/rgpd/effacement";
 import { abonnesDe } from "@/lib/social/queries";
 import { basculerSuiviDe } from "@/lib/social/service";
 
@@ -130,5 +131,95 @@ describe("abonnesDe — la liste de ceux qui suivent (lot 5a)", () => {
     await basculerSuiviDe(a, createur);
     const avis = await db.notification.findFirstOrThrow({ where: { userId: createur, cle: `in-app:abonne-${a}-${createur}` } });
     expect(avis.lien).toBe("/dashboard/abonnes");
+  });
+});
+
+describe("« Nouvel abonné » nomme le suiveur, et l'effacement l'en retire (décision du 21/11)", () => {
+  /** Un créateur qui a ALLUMÉ le courriel de cet avis (éteint par défaut) : l'avis existe alors sur les deux canaux. */
+  async function createurAvecCourriel(m: string) {
+    const id = await membre(m, "Createur");
+    await db.notificationPreference.create({ data: { userId: id, evenement: "NOUVEL_ABONNE", canal: "COURRIEL", actif: true } });
+    return id;
+  }
+
+  it("l'avis dit le nom affiché du suiveur, en cloche et en courriel — jamais son adresse", async () => {
+    const m = marque();
+    const createur = await createurAvecCourriel(m);
+    const ama = await membre(m, "Ama");
+    await basculerSuiviDe(ama, createur);
+
+    const avis = await db.notification.findFirstOrThrow({ where: { cle: `in-app:abonne-${ama}-${createur}` } });
+    expect(avis.corps).toBe("Ama suit désormais ta boutique.");
+    expect(avis.corps).not.toContain("@");
+    const courriel = await db.emailOutbox.findUniqueOrThrow({ where: { idempotencyKey: `courriel:abonne-${ama}-${createur}` } });
+    expect(courriel.payload).toMatchObject({ suiveur: "Ama" });
+  });
+
+  it("effacer le suiveur retire son nom chez le créateur, cloche et courriel ; l'avis d'un autre reste", async () => {
+    const m = marque();
+    const createur = await createurAvecCourriel(m);
+    const efface = await membre(m, "Efface");
+    const reste = await membre(m, "Reste");
+    await basculerSuiviDe(efface, createur);
+    await basculerSuiviDe(reste, createur);
+
+    await anonymiser(efface);
+
+    const avis = await db.notification.findMany({ where: { userId: createur }, select: { corps: true } });
+    const courriels = await db.emailOutbox.findMany({ where: { idempotencyKey: { contains: createur } }, select: { payload: true } });
+    // Le nom de l'effacé n'est plus nulle part chez le créateur…
+    expect(JSON.stringify([avis, courriels])).not.toContain("Efface");
+    // …et l'avis de l'autre suiveur est toujours là, sur les deux canaux.
+    expect(avis.map((a) => a.corps)).toEqual(["Reste suit désormais ta boutique."]);
+    expect(courriels).toHaveLength(1);
+  });
+
+  it("les courriels adressés à la personne effacée partent avec elle, ceux des autres restent", async () => {
+    const m = marque();
+    const efface = await membre(m, "Destinataire");
+    const autre = await membre(m, "Autre");
+    const adresse = (id: string) => db.user.findUniqueOrThrow({ where: { id }, select: { email: true } }).then((u) => u.email);
+    const poser = async (id: string, n: string, majuscules = false) =>
+      db.emailOutbox.create({
+        data: {
+          idempotencyKey: `test-${m}-${n}`,
+          recipient: majuscules ? (await adresse(id)).toUpperCase() : await adresse(id),
+          template: "BIENVENUE",
+          payload: { nom: n },
+        },
+      });
+    await poser(efface, "en-attente");
+    await poser(efface, "casse-differente", true);
+    await poser(autre, "autre");
+
+    await anonymiser(efface);
+
+    const restants = await db.emailOutbox.findMany({ where: { idempotencyKey: { startsWith: `test-${m}-` } }, select: { idempotencyKey: true } });
+    expect(restants.map((r) => r.idempotencyKey)).toEqual([`test-${m}-autre`]);
+  });
+});
+
+describe("l'effacement remet les compteurs de suivi d'aplomb, des deux côtés", () => {
+  it("effacer un suiveur recompte le créateur ; effacer un créateur recompte ceux qui le suivaient", async () => {
+    const m = marque();
+    const createur = await membre(m, "Createur");
+    const autreCreateur = await membre(m, "Autre");
+    const suiveur = await membre(m, "Suiveur");
+    const fidele = await membre(m, "Fidele");
+    // Par le vrai geste : les compteurs partent justes.
+    await basculerSuiviDe(suiveur, createur);
+    await basculerSuiviDe(fidele, createur);
+    await basculerSuiviDe(fidele, autreCreateur);
+
+    await anonymiser(suiveur);
+    const apres = await db.user.findUniqueOrThrow({ where: { id: createur }, select: { followersCount: true, profile: { select: { followerCount: true } } } });
+    expect(apres.followersCount).toBe(1);
+    expect(apres.profile?.followerCount).toBe(1);
+    expect((await abonnesDe(createur, undefined, 10)).total).toBe(apres.followersCount);
+
+    // L'autre sens : le créateur effacé, celle qui le suivait ne suit plus qu'un créateur.
+    await anonymiser(createur);
+    const fideleApres = await db.user.findUniqueOrThrow({ where: { id: fidele }, select: { followingCount: true } });
+    expect(fideleApres.followingCount).toBe(1);
   });
 });

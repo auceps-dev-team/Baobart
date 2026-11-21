@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cleAvisAbonne,
   COMMENTAIRE_MAX,
   compteurApresBascule,
   ilYA,
+  nomDansLAvis,
   peutRetirerCommentaire,
   phraseDesAbonnes,
+  prefixeAvisAbonne,
   presenterAbonne,
   suitDepuis,
   verifierCommentaire,
@@ -211,5 +214,23 @@ describe("suitDepuis — la ligne d'un abonné sans vitrine", () => {
     expect(suitDepuis(new Date(2026, 10, 21, 11, 15, 0), t)).toBe("te suit depuis 45 min");
     expect(suitDepuis(new Date(2026, 10, 18, 12, 0, 0), t)).toBe("te suit depuis 3 j");
     expect(suitDepuis(new Date(2026, 9, 2, 12, 0, 0), t)).toMatch(/^te suit depuis le 2 oct\.$/);
+  });
+});
+
+describe("l'avis « Nouvel abonné » : sa clé et le nom qu'il donne", () => {
+  it("la clé commence par le suiveur, et son préfixe la retrouve", () => {
+    const cle = cleAvisAbonne("suiveur1", "createur9");
+    expect(cle).toBe("abonne-suiveur1-createur9");
+    expect(cle.startsWith(prefixeAvisAbonne("suiveur1"))).toBe(true);
+  });
+
+  it("le tiret final empêche un identifiant d'en attraper un plus long", () => {
+    expect(cleAvisAbonne("suiveur12", "c").startsWith(prefixeAvisAbonne("suiveur1"))).toBe(false);
+  });
+
+  it("le nom affiché, ou « Un membre Baobart » — jamais une case vide", () => {
+    expect(nomDansLAvis("  Awa Diallo ")).toBe("Awa Diallo");
+    expect(nomDansLAvis("   ")).toBe("Un membre Baobart");
+    expect(nomDansLAvis(null)).toBe("Un membre Baobart");
   });
 });
