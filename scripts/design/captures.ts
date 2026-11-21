@@ -311,11 +311,20 @@ function mesurer(vw: number): Mesures {
   // La barre s'étire avec la page et sa carte utilisateur est poussée en bas (`marginTop:
   // auto`) : lire la position de cette carte donnerait toujours « ça tient ». On mesure donc
   // la hauteur NATURELLE du menu — ses enfants, ses espacements, ses marges intérieures.
+  //
+  // « Ses enfants » : ceux qui prennent place dans sa colonne. On descend dans `display:
+  // contents` (l'enveloppe de `RepliMobile`, D2a, sans boîte au bureau) et on saute `display:
+  // none`. Même calcul que `mesurer` dans e2e/pagination.spec.ts, qui dit ce que coûtait l'oubli.
   let depasseMenu: number | null = null;
   const menu = document.querySelector<HTMLElement>("[data-sidebar]");
   if (menu && vw >= 1000) {
     const s = getComputedStyle(menu);
-    const enfants = [...menu.children] as HTMLElement[];
+    const enColonne = (el: Element): HTMLElement[] =>
+      [...el.children].flatMap((e) => {
+        const d = getComputedStyle(e).display;
+        return d === "none" ? [] : d === "contents" ? enColonne(e) : [e as HTMLElement];
+      });
+    const enfants = enColonne(menu);
     const naturelle =
       enfants.reduce((h, e) => h + e.offsetHeight, 0) +
       (Number.parseFloat(s.rowGap) || 0) * Math.max(0, enfants.length - 1) +

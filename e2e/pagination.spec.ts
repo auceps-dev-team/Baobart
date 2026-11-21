@@ -70,12 +70,28 @@ async function acheteurCharge(n: number) {
   return { id: acheteur.id, vendeur: vendeur.id };
 }
 
-/** Le bas naturel du menu, et le bas de la barre de pagination, en px depuis le haut de la page. */
+/**
+ * Le bas naturel du menu, et le bas de la barre de pagination, en px depuis le haut de la page.
+ *
+ * Les éléments comptés sont ceux qui prennent place dans la colonne du menu, pas ses enfants
+ * directs. `RepliMobile` (D2a, #69) enveloppe les entrées et la carte de compte dans un élément
+ * en `display: contents` : sans boîte, donc 0 px de haut, et ce sont SES enfants qui sont dans
+ * la colonne. Mesuré le 21/11/2026 : en ne lisant que les enfants directs, le bas du menu
+ * tombait à 900 px (l'écran) sur des pages de 1 042 px que le menu lui-même allongeait — quatre
+ * échecs pour des listes qui tenaient. `sansHauteur` garde contre le retour de cette erreur.
+ */
 async function mesurer(page: Page) {
   return page.evaluate(() => {
     const menu = document.querySelector<HTMLElement>("[data-sidebar]")!;
     const s = getComputedStyle(menu);
-    const enfants = [...menu.children] as HTMLElement[];
+    // On descend dans `display: contents` ; on saute `display: none` (le bouton « Menu de
+    // l'espace », au bureau), qui ne prend ni place ni espacement.
+    const enColonne = (el: Element): HTMLElement[] =>
+      [...el.children].flatMap((e) => {
+        const d = getComputedStyle(e).display;
+        return d === "none" ? [] : d === "contents" ? enColonne(e) : [e as HTMLElement];
+      });
+    const enfants = enColonne(menu);
     const naturelle =
       enfants.reduce((h, e) => h + e.offsetHeight, 0) +
       (Number.parseFloat(s.rowGap) || 0) * Math.max(0, enfants.length - 1) +
@@ -87,6 +103,8 @@ async function mesurer(page: Page) {
       basMenu,
       basListe: barre ? barre.getBoundingClientRect().bottom + scrollY : null,
       hauteurPage: document.documentElement.scrollHeight,
+      // Un élément compté qui porte du texte mais 0 px de haut : la somme ne voit pas tout le menu.
+      sansHauteur: enfants.filter((e) => e.offsetHeight === 0 && e.innerText.trim() !== "").length,
     };
   });
 }
@@ -109,7 +127,8 @@ test.describe("les listes paginées tiennent sous le menu", () => {
       await expect(barre).toBeVisible();
       await expect(barre).toContainText("page 1 sur");
 
-      const { basMenu, basListe, hauteurPage } = await mesurer(page);
+      const { basMenu, basListe, hauteurPage, sansHauteur } = await mesurer(page);
+      expect(sansHauteur, "la mesure du menu voit tout son contenu").toBe(0);
       expect(basListe, "la barre de pagination est rendue").not.toBeNull();
       expect(basListe!, `bas de la liste ${Math.round(basListe!)} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(basMenu);
       // Et la page entière, marges comprises (choix du 14/11 : « la page s'arrête avec le menu »).
@@ -150,7 +169,8 @@ test.describe("les listes paginées tiennent sous le menu", () => {
 
     await page.reload(); // de nouveau fermée, pour mesurer la page telle qu'elle s'ouvre
     await expect(page.getByRole("navigation", { name: "Pages" })).toContainText("page 1 sur");
-    const { basMenu, basListe } = await mesurer(page);
+    const { basMenu, basListe, sansHauteur } = await mesurer(page);
+    expect(sansHauteur, "la mesure du menu voit tout son contenu").toBe(0);
     // La liste seulement : la carte « Ce qu'un remboursement te coûte » la suit, ce n'est pas la liste.
     expect(basListe!, `bas de la liste ${Math.round(basListe!)} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(basMenu);
   });

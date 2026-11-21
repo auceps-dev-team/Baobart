@@ -22,13 +22,14 @@
  */
 import { PrismaClient } from "@prisma/client";
 
+import { baseLocale } from "./base-locale";
+
 const N = 30;
 const MARQUE = "liste-";
 const db = new PrismaClient();
 
 function refuserSiCeNEstPasLocal() {
-  const url = process.env.DATABASE_URL ?? "";
-  if (!url.includes("localhost") && !url.includes("127.0.0.1")) {
+  if (!baseLocale(process.env.DATABASE_URL ?? "")) {
     console.error("Refus : DATABASE_URL ne pointe pas sur une base locale.");
     process.exit(1);
   }
