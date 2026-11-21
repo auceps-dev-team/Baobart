@@ -11,7 +11,7 @@ import {
 } from "@/components/systeme/panneau-operations";
 import { sessionCourante } from "@/lib/auth/session";
 import { connexionPuis } from "@/lib/auth/suite";
-import { lireVentesCreateur } from "@/lib/dashboard/lectures";
+import { PLAFOND_VENTES, lireVentesCreateur, lireVentesPourLEcran } from "@/lib/dashboard/lectures";
 import { encaisseDe } from "@/lib/domain/encaisse";
 import { accorde } from "@/lib/i18n/accord";
 import { formatMoney } from "@/lib/i18n/money";
@@ -95,7 +95,7 @@ function actionsDe(etat: EtatVente, restant: number): ActionOps[] {
 export default async function VentesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ etat?: string; page?: string }>;
+  searchParams: Promise<{ etat?: string; page?: string; q?: string }>;
 }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect(connexionPuis("/dashboard/ventes"));
@@ -104,10 +104,13 @@ export default async function VentesPage({
   // règle que `/dashboard` (`app/dashboard/page.tsx`).
   if (utilisateur.progression.etape === "ACHETEUR") redirect("/dashboard/apercu");
 
-  const { etat: brut, page: pageBrute } = await searchParams;
+  const { etat: brut, page: pageBrute, q: qBrut = "" } = await searchParams;
   const filtre = brut && brut in ETATS_VENTE ? (brut as EtatVente) : undefined;
 
-  const toutes = await lireVentesCreateur(utilisateur.id, 60);
+  // La recherche par la base, avant le plafond (décidé le 21/11/2026 : « ajouter
+  // les filtres »). C'était « les 60 dernières », sans le dire, et un champ de
+  // recherche qui ne filtrait rien : voir `lireVentesPourLEcran`.
+  const { ventes: toutes, tronquee, q } = await lireVentesPourLEcran(utilisateur.id, { q: qBrut });
 
   const decrites = toutes.map((v: Vente) => {
     const brutMontant = encaisseDe(v);
@@ -134,6 +137,7 @@ export default async function VentesPage({
   const adresse = (n: number) => {
     const p = new URLSearchParams();
     if (filtre) p.set("etat", filtre);
+    if (q) p.set("q", q);
     if (n > 1) p.set("page", String(n));
     return p.size > 0 ? `/dashboard/ventes?${p}` : "/dashboard/ventes";
   };
@@ -148,18 +152,24 @@ export default async function VentesPage({
     sens: ETATS_VENTE[e].sens,
   }));
 
+  const versEtat = (e: EtatVente | undefined) => {
+    const p = new URLSearchParams();
+    if (e) p.set("etat", e);
+    if (q) p.set("q", q);
+    return p.size > 0 ? `/dashboard/ventes?${p}` : "/dashboard/ventes";
+  };
   const filtres: FiltreOps[] = [
     {
       code: "Tous",
       libelle: "TOUTES",
       actif: filtre === undefined,
-      href: "/dashboard/ventes",
+      href: versEtat(undefined),
     },
     ...ORDRE_VENTE.map((e) => ({
       code: e,
       libelle: ETATS_VENTE[e].libelle,
       actif: filtre === e,
-      href: `/dashboard/ventes?etat=${e}`,
+      href: versEtat(e),
     })),
   ];
 
@@ -216,6 +226,7 @@ export default async function VentesPage({
           legendeTitre="États d'une vente"
           legende={legende}
           rechercherPlaceholder="Rechercher une vente ou un acheteur…"
+          recherche={{ valeur: q, conserver: filtre ? { etat: filtre } : {} }}
           filtres={filtres}
           colonnes={[
             "Référence",
@@ -225,7 +236,7 @@ export default async function VentesPage({
             "Reste remboursable",
           ]}
           lignes={lignes}
-          pied={`${filtrees.length} ${accorde(filtrees.length, "vente")} sur ${toutes.length} · un remboursement te débite la totalité payée, pas seulement ta part`}
+          pied={`${filtrees.length} ${accorde(filtrees.length, "vente")}${q ? ` pour « ${q} »` : ""} sur ${toutes.length}${tronquee ? ` — les ${PLAFOND_VENTES} plus récentes : précise la recherche pour remonter plus loin` : ""} · un remboursement te débite la totalité payée, pas seulement ta part`}
           peutAgir
           executer={agirSurLaVente}
         />

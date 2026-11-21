@@ -237,16 +237,33 @@ export async function lireCommandesAcheteur(userId: string, limit = 10) {
  * accès actif », avec « Rembourser… » — 9 000 F « encaissés » pour un
  * paiement abandonné (mesuré le 25/09, S15). `toutes` sert l'écran des
  * commandes, qui montre chaque ligne avec son état réel.
+ *
+ * `q` cherche dans la ressource, l'acheteur (nom affiché ou adresse) et la
+ * référence — les huit derniers caractères de l'identifiant, tels que l'écran
+ * « Ventes » les affiche en majuscules. Sans tenir compte de la casse, comme
+ * « Statuts » (`lib/badges/lecture.ts`). L'appelant l'a déjà nettoyé.
  */
 export async function lireVentesCreateur(
   userId: string,
   limit = 10,
-  { toutes = false }: { toutes?: boolean } = {},
+  { toutes = false, q = "" }: { toutes?: boolean; q?: string } = {},
 ) {
+  const sansCasse = "insensitive" as const;
   return db.orderItem.findMany({
     where: {
       product: { sellerId: userId },
       ...(toutes ? {} : { state: { in: [...ETATS_ABOUTIS] } }),
+      ...(q
+        ? {
+            OR: [
+              { product: { name: { contains: q, mode: sansCasse } } },
+              { order: { buyer: { email: { contains: q, mode: sansCasse } } } },
+              { order: { buyer: { profile: { displayName: { contains: q, mode: sansCasse } } } } },
+              // Les identifiants sont en minuscules ; l'écran les montre en majuscules.
+              { id: { endsWith: q.toLowerCase() } },
+            ],
+          }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -273,6 +290,36 @@ export async function lireVentesCreateur(
       product: { select: { name: true, slug: true, currency: true, coverUrl: true } },
     },
   }) as Promise<VenteCreateur[]>;
+}
+
+/**
+ * Ce que l'écran « Ventes » peut montrer d'un coup — et qu'il dit quand il
+ * l'atteint. Il lisait les SOIXANTE dernières ventes, sans le dire : mesuré
+ * le 21/11/2026, une vente plus ancienne n'apparaissait ni dans la liste, ni
+ * par un filtre. Cinq cents tiennent sans peine (une requête, des lignes
+ * légères) ; au-delà, l'écran demande d'affiner la recherche.
+ */
+export const PLAFOND_VENTES = 500;
+
+/**
+ * Les ventes de l'écran « Ventes » : la recherche appliquée par la base,
+ * avant le plafond — pour qu'une vente ancienne se trouve en la cherchant.
+ * Les états, eux, se déduisent de plusieurs champs (`etatDeLaVente`) : la page
+ * les filtre après coup, sur ce qui est rendu ici.
+ */
+export async function lireVentesPourLEcran(
+  userId: string,
+  { q = "", plafond = PLAFOND_VENTES }: { q?: string; plafond?: number } = {},
+) {
+  // Comme « Statuts » : sans les blancs autour, et jamais plus de 80 caractères.
+  const recherche = q.trim().slice(0, 80).trim();
+  // Un de plus que le plafond : c'est ce qui permet de dire « il y en a d'autres ».
+  const lignes = await lireVentesCreateur(userId, plafond + 1, { q: recherche });
+  return {
+    ventes: lignes.slice(0, plafond),
+    tronquee: lignes.length > plafond,
+    q: recherche,
+  };
 }
 
 /**
