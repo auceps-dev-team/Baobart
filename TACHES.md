@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
+| **Lot 5a — La liste des abonnés** (A5, page `c_abonnes`) : qui suit le créateur, paginée en base, sans rien montrer d'un abonné que sa vitrine ne montre déjà | Claude (`aucepsdev`) | `claude/abonnes` | Commencé le 21/11, annoncé dans #61. | Tests d'intégration et navigateur (axe compris), CI verte, relecture par l'autre session. |
 
 ---
 
@@ -53,7 +54,7 @@ juste après le lot 4).
 | :-: | --- | --- | --- |
 | 1 | **Design — D2b mobile, les écrans dessinés** | Les écrans de `Baobart Mobile.dc.html` que l'application n'a pas : accueil en deux colonnes avec barre d'onglets, catalogue, fiche avec barre d'achat fixe, tableau de bord créateur, « Mes produits » en cartes, statistiques, profil et badges, connexion (D1b, « Mobile »). | Coupé du D2 le 20/11. Après D2a. 🧭 Le panier (écran 08) attend le responsable. |
 | 2 | **Design — D3/D4 Dashboard** | Aligner les ~20 écrans nouvellement dessinés (blog, événements, infolettre, publicités, remboursements, liste noire, témoignages, candidatures, dossiers, promos, réglages…). | La plupart des fonctionnalités existent : on aligne, on ne construit pas. |
-| 3 | **Lot 5 — Abonnés du créateur** (A5) | La liste de ceux qui suivent, et le fil « Suivre les détails ». | Le compteur est juste depuis v1.105.1. |
+| 3 | **Lot 5b — Suivre les détails** (A5, page `c_suivre`) | Le fil des créateurs suivis (« X a publié… », NOUVEAU / VU), les trois compteurs, abonnés et abonnements. L'entrée « Suivre les détails » du menu créateur. | Coupé du lot 5 le 21/11 : 5a (la liste des abonnés) est en cours. Demande une date de première publication sur `Product`, qui n'en a pas (lu le 21/11). Le compteur est juste depuis v1.105.1. |
 | 4 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
 | 5 | **Lot 8 — Pass All Access** (A6) | Un catalogue entier pour une durée fixe. | |
 | 6 | **Lot 9 — Connexion sociale, import Figma / Canva / Framer** (A8, A9) | | 🧭 Le responsable du dépôt doit créer les identifiants chez chaque fournisseur. |
