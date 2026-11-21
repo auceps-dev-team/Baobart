@@ -9,6 +9,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { reglerLesMessagesAction } from "@/lib/contact/actions-createur";
 import { lireProfilDashboard } from "@/lib/dashboard/lectures";
 import { departDuProfil } from "@/lib/profil/depart";
+import { paysTries } from "@/lib/i18n/pays";
 
 export const metadata = { title: "Profil de la boutique — Baobart." };
 export const dynamic = "force-dynamic";
@@ -60,6 +61,7 @@ export default async function BoutiquePage() {
         visuels={{ avatarUrl: p?.avatarUrl ?? null, bannerUrl: p?.bannerUrl ?? null }}
         email={utilisateur.email}
         disposition="boutique"
+        pays={paysTries()}
       />
 
       <div style={{ marginTop: 20, maxWidth: 640 }}>

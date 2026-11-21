@@ -19,6 +19,7 @@ import type { CreateurASuivre, Espace } from "@/lib/collections/espace";
 import type { ResumeCollection } from "@/lib/collections/service";
 import type { Filtre } from "@/lib/feed/types";
 import type { TemoignagePublic } from "@/lib/temoignages/service";
+import { accorde } from "@/lib/i18n/accord";
 
 /**
  * Sections de l'accueil, traduites de « Baobart Accueil.dc.html ».
@@ -129,7 +130,7 @@ export function Categories({
             opacity: 0.6,
           }}
         >
-          {familles.length} familles de ressources
+          {familles.length} {accorde(familles.length, "famille de ressources", "familles de ressources")}
         </div>
       </div>
 

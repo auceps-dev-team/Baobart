@@ -30,6 +30,7 @@ import {
 } from "@/lib/commerce/actions-promo";
 import { champsDe } from "@/lib/commerce/champs";
 import { minimumLibre } from "@/lib/commerce/montant";
+import { libelleDelai } from "@/lib/remboursements/regles";
 
 export const metadata = { title: "Ressource — Baobart." };
 export const dynamic = "force-dynamic";
@@ -58,6 +59,9 @@ const MESSAGES_ERREUR: Record<string, string> = {
     "Cette ressource a déjà été vendue : elle ne peut plus être supprimée. Retire-la de la vente — les acheteurs gardent ce qu'ils ont payé.",
   "sans-fichier":
     "Attache au moins un fichier avant de publier : sans lui, un acheteur paierait sans rien recevoir.",
+  // Q-23 : la description est ce qu'un acheteur lit avant de payer.
+  "sans-description":
+    "Écris une description avant de publier : c'est ce que l'acheteur lit avant de payer.",
   // La garde de `lib/products/actions.ts`. Sans ce message, le clic échouerait
   // sans un mot, et l'auteur croirait à une panne.
   "retrait-juridique":
@@ -329,7 +333,14 @@ export default async function ProduitDuTableauDeBord({
         </div>
       ) : null}
 
-      <FormulaireProduit action={modifier} depart={depart} libelleBouton="Enregistrer les modifications" />
+      <FormulaireProduit
+        action={modifier}
+        depart={depart}
+        libelleBouton="Enregistrer les modifications"
+        delaiRemboursement={libelleDelai(
+          (await db.user.findUnique({ where: { id: utilisateur.id }, select: { refundWindowDays: true } }))?.refundWindowDays ?? 30,
+        )}
+      />
 
       <div style={colonnes}>
         <div style={pile}>

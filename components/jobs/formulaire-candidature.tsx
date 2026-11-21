@@ -109,7 +109,7 @@ export function FormulaireCandidature({ offreId }: { offreId: string }) {
         />
         <div style={aide}>
           PDF uniquement, {(CV_TAILLE_MAX / 1_048_576).toFixed(0)} Mo maximum.
-          Un portfolio se met en lien plutôt qu&apos;en pièce jointe.
+          Un portfolio se met en lien plutôt qu&apos;en pièce jointe : colle son adresse dans ton message.
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export function FormulaireCandidature({ offreId }: { offreId: string }) {
           name="message"
           rows={7}
           maxLength={MESSAGE_MAX}
-          placeholder="Deux ou trois phrases sur ce qui te motive dans cette mission."
+          placeholder="Deux ou trois phrases sur ce qui te motive dans cette mission, et le lien de ton portfolio."
           style={{
             width: "100%",
             padding: "13px 15px",

@@ -371,7 +371,7 @@ export async function lireProfilDashboard(userId: string) {
 }
 
 export async function lireResumeDashboard(userId: string) {
-  const [produits, produitsPublies, commandes, telechargements, collections, abonnements, ventes, solde] =
+  const [produits, produitsPublies, commandes, telechargements, collections, abonnements, ventes] =
     await Promise.all([
       db.product.count({ where: { sellerId: userId } }),
       db.product.count({ where: { sellerId: userId, status: "PUBLISHED" } }),
@@ -380,7 +380,6 @@ export async function lireResumeDashboard(userId: string) {
       db.board.count({ where: { ownerId: userId } }),
       db.subscription.count({ where: { userId, status: "ACTIVE" } }),
       db.orderItem.count({ where: { product: { sellerId: userId }, state: { in: ["SUCCESSFUL", "NOT_CHARGED"] } } }),
-      db.balance.aggregate({ where: { userId, state: "UNPAID" }, _sum: { holdingAmount: true } }),
     ]);
 
   return {
@@ -391,7 +390,7 @@ export async function lireResumeDashboard(userId: string) {
     collections,
     abonnements,
     ventes,
-    soldeDisponible: solde._sum.holdingAmount ?? 0,
+    // Le solde n'est plus lu ici (Q-31) : l'accueil prend gainsDe, comme Gains.
   };
 }
 

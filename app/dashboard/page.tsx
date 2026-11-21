@@ -21,6 +21,7 @@ import { urlDuSite } from "@/lib/config/site";
 import { lireProgressionVendeur } from "@/lib/dashboard/devenir-vendeur-lecture";
 import { indicateursCreateur } from "@/lib/dashboard/indicateurs";
 import { lireResumeDashboard, lireVentesCreateur } from "@/lib/dashboard/lectures";
+import { gainsDe } from "@/lib/payments/gains";
 import { encaisseDe } from "@/lib/domain/encaisse";
 import { nomDuMoisPrecedent, variation } from "@/lib/dashboard/mois";
 import { messageProgression } from "@/lib/dashboard/nav";
@@ -99,11 +100,13 @@ async function VueVendeur({
   progression: string;
 }) {
   const maintenant = new Date();
-  const [i, resume, ventes, avancementAtelier] = await Promise.all([
+  const [i, resume, ventes, avancementAtelier, gains] = await Promise.all([
     indicateursCreateur(userId, maintenant),
     lireResumeDashboard(userId),
     lireVentesCreateur(userId, 4),
     etape === "ATELIER" ? lireProgressionVendeur(userId) : Promise.resolve(null),
+    // Q-31 : la même source que l'écran Gains, pour le même argent.
+    gainsDe(userId, maintenant),
   ]);
   const argent = (n: number) => formatMoney(n, i.devise);
   const ecart = variation(i.gainsMois, i.gainsMoisPrecedent);
@@ -168,7 +171,21 @@ async function VueVendeur({
           hint={ecart === null ? "premier mois chiffré" : `${ecart > 0 ? "+" : ""}${ecart} % vs ${nomDuMoisPrecedent(maintenant)}`}
           accent
         />
-        <MetricCard label="Solde à verser" value={argent(resume.soldeDisponible)} hint="part prochain versement" />
+        {/* Q-31 (recette du 14/11/2026) : « Solde à verser 4 425 F · part prochain
+            versement » ici, « Solde disponible 0 F · En attente de validation
+            4 425 F » sur Gains. Ce chiffre additionnait TOUT le non-versé, retenu
+            compris ; il lit désormais gainsDe, comme Gains. */}
+        <MetricCard
+          label="Solde à verser"
+          value={argent(gains.disponible)}
+          hint={
+            gains.enAttente > 0
+              ? `+ ${argent(gains.enAttente)} en attente de validation`
+              : gains.aDeduire > 0
+                ? `${argent(gains.aDeduire)} à déduire des prochaines ventes`
+                : "part au prochain versement"
+          }
+        />
         <MetricCard label="Ventes" value={formatCount(i.ventesTotal)} hint={`+${i.ventesMois} ce mois`} />
         <MetricCard label="Vues de page" value={formatCount(i.vues)} hint="de ta vitrine, depuis l'ouverture" mauve />
         <MetricCard

@@ -35,6 +35,7 @@ import {
 import { listerOffres } from "@/lib/services/queries";
 import { formatCount, formatMoney } from "@/lib/i18n/money";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE } from "@/lib/systeme/charte";
+import { accorde } from "@/lib/i18n/accord";
 
 export const dynamic = "force-dynamic";
 
@@ -329,10 +330,10 @@ export default async function ProfilCreateurPage({
                 borderTop: CADRE,
               }}
             >
-              <Indicateur valeur={formatCount(profil.ressourcesPubliees)} label="ressources" />
-              <Indicateur valeur={formatCount(profil.ventes)} label="ventes à vie" />
-              <Indicateur valeur={formatCount(profil.vues)} label="vues de page" />
-              <Indicateur valeur={formatCount(profil.abonnes)} label="abonnés" />
+              <Indicateur valeur={formatCount(profil.ressourcesPubliees)} label={accorde(profil.ressourcesPubliees, "ressource")} />
+              <Indicateur valeur={formatCount(profil.ventes)} label={accorde(profil.ventes, "vente à vie", "ventes à vie")} />
+              <Indicateur valeur={formatCount(profil.vues)} label={accorde(profil.vues, "vue de page", "vues de page")} />
+              <Indicateur valeur={formatCount(profil.abonnes)} label={accorde(profil.abonnes, "abonné")} />
               {profil.nombreDAvis > 0 ? (
                 <Indicateur
                   valeur={profil.note.toFixed(1)}

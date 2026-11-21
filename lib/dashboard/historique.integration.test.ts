@@ -219,6 +219,22 @@ describe("historique des téléchargements", () => {
     });
   }
 
+  // Piste 1 de la recette (14/11/2026) : « Disponible · Télécharger » sur un
+  // achat remboursé en entier, et le bouton menait à une page blanche (403).
+  it("ferme l'accès d'un achat remboursé en entier ; un remboursement partiel le laisse ouvert", async () => {
+    const a = await ressource(5_000, "a.zip");
+    const b = await ressource(5_000, "b.zip");
+    await commande({ produitId: a.produitId, prix: 5_000, etat: "SUCCESSFUL", rendu: 5_000 });
+    await commande({ produitId: b.produitId, prix: 5_000, etat: "SUCCESSFUL", rendu: 2_000 });
+    await retrait(a.produitId, a.fichierId, 1);
+    await retrait(b.produitId, b.fichierId, 1);
+
+    const h = await historiqueDesTelechargements(acheteur, "Tous");
+    const par = new Map(h.ressources.map((r) => [r.produitId, r]));
+    expect(par.get(a.produitId)?.accesFerme).toBe(true);
+    expect(par.get(b.produitId)?.accesFerme).toBe(false);
+  });
+
   it("regroupe par ressource et compte les reprises", async () => {
     const a = await ressource(7_000, "font.ttf");
     const b = await ressource(0, "textures.jpg");

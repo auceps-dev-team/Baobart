@@ -1,6 +1,8 @@
 "use client";
 
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useState } from "react";
+
+import { useOrigine, usePartageNatif } from "@/components/systeme/navigateur";
 
 import { Glyphe } from "@/components/reseaux/logos";
 import { absolue, courrielDePartage, destinationsDePartage } from "@/lib/reseaux/partage";
@@ -51,20 +53,14 @@ export function MenuPartage({
   /** Le bouton de la carte de prix, ou celui de l'en-tête du profil. */
   bouton?: "fiche" | "profil";
 }) {
-  const [url, setUrl] = useState(chemin);
-  const [origine, setOrigine] = useState<string | null>(null);
-  const [natif, setNatif] = useState(false);
+  // Lus sans effet (L1, components/systeme/navigateur.ts) : `null` et `false`
+  // au rendu serveur, la vraie valeur ensuite.
+  const origine = useOrigine();
+  const natif = usePartageNatif();
+  const url = origine ? `${origine}${chemin}` : chemin;
   const [copie, setCopie] = useState<"" | "ok" | "echec">("");
   const id = `partage-${cle}`;
   const ancre = `--partage-${cle}`;
-
-  // L'origine n'est connue que dans le navigateur.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- l'origine et navigator.share n'existent que dans le navigateur : les lire au rendu casserait l'hydratation.
-    setOrigine(window.location.origin);
-    setUrl(`${window.location.origin}${chemin}`);
-    setNatif(typeof navigator.share === "function");
-  }, [chemin]);
 
   const page = { url, titre, image: origine ? absolue(image, origine) : null };
 

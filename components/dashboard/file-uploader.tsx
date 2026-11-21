@@ -254,7 +254,7 @@ export function FileUploader({
             opacity: 0.7,
           }}
         >
-          glisse tes fichiers ici
+          dépose tes fichiers ici, ou choisis-les
         </div>
 
         {/*

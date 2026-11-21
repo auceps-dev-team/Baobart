@@ -14,6 +14,7 @@ import {
   MOYENS_VERSEMENT,
   type CodeCadence,
 } from "@/lib/payments/cadences";
+import { PAYS } from "@/lib/payments/rails";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
@@ -120,7 +121,19 @@ function CompteDeVersement({
   const demandeVisible = demande === codeConsomme ? null : demande;
 
   const choisi = MOYENS_VERSEMENT.find((m) => m.code === moyen) ?? MOYENS_VERSEMENT[0];
-  const refus = etat && !etat.ok ? etat : null;
+  // Q-22 (recette du 14/11/2026) : un numéro mobile sans indicatif passait
+  // sans pays. Le pays le complète (lib/payments/comptes.ts). Contrôlé, comme
+  // le numéro : demander le code ne doit pas l'effacer.
+  const [paysNumero, setPaysNumero] = useState("");
+  const mobile = choisi.code !== "bank";
+
+  // Q-22 : l'ancien refus restait affiché après la correction. Il s'efface dès
+  // qu'on touche à ce qu'il reprochait ; le prochain envoi dira s'il tient.
+  const [refusLu, setRefusLu] = useState<EtatCompte | null>(null);
+  const refus = etat && !etat.ok && etat !== refusLu ? etat : null;
+  const corriger = () => {
+    if (refus) setRefusLu(etat);
+  };
 
   return (
     <Carte>
@@ -253,18 +266,50 @@ function CompteDeVersement({
               <input
                 name="reference"
                 value={reference}
-                onChange={(e) => setReference(e.target.value)}
+                onChange={(e) => {
+                  setReference(e.target.value);
+                  corriger();
+                }}
                 placeholder={choisi.exemple}
+                // Q-22 : le clavier numérique, pour un numéro de téléphone.
+                type={mobile ? "tel" : "text"}
+                inputMode={mobile ? "tel" : "text"}
+                autoComplete={mobile ? "tel" : "off"}
                 style={CHAMP}
               />
             </div>
+            {mobile ? (
+              <div>
+                <div style={{ ...ETIQUETTE, marginBottom: 6 }}>Pays du numéro</div>
+                <select
+                  name="paysNumero"
+                  aria-label="Pays du numéro"
+                  value={paysNumero}
+                  onChange={(e) => {
+                    setPaysNumero(e.target.value);
+                    corriger();
+                  }}
+                  style={CHAMP}
+                >
+                  <option value="">Le numéro porte son indicatif</option>
+                  {PAYS.map((p) => (
+                    <option key={p.code} value={p.code}>
+                      {p.label} ({p.indicatif})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div>
               <div style={{ ...ETIQUETTE, marginBottom: 6 }}>Nom du titulaire</div>
               <input
                 id="titulaire"
                 name="titulaire"
                 value={titulaire}
-                onChange={(e) => setTitulaire(e.target.value)}
+                onChange={(e) => {
+                  setTitulaire(e.target.value);
+                  corriger();
+                }}
                 placeholder="Awa Diallo"
                 style={CHAMP}
               />

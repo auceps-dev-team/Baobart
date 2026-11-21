@@ -94,6 +94,10 @@ export default async function ExplorerPage({
           `useState` repartent des nouveaux props. C'est la façon documentée de
           réinitialiser un état quand l'identité de ce qu'on affiche change.
         */}
+        {/* Q-29 : ni repère « contenu principal » ni titre de niveau 1. Le titre
+            est pour les lecteurs d'écran ; la mosaïque, à l'œil, se nomme seule. */}
+        <main id="contenu">
+        <h1 className="sr-only">Explorer les ressources</h1>
         <Feed
           key={filtre}
           itemsInitiaux={page.items}
@@ -106,6 +110,7 @@ export default async function ExplorerPage({
           colonnesInitiales={colonnesDepuisAgent((await headers()).get("user-agent"))}
           diffusion={pubs}
         />
+        </main>
         {/* Dans data-root : son retrait à gauche laisse la place au rail. */}
         <Footer />
       </div>

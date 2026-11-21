@@ -206,7 +206,8 @@ export function Feed({
               fontSize: 11,
               textTransform: "uppercase",
               letterSpacing: ".1em",
-              opacity: 0.55,
+              // Q-30 : 3,87:1 sur la lavande à 55 % ; à 72 %, plus de 6:1 (axe).
+              opacity: 0.72,
             }}
           >
             Cartes

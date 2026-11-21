@@ -16,9 +16,15 @@ describe("un lien externe", () => {
     }
   });
 
+  // Q-24 (recette du 14/11/2026) : refusée jusqu'ici, comme le profil complète
+  // ses réseaux tout seul. https:// se complète ; tout le reste se vérifie.
+  it("complète une adresse écrite sans https://", () => {
+    const v = verifierLienExterne("drive.google.com/file/d/1AbC");
+    expect(v).toMatchObject({ ok: true, url: "https://drive.google.com/file/d/1AbC", hote: "drive.google.com" });
+  });
+
   it.each([
     ["", "Colle"],
-    ["drive.google.com/file/d/1AbC", "https://"],
     ["http://drive.google.com/file/d/1AbC", "https"],
     ["javascript:alert(1)", "https"],
     ["data:text/html,<script>alert(1)</script>", "https"],

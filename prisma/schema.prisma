@@ -3625,6 +3625,9 @@ enum EmailTemplate {
   /// avis, l’auteur une réponse.
   AVIS_RECU
   REPONSE_AVIS
+  /// Ajouté le 20/11/2026 (Q-40) : le créateur prévenu quand l'équipe a
+  /// remboursé à sa place une demande restée sans réponse.
+  REMBOURSE_PAR_EQUIPE
 }
 
 /// File d'attente des messages transactionnels.
