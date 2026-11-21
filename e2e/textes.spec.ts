@@ -49,7 +49,9 @@ test.describe("les textes disent ce que fait le site", () => {
     await seConnecter(context, ressource.vendeurId, baseURL!);
     await page.goto("/dashboard/ventes");
     await fermerLeBandeau(page);
-    await expect(page.getByText("ENCAISSÉE").first()).toBeVisible();
+    // La légende est repliée (#60) : son « ENCAISSÉE » existe mais reste caché.
+    // Ce qui compte, c'est l'état écrit sur la ligne de la vente.
+    await expect(page.locator("[data-ligne]").getByText("ENCAISSÉE").first()).toBeVisible();
     await expect(page.getByText("ENCAISSEE", { exact: true })).toHaveCount(0);
     await expect(page.locator("[data-sidebar]").getByText("Avis & commentaires")).toBeVisible();
     await expect(page.locator("[data-sidebar]").getByText("Créateur feedback")).toHaveCount(0);
