@@ -670,15 +670,34 @@ export function Header({
             avec la fonctionnalité qui le porte (plusieurs ressources, un seul
             paiement).
           */}
+          {/* Q-29 (relevé le 20/11/2026 en corrigeant Q-36) : le menu du compte ne
+              s'ouvrait qu'au survol de la souris — au clavier, ni « Mes achats » ni
+              « Se déconnecter » n'étaient atteignables. Le focus l'ouvre aussi, et
+              il se referme quand le focus quitte le bloc ; Échap le referme. */}
           <div
             onMouseEnter={() => {
               annulerFermeture();
               setCompteOuvert(true);
             }}
             onMouseLeave={() => fermerBientot(() => setCompteOuvert(false))}
+            onFocusCapture={() => {
+              annulerFermeture();
+              setCompteOuvert(true);
+            }}
+            onBlurCapture={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setCompteOuvert(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setCompteOuvert(false);
+            }}
             style={{ position: "relative" }}
           >
             <div
+              tabIndex={0}
+              role="button"
+              aria-haspopup="true"
+              aria-expanded={compteOuvert}
+              aria-label={`Mon compte${utilisateur ? ` (${utilisateur.nom})` : ""}`}
               style={{
                 display: "flex",
                 alignItems: "center",

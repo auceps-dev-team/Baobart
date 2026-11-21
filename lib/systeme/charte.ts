@@ -14,6 +14,8 @@ export const ENCRE = "#121212";
 export const BLANC = "#FFFFFF";
 export const JAUNE = "#FFD84A";
 export const ORANGE = "#E2622C";
+/** Le SEUL orange autorisé en texte (globals.css, charte §4.2) : 5,36:1 sur blanc. */
+export const ORANGE_SOMBRE = "#B34A1F";
 export const LAVANDE = "#EADFF9";
 export const CADRE = `2.5px solid ${ENCRE}`;
 

@@ -464,7 +464,8 @@ export function CarteMosaique(props: CarteProps) {
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: 10.5,
-                opacity: 0.55,
+                // Q-30 : 4,11:1 sur blanc à 55 % ; à 72 %, plus de 7:1 (axe).
+                opacity: 0.72,
                 marginTop: 2,
               }}
             >
@@ -592,7 +593,7 @@ export function CarteAlaUne(props: CarteProps) {
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: 11,
-                opacity: 0.58,
+                opacity: 0.72,
                 marginTop: 4,
               }}
             >

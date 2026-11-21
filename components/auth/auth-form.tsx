@@ -12,6 +12,7 @@ import {
   LAVANDE_CLAIR,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 import type { EtatFormulaire } from "@/lib/auth/actions";
 import { ChampsAntiBot } from "@/components/auth/champs-antibot";
 import type { FournisseurPublic } from "@/lib/auth/providers";
@@ -364,7 +365,8 @@ export function AuthForm({
               style={{
                 fontSize: 12.5,
                 fontWeight: 800,
-                color: ORANGE,
+                // Q-30 : l'orange vif est une SURFACE (3,48:1 en texte) ; le texte prend l'orange sombre.
+                color: ORANGE_SOMBRE,
                 textDecoration: "underline",
               }}
             >
@@ -531,7 +533,8 @@ export function AuthForm({
           fontWeight: 600,
           textAlign: "center",
           marginTop: 20,
-          opacity: 0.8,
+          // Une couleur à 80 %, pas une opacité : le lien l'aurait héritée (2,72:1, Q-30).
+          color: "rgba(18,18,18,.8)",
         }}
       >
         {texteBas}{" "}
@@ -539,7 +542,7 @@ export function AuthForm({
           href={avecSuite(lienBas)}
           style={{
             fontWeight: 800,
-            color: ORANGE,
+            color: ORANGE_SOMBRE,
             textDecoration: "underline",
           }}
         >

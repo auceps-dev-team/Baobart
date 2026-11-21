@@ -603,18 +603,20 @@ export function DetailProduit({
               {produit.famille}
             </div>
           ) : null}
-          <div
+          {/* Q-29 (recette du 14/11/2026) : la fiche n'avait aucun titre de niveau 1. */}
+          <h1
             style={{
               fontFamily: "var(--font-display)",
               fontSize: 26,
+              fontWeight: "normal",
               lineHeight: 1.05,
               letterSpacing: "-.8px",
-              marginTop: 12,
+              margin: "12px 0 0",
               overflowWrap: "anywhere",
             }}
           >
             {produit.titre}
-          </div>
+          </h1>
           {produit.description ? (
             // `pre-line` : les paragraphes que le créateur tape dans sa zone de
             // texte restent des paragraphes. Ils se fondaient en un seul bloc
