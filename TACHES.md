@@ -41,7 +41,6 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
-| Le graphique « par mois » garde ses six colonnes au téléphone (trouvé pendant D2b : sous 900 px, ses mois s'empilent et recouvrent la carte suivante) | Claude (`aucepsdev`) | `claude/graphique-mois` | Commencé le 21/11. | Un test à 360 px sur les trois pages qui l'emploient, rouge avant / vert après ; CI verte. |
 
 ---
 
@@ -104,6 +103,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.114.1 | #78 | Le graphique « par mois » au téléphone (trouvé en ouvrant la deuxième tranche de D2b) : sous 900 px, la règle globale de `globals.css` ramenait sa grille à une colonne — six rangées au lieu d'une, qui recouvraient la carte suivante sur l'accueil créateur, l'Aperçu et Statistiques. Le composant passe en `flex`. Et sous 620 px, ses barres perdent leur montant, comme dans la maquette mobile (écrans 04 et 10) : « 1 234,6k » faisait 51 px dans une colonne de 31 (mesuré). `e2e/mobile.spec.ts`, à 360 et 320 px avec six mois de ventes, rouge avant / vert après ; le bureau garde ses montants. |
 | v1.113.3 | #72 | #64, le test instable de la file des courriels (« 9 au lieu de 10 », 6 CI rouges depuis le 04/11) : cause mesurée — `nextAttemptAt` posé par l'horloge du moteur de Prisma (`@default(now())`), jusqu'à 8 ms en avance sur le `new Date()` de `reclamer` ; `deposer` le pose désormais avec l'horloge du processus. Ancien code 6 échecs sur 27, corrigé 0 sur 23. |
 | v1.113.2 | #71 | Navigation et compte (recette, mineurs) : Échap ne ferme plus la fiche sous la fenêtre d'épingle (Q-11) ; plus d'erreur serveur depuis la page introuvable (Q-13, créneau `@modal/[...rien]`) ; « Se déconnecter » dans le menu du tableau de bord (Q-16) ; la case de « Mot de passe oublié » est exigée (Q-17) ; 25 pages renvoient à la connexion avec la page demandée (Q-18, `connexionPuis`, garde-fou) ; « Mes offres » pour le recruteur (Q-26, `/jobs/mes-offres`). `e2e/navigation-compte.spec.ts`. |
 | v1.113.1 | #68 | Q-43 et Q-44 (recette, piste 5) : avec la traduction automatique du navigateur, « J'aime » et « Suivre » ne font plus tomber la page, et le compteur de la mosaïque suit le filtre. Chaque texte qui change vit dans son élément ; un filet (`components/systeme/garde-traduction.tsx`) couvre les composants que personne n'a joués traduits — mesuré : il tient seul sur l'ancien composant. `e2e/traduction.spec.ts`, avec le traducteur simulé de la recette. |

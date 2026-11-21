@@ -143,6 +143,76 @@ test.describe("D2b — sur un téléphone de 360 px", () => {
   });
 });
 
+/**
+ * Le graphique « par mois » (`components/dashboard/revenus-mois.tsx`) au téléphone.
+ *
+ * Sous 900 px, une règle globale de `globals.css` ramène à une colonne toute
+ * grille déclarée en ligne. Le graphique en était une, dans 190 px de haut :
+ * ses six mois s'empilaient et recouvraient la carte suivante (capture du
+ * 21/11 sur Statistiques). Le même composant sert aux trois pages.
+ *
+ * Avec des montants longs, pas des zéros : une vente de 1 234 567 F par mois
+ * s'écrit « 1 234,6k » : 51 px, pour une colonne de 31 à 360 px (mesuré le
+ * 21/11). D'où les montants retirés sous 620 px, comme dans la maquette mobile.
+ */
+async function ventesSurSixMois(userId: string, montant: number) {
+  const maintenant = new Date();
+  for (let k = 0; k < 6; k++) {
+    const quand = new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth() - k, 2, 10));
+    const solde = await db.balance.create({ data: { userId, date: quand, currency: "XOF", holdingCurrency: "XOF" } });
+    await db.balanceTransaction.create({
+      data: {
+        userId, balanceId: solde.id, type: "SALE", occurredAt: quand,
+        issuedCurrency: "XOF", issuedGross: montant, issuedNet: montant,
+        holdingCurrency: "XOF", holdingGross: montant, holdingNet: montant,
+      },
+    });
+  }
+}
+
+for (const largeur of [360, 320]) test.describe(`à ${largeur} px, le graphique par mois`, () => {
+  test.use({ ...TELEPHONE, viewport: { width: largeur, height: 740 } });
+
+  for (const chemin of ["/dashboard", "/dashboard/apercu", "/dashboard/statistiques"]) {
+    test(`${chemin} : six mois côte à côte, dans leur cadre`, async ({ page, context, baseURL }) => {
+      const r = await ressourceVendable();
+      await ventesSurSixMois(r.vendeurId, 1_234_567);
+      await seConnecter(context, r.vendeurId, baseURL!);
+      await page.goto(chemin);
+      const graphique = page.getByRole("img", { name: /des six derniers mois/ });
+      await expect(graphique).toBeVisible();
+      const { cadre, mois, textesCoupes } = await graphique.evaluate((el) => ({
+        cadre: el.getBoundingClientRect().toJSON() as DOMRect,
+        mois: [...el.children].map((c) => c.getBoundingClientRect().toJSON() as DOMRect),
+        // Un montant ou un mois plus large que sa colonne déborde sur la voisine, sans rien casser d'autre.
+        textesCoupes: [...el.querySelectorAll("span")]
+          .filter((s) => s.scrollWidth > s.clientWidth + 1)
+          .map((s) => `« ${s.textContent} » : ${s.scrollWidth} px pour ${s.clientWidth}`),
+      }));
+      expect(mois).toHaveLength(6);
+      expect(new Set(mois.map((m) => Math.round(m.top))).size, "les six mois sur une seule rangée").toBe(1);
+      for (const m of mois) {
+        expect(m.bottom, `un mois finit à ${Math.round(m.bottom)} px, son cadre à ${Math.round(cadre.bottom)} px`).toBeLessThanOrEqual(cadre.bottom + 1);
+        expect(m.right).toBeLessThanOrEqual(cadre.right + 1);
+      }
+      expect(textesCoupes, "chaque texte tient dans sa colonne").toEqual([]);
+    });
+  }
+});
+
+test("au bureau, le graphique par mois garde ses montants au-dessus des barres", async ({ page, context, baseURL }) => {
+  const r = await ressourceVendable();
+  await ventesSurSixMois(r.vendeurId, 1_234_567);
+  await seConnecter(context, r.vendeurId, baseURL!);
+  await page.goto("/dashboard");
+  const graphique = page.getByRole("img", { name: /des six derniers mois/ });
+  // `Baobart Dashboard.dc.html` : le montant au-dessus de chaque barre. Seul le téléphone les retire.
+  // `\s` : `toLocaleString("fr-FR")` sépare les milliers d'une espace fine insécable.
+  const montants = graphique.getByText(/^1\s234,6k$/);
+  await expect(montants).toHaveCount(6);
+  for (const montant of await montants.all()) await expect(montant).toBeVisible();
+});
+
 test("au bureau, ni barre d'onglets, ni cloche, ni « Menu » : l'en-tête est inchangé", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("navigation", { name: "Onglets" })).toBeHidden();

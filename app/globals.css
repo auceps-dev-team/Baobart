@@ -488,6 +488,24 @@
 }
 
 /*
+ * Le graphique « par mois » — voir components/dashboard/revenus-mois.tsx. Au
+ * bureau, 12 px entre les barres et le montant au-dessus (`Baobart
+ * Dashboard.dc.html`). Sous 620 px, la maquette mobile (écrans 04 et 10) les
+ * dessine sans montant, à 5 px : « 1 234,6k » ne tenait pas dans 31 px.
+ */
+.graphique-mois {
+  gap: 12px;
+}
+@media (max-width: 620px) {
+  .graphique-mois {
+    gap: 5px;
+  }
+  .graphique-mois-montant {
+    display: none;
+  }
+}
+
+/*
  * Le menu du tableau de bord, replié sous 980 px (D2a, Q-04) — voir
  * components/dashboard/repli-mobile.tsx. Au-dessus, l'enveloppe est
  * transparente (`display: contents`) : le menu et la carte du compte restent
