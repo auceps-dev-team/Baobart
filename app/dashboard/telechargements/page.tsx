@@ -39,13 +39,16 @@ export default async function HistoriqueDesTelechargementsPage({
       .filter((x) => x.length > 0)
       .join(" · "),
     montant: libelleRepetitions(r.repetitions),
-    etat: r.fichierId ? "DISPONIBLE" : "RETIRÉE",
-    etatFond: r.fichierId ? undefined : "#FFFFFF",
+    // « ACCÈS CLOS » avant tout : un fichier qui existe encore n'est pas un
+    // droit qui demeure (remboursé, contesté, retiré — piste 1 de la recette).
+    etat: r.accesFerme ? "ACCÈS CLOS" : r.fichierId ? "DISPONIBLE" : "RETIRÉE",
+    etatFond: r.accesFerme || !r.fichierId ? "#FFFFFF" : undefined,
     visuel: r.visuel,
     // Le lien va droit à la route de livraison, qui redécide de zéro : ce
     // qu'on a téléchargé hier n'est pas un droit acquis pour toujours si la
-    // commande a été remboursée depuis.
-    action: r.fichierId
+    // commande a été remboursée depuis. Elle refusait par une page blanche
+    // (403) : l'accès fermé mène désormais à la fiche, sans détour.
+    action: r.fichierId && !r.accesFerme
       ? {
           label: r.fichierExterne ? `Ouvrir sur ${r.fichierExterne}` : "Télécharger",
           href: `/api/telechargement/${r.fichierId}`,

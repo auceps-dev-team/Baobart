@@ -114,6 +114,7 @@ export type EvenementNotifiable =
   // ── Vendeur, créateur, organisateur ─────────────────────────────────────
   | "VENTE_REALISEE"
   | "DEMANDE_REMBOURSEMENT"
+  | "REMBOURSE_PAR_EQUIPE"
   | "VERSEMENT_ENVOYE"
   | "CONTENU_PUBLIE"
   | "CONTENU_REFUSE"
@@ -234,6 +235,17 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     explication: "Un acheteur demande à être remboursé : tu as sept jours pour répondre.",
     imperatif: true,
     modele: "DEMANDE_REMBOURSEMENT",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  // Ajouté le 20/11 (Q-40, recette du 14/11/2026) : la créatrice découvrait
+  // par une ligne « Tu dois 2 800 F » que l'équipe avait remboursé à sa place.
+  // Impératif : c'est son argent qui part, sur une décision qu'elle n'a pas prise.
+  REMBOURSE_PAR_EQUIPE: {
+    audience: "vendeur",
+    libelle: "Remboursement fait par l'équipe",
+    explication: "Une demande restée sans réponse a été acceptée par l'équipe, et ton solde débité.",
+    imperatif: true,
+    modele: "REMBOURSE_PAR_EQUIPE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   VENTE_REALISEE: {

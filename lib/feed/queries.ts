@@ -616,18 +616,29 @@ export async function couverturesPopulaires(n: number): Promise<Array<{ slug: st
 }
 
 /**
- * Ce que les ventes des sept derniers jours ont crédité aux créateurs, net de
+ * Ce qui est resté aux créateurs sur les sept derniers jours, net de
  * commission et de frais — le chiffre que la page « About » de Gumroad met en
  * avant (« income earned by creators last week »). Lu dans le grand livre
- * (`BalanceTransaction` de type SALE, `issuedNet`), pas recalculé : c'est ce
- * qui a été crédité, remboursements non déduits.
+ * (`BalanceTransaction`, `issuedNet`), pas recalculé.
+ *
+ * Remboursements et contestations DÉDUITS. Piste 1 de la recette (14/11/2026) :
+ * la page disait « 6 903 F crédités » quand la seule créatrice détenait
+ * 1 903 F — une vente de 5 000 F remboursée comptait encore. Le texte dit
+ * « crédités » ; une vente rendue n'a crédité personne. Un REFUND et un
+ * CHARGEBACK s'écrivent en négatif (lib/domain/orders.ts, litiges.ts), un
+ * CHARGEBACK_REVERSED rend en positif : la somme est ce qui reste. Jamais
+ * sous zéro : l'écran affiche alors son autre version, sans chiffre.
  */
 export async function creditsAuxCreateurs(jours = 7, now: Date = new Date()): Promise<number> {
   const r = await db.balanceTransaction.aggregate({
-    where: { type: "SALE", issuedCurrency: "XOF", occurredAt: { gte: new Date(now.getTime() - jours * 86_400_000) } },
+    where: {
+      type: { in: ["SALE", "REFUND", "CHARGEBACK", "CHARGEBACK_REVERSED"] },
+      issuedCurrency: "XOF",
+      occurredAt: { gte: new Date(now.getTime() - jours * 86_400_000) },
+    },
     _sum: { issuedNet: true },
   });
-  return r._sum.issuedNet ?? 0;
+  return Math.max(0, r._sum.issuedNet ?? 0);
 }
 
 /** Les ressources payantes qui se vendent le plus, avec leur créateur. */

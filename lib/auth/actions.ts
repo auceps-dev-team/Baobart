@@ -32,6 +32,7 @@ import {
 import { verifierLimiteAction } from "@/lib/securite/garde";
 import { refusInscription } from "@/lib/profil/validation";
 import { deposer } from "@/lib/email/outbox";
+import { urlDuSite } from "@/lib/config/site";
 
 /**
  * Actions d'authentification.
@@ -340,7 +341,8 @@ export async function inscrire(
         cle: `bienvenue-${cree.id}`,
         destinataire: email,
         modele: "BIENVENUE",
-        charge: { nom: affichage || username },
+        // Le lien du site, quand il est configuré (Q-28).
+        charge: { nom: affichage || username, site: urlDuSite() ?? undefined },
       },
       tx,
     );

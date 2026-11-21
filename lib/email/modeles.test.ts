@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ChargeInvalide, MODELES, rendre, type Modele } from "./modeles";
 
 const CHARGES: Record<Modele, Record<string, unknown>> = {
-  BIENVENUE: { nom: "Awa" },
+  BIENVENUE: { nom: "Awa", site: "https://baobart.test" },
   REINITIALISATION_MOT_DE_PASSE: {
     nom: "Awa",
     lien: "https://baobart.com/reinit?j=abc",
@@ -81,6 +81,7 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
   },
   DEMANDE_REMBOURSEMENT: { nom: "Awa", ressource: "Pack textures", montant: "4 500 F", motif: "Le fichier ne s'ouvre pas.", jours: 7 },
   REMBOURSEMENT_REFUSE: { nom: "Kofi", ressource: "Pack textures", motif: "Le fichier s'ouvre avec Illustrator 2024.", par: "le créateur" },
+  REMBOURSE_PAR_EQUIPE: { nom: "Awa", ressource: "Pack textures", montant: "2 800 F", motif: "Le fichier ne s'ouvre pas." },
   INFOLETTRE: { sujet: "Les nouveautés d'octobre", corps: "Trois nouvelles familles de ressources arrivent.", desinscrire: "https://baobart.test/infolettre/desinscription?jeton=abc.def" },
   COMPTE_VERSEMENT_MODIFIE: { nom: "Awa", moyen: "Orange Money", compte: "···· 4821" },
   CODE_COMPTE_VERSEMENT: { nom: "Awa", codeSecret: "482913", destination: "Wave — ···· 2233", minutes: 15 },
@@ -246,5 +247,17 @@ describe("la liste des modèles et l'enum de la base", () => {
     const { EmailTemplate } = await import("@prisma/client");
 
     expect([...MODELES].sort()).toEqual(Object.keys(EmailTemplate).sort());
+  });
+});
+
+describe("le courriel de bienvenue (Q-28)", () => {
+  it("mène au site quand son adresse est connue", () => {
+    const m = rendre("BIENVENUE", { nom: "Yao", site: "https://baobart.test" });
+    expect(m.texte).toContain("https://baobart.test/explore");
+    expect(m.texte).toContain("https://baobart.test/dashboard");
+  });
+
+  it("sans adresse configurée, aucun lien plutôt qu'un lien faux", () => {
+    expect(rendre("BIENVENUE", { nom: "Yao" }).texte).not.toContain("http");
   });
 });

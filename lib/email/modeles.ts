@@ -80,6 +80,9 @@ export const MODELES = [
   // ── Ajoutés le 08/10 avec les demandes de remboursement ─────────────────
   "DEMANDE_REMBOURSEMENT",
   "REMBOURSEMENT_REFUSE",
+  // Ajouté le 20/11 (Q-40) : le créateur apprenait par une ligne « Tu dois »
+  // que l'équipe avait remboursé à sa place.
+  "REMBOURSE_PAR_EQUIPE",
 
   // ── Ajouté le 08/10 : un numéro de la lettre d'information ──────────────
   //
@@ -175,7 +178,9 @@ const lien = z
   );
 
 const SCHEMAS = {
-  BIENVENUE: z.object({ nom }),
+  // `site` : Q-28 (recette du 14/11/2026), le courriel de bienvenue ne menait
+  // nulle part. Facultatif : sans APP_URL, pas de lien plutôt qu'un lien faux.
+  BIENVENUE: z.object({ nom, site: lien.optional() }),
   REINITIALISATION_MOT_DE_PASSE: z.object({ nom, lien, heures: z.number().int().positive() }),
   RECU_ACHAT: z.object({
     nom,
@@ -302,6 +307,12 @@ const SCHEMAS = {
     motif: z.string().min(1).max(500),
     jours: z.number().int().positive(),
   }),
+  REMBOURSE_PAR_EQUIPE: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    montant: z.string().min(1).max(40),
+    motif: z.string().min(1).max(500),
+  }),
   REMBOURSEMENT_REFUSE: z.object({
     nom,
     ressource: z.string().min(1).max(200),
@@ -386,6 +397,10 @@ const TEXTES: {
       `télécharger ce qui est offert.\n\n` +
       `Quand tu voudras vendre, dépose une ressource : la boutique s'ouvre ` +
       `toute seule au premier dépôt.` +
+      (c.site ? `
+
+Le catalogue : ${c.site}/explore
+Ton espace : ${c.site}/dashboard` : "") +
       SIGNATURE,
   }),
 
@@ -600,6 +615,23 @@ ${c.raison}
       `  « ${c.motif} »\n\n` +
       `Accepte ou refuse depuis ton tableau de bord, rubrique « Demandes de remboursement ». ` +
       `Sans réponse sous ${c.jours} jours, l'équipe Baobart tranchera à ta place.` +
+      SIGNATURE,
+  }),
+
+  REMBOURSE_PAR_EQUIPE: (c) => ({
+    sujet: `Remboursement fait par l'équipe : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},
+
+` +
+      `Un acheteur avait demandé le remboursement de « ${c.ressource} », et la demande est restée sans réponse. ` +
+      `L'équipe Baobart l'a acceptée à ta place : ${c.montant} ont été rendus, et ton solde en est débité. Le motif de l'acheteur :
+
+` +
+      `  « ${c.motif} »
+
+` +
+      `Le détail est dans ton tableau de bord, rubriques « Gains » et « Demandes de remboursement ».` +
       SIGNATURE,
   }),
 

@@ -147,6 +147,10 @@ describe("les impératifs", () => {
         "ABONNEMENT_RECU",
         "COMMANDE_REMBOURSEE",
         "VERSEMENT_ENVOYE",
+        // Ajouté le 20/11 (Q-40) : l'argent du créateur part sur une décision
+        // de l'équipe, prise sans lui — le silence le lui ferait découvrir
+        // par une ligne « Tu dois ».
+        "REMBOURSE_PAR_EQUIPE",
         // Une décision qui n'a aucun autre canal vers son auteur.
         "CONTENU_REFUSE",
         // Ajoutés le 08/10 : un refus de remboursement (même raison), et une
