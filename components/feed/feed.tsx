@@ -233,7 +233,13 @@ export function Feed({
               {cs}
             </button>
           ))}
+          {/* Une clé par nombre et un seul texte : la traduction du navigateur
+              remplace les nœuds de texte, et React réécrivait le nombre dans un
+              nœud qui n'était plus dans la page — le compteur restait figé
+              (Q-43, recette du 14/11/2026). L'accord au singulier : Q-34. */}
           <span
+            key={items.length}
+            data-compteur-mosaique
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: 12,
@@ -241,7 +247,7 @@ export function Feed({
               marginLeft: 8,
             }}
           >
-            {items.length} ressources affichées
+            {items.length > 1 ? `${items.length} ressources affichées` : `${items.length} ressource affichée`}
           </span>
         </div>
       </div>

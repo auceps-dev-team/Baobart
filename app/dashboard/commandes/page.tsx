@@ -6,6 +6,7 @@ import { DashboardFrame, DashboardPanel, EmptyState } from "@/components/dashboa
 import { Pagination, pageDemandee } from "@/components/dashboard/pagination";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { etatCommande, type EtatCommande } from "@/lib/dashboard/historique";
 import { lireCommandesVendeur } from "@/lib/dashboard/lectures";
 import { debutDuMois } from "@/lib/dashboard/mois";
@@ -51,7 +52,7 @@ const PAR_PAGE = 6;
 
 export default async function CommandesVendeurPage({ searchParams }: { searchParams: Promise<{ etat?: string; page?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/commandes"));
 
   const { etat: demande, page: pageBrute } = await searchParams;
   const filtre = FILTRES.find((f) => f.cle === demande) ?? FILTRES[0]!;
@@ -96,7 +97,7 @@ export default async function CommandesVendeurPage({ searchParams }: { searchPar
             texte={commandes.length === 0 ? "Tes futures ventes apparaîtront ici, regroupées par commande." : "Choisis un autre état pour retrouver tes commandes."}
           />
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
             {visibles.map((c) => (
               <div key={c.id} data-commande style={{ display: "flex", alignItems: "center", gap: 13, border: `2px solid ${ENCRE}`, borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                 <Vignette couverture={c.premiere.product.coverUrl} titre={c.premiere.product.name} />

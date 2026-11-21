@@ -1,6 +1,6 @@
 {
   "name": "baobart",
-  "version": "1.110.0",
+  "version": "1.114.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -35,6 +35,8 @@
     "comptes:test": "tsx --conditions=react-server --env-file=.env scripts/comptes-de-test.ts",
     "db:e2e:setup": "node scripts/setup-test-db.mjs e2e",
     "icones:generer": "tsx scripts/generer-icones.ts",
+    "design:revue": "tsx --env-file=.env scripts/design/revue-skills.ts",
+    "design:pire-cas": "tsx --env-file=.env scripts/design/pire-cas.ts",
     "design:captures": "tsx --env-file=.env scripts/design/captures.ts",
     "design:remplir-listes": "tsx --env-file=.env scripts/design/remplir-listes.ts",
     "test:e2e": "playwright test",
@@ -84,8 +86,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
-    "@eslint/eslintrc": "^3.2.0",
-    "@next/eslint-plugin-next": "^15.5.27",
     "@playwright/test": "^1.62.1",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
@@ -98,11 +98,7 @@
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^9.19.0",
-    "eslint-config-next": "^15.5.27",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-config-next": "^16.4.6",
     "fast-check": "4.10.2",
     "prisma": "^6.3.1",
     "server-only": "^0.0.1",

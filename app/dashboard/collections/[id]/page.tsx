@@ -6,6 +6,7 @@ import { FormulaireCollection } from "@/components/collections/formulaire";
 import { RetirerDeLaCollection, SupprimerLaCollection } from "@/components/collections/gestes";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { collectionAVoir } from "@/lib/collections/service";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
 
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function CollectionPage({ params }: { params: Promise<{ id: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/dashboard/collections/${(await params).id}`));
   const { id } = await params;
   const c = await collectionAVoir(utilisateur.id, id);
   if (!c) notFound();

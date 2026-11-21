@@ -5,6 +5,7 @@ import { DashboardFrame, DashboardPanel, EmptyState, MetricCard } from "@/compon
 import { RevenusParMois } from "@/components/dashboard/revenus-mois";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { statistiquesCreateur } from "@/lib/dashboard/statistiques";
 import { formatCount } from "@/lib/i18n/money";
 import { JAUNE } from "@/lib/systeme/charte";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function StatistiquesPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/statistiques"));
   // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
   // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
   // règle que `/dashboard` (`app/dashboard/page.tsx`).
@@ -51,7 +52,7 @@ export default async function StatistiquesPage() {
           {s.meilleures.length === 0 ? (
             <EmptyState titre="Pas encore de classement" texte="Tes ressources les plus vendues et téléchargées apparaîtront ici." />
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
               {s.meilleures.map((r, i) => (
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 13, border: "2px solid #121212", borderRadius: 16, padding: 12, background: "#F4EEFC" }}>
                   <Vignette couverture={r.couverture} titre={r.nom} />

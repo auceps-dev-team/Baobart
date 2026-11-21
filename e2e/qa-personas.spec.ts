@@ -209,6 +209,14 @@ test.describe("sur un téléphone", () => {
   test("Q-03 — les rubriques des sous-menus s'atteignent au toucher", async ({ page }) => {
     await page.goto("/");
     await fermerLeBandeau(page);
+    // Depuis D2b (#70), les menus se rangent sous 620 px derrière « Menu » : on
+    // l'ouvre d'abord, comme le ferait la personne. Ce que le test prouve ne
+    // change pas — les rubriques s'atteignent au doigt.
+    const ouvrirLesMenus = async () => {
+      const menu = page.getByRole("button", { name: "Menu", exact: true });
+      if (await menu.isVisible()) await menu.tap();
+    };
+    await ouvrirLesMenus();
     const entrees = page.getByRole("navigation").first().getByRole("link", { name: /▼/ });
     await expect(entrees.first()).toBeVisible();
     const nombre = await entrees.count();
@@ -220,15 +228,17 @@ test.describe("sur un téléphone", () => {
     const atteints = new Set<string>();
     for (let i = 0; i < nombre; i += 1) {
       await page.goto("/");
+      await ouvrirLesMenus();
       await page.getByRole("navigation").first().getByRole("link", { name: /▼/ }).nth(i).tap();
       await page.waitForTimeout(600);
       const liens = await page.locator("a:visible").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
       for (const lien of liens) atteints.add(lien);
     }
 
-    await defautOuvert("Q-03", async () => {
-      expect([...atteints]).toEqual(expect.arrayContaining(["/jobs", "/services", "/evenements"]));
-    });
+    // Q-03 corrigé le 20/11/2026 (D2a, #69 : au doigt, le premier toucher ouvre
+    // le sous-menu) : l'enveloppe defautOuvert() est retirée, ce test garde
+    // désormais la correction.
+    expect([...atteints]).toEqual(expect.arrayContaining(["/jobs", "/services", "/evenements"]));
   });
 
   test("Q-04 — le contenu du tableau de bord commence dans le premier écran", async ({ page, context, baseURL }) => {
@@ -240,11 +250,11 @@ test.describe("sur un téléphone", () => {
     const boite = await titre.boundingBox();
     expect(boite, "le titre de la page doit avoir une place à l'écran").not.toBeNull();
 
-    // Mesuré le 14/11 : 942 px, pour un écran haut de 740. Le premier écran
-    // après la connexion est entièrement le menu.
-    await defautOuvert("Q-04", async () => {
-      expect(boite!.y).toBeLessThan(TELEPHONE.viewport.height);
-    });
+    // Mesuré le 14/11 : 942 px, pour un écran haut de 740 (982 le 20/11). Le
+    // premier écran après la connexion était entièrement le menu.
+    // Q-04 corrigé le 20/11/2026 (D2a, #69 : le menu se replie sous 980 px) :
+    // l'enveloppe defautOuvert() est retirée, ce test garde désormais la correction.
+    expect(boite!.y).toBeLessThan(TELEPHONE.viewport.height);
   });
 
   test("Q-07 — un refus du profil de boutique s'affiche là où la personne regarde", async ({ page, context, baseURL }) => {

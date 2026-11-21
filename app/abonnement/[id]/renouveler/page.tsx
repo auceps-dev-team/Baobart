@@ -1,3 +1,5 @@
+import { Icone } from "@/components/icones/icone";
+import type { NomIcone } from "@/lib/icones/donnees";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -10,6 +12,7 @@ import {
   type MotifRefus,
 } from "@/lib/abonnements/renouvellement";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import {
@@ -64,7 +67,9 @@ type Allure = {
   texte: string;
   fond: string;
   encre: string;
-  glyphe: string;
+  /** Une icône Halo ; à défaut (✕, un nombre), le texte de `glyphe`. */
+  icone?: NomIcone;
+  glyphe?: string;
   pastille: string;
   jauge: number;
   jaugeTexte: string;
@@ -81,7 +86,7 @@ export default async function RenouvelerPage({
   searchParams: Promise<{ paiement?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/abonnement/${(await params).id}/renouveler`));
 
   const { id } = await params;
   const { paiement: refus } = await searchParams;
@@ -208,7 +213,7 @@ export default async function RenouvelerPage({
               : `L'échéance est passée. Ton accès continue encore ${joursDAccesRestants} jour${joursDAccesRestants > 1 ? "s" : ""}, le temps de renouveler.`,
           fond: ORANGE,
           encre: BLANC,
-          glyphe: "!",
+          icone: "alert",
           pastille: JAUNE,
           jauge:
             etat === "SUSPENDUE"
@@ -339,7 +344,7 @@ export default async function RenouvelerPage({
                       fontSize: 28,
                     }}
                   >
-                    {allure.glyphe}
+                    {allure.icone ? <Icone nom={allure.icone} taille={26} /> : allure.glyphe}
                   </div>
                   <div style={{ flex: "1 1 260px", minWidth: 0 }}>
                     <div

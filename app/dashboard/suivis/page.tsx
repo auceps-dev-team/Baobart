@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { EcranDashboard, type Ligne } from "@/components/dashboard/ecran";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { ilYA } from "@/lib/social/regles";
 import { elementsAimes } from "@/lib/social/queries";
@@ -20,7 +21,7 @@ const PAR_PAGE = 4;
 
 export default async function ElementsSuivisPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/suivis"));
 
   const aimes = await elementsAimes(utilisateur.id);
 

@@ -10,6 +10,7 @@ import {
   type LigneOps,
 } from "@/components/systeme/panneau-operations";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { lireVentesCreateur } from "@/lib/dashboard/lectures";
 import { encaisseDe } from "@/lib/domain/encaisse";
 import { formatMoney } from "@/lib/i18n/money";
@@ -96,7 +97,7 @@ export default async function VentesPage({
   searchParams: Promise<{ etat?: string; page?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/ventes"));
   // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
   // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
   // règle que `/dashboard` (`app/dashboard/page.tsx`).

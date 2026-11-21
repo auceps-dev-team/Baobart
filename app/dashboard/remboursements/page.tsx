@@ -6,6 +6,7 @@ import { DashboardFrame } from "@/components/dashboard/frame";
 import { Pagination } from "@/components/dashboard/pagination";
 import { FormulaireDemande } from "@/components/remboursements/gestes";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { MESSAGES_REFUS } from "@/lib/remboursements/regles";
 import { achatsRemboursables } from "@/lib/remboursements/service";
@@ -40,7 +41,7 @@ const PAR_PAGE = 2;
 
 export default async function RemboursementsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/remboursements"));
   const achats = await achatsRemboursables(utilisateur.id);
   const paginees = paginer(achats, (await searchParams).page, PAR_PAGE);
 
@@ -90,7 +91,8 @@ export default async function RemboursementsPage({ searchParams }: { searchParam
           {paginees.visibles.map((a) => (
             <div key={a.orderItemId} data-achat={a.orderItemId} style={{ border: CADRE, borderRadius: 20, background: BLANC, boxShadow: `4px 4px 0 ${ENCRE}`, padding: 16, color: ENCRE }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "baseline" }}>
-                <Link href={`/products/${a.slug}` as Route} style={{ fontSize: 15, fontWeight: 800, color: ENCRE }}>
+                {/* `anywhere` : un nom de fichier sans espace débordait de 262 px à 320 (20/11, `break-ui`). */}
+                <Link href={`/products/${a.slug}` as Route} style={{ fontSize: 15, fontWeight: 800, color: ENCRE, minWidth: 0, overflowWrap: "anywhere" }}>
                   {a.ressource}
                 </Link>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, opacity: 0.65 }}>{a.montant}</span>

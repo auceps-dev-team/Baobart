@@ -183,7 +183,8 @@ export default async function AProposPage() {
                 {ventes.map((v) => (
                   <Link key={v.slug} href={`/products/${v.slug}` as Route} style={{ display: "flex", flexDirection: "column", gap: 8, color: ENCRE }}>
                     <div style={{ height: 160, border: CADRE, borderRadius: 18, boxShadow: `4px 4px 0 ${ENCRE}`, background: v.couverture ? `url(${JSON.stringify(v.couverture)}) center / cover no-repeat` : "#F4EEFC" }} />
-                    <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3 }}>{v.titre}</div>
+                    {/* `anywhere` : un nom de fichier sans espace débordait de 239 px à 320 (20/11, `break-ui`). */}
+                    <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.3, overflowWrap: "anywhere" }}>{v.titre}</div>
                     <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.65 }}>
                       {v.createur ? `${v.createur} · ` : ""}
                       {formatCount(v.ventes)} vente{v.ventes > 1 ? "s" : ""}

@@ -87,6 +87,7 @@ export const CHEMINS_EXCLUS = [
   "/infolettre/",
   "/jobs/deposer",
   "/jobs/mes-propositions",
+  "/jobs/mes-offres",
   "/jobs/*/postuler",
   "/services/deposer",
   "/signalement",

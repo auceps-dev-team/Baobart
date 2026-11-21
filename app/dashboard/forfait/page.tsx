@@ -7,6 +7,7 @@ import { Notifications } from "@/components/push/notifications";
 import { ACCES_LIBRE, fonctionsDuForfait } from "@/lib/abonnements/grille";
 import { DashboardFrame, DashboardPanel, EmptyState, ENCRE, JAUNE } from "@/components/dashboard/frame";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { lireAbonnements, lirePlans } from "@/lib/dashboard/lectures";
 import { formatMoney } from "@/lib/i18n/money";
 import { REGLAGES_PAR_DEFAUT, accesJusquA as finDeLAcces } from "@/lib/ndank/cycle";
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ForfaitPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/forfait"));
   // Le forfait en cours et les forfaits disponibles se lisent au même endroit :
   // « Abonnements » dans la barre latérale désigne les créateurs suivis, pas un
   // abonnement payant. Séparer les deux ici laisserait la personne chercher son

@@ -7,6 +7,7 @@ import {
 } from "@/lib/dashboard/bibliotheque-regles";
 import { ETATS_ABOUTIS, formatsLisibles } from "@/lib/dashboard/historique";
 import { db } from "@/lib/db";
+import { LICENCE_PAR_DEFAUT } from "@/lib/licences/conditions";
 
 /**
  * « Ma bibliothèque » : ce que l'acheteur possède. Les règles et la raison
@@ -44,9 +45,6 @@ export interface Bibliotheque {
   octets: number;
   commerciales: number;
 }
-
-/** Le libellé de la fiche quand le créateur n'a pas choisi (`lib/products/queries.ts`). */
-const LICENCE_PAR_DEFAUT = "Licence commerciale";
 
 export async function bibliothequeDe(userId: string): Promise<Bibliotheque> {
   const lignes = await db.orderItem.findMany({

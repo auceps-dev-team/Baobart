@@ -104,6 +104,34 @@ export function normaliserUsername(valeur: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+/**
+ * Les bornes hautes de l'inscription : les MÊMES que celles du profil.
+ *
+ * Relevé le 20/11/2026 (revue `break-ui`, Doc/REVUE_SKILLS_HALO_2026-11.md) :
+ * l'inscription n'avait aucune longueur maximale. Un prénom et un nom de
+ * 120 caractères passaient, puis le profil refusait de s'enregistrer — « Le
+ * nom ne doit pas dépasser 80 caractères » — à quelqu'un qui n'avait touché
+ * qu'à sa bio. Le nom affiché est assemblé comme à l'inscription (prénom,
+ * espace, nom), et réduit comme au profil (espaces répétés ramenés à un).
+ */
+export function refusInscription(
+  prenom: string,
+  nom: string,
+  username: string,
+): { champ: "nom" | "username"; erreur: string } | null {
+  const affiche = `${prenom} ${nom}`.trim().replace(/\s+/g, " ");
+  if (affiche.length > NOM_MAX) {
+    return {
+      champ: "nom",
+      erreur: `Ton prénom et ton nom dépassent ${NOM_MAX} caractères ensemble : raccourcis-les. Tu pourras les changer dans ton profil.`,
+    };
+  }
+  if (normaliserUsername(username).length > USERNAME_MAX) {
+    return { champ: "username", erreur: "Ce nom d'utilisateur est trop long." };
+  }
+  return null;
+}
+
 export function valider(saisie: Saisie): Verdict {
   const nomAffiche = saisie.nomAffiche.trim().replace(/\s+/g, " ");
 

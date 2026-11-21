@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 
 import {
@@ -145,6 +146,7 @@ export function FormulaireProduit({
   // repeuple depuis ce que le serveur vient de nous renvoyer, sinon un refus
   // de validation efface tout le formulaire.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- repeuple après la remise à zéro du formulaire par React, voir plus haut.
     if (saisie) setGratuit(saisie.gratuit);
   }, [saisie]);
 
@@ -373,7 +375,7 @@ export function FormulaireProduit({
             >
               {enCours ? "Enregistrement…" : libelleBouton}
             </button>
-            <a
+            <Link
               href="/dashboard"
               style={{
                 padding: "14px 24px",
@@ -385,7 +387,7 @@ export function FormulaireProduit({
               }}
             >
               Annuler
-            </a>
+            </Link>
           </div>
         </div>
       </Bloc>

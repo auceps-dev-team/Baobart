@@ -6,6 +6,7 @@ import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_MODE, LIBELLE_TYPE, TYPES, type JobType } from "@/lib/jobs/enums";
 import { budget, ilYA } from "@/lib/jobs/format";
+import { aDeposeUneOffre } from "@/lib/jobs/mes-offres";
 import { joursAvantCloture, listerOffres } from "@/lib/jobs/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE } from "@/lib/systeme/charte";
 
@@ -54,6 +55,9 @@ export default async function JobsPage({
     sessionCourante(),
     listerOffres({ type }),
   ]);
+  // « Mes offres » seulement à qui en a déposé une (Q-26) : à un candidat,
+  // le bouton promettrait une page vide.
+  const recruteur = visiteur ? await aDeposeUneOffre(visiteur.id) : false;
 
   return (
     <>
@@ -125,6 +129,23 @@ export default async function JobsPage({
                   }}
                 >
                   Mes propositions
+                </Link>
+              ) : null}
+              {recruteur ? (
+                <Link
+                  href="/jobs/mes-offres"
+                  className="sticker-press"
+                  style={{
+                    padding: "12px 20px",
+                    border: CADRE,
+                    borderRadius: 14,
+                    background: BLANC,
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: ENCRE,
+                  }}
+                >
+                  Mes offres
                 </Link>
               ) : null}
             </div>

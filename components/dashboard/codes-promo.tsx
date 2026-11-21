@@ -225,6 +225,9 @@ export function PanneauCodesPromo({
               key={c.id}
               style={{
                 display: "flex",
+                // À 320 px, le code, la remise, l'usage et « Retirer » ne tenaient pas sur
+                // une ligne : 93 px de débordement (mesuré le 20/11, D2a).
+                flexWrap: "wrap",
                 alignItems: "center",
                 gap: 14,
                 padding: "12px 14px",
@@ -250,7 +253,7 @@ export function PanneauCodesPromo({
                 {c.libelleRemise}
               </span>
 
-              <span style={{ flex: "1 1 auto", fontSize: 12.5, opacity: 0.8 }}>
+              <span style={{ flex: "1 1 140px", minWidth: 0, fontSize: 12.5, opacity: 0.8 }}>
                 {c.plafond === null
                   ? `${c.usages} usage${c.usages > 1 ? "s" : ""} · sans limite`
                   : `${c.usages} / ${c.plafond} usage${c.plafond > 1 ? "s" : ""}`}

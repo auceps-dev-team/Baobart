@@ -1,9 +1,11 @@
+import { Icone } from "@/components/icones/icone";
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { BacASable } from "@/components/checkout/bac-a-sable";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
 import { REGLAGES_PAR_DEFAUT, ajouterJours, joursEntre } from "@/lib/ndank/cycle";
@@ -56,7 +58,7 @@ export default async function RetourRenouvellementPage({
   searchParams: Promise<{ t?: string }>;
 }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis(`/abonnement/${(await params).id}/paiement/${(await params).paiementId}`));
 
   const { id, paiementId } = await params;
   const { t } = await searchParams;
@@ -117,7 +119,7 @@ export default async function RetourRenouvellementPage({
         fond: JAUNE,
         encre: ENCRE,
         pastille: BLANC,
-        glyphe: "⏱",
+        icone: "clock" as const,
         dateLabel: "Prochaine échéance",
         dateValeur: "en attente",
         dateNote:
@@ -132,7 +134,7 @@ export default async function RetourRenouvellementPage({
           fond: VERT,
           encre: ENCRE,
           pastille: BLANC,
-          glyphe: "✓",
+          icone: "check" as const,
           dateLabel: "Prochaine échéance",
           dateValeur: dateLongue(echeance),
           dateNote: noteDesRelances(echeance),
@@ -206,7 +208,7 @@ export default async function RetourRenouvellementPage({
                   fontSize: 25,
                 }}
               >
-                {allure.glyphe}
+                {allure.icone ? <Icone nom={allure.icone} taille={26} /> : allure.glyphe}
               </div>
               <div style={{ flex: "1 1 280px", minWidth: 0 }}>
                 <div

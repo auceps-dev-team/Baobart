@@ -6,6 +6,7 @@ import { FormulaireCollection } from "@/components/collections/formulaire";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { Pagination } from "@/components/dashboard/pagination";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { mesCollections } from "@/lib/collections/service";
 import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { BLANC, CADRE, ENCRE, LAVANDE } from "@/lib/systeme/charte";
@@ -33,7 +34,7 @@ const PAR_PAGE = 4;
 
 export default async function CollectionsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/collections"));
   const collections = await mesCollections(utilisateur.id);
   const paginees = paginer(collections, (await searchParams).page, PAR_PAGE);
 

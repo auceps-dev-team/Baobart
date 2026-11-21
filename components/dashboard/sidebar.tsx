@@ -7,8 +7,11 @@ import {
   JAUNE,
   LAVANDE_CLAIR,
   ORANGE,
+  ORANGE_PALE,
 } from "@/components/shell/nav-data";
 import { NavEntrees } from "@/components/dashboard/nav-entrees";
+import { deconnecter } from "@/lib/auth/actions";
+import { RepliMobile } from "@/components/dashboard/repli-mobile";
 import type { EtapeCompte } from "@/lib/auth/roles";
 import type { RolePlateforme } from "@/lib/auth/administration";
 import { navigationPour } from "@/lib/dashboard/nav";
@@ -128,6 +131,8 @@ export async function DashboardSidebar({
         </span>
       </Link>
 
+      {/* Replié sous 980 px, transparent au-dessus : voir `RepliMobile` (D2a, Q-04). */}
+      <RepliMobile>
       {/* « Super admin » pour qui l'est ; un modérateur ou un comptable voit « Équipe ». */}
       <NavEntrees groupes={groupes} actif={actif} libelleEquipe={role === "SUPER_ADMIN" ? "Super admin" : "Équipe"} />
 
@@ -171,6 +176,31 @@ export async function DashboardSidebar({
           </span>
         </span>
       </div>
+
+      {/* Q-16 (recette du 14/11/2026) : l'acheteur n'avait aucun moyen de se
+          déconnecter depuis son tableau de bord — le bouton n'existait que dans
+          le menu du compte du site public, et sur l'accueil du créateur. Le
+          même fond que l'entrée « Déconnexion » de ce menu (maquette). */}
+      <form action={deconnecter}>
+        <button
+          type="submit"
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            border: CADRE,
+            borderRadius: 13,
+            background: ORANGE_PALE,
+            color: ENCRE,
+            fontFamily: "inherit",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          Se déconnecter
+        </button>
+      </form>
+      </RepliMobile>
     </aside>
   );
 }

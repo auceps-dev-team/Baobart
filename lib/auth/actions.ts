@@ -30,6 +30,7 @@ import {
   premierBlocage,
 } from "@/lib/securite/blocklist";
 import { verifierLimiteAction } from "@/lib/securite/garde";
+import { refusInscription } from "@/lib/profil/validation";
 import { deposer } from "@/lib/email/outbox";
 
 /**
@@ -247,6 +248,10 @@ export async function inscrire(
       champ: "username",
     };
   }
+  // Les bornes hautes, les mêmes qu'au profil (revue du 20/11) : sans elles, un
+  // nom trop long passait ici, puis bloquait l'enregistrement du profil.
+  const tropLong = refusInscription(prenom, nom, username);
+  if (tropLong) return tropLong;
   if (!email.includes("@")) {
     return { erreur: "Cette adresse ne ressemble pas à un e-mail.", champ: "email" };
   }
@@ -387,6 +392,16 @@ export async function demanderReinitialisation(
   // de la réponse ne suffit pas si l'on peut poser la question mille fois.
   const borne = await verifierLimiteAction("oubli");
   if (!borne.autorise) return tropDEssais(borne.dansSecondes);
+
+  // La case était affichée et jamais lue : non cochée, le lien partait quand
+  // même (Q-17, recette du 14/11/2026). Comme à l'inscription et à la
+  // réinitialisation, elle se lit ici, pas seulement dans le navigateur.
+  if (donnees.get("conditions") !== "on") {
+    return {
+      erreur: "Coche la case : le lien part à cette adresse, elle doit être la tienne.",
+      champ: "conditions",
+    };
+  }
 
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
 

@@ -76,6 +76,7 @@ export function BanniereCookies() {
   }, [visible]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- le choix est gardé dans le navigateur : le lire au rendu casserait l'hydratation.
     if (!choixActuel()) setVisible(true);
     const rouvrir = () => setVisible(true);
     window.addEventListener(ROUVRIR_COOKIES, rouvrir);

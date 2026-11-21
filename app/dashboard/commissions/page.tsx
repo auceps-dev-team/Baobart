@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { DashboardFrame, DashboardPanel, EmptyState, MetricCard } from "@/components/dashboard/frame";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { lireCommissions } from "@/lib/dashboard/lectures";
 import { remunerationDe } from "@/lib/dashboard/remuneration";
 import { partDuCreateur } from "@/lib/domain/fees";
@@ -30,7 +31,7 @@ const PERIODES = [
 
 export default async function CommissionsPage({ searchParams }: { searchParams: Promise<{ periode?: string }> }) {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard/commissions"));
   // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
   // l'URL tapée à la main l'ouvrait quand même (audit du 31/10, Q3-4). Même
   // règle que `/dashboard` (`app/dashboard/page.tsx`).
@@ -80,7 +81,7 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
           {r.parRessource.length === 0 ? (
             <EmptyState titre="Rien sur cette période" texte="Ce que chaque ressource te rapporte apparaîtra ici, vente après vente." />
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
               {r.parRessource.map((l) => {
                 const statut = l.net < 0 ? { libelle: "RÉVOQUÉE", fond: BLANC } : l.impaye > 0 ? { libelle: "IMPAYÉE", fond: MAUVE } : { libelle: "VERSÉE", fond: JAUNE };
                 return (

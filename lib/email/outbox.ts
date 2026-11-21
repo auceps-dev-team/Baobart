@@ -82,6 +82,14 @@ export async function deposer(
         recipient: depot.destinataire,
         template: depot.modele,
         payload: depot.charge as Prisma.InputJsonValue,
+        // L'heure de CE processus, pas le `@default(now())` du schéma : celui-là
+        // est posé par le moteur de Prisma, avec SON horloge, alors que
+        // `reclamer` compare à un `new Date()` d'ici. Mesuré le 20/11/2026
+        // (#64) : sous Windows, le moteur avait jusqu'à 8 ms d'avance — deux
+        // messages déposés « après » le passage qui suivait leur dépôt, donc
+        // pas encore dus, et le test des deux passages comptait 8 au lieu de
+        // 10. Les deux autres écritures de ce champ prennent déjà cette horloge.
+        nextAttemptAt: new Date(),
       },
       select: { id: true },
     });

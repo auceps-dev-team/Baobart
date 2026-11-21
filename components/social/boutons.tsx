@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Eclats } from "@/components/anime/eclats";
+import { APLATS, Icone } from "@/components/icones/icone";
 import { basculerLike, basculerSuivi } from "@/lib/social/actions";
+
+/** Le format de `enNombre` (components/anime/compteur.tsx), sans tirer `motion` dans ces boutons. */
+const enNombre = (v: number) => new Intl.NumberFormat("fr-FR").format(v);
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
@@ -76,13 +80,18 @@ function useBascule(
  */
 function Nombre({ total, abouge }: { total: number; abouge: boolean }) {
   if (total <= 0) return null;
+  // Un seul élément, jamais un morceau de texte nu : la traduction du
+  // navigateur remplace les nœuds de texte, et React plantait en retirant
+  // le « · » qu'il croyait tenir (Q-44, recette du 14/11/2026).
   return (
-    <>
+    <span>
       {" · "}
+      {/* Au format ivoirien, comme les compteurs du héros : « 1 000 000 », et
+          non « 1000000 » (vu le 20/11 avec le pire cas de `break-ui`). */}
       <span key={total} className={abouge ? "rebond" : undefined}>
-        {total}
+        {enNombre(total)}
       </span>
-    </>
+    </span>
   );
 }
 
@@ -110,7 +119,12 @@ export function BoutonJaime({
         onClick={basculer}
         disabled={enCours}
         aria-pressed={actif}
-        aria-label={actif ? "Retirer mon j'aime" : "J'aime"}
+        // Pas d'`aria-label` : le nom est le texte visible (« J'aime · 99 »),
+        // et `aria-pressed` dit l'état. L'ancien libellé, « J'aime » ou
+        // « Retirer mon j'aime », ne contenait ni « Aimé » ni le compteur :
+        // une commande vocale qui prononce ce qu'elle voit ne trouvait pas le
+        // bouton (axe, label-content-name-mismatch, WCAG 2.5.3 — vu le 20/11
+        // dès qu'un compteur s'affiche).
         className="sticker-press"
         style={{
           width: pleineLargeur ? "100%" : undefined,
@@ -129,13 +143,15 @@ export function BoutonJaime({
         }}
       >
         {/* Le cœur bat et éclate quand on aime (09/10, labo « explorations »). */}
-        <span style={{ position: "relative", display: "inline-block" }}>
+        <span aria-hidden="true" style={{ position: "relative", display: "inline-block" }}>
           <span key={salve} className={salve > 0 && actif ? "coeur-bat" : undefined}>
-            ♥
+            <Icone nom="heart" taille={16} aplat={actif ? APLATS.orange : APLATS.lavande} style={{ verticalAlign: "-3px" }} />
           </span>
           {actif ? <Eclats salve={salve} /> : null}
         </span>{" "}
-        {actif ? "Aimé" : "J'aime"}
+        {/* Une clé par état : React remplace l'élément au lieu de réécrire un
+            texte que la traduction du navigateur a déjà remplacé (Q-44). */}
+        <span key={actif ? "aime" : "neutre"}>{actif ? "Aimé" : "J'aime"}</span>
         <Nombre total={total} abouge={abouge} />
       </button>
 
@@ -175,7 +191,7 @@ export function BoutonSuivre({
           whiteSpace: "nowrap",
         }}
       >
-        {total} abonné{total > 1 ? "s" : ""}
+        {enNombre(total)} abonné{total > 1 ? "s" : ""}
       </span>
     );
   }
@@ -204,7 +220,9 @@ export function BoutonSuivre({
             `text/swap-text`, voir components/labo/explorations/panier.tsx).
             Les deux lignes visuelles sont cachées aux lecteurs d'écran : ils
             n'entendent que l'état vrai, une fois. */}
-        <span className="sr-only">{actif ? "Abonné" : "Suivre"}</span>
+        <span key={actif ? "abonne" : "suivre"} className="sr-only">
+          {actif ? "Abonné" : "Suivre"}
+        </span>
         <span aria-hidden className="bascule" data-actif={actif || undefined}>
           <span>Suivre</span>
           <span>Abonné</span>

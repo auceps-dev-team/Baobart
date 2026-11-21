@@ -314,6 +314,11 @@ export const ECRANS: EcranMaquette[] = [
 export const ROUTES_SANS_MAQUETTE: { route: string; compte?: Compte; note?: string }[] = [
   { route: "/blog/{blog}", note: "Un article ; la maquette ne dessine que la liste (« Blogs »)" },
   { route: "/communautes" },
+  {
+    route: "/dashboard/bibliotheque/certificat/{ligneAchetee}",
+    compte: "client",
+    note: "Le certificat de licence (lot 7) : aucun écran dessiné ; le Design System réserve l'écusson aux certificats",
+  },
   { route: "/communautes/{communaute}" },
   { route: "/communautes/nouvelle", compte: "createur" },
   { route: "/conditions" },
@@ -326,6 +331,7 @@ export const ROUTES_SANS_MAQUETTE: { route: string; compte?: Compte; note?: stri
   { route: "/jobs/deposer", compte: "agence" },
   { route: "/jobs/{job}/postuler", compte: "client" },
   { route: "/jobs/mes-propositions", compte: "client" },
+  { route: "/jobs/mes-offres", compte: "agence", note: "Q-26 : pendant de « Mes propositions », pour le recruteur" },
   { route: "/services/deposer", compte: "agence" },
   { route: "/signalement/deposer" },
   { route: "/dashboard/blog/{articleAdmin}", compte: "admin" },

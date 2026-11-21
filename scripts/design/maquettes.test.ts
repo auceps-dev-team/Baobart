@@ -125,7 +125,11 @@ function routesApp(dossier = "app", segments: string[] = []): string[] {
     const chemin = join(dossier, nom);
     if (statSync(chemin).isDirectory()) {
       // `@slot` et `(groupe)` n'apparaissent pas dans l'adresse ; `(.)x` intercepte `x`.
-      if (nom.startsWith("@") || /^\([^.)]*\)$/.test(nom)) routes.push(...routesApp(chemin, segments));
+      // Un attrape-tout (`[...x]`) DANS un créneau ne rend rien seul — il donne
+      // une valeur au créneau partout (`app/@modal/[...rien]`, Q-13) : ce
+      // n'est pas un écran, il n'a ni maquette ni raison d'en avoir.
+      if (nom.startsWith("@")) routes.push(...routesApp(chemin, segments).filter((r) => !r.includes("[...")));
+      else if (/^\([^.)]*\)$/.test(nom)) routes.push(...routesApp(chemin, segments));
       else routes.push(...routesApp(chemin, [...segments, nom.replace(/^\(\.+\)/, "")]));
     } else if (nom === "page.tsx") {
       routes.push(`/${segments.join("/")}`);

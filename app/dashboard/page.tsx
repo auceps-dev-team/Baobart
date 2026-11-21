@@ -16,6 +16,7 @@ import { Vignette } from "@/components/dashboard/vignette";
 import { deconnecter } from "@/lib/auth/actions";
 import type { EtapeCompte } from "@/lib/auth/roles";
 import { sessionCourante } from "@/lib/auth/session";
+import { connexionPuis } from "@/lib/auth/suite";
 import { urlDuSite } from "@/lib/config/site";
 import { lireProgressionVendeur } from "@/lib/dashboard/devenir-vendeur-lecture";
 import { indicateursCreateur } from "@/lib/dashboard/indicateurs";
@@ -44,7 +45,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function DashboardPage() {
   const utilisateur = await sessionCourante();
-  if (!utilisateur) redirect("/connexion");
+  if (!utilisateur) redirect(connexionPuis("/dashboard"));
 
   // Un acheteur sans boutique n'a rien à lire ici : son écran est l'Aperçu.
   // La connexion mène à `/dashboard` pour tout le monde ; c'est ici qu'on trie.
@@ -214,7 +215,7 @@ async function VueVendeur({
           {ventes.length === 0 ? (
             <EmptyState titre="Pas encore de vente." texte="Ta première vente apparaîtra ici, avec son montant et son état." />
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 10 }}>
               {ventes.map((v) => {
                 const brut = encaisseDe(v);
                 const etat = etatDeLaVente({
