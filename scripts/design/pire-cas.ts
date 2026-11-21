@@ -31,14 +31,14 @@
  */
 import { PrismaClient } from "@prisma/client";
 
+import { baseLocale } from "./base-locale";
 // Les valeurs, et les limites réelles dont elles viennent : pire-cas-donnees.ts.
 import { BIO, DESCRIPTION, DOMAINE, PIRE_CAS, PREFIXE } from "./pire-cas-donnees";
 
 const db = new PrismaClient();
 
 function refuserSiCeNEstPasLocal() {
-  const url = process.env.DATABASE_URL ?? "";
-  if (!url.includes("localhost") && !url.includes("127.0.0.1")) {
+  if (!baseLocale(process.env.DATABASE_URL ?? "")) {
     console.error("Refus : DATABASE_URL ne pointe pas sur une base locale.");
     process.exit(1);
   }

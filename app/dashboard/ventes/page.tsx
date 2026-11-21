@@ -26,7 +26,19 @@ import {
 export const metadata = { title: "Ventes · Remboursement et accès — Baobart." };
 export const dynamic = "force-dynamic";
 
-const PAR_PAGE = 8;
+/**
+ * Une vente par page — la seule taille qui tienne sous le menu (règle du 14/11, PR #60).
+ *
+ * Mesuré le 17/11/2026 à 1440 × 900, 30 ventes (`pnpm design:remplir-listes`), légende
+ * repliée : la liste commence à 470 px, une vente fait 187 px (199 avec l'écart), et la
+ * barre de pagination finit à 605 + 199 × N px. Sous le menu du créateur (910 px) :
+ * N = 1 (804 px) ; à 2, 1 003 px. C'était 8.
+ *
+ * Retenu le 20/11 (aucepsdev : « continue », sans trancher) parmi trois choix : il garde la
+ * carte de la maquette telle qu'elle est dessinée, et se défait en une ligne. L'autre voie
+ * — une ligne de vente compacte, ≈ 70 px, trois par page — s'écarterait de la maquette.
+ */
+const PAR_PAGE = 1;
 
 const DATE = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -111,8 +123,10 @@ export default async function VentesPage({
   });
 
   const filtrees = filtre ? decrites.filter((d) => d.etat === filtre) : decrites;
-  // Huit par page (27/10) : chaque vente porte ses gestes et sa trace, et
-  // trente-trois d'affilée faisaient 5 705 px. La maquette en montre cinq.
+  // Chaque vente porte ses gestes et sa trace : trente-trois d'affilée faisaient
+  // 5 705 px (27/10), d'où huit par page — puis une seule depuis le 20/11, pour tenir
+  // sous le menu (voir PAR_PAGE). La maquette en montre cinq, dans une coque qui
+  // défile à l'intérieur : la règle du 14/11 n'y existait pas.
   const pages = Math.ceil(filtrees.length / PAR_PAGE);
   const page = pageDemandee(pageBrute, pages);
   const visibles = filtrees.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
@@ -196,6 +210,7 @@ export default async function VentesPage({
         </p>
 
         <PanneauOperations
+          legendeRepliee
           legendeTitre="États d'une vente"
           legende={legende}
           rechercherPlaceholder="Rechercher une vente ou un acheteur…"

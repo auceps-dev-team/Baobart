@@ -66,6 +66,10 @@ const AVEC_MAQUETTES = !args.has("sans-maquettes");
 
 const LARGEURS = [360, 768, 1440] as const;
 type Largeur = (typeof LARGEURS)[number];
+/** `--largeurs=1440` (ou `360,1440`) : capturer moins de largeurs, quand une seule suffit à la mesure. */
+const DEMANDEES: readonly Largeur[] = args.has("largeurs")
+  ? LARGEURS.filter((w) => args.get("largeurs")!.split(",").map(Number).includes(w))
+  : LARGEURS;
 const HAUTEUR: Record<Largeur, number> = { 360: 780, 768: 1024, 1440: 900 };
 /** Au-delà, une capture pleine page est coupée sur la planche (pas sur le fichier). */
 const HAUTEUR_MAX_PLANCHE = 5000;
@@ -104,6 +108,8 @@ const FIGER =
 interface Mesures {
   debordement: number;
   fautifs: string[];
+  /** Tableau de bord, à 1440 px : de combien la page descend plus bas que son menu ; `null` ailleurs. */
+  depasseMenu: number | null;
   coupes: number;
   exemplesCoupes: string[];
   cibles: number;
@@ -298,9 +304,40 @@ function mesurer(vw: number): Mesures {
   ].filter(visible);
   const champsSous16 = champs.filter((el) => Number.parseFloat(getComputedStyle(el).fontSize) < 16);
   const coupe = (el: Element) => `${decrire(el).replace(/ « .* » /, " ")} porte ${el.scrollWidth} px`;
+
+  // Le tableau de bord : la page descend-elle plus bas que son menu ? (demande du 14/11 :
+  // « une liste ne dépasse jamais la barre latérale », jugée sur un écran de bureau).
+  //
+  // La barre s'étire avec la page et sa carte utilisateur est poussée en bas (`marginTop:
+  // auto`) : lire la position de cette carte donnerait toujours « ça tient ». On mesure donc
+  // la hauteur NATURELLE du menu — ses enfants, ses espacements, ses marges intérieures.
+  //
+  // « Ses enfants » : ceux qui prennent place dans sa colonne. On descend dans `display:
+  // contents` (l'enveloppe de `RepliMobile`, D2a, sans boîte au bureau) et on saute `display:
+  // none`. Même calcul que `mesurer` dans e2e/pagination.spec.ts, qui dit ce que coûtait l'oubli.
+  let depasseMenu: number | null = null;
+  const menu = document.querySelector<HTMLElement>("[data-sidebar]");
+  if (menu && vw >= 1000) {
+    const s = getComputedStyle(menu);
+    const enColonne = (el: Element): HTMLElement[] =>
+      [...el.children].flatMap((e) => {
+        const d = getComputedStyle(e).display;
+        return d === "none" ? [] : d === "contents" ? enColonne(e) : [e as HTMLElement];
+      });
+    const enfants = enColonne(menu);
+    const naturelle =
+      enfants.reduce((h, e) => h + e.offsetHeight, 0) +
+      (Number.parseFloat(s.rowGap) || 0) * Math.max(0, enfants.length - 1) +
+      Number.parseFloat(s.paddingTop) +
+      Number.parseFloat(s.paddingBottom);
+    const basMenu = Math.max(window.innerHeight, menu.getBoundingClientRect().top + window.scrollY + naturelle);
+    depasseMenu = Math.max(0, Math.round(document.documentElement.scrollHeight - basMenu));
+  }
+
   return {
     debordement,
     fautifs,
+    depasseMenu,
     coupes: coupes.length,
     exemplesCoupes: coupes.slice(0, 3).map(coupe),
     cibles: cibles.length,
@@ -392,6 +429,7 @@ function ecrireIndex(lignes: Ligne[], date: string) {
       `HTTP ${a.statut}${a.redirige ? ` → ${echapper(new URL(a.urlFinale!).pathname)}` : ""}`,
       m.debordement > 0 ? `<span class="ko">déborde de ${m.debordement} px</span>` : "ne déborde pas",
       m.coupes ? `${m.coupes} conteneur(s) coupé(s)` : "rien de coupé",
+      ...(m.depasseMenu == null ? [] : [m.depasseMenu > 0 ? `<span class="ko">descend ${m.depasseMenu} px sous le menu</span>` : "tient sous le menu"]),
       `${m.sous44}/${m.cibles} cibles &lt; 44 px (${m.sous24} &lt; 24)`,
       m.champs ? `${m.champsSous16}/${m.champs} champs &lt; 16 px` : "aucun champ",
     ];
@@ -474,7 +512,7 @@ async function main() {
         const e = ECRANS.find((x) => x.id === l.id);
         if (!e) continue;
         // Mobile : un cadre fixe de 380 px, une seule capture. Les autres : les trois largeurs.
-        const largeurs: readonly Largeur[] = e.maquette === "Mobile" ? [360] : LARGEURS;
+        const largeurs: readonly Largeur[] = e.maquette === "Mobile" ? [360] : DEMANDEES;
         for (const w of largeurs) {
           const fichier = join(SORTIE, "maquettes", `${nomFichier(e.id)}@${w}.png`);
           try {
@@ -528,7 +566,7 @@ async function main() {
           continue;
         }
         l.url = u.url;
-        for (const w of LARGEURS) {
+        for (const w of DEMANDEES) {
           const fichier = join(SORTIE, "app", `${nomFichier(l.id)}@${w}.png`);
           try {
             l.app.push({ largeur: w, ...(await capturerApp(await contexte(l.compte, w), u.url, w, fichier)) });
@@ -552,7 +590,7 @@ async function main() {
       for (const l of lignes) l.maquettes = (ancien.get(l.id) ?? []).filter((m) => !m.fichier || existsSync(m.fichier));
     }
     for (const l of lignes) {
-      for (const w of LARGEURS) {
+      for (const w of DEMANDEES) {
         const m = l.maquettes.find((x) => x.largeur === w)?.fichier;
         const a = l.app.find((x) => x.largeur === w)?.fichier;
         if (!m && !a) continue;
