@@ -214,7 +214,9 @@ export default async function FicheEvenementPage({
                 }}
               >
                 <span>
-                  du {formatDate(e.debut)} au {formatDate(e.fin)}
+                  {/* Q-15 (recette du 14/11/2026) : « à 09:00 » sans dire le fuseau ; vu de
+                      Paris, c'est 10:00. Les heures sont saisies en GMT : on le dit. */}
+                  du {formatDate(e.debut)} au {formatDate(e.fin)}, heure d&apos;Abidjan (GMT)
                 </span>
                 <span>
                   organisé par{" "}

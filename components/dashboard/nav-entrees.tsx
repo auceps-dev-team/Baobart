@@ -97,7 +97,8 @@ function Groupes({ groupes, courante, sansTitres }: { groupes: Groupe[]; courant
             fontSize: 10.5,
             textTransform: "uppercase",
             letterSpacing: ".12em",
-            opacity: 0.55,
+            // Q-30 : 4,11:1 sur blanc à 55 % ; à 72 %, plus de 7:1 (axe).
+            opacity: 0.72,
             margin: "8px 0 4px",
           }}
         >
@@ -133,7 +134,9 @@ function Groupes({ groupes, courante, sansTitres }: { groupes: Groupe[]; courant
                   border: `2px solid ${ENCRE}`,
                   borderRadius: 999,
                   background: ORANGE,
-                  color: BLANC,
+                  // Encre et non blanc sur l'orange : 5,37:1 contre 3,48:1 (Q-30,
+                  // la même raison que « J'aime », components/social/boutons.tsx).
+                  color: ENCRE,
                   fontSize: 10.5,
                   fontWeight: 800,
                 }}

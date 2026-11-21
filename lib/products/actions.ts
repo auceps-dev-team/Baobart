@@ -10,9 +10,8 @@ import { db } from "@/lib/db";
 import { FILTRES, familleDepuisLibelle, type Filtre } from "@/lib/feed/queries";
 import {
   decouperMotsCles,
-  tropDeMotsCles,
-  prixRetenu,
   slugifier,
+  verifierSaisie,
   type EtatProduit,
 } from "@/lib/products/validation";
 
@@ -82,31 +81,23 @@ export async function creerBrouillon(
     gratuit,
   };
 
-  if (titre.length < 3) {
-    return {
-      erreur: "Donne un titre d'au moins 3 caractères.",
-      champ: "titre",
-      saisie,
-    };
-  }
-
-  const tropDeMots = tropDeMotsCles(motsClesBrut);
-  if (tropDeMots) return { erreur: tropDeMots, champ: "motsCles", saisie };
-
   const famille =
     (FILTRES as readonly string[]).includes(familleLibelle) &&
     familleLibelle !== "Tous"
       ? familleDepuisLibelle(familleLibelle as Filtre)
       : null;
 
-  if (!famille) {
-    return { erreur: "Choisis une catégorie.", champ: "famille", saisie };
+  // Toutes les erreurs d'un coup (Q-23), pas la première seulement.
+  const verdict = verifierSaisie({ titre, motsClesBrut, familleOk: famille !== null, prixBrut, gratuit });
+  if (verdict.erreurs.length > 0 || !famille || verdict.prix === null) {
+    return {
+      erreur: verdict.erreurs.map((e) => e.message).join(" "),
+      champ: verdict.erreurs[0]?.champ,
+      champs: verdict.erreurs.map((e) => e.champ),
+      saisie,
+    };
   }
-
-  const resultatPrix = prixRetenu(prixBrut, gratuit);
-  if ("erreur" in resultatPrix) {
-    return { erreur: resultatPrix.erreur, champ: "prix", saisie };
-  }
+  const resultatPrix = { prix: verdict.prix };
 
   const baseSlug = slugifier(titre);
 
@@ -179,6 +170,7 @@ async function ressourceDe(userId: string, produitId: string) {
       id: true,
       sellerId: true,
       status: true,
+      description: true,
       // Seuls les fichiers sources comptent : publier avec un aperçu et rien
       // à télécharger reste une vente impossible à honorer.
       _count: {
@@ -233,6 +225,13 @@ export async function publierRessource(produitId: string): Promise<void> {
   // laisser produire une commande impossible à honorer.
   if (produit._count.files === 0) {
     redirect(`/dashboard/produits/${produit.id}?erreur=sans-fichier`);
+  }
+
+  // Q-23 (recette du 14/11/2026) : on pouvait publier sans un mot de
+  // description. Le brouillon s'en passe ; la vente, non — c'est ce qu'un
+  // acheteur lit avant de payer.
+  if ((produit.description ?? "").trim().length === 0) {
+    redirect(`/dashboard/produits/${produit.id}?erreur=sans-description`);
   }
 
   await db.product.update({
@@ -361,27 +360,23 @@ export async function modifierRessource(
 
   // Les mêmes règles qu'à la création, et pour la même raison : une ressource
   // corrigée doit rester aussi valable qu'une ressource neuve.
-  if (titre.length < 3) {
-    return { erreur: "Donne un titre d'au moins 3 caractères.", champ: "titre", saisie };
-  }
-
-  const tropDeMots = tropDeMotsCles(motsClesBrut);
-  if (tropDeMots) return { erreur: tropDeMots, champ: "motsCles", saisie };
-
   const famille =
     (FILTRES as readonly string[]).includes(familleLibelle) &&
     familleLibelle !== "Tous"
       ? familleDepuisLibelle(familleLibelle as Filtre)
       : null;
 
-  if (!famille) {
-    return { erreur: "Choisis une catégorie.", champ: "famille", saisie };
+  // Toutes les erreurs d'un coup (Q-23), pas la première seulement.
+  const verdict = verifierSaisie({ titre, motsClesBrut, familleOk: famille !== null, prixBrut, gratuit });
+  if (verdict.erreurs.length > 0 || !famille || verdict.prix === null) {
+    return {
+      erreur: verdict.erreurs.map((e) => e.message).join(" "),
+      champ: verdict.erreurs[0]?.champ,
+      champs: verdict.erreurs.map((e) => e.champ),
+      saisie,
+    };
   }
-
-  const resultatPrix = prixRetenu(prixBrut, gratuit);
-  if ("erreur" in resultatPrix) {
-    return { erreur: resultatPrix.erreur, champ: "prix", saisie };
-  }
+  const resultatPrix = { prix: verdict.prix };
 
   const typeDeLicence = await db.licenseType.upsert({
     where: { code: licence as LicenseCode },

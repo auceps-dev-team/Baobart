@@ -13,6 +13,7 @@ import {
   type FiltreTelechargements,
 } from "@/lib/dashboard/historique";
 import type { Currency } from "@/lib/i18n/money";
+import { resteAToi } from "@/lib/dashboard/bibliotheque-regles";
 
 /**
  * Les deux historiques de l'acheteur, lus en base.
@@ -165,6 +166,15 @@ export interface RessourceTelechargee {
   fichierId: string | null;
   /** L'hôte de ce fichier quand il est hébergé ailleurs : le bouton dit où il mène. */
   fichierExterne: string | null;
+  /**
+   * L'accès est fermé : achat remboursé en entier, contesté, retiré, ou
+   * ressource suspendue. Piste 1 de la recette (14/11/2026) : l'historique
+   * affichait « Disponible · Télécharger » et le bouton menait à une page
+   * blanche (403) — il regardait si le FICHIER existait, pas si l'acheteur y
+   * avait encore droit. Les mêmes conditions que la livraison
+   * (lib/domain/downloads.ts), par `resteAToi`.
+   */
+  accesFerme: boolean;
 }
 
 export interface Telechargements {
@@ -177,6 +187,20 @@ export interface Telechargements {
   quota: { utilises: number; limite: number | null } | null;
   /** Le nom du forfait en cours, quota ou non. */
   forfait: string | null;
+}
+
+/**
+ * L'accès d'un acheteur à une ressource qu'il a déjà retirée est-il fermé ?
+ * Une ressource offerte reste ouverte ; un achat se referme comme à la
+ * livraison ; sans achat (un forfait), la livraison tranchera, on ne ferme rien.
+ */
+function accesFerme(
+  produit: { status: string; price: number; pricingMode: string },
+  achat: Parameters<typeof resteAToi>[0] | undefined,
+): boolean {
+  if (produit.status === "SUSPENDED") return true;
+  if (estOfferte(produit)) return false;
+  return achat ? !resteAToi(achat) : false;
 }
 
 export async function historiqueDesTelechargements(
@@ -208,6 +232,7 @@ export async function historiqueDesTelechargements(
       price: true,
       pricingMode: true,
       coverUrl: true,
+      status: true,
       files: {
         where: { role: "SOURCE", deletedAt: null },
         orderBy: { position: "asc" },
@@ -217,6 +242,16 @@ export async function historiqueDesTelechargements(
   });
 
   const parId = new Map(produits.map((p) => [p.id, p]));
+
+  // Le dernier achat abouti de chaque ressource : c'est lui que la livraison
+  // consulte (`orderBy: createdAt desc`). Une seule requête pour toutes.
+  const achats = await db.orderItem.findMany({
+    where: { productId: { in: produits.map((p) => p.id) }, state: { in: ["SUCCESSFUL", "NOT_CHARGED"] }, order: { buyerId: userId } },
+    orderBy: { createdAt: "desc" },
+    select: { productId: true, price: true, quantity: true, tipAmount: true, refundedAmount: true, chargebackAt: true, chargebackReversedAt: true, accessRevokedAt: true },
+  });
+  const dernierAchat = new Map<string, (typeof achats)[number]>();
+  for (const a of achats) if (!dernierAchat.has(a.productId)) dernierAchat.set(a.productId, a);
 
   // Regroupé par ressource, comme la maquette : elle annonce « 3 fois », pas
   // trois lignes identiques.
@@ -247,6 +282,7 @@ export async function historiqueDesTelechargements(
       visuel: produit.coverUrl,
       fichierId: produit.files[0]?.id ?? null,
       fichierExterne: produit.files[0]?.externalUrl ? hoteDuLien(produit.files[0].externalUrl) : null,
+      accesFerme: accesFerme(produit, dernierAchat.get(e.productId)),
     });
   }
 

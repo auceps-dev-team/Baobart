@@ -71,7 +71,7 @@ export default async function TarifsPage() {
     },
     {
       q: "Comment sont rémunérés les créateurs ?",
-      a: `Pour chaque vente, ${part} du prix revient au créateur : Baobart retient sa commission et les frais de l'opérateur de paiement. Le solde part chaque semaine, par mobile money ou virement.`,
+      a: `Pour chaque vente, ${part} du prix revient au créateur : Baobart retient sa commission et les frais de l'opérateur de paiement. Le solde part chaque mois par défaut, ou chaque semaine si tu le choisis, par mobile money ou virement.`,
     },
   ];
 

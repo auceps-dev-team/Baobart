@@ -61,7 +61,7 @@ export async function enregistrerCompteDeVersement(
 
   // La forme du compte d'abord : une faute de frappe ne doit coûter ni un essai
   // de code, ni un code de secours, qui ne sert qu'une fois.
-  const verdict = verifierCompte({ provider, reference, titulaire });
+  const verdict = verifierCompte({ provider, reference, titulaire, pays: String(donnees.get("paysNumero") ?? "") || undefined });
   if (!verdict.accepte || !verdict.reference || !verdict.method) {
     return { ok: false, message: verdict.message ?? "Compte refusé.", saisie };
   }
@@ -199,7 +199,7 @@ export async function demanderCodeVersement(_precedent: EtatCode | null, donnees
   const utilisateur = await sessionCourante();
   if (!utilisateur) return { ok: false, message: "Connecte-toi pour continuer.", saisie };
 
-  const verdict = verifierCompte({ provider, reference, titulaire });
+  const verdict = verifierCompte({ provider, reference, titulaire, pays: String(donnees.get("paysNumero") ?? "") || undefined });
   if (!verdict.accepte || !verdict.reference || !verdict.method) {
     return { ok: false, message: verdict.message ?? "Compte refusé.", saisie };
   }

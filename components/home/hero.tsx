@@ -14,6 +14,7 @@ import {
   LAVANDE_PROFOND,
   ORANGE,
 } from "@/components/shell/nav-data";
+import { accorde } from "@/lib/i18n/accord";
 
 /**
  * Hero de l'accueil — variante B de « Baobart Accueil.dc.html ».
@@ -174,11 +175,11 @@ export function HeroB({
               // fixe : défiler jusqu'à une note sur 5 n'apprend rien.
               {
                 valeur: <Compteur cible={chiffres.ressources} />,
-                libelle: "ressources",
+                libelle: accorde(chiffres.ressources, "ressource"),
               },
               {
                 valeur: <Compteur cible={chiffres.createurs} delai={150} />,
-                libelle: "créatifs",
+                libelle: accorde(chiffres.createurs, "créatif"),
               },
               ...(chiffres.note !== null
                 ? [

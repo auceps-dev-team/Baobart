@@ -33,6 +33,7 @@ export function FormulaireProfil({
   visuels,
   email,
   disposition = "identite",
+  pays,
 }: {
   depart: Saisie;
   visuels: { avatarUrl: string | null; bannerUrl: string | null };
@@ -44,6 +45,8 @@ export function FormulaireProfil({
    * formulaire, une seule action : voir les champs cachés plus bas.
    */
   disposition?: "identite" | "boutique";
+  /** Les pays proposés, nommés côté serveur (`paysTries`, lib/i18n/pays.ts) : Q-32. */
+  pays: { code: string; nom: string }[];
 }) {
   const [etat, envoyer, enCours] = useActionState<EtatProfil | null, FormData>(
     enregistrerProfil,
@@ -230,16 +233,20 @@ export function FormulaireProfil({
           />
         </Champ>
 
-        <Champ label="Pays" pour="pays" aide="Code à deux lettres : CI, SN, ML…">
-          <input
-            id="pays"
-            name="pays"
-            maxLength={2}
-            defaultValue={v.pays}
-            key={`pays-${v.pays}`}
-            placeholder="CI"
-            style={entree}
-          />
+        {/* Q-32 (recette du 14/11/2026) : un champ libre « CI, SN, ML… » quand
+            l'offre d'emploi propose une liste. La valeur reste le code ISO. */}
+        <Champ label="Pays" pour="pays">
+          <select id="pays" name="pays" defaultValue={v.pays.toUpperCase()} key={`pays-${v.pays}`} style={entree}>
+            <option value="">Non précisé</option>
+            {v.pays && !pays.some((p) => p.code === v.pays.toUpperCase()) ? (
+              <option value={v.pays.toUpperCase()}>{v.pays.toUpperCase()}</option>
+            ) : null}
+            {pays.map((p) => (
+              <option key={p.code} value={p.code}>
+                {p.nom}
+              </option>
+            ))}
+          </select>
         </Champ>
       </Bloc>
 

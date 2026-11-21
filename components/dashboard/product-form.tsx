@@ -126,6 +126,7 @@ export function FormulaireProduit({
   action,
   depart,
   libelleBouton = "Enregistrer le brouillon",
+  delaiRemboursement,
 }: {
   action: (etat: EtatProduit, donnees: FormData) => Promise<EtatProduit>;
   /**
@@ -137,9 +138,13 @@ export function FormulaireProduit({
    */
   depart?: EtatProduit["saisie"];
   libelleBouton?: string;
+  /** Le délai de remboursement du compte, en clair (`libelleDelai`) : Q-21. */
+  delaiRemboursement?: string;
 }) {
   const [etat, envoyer, enCours] = useActionState(action, {});
   const saisie = etat.saisie ?? depart;
+  // Tous les champs en défaut, pas le premier seulement (Q-23).
+  const enErreur = (c: NonNullable<EtatProduit["champ"]>) => (etat.champs ? etat.champs.includes(c) : etat.champ === c);
   const [gratuit, setGratuit] = useState(depart?.gratuit ?? false);
 
   // React vide les champs non contrôlés quand l'action se termine. On les
@@ -159,6 +164,14 @@ export function FormulaireProduit({
       style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,380px),1fr))", gap: 20, alignItems: "start" }}
     >
       <Bloc titre="Fichier & aperçu">
+        {/* Q-23 (recette du 14/11/2026) : ce bloc s'appelle « Fichier & aperçu »
+            et n'avait aucun champ de fichier à la création. Le parcours est voulu
+            — brouillon d'abord, fichiers ensuite —, il n'était pas annoncé. */}
+        {!depart ? (
+          <p data-fichiers-ensuite style={{ gridColumn: "1 / -1", margin: 0, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>
+            Les fichiers et l&apos;aperçu s&apos;ajoutent à l&apos;étape suivante, une fois le brouillon enregistré.
+          </p>
+        ) : null}
         <Champ nom="titre" label="Titre de la ressource" pleineLargeur>
           <input
             id="titre"
@@ -166,7 +179,7 @@ export function FormulaireProduit({
             defaultValue={saisie?.titre ?? ""}
             key={`titre-${saisie?.titre ?? ""}`}
             placeholder="Illu Femme au Foulard"
-            style={champStyle(etat.champ === "titre")}
+            style={champStyle(enErreur("titre"))}
           />
         </Champ>
 
@@ -176,7 +189,7 @@ export function FormulaireProduit({
             name="famille"
             defaultValue={saisie?.famille ?? ""}
             key={`famille-${saisie?.famille ?? ""}`}
-            style={champStyle(etat.champ === "famille")}
+            style={champStyle(enErreur("famille"))}
           >
             <option value="" disabled>
               Choisir…
@@ -212,7 +225,7 @@ export function FormulaireProduit({
             defaultValue={saisie?.motsCles ?? ""}
             key={`mots-${saisie?.motsCles ?? ""}`}
             placeholder="wax, portrait, motif"
-            style={champStyle(etat.champ === "motsCles")}
+            style={champStyle(enErreur("motsCles"))}
           />
         </Champ>
 
@@ -223,7 +236,7 @@ export function FormulaireProduit({
             defaultValue={saisie?.description ?? ""}
             key={`desc-${saisie?.description ?? ""}`}
             placeholder="Ce que contient le fichier, dimensions, usages conseillés…"
-            style={{ ...champStyle(etat.champ === "description"), minHeight: 96, resize: "vertical" }}
+            style={{ ...champStyle(enErreur("description")), minHeight: 96, resize: "vertical" }}
           />
         </Champ>
       </Bloc>
@@ -239,7 +252,7 @@ export function FormulaireProduit({
             placeholder="5 000"
             disabled={gratuit}
             style={{
-              ...champStyle(etat.champ === "prix"),
+              ...champStyle(enErreur("prix")),
               opacity: gratuit ? 0.45 : 1,
             }}
           />
@@ -271,6 +284,19 @@ export function FormulaireProduit({
             {gratuit ? "Oui, gratuite" : "Non, payante"}
           </label>
         </Champ>
+
+        {/* Q-21 (recette du 14/11/2026) : « 30 jours » était posé sur chaque fiche
+            sans jamais être montré à la publication — la créatrice le découvrait
+            sur l'écran des demandes reçues. C'est un réglage du compte, pas de la
+            ressource (User.refundWindowDays) : on le montre, et où le changer. */}
+        {delaiRemboursement && !gratuit ? (
+          <p data-delai-remboursement style={{ gridColumn: "1 / -1", margin: 0, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>
+            Remboursement : <strong>{delaiRemboursement}</strong>, comme toutes tes ressources.{" "}
+            <Link href="/dashboard/ventes/remboursements" style={{ color: ENCRE, textDecoration: "underline" }}>
+              Changer ce délai
+            </Link>
+          </p>
+        ) : null}
 
         {/*
           Fichiers, dimensions et poids sont des faits du fichier, pas des

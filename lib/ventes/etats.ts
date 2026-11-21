@@ -15,21 +15,30 @@ export type EtatVente =
   | "REMBOURSEE"
   | "RETIREE";
 
-export const ETATS_VENTE: Record<EtatVente, { sens: string; ton: string }> = {
-  ENCAISSEE: { sens: "Paiement encaissé, accès actif.", ton: "neutre" },
+/**
+ * `libelle` : ce que l'écran affiche. La maquette affiche ses clés (« ENCAISSEE »),
+ * sans accent ; en français, les capitales prennent leurs accents (Q-36, recette
+ * du 14/11/2026). Écart assumé avec la maquette, la casse et la police restent.
+ */
+export const ETATS_VENTE: Record<EtatVente, { libelle: string; sens: string; ton: string }> = {
+  ENCAISSEE: { libelle: "ENCAISSÉE", sens: "Paiement encaissé, accès actif.", ton: "neutre" },
   CONTESTEE: {
+    libelle: "CONTESTÉE",
     sens: "L'acheteur a ouvert un litige auprès de son opérateur.",
     ton: "casse",
   },
   PARTIEL: {
+    libelle: "PARTIEL",
     sens: "Remboursement partiel déjà appliqué. L'accès reste actif.",
     ton: "attend",
   },
   REMBOURSEE: {
+    libelle: "REMBOURSÉE",
     sens: "Intégralement remboursée, accès retiré. État terminal.",
     ton: "dort",
   },
   RETIREE: {
+    libelle: "RETIRÉE",
     sens: "Accès retiré sans remboursement. État terminal, contestable par l'acheteur.",
     ton: "dort",
   },

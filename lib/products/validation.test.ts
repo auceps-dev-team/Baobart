@@ -7,6 +7,7 @@ import {
   tropDeMotsCles,
   prixRetenu,
   slugifier,
+  verifierSaisie,
 } from "./validation";
 
 describe("mots-clés", () => {
@@ -115,5 +116,19 @@ describe("slug", () => {
 
   it("rend une chaîne vide sur une saisie sans lettre", () => {
     expect(slugifier("!!! ???")).toBe("");
+  });
+});
+
+describe("verifierSaisie (Q-23)", () => {
+  it("rapporte TOUTES les erreurs d'un coup, pas la première seulement", () => {
+    const v = verifierSaisie({ titre: "ab", motsClesBrut: "", familleOk: false, prixBrut: "abc", gratuit: false });
+    expect(v.erreurs.map((e) => e.champ)).toEqual(["titre", "famille", "prix"]);
+    expect(v.prix).toBeNull();
+  });
+
+  it("rien à redire : aucune erreur, le prix retenu", () => {
+    const v = verifierSaisie({ titre: "Pack d'icônes", motsClesBrut: "wax, motif", familleOk: true, prixBrut: "2500", gratuit: false });
+    expect(v.erreurs).toEqual([]);
+    expect(v.prix).toBe(2500);
   });
 });

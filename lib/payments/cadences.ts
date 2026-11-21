@@ -21,7 +21,7 @@ export const CADENCES = [
     code: "MONTHLY",
     libelle: "Chaque mois",
     aide:
-      "Un seul versement, le premier jour de versement du mois. Le rythme par " +
+      "Un seul versement, au dernier jour de versement du mois. Le rythme par " +
       "défaut, celui qui coûte le moins en frais.",
   },
   {

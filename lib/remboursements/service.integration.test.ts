@@ -124,6 +124,30 @@ describe("une demande de remboursement", () => {
     expect(await db.refund.count({ where: { orderItemId: ligne } })).toBe(1);
   });
 
+  // Q-40 (recette du 14/11/2026) : la créatrice apprenait par une ligne « Tu
+  // dois 2 800 F » sur l'écran des gains que l'équipe avait remboursé à sa place.
+  it("prévient le créateur, par la cloche ET par courriel, quand l'équipe rembourse à sa place", async () => {
+    const { vendeur, acheteur, ligne } = await achat(2_800);
+    const d = await demander({ acheteurId: acheteur.id, orderItemId: ligne, motif: MOTIF });
+    if (!d.ok) throw new Error("demande");
+    const support = await compte("support-q40");
+    const plusTard = new Date(Date.now() + 8 * JOUR);
+
+    expect((await trancher({ demandeId: d.demandeId, parId: support.id, qualite: "SUPPORT", decision: "ACCEPTER", maintenant: plusTard })).ok).toBe(true);
+
+    const avis = await db.notification.findFirstOrThrow({ where: { userId: vendeur.id, type: "REMBOURSE_PAR_EQUIPE" }, select: { corps: true } });
+    expect(avis.corps).toContain("l'équipe a accepté");
+    expect(await db.emailOutbox.count({ where: { template: "REMBOURSE_PAR_EQUIPE" } })).toBe(1);
+  });
+
+  it("ne dit rien de tel quand c'est le créateur lui-même qui accepte", async () => {
+    const { vendeur, acheteur, ligne } = await achat(2_800);
+    const d = await demander({ acheteurId: acheteur.id, orderItemId: ligne, motif: MOTIF });
+    if (!d.ok) throw new Error("demande");
+    expect((await trancher({ demandeId: d.demandeId, parId: vendeur.id, qualite: "CREATEUR", decision: "ACCEPTER" })).ok).toBe(true);
+    expect(await db.notification.count({ where: { userId: vendeur.id, type: "REMBOURSE_PAR_EQUIPE" } })).toBe(0);
+  });
+
   it("redevient décidable quand le remboursement ne peut pas partir", async () => {
     const { vendeur, acheteur, ligne } = await achat();
     const d = await demander({ acheteurId: acheteur.id, orderItemId: ligne, motif: MOTIF });

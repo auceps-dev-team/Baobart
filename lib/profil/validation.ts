@@ -1,4 +1,5 @@
 import { RESEAUX, lireLien as lireReseau, type Reseau } from "@/lib/reseaux/reseaux";
+import { avecProtocole } from "@/lib/http/adresse";
 
 /**
  * Ce qu'on accepte de recevoir dans un profil public.
@@ -220,7 +221,8 @@ function vide(valeur: string): string | null {
  * `javascript:` déguisé en lien, n'ont rien à faire sur une page publique.
  */
 function lireLien(brut: string): string | null | "invalide" {
-  const propre = brut.trim();
+  // Même tolérance que le lien d'un fichier (Q-24) : https:// se complète.
+  const propre = avecProtocole(brut);
   if (propre.length === 0) return null;
   if (propre.length > URL_MAX) return "invalide";
 

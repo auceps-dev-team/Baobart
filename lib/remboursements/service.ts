@@ -311,6 +311,22 @@ export async function trancher(input: {
       return { ok: false, motif: "REMBOURSEMENT_IMPOSSIBLE", message: suite.message };
     }
     // L'acheteur est prévenu par le remboursement lui-même (COMMANDE_REMBOURSEE).
+    // Le créateur, lui, ne l'était pas quand l'équipe tranchait à sa place
+    // (Q-40) : il l'apprenait par une ligne « Tu dois » sur l'écran des gains.
+    if (input.qualite === "SUPPORT") {
+      // `suite.montant` est un NOMBRE (relevé par le test : le courriel était
+      // refusé, « expected string ») : on le met en forme, dans la devise payée.
+      const rendu = formatMoney(suite.montant, d.orderItem.order.currency);
+      await notifier({
+        destinataireId: d.orderItem.product.sellerId,
+        evenement: "REMBOURSE_PAR_EQUIPE",
+        cle: `rembourse-par-equipe-${d.id}`,
+        titre: `Remboursement fait par l'équipe — ${d.orderItem.product.name}`,
+        corps: `Sans réponse de ta part, l'équipe a accepté la demande : ${rendu} rendus, ton solde est débité.`,
+        lien: "/dashboard/ventes/remboursements",
+        charge: { ressource: d.orderItem.product.name, montant: rendu, motif: d.reason.slice(0, 500) },
+      });
+    }
     return { ok: true, message: "Remboursé." };
   }
 

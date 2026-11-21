@@ -48,6 +48,8 @@ export interface LigneOps {
 
 export interface LegendeOps {
   code: string;
+  /** Ce qui s'affiche, quand le code ne se lit pas tel quel (accents : Q-36). */
+  libelle?: string;
   fond: string;
   encre: string;
   nombre: number;
@@ -207,7 +209,7 @@ export function PanneauOperations({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {l.code}
+                  {l.libelle ?? l.code}
                 </div>
                 <div
                   style={{

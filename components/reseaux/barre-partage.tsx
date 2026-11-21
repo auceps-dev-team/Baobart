@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+import { useOrigine, usePartageNatif } from "@/components/systeme/navigateur";
 
 import { Pastille, PastilleAction } from "@/components/reseaux/logos";
 import { absolue, courrielDePartage, destinationsDePartage } from "@/lib/reseaux/partage";
@@ -38,15 +40,11 @@ export function BarrePartage({
    */
   origineConfiguree?: string | null;
 }) {
-  const [origine, setOrigine] = useState<string | null>(origineConfiguree);
-  const [natif, setNatif] = useState(false);
+  // Lus sans effet (L1) : au rendu serveur et à l'hydratation, l'origine
+  // configurée ; dans le navigateur, la sienne.
+  const origine = useOrigine() ?? origineConfiguree ?? null;
+  const natif = usePartageNatif();
   const [copie, setCopie] = useState<"" | "ok" | "echec">("");
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- l'origine et navigator.share n'existent que dans le navigateur : les lire au rendu casserait l'hydratation.
-    setOrigine(window.location.origin);
-    setNatif(typeof navigator.share === "function");
-  }, []);
 
   // Sans `APP_URL` et avant l'hydratation, pas d'adresse absolue : on ne
   // propose rien plutôt qu'un partage vers un chemin relatif, que le réseau

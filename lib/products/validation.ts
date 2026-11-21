@@ -15,6 +15,8 @@ export const MOTS_CLES_MAX = 12;
 export interface EtatProduit {
   erreur?: string;
   champ?: "titre" | "famille" | "prix" | "description" | "motsCles";
+  /** Tous les champs en défaut (Q-23) ; `champ` reste le premier, pour le focus. */
+  champs?: Array<"titre" | "famille" | "prix" | "description" | "motsCles">;
   /**
    * Posé par la modification quand elle a abouti.
    *
@@ -123,4 +125,35 @@ export function prixRetenu(
   }
 
   return { prix };
+}
+
+export type ChampProduit = NonNullable<EtatProduit["champ"]>;
+
+/**
+ * Toutes les erreurs d'une saisie, pas seulement la première.
+ *
+ * Q-23 (recette du 14/11/2026) : une seule erreur était annoncée par envoi —
+ * titre trop court, on corrige, renvoie : catégorie manquante, on corrige,
+ * renvoie : prix invalide. La création et la modification faisaient ces quatre
+ * vérifications en série, chacune avec son `return` ; elles les font ici, une
+ * fois, et rapportent tout.
+ *
+ * `familleOk` vient de l'appelant : la résolution de la catégorie lit
+ * `lib/feed/queries.ts`, et cette fonction reste pure.
+ */
+export function verifierSaisie(input: {
+  titre: string;
+  motsClesBrut: string;
+  familleOk: boolean;
+  prixBrut: string;
+  gratuit: boolean;
+}): { erreurs: { champ: ChampProduit; message: string }[]; prix: number | null } {
+  const erreurs: { champ: ChampProduit; message: string }[] = [];
+  if (input.titre.length < 3) erreurs.push({ champ: "titre", message: "Donne un titre d'au moins 3 caractères." });
+  const tropDeMots = tropDeMotsCles(input.motsClesBrut);
+  if (tropDeMots) erreurs.push({ champ: "motsCles", message: tropDeMots });
+  if (!input.familleOk) erreurs.push({ champ: "famille", message: "Choisis une catégorie." });
+  const prix = prixRetenu(input.prixBrut, input.gratuit);
+  if ("erreur" in prix) erreurs.push({ champ: "prix", message: prix.erreur });
+  return { erreurs, prix: "prix" in prix ? prix.prix : null };
 }

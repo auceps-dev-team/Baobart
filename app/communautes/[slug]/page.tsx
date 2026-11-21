@@ -21,6 +21,7 @@ import {
 import { filDe } from "@/lib/forum/fil";
 import { contexteDe } from "@/lib/forum/queries";
 import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, VERT } from "@/lib/systeme/charte";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,19 @@ export const dynamic = "force-dynamic";
  * qu'un espace a été fermé, ce qui est une information sur les personnes qui
  * l'animaient.
  */
+/**
+ * Le titre de l'onglet : le nom de la communauté. Q-29 (recette du 14/11/2026) :
+ * la page gardait le titre général du site. Une communauté cachée ou inconnue
+ * garde le titre général — la page dira elle-même qu'elle n'existe pas. Seule
+ * une communauté ACTIVE et PUBLIQUE se nomme : une communauté fermée par
+ * l'administration ne doit pas se trahir par son onglet (voir plus bas).
+ */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const c = await db.community.findUnique({ where: { slug }, select: { name: true, status: true, visibility: true } });
+  return c && c.status === "active" && c.visibility === "PUBLIC" ? { title: `${c.name} — Baobart.` } : {};
+}
+
 export default async function CommunautePage({
   params,
 }: {
@@ -139,7 +153,7 @@ export default async function CommunautePage({
                 </Etiquette>
                 {ctx.communaute.monRole && ctx.communaute.monRole !== "MEMBER" ? (
                   <Etiquette fond={VERT}>
-                    {ctx.communaute.monRole === "ADMIN" ? "Administratrice" : "Modération"}
+                    {ctx.communaute.monRole === "ADMIN" ? "Administration" : "Modération"}
                   </Etiquette>
                 ) : null}
               </div>
