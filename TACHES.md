@@ -100,7 +100,7 @@ décidé — à placer avec le responsable du dépôt :
 | **La cadence de versement par défaut** | Les textes disent désormais « chaque mois par défaut » (#74), parce que le code verse chaque mois. Pour tenir la promesse d'origine « chaque semaine », c'est `CADENCE_PAR_DEFAUT` et le défaut du schéma — mais chaque virement bancaire est facturé. |
 | **#60 — « Ventes » à une vente par page** | Choisi par la session du collaborateur « sans trancher ». Une ligne compacte (trois par page) s'écarterait de la maquette. Et le champ de recherche de cet écran ne filtre rien. |
 | **Q-30 hors des pages de la recette** | 0 texte sous 4,5:1 sur les 7 pages de la recette (axe, #77). Le relevé Halo (#66) comptait 799 nœuds sur 41 pages, dont 380 sur `systeme/membres` et `statuts` : même méthode, page par page. |
-| **Base de développement** | Sans `_prisma_migrations`, elle ne prend pas les migrations : après #76, `ALTER TYPE "EmailTemplate" ADD VALUE IF NOT EXISTS 'REMBOURSE_PAR_EQUIPE';` à la main. |
+| **Base de développement** | Sans `_prisma_migrations`, elle ne prend pas les migrations, et rien ne signale son retard. **Rattrapée le 21/11** : il lui manquait `20261120200000_rembourse_par_equipe` (#76) **et** `20261109100000_avis_notes` (v1.106.0, 13/11). L'écart se mesure en lecture seule — `prisma migrate diff --from-url <base de dev> --to-schema-datamodel prisma/schema.prisma --script`, vide après rattrapage — et se comble en appliquant le **fichier** de migration (`psql --single-transaction`), pas l'écart calculé, qui ne voit pas les `CHECK`. À refaire après chaque fusion qui porte une migration ; la vraie décision reste de lui rendre un historique (`prisma migrate resolve --applied`, migration par migration). |
 
 ---
 
