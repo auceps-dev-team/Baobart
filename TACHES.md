@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
+| Le graphique « par mois » garde ses six colonnes au téléphone (trouvé pendant D2b : sous 900 px, ses mois s'empilent et recouvrent la carte suivante) | Claude (`aucepsdev`) | `claude/graphique-mois` | Commencé le 21/11. | Un test à 360 px sur les trois pages qui l'emploient, rouge avant / vert après ; CI verte. |
 
 ---
 
@@ -51,7 +52,7 @@ juste après le lot 4).
 
 | # | Tâche | Contenu | Notes |
 | :-: | --- | --- | --- |
-| 1 | **Design — D2b mobile, les écrans dessinés** | Les écrans de `Baobart Mobile.dc.html` que l'application n'a pas : accueil en deux colonnes avec barre d'onglets, catalogue, fiche avec barre d'achat fixe, tableau de bord créateur, « Mes produits » en cartes, statistiques, profil et badges, connexion (D1b, « Mobile »). | Coupé du D2 le 20/11. Après D2a. 🧭 Le panier (écran 08) attend le responsable. |
+| 1 | **Design — D2b mobile, les écrans dessinés** | Les écrans de `Baobart Mobile.dc.html` que l'application n'a pas : accueil en deux colonnes avec barre d'onglets, catalogue, fiche avec barre d'achat fixe, tableau de bord créateur, « Mes produits » en cartes, statistiques, profil et badges, connexion (D1b, « Mobile »). | Coupé du D2 le 20/11. Après D2a. Première tranche (en-tête, barre d'onglets) : #70. 🧭 Le panier (écran 08) attend le responsable ; Statistiques (10) et Badges (06) aussi — leurs maquettes mobile et bureau se contredisent (voir « Décisions attendues »). |
 | 2 | **Design — D3/D4 Dashboard** | Aligner les ~20 écrans nouvellement dessinés (blog, événements, infolettre, publicités, remboursements, liste noire, témoignages, candidatures, dossiers, promos, réglages…). | La plupart des fonctionnalités existent : on aligne, on ne construit pas. |
 | 3 | **Lot 5 — Abonnés du créateur** (A5) | La liste de ceux qui suivent, et le fil « Suivre les détails ». | Le compteur est juste depuis v1.105.1. |
 | 4 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
@@ -95,6 +96,7 @@ décidé — à placer avec le responsable du dépôt :
 | **JSON-LD sur les fiches** (note des avis pour Google) | La règle du dépôt n'autorise qu'**un** `dangerouslySetInnerHTML` (le blog). Un second se décide, il ne s'ajoute pas en passant. Lot C2. |
 | **Canal direct vers Gemini** (`agy -p`, outil `confier-a-gemini.sh` hors dépôt) | Pour qu'Argon écrive et teste sans intervention : une liste d'autorisations dans les réglages globaux d'Antigravity (proposée, non appliquée) et des crédits Argon (épuisés le 13/11). La lecture seule marche déjà. |
 | **Textes de loi sur les avis** (lois 2016-412 et 91-1000) | Lus par un juriste avant d'afficher les notes en production. |
+| **D2b — Statistiques et Badges : les maquettes mobile et bureau se contredisent** (relevé le 21/11). Statistiques : le bureau (`Baobart Dashboard.dc.html`, `c_stats`, l. 1735) dessine l'audience — vues, taux de téléchargement et d'achat, abonnés, « Vues par mois », meilleures ressources —, ce que l'application montre ; le mobile (écran 10) dessine l'argent — revenus sur 7 jours / 30 jours / 12 mois avec l'évolution, la part par catégorie, les montants par produit. Badges : la planche bureau est « Mes badges » ; l'écran mobile 06 est un profil (couverture, avatar, statuts, trois chiffres, grille des mérites « 5 / 12 », prochain objectif). | Ces deux écrans de D2b. Trois voies : (a) le contenu mobile sous 620 px seulement — la même adresse montrerait d'autres chiffres selon la largeur ; (b) garder le contenu du bureau et ne prendre au mobile que sa mise en forme ; (c) ajouter les blocs mobiles à la page à toutes les largeurs — le bureau s'écarte alors de sa maquette. Recommandation : (b), qui ne fait mentir aucune largeur ; l'argent a déjà sa page (« Gains »). |
 
 ---
 
