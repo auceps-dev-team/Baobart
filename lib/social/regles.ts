@@ -154,3 +154,100 @@ export function ilYA(quand: Date, maintenant: Date = new Date()): string {
     year: quand.getFullYear() === maintenant.getFullYear() ? undefined : "numeric",
   }).format(quand);
 }
+
+// ──────────────────────────────────────────────────────────────── abonnés ──
+
+/** Ce que la base dit d'un abonné, avant de décider ce qu'on en montre. */
+export interface AbonneBrut {
+  userId: string;
+  suitDepuis: Date;
+  suspendu: boolean;
+  /** Ressources PUBLISHED : sans aucune, pas de vitrine (`profilPublic`). */
+  ressourcesPubliees: number;
+  profil: {
+    displayName: string;
+    username: string;
+    speciality: string | null;
+    city: string | null;
+    avatarUrl: string | null;
+    acceptsMessages: boolean;
+  } | null;
+}
+
+/** Ce qu'un créateur voit de quelqu'un qui le suit (maquette `c_abonnes`). */
+export interface AbonneVu {
+  userId: string;
+  nom: string;
+  /** « Illustration · Dakar » : ce que sa vitrine affiche déjà. Nul sans vitrine. */
+  presentation: string | null;
+  avatarUrl: string | null;
+  /** `/@pseudo`, s'il a une vitrine. */
+  vitrine: string | null;
+  /** Où mène « Message » ; nul quand rien n'y mène. */
+  ecrire: string | null;
+  suitDepuis: Date;
+}
+
+/**
+ * Ce qu'un créateur a le droit de voir de quelqu'un qui le suit.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * RIEN QUE CE QUI EST DÉJÀ PUBLIC
+ *
+ * Le nom affiché, pour tout le monde : il signe déjà les commentaires
+ * (`commentairesDe`), et la page de confidentialité dit que le créateur suivi
+ * le voit. Le reste — spécialité, ville, photo, l'adresse de sa vitrine —
+ * seulement si l'abonné a une vitrine, c'est-à-dire s'il l'a lui-même rendu
+ * public. Un acheteur qui a rempli sa ville dans son profil ne l'a montrée à
+ * personne : la lui faire sortir parce qu'il a cliqué « Suivre » serait une
+ * fuite.
+ *
+ * La vitrine suit la règle de `profilPublic` (lib/createurs/queries.ts) : un
+ * profil, au moins une ressource publiée, et un compte non suspendu. Un abonné
+ * suspendu reste dans la liste, sans rien de plus que son nom : le retirer
+ * ferait mentir le total, et dire « suspendu » révélerait une sanction.
+ *
+ * « Message » mène à sa vitrine, fenêtre de contact ouverte (`#contact`) —
+ * seulement s'il accepte les messages. Le bouton qui mène à un refus n'a rien
+ * à montrer (même règle que la vitrine elle-même).
+ */
+export function presenterAbonne(b: AbonneBrut): AbonneVu {
+  const p = b.profil;
+  const aUneVitrine = p !== null && !b.suspendu && b.ressourcesPubliees > 0;
+  const nom = p?.displayName.trim() || "Membre Baobart";
+
+  if (!aUneVitrine) {
+    return { userId: b.userId, nom, presentation: null, avatarUrl: null, vitrine: null, ecrire: null, suitDepuis: b.suitDepuis };
+  }
+
+  const presentation = [p.speciality?.trim(), p.city?.trim()].filter(Boolean).join(" · ") || null;
+  const vitrine = `/@${p.username}`;
+  return {
+    userId: b.userId,
+    nom,
+    presentation,
+    avatarUrl: p.avatarUrl,
+    vitrine,
+    ecrire: p.acceptsMessages ? `${vitrine}#contact` : null,
+    suitDepuis: b.suitDepuis,
+  };
+}
+
+/** « 1 240 personnes suivent ton travail. » — le nombre exact, pas « 1,2 k » : c'est sa liste. */
+export function phraseDesAbonnes(total: number): string {
+  if (total === 0) return "Personne ne suit encore ton travail.";
+  const n = new Intl.NumberFormat("fr-FR").format(total);
+  return total === 1 ? `${n} personne suit ton travail.` : `${n} personnes suivent ton travail.`;
+}
+
+/**
+ * « te suit depuis 3 j », « te suit depuis le 12 nov. » — la ligne d'un abonné
+ * sans vitrine. Bâtie sur `ilYA`, dont les trois formes ne se raccordent pas
+ * pareil à « depuis » : « à l'instant », « il y a … », une date.
+ */
+export function suitDepuis(quand: Date, maintenant: Date = new Date()): string {
+  const relatif = ilYA(quand, maintenant);
+  if (relatif === "à l'instant") return "te suit depuis un instant";
+  if (relatif.startsWith("il y a ")) return `te suit depuis ${relatif.slice("il y a ".length)}`;
+  return `te suit depuis le ${relatif}`;
+}

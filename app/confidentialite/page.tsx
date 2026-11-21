@@ -140,6 +140,7 @@ export default async function ConfidentialitePage() {
           elements={[
             "L'opérateur de paiement, pour encaisser un achat ou envoyer un versement : ce qu'il lui faut pour le faire, rien d'autre.",
             "Le créateur dont tu achètes une ressource : ton nom affiché (ou ton adresse e-mail si ton profil n'a pas de nom), et tes réponses à ses questions s'il en pose.",
+            "Le créateur que tu suis : ton nom affiché, et depuis quand tu le suis. Si tu as toi-même une vitrine, il voit aussi ce qu'elle montre déjà à tout le monde (ta spécialité, ta ville, ta photo). Jamais ton adresse. Ne plus le suivre te retire de sa liste.",
             "Les prestataires qui hébergent le site, stockent les fichiers et envoient les courriels, pour faire tourner le service.",
           ]}
         />

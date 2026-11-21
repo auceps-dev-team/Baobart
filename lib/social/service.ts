@@ -158,7 +158,8 @@ export async function basculerSuiviDe(
       cle: `abonne-${userId}-${createurId}`,
       titre: "Nouvel abonné",
       corps: "Quelqu'un suit désormais ta boutique.",
-      lien: "/dashboard/boutique",
+      // La liste des abonnés (lot 5a, 21/11) ; avant elle, la boutique, faute de mieux.
+      lien: "/dashboard/abonnes",
     });
   }
 
