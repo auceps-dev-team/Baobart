@@ -1,3 +1,5 @@
+import { Pagination } from "@/components/dashboard/pagination";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { redirect } from "next/navigation";
 
 import { DashboardFrame, DashboardPanel } from "@/components/dashboard/frame";
@@ -32,7 +34,15 @@ export const dynamic = "force-dynamic";
  * inoffensif, et c'est plus honnête qu'une garde qui prétendrait trancher un
  * statut que la base ne stocke pas.
  */
-export default async function PromosPage() {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) : sous le
+ * formulaire de création, la liste des codes commence à 463 px, un code tous les 75 px (67
+ * de haut). Sous un menu qui descend au moins à 900 px, barre de pagination comprise :
+ * 5 codes. Ce qui suit (« Offres après achat ») descend plus bas : ce n'est pas la liste.
+ */
+const PAR_PAGE = 5;
+
+export default async function PromosPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect("/connexion?suite=/dashboard/promos");
   // Écran de vendeur : la barre latérale ne le montre pas à un acheteur, et
@@ -53,6 +63,7 @@ export default async function PromosPage() {
       take: 100,
     }),
   ]);
+  const paginees = paginer(codes, (await searchParams).page, PAR_PAGE);
 
   return (
     <DashboardFrame
@@ -63,10 +74,11 @@ export default async function PromosPage() {
       <div style={{ maxWidth: 900 }}>
         <DashboardPanel titre="Tes codes">
           <PanneauCodesPromo
-            codes={codes}
+            codes={paginees.visibles}
             creer={creerMonCode}
             retirer={retirerMonCode}
           />
+          <Pagination page={paginees.page} pages={paginees.pages} adresse={(n) => adressePaginee("/dashboard/promos", {}, n)} />
         </DashboardPanel>
 
         <div style={{ marginTop: 20 }}>

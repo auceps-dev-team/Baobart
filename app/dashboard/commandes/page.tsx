@@ -40,7 +40,15 @@ const TEINTE: Record<EtatCommande, string> = {
   "ÉCHOUÉE": GRIS,
 };
 
-const PAR_PAGE = 12;
+/**
+ * Était 12 (27/10, « la maquette n'en montre que quatre »). Mesuré le 16/11/2026 à
+ * 1440 × 900, liste pleine : avec 12 lignes, la page descendait 425 px sous le menu.
+ * La liste commence à 268 px, une ligne tous les 80 px (70 de haut) : sous un menu qui
+ * descend au moins à 900 px, barre de pagination comprise, 7 lignes.
+ */
+// Ramené de 7 à 6 par la mesure d'après (16/11) : à 7, la LISTE tenait sous le menu,
+// mais la page entière descendait 25 px sous le menu (marges du panneau, 62 px sous la barre). Le choix retenu le 14/11 : la page s'arrête avec le menu.
+const PAR_PAGE = 6;
 
 export default async function CommandesVendeurPage({ searchParams }: { searchParams: Promise<{ etat?: string; page?: string }> }) {
   const utilisateur = await sessionCourante();
