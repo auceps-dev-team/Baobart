@@ -6,6 +6,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { avisDeLaRessource } from "@/lib/avis/lecture";
 import { droitDeTelecharger, obtenirProduit } from "@/lib/products/queries";
 import { commentairesDe, etatSocial } from "@/lib/social/queries";
+import { TitreDocument } from "@/components/systeme/titre-document";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ export default async function ModaleFicheProduit({
 
   return (
     <ModaleProduit>
+      <TitreDocument titre={`${produit.titre} — Baobart.`} />
       <EnTeteFiche titre={produit.titre} action={<BoutonFermer />} />
       <DetailProduit
             produit={produit}

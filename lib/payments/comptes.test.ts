@@ -38,8 +38,22 @@ describe("compte mobile money", () => {
     });
   });
 
-  it("accepte un numéro national", () => {
-    expect(wave("77 000 00 01")).toMatchObject({ accepte: true });
+  // Q-22 (recette du 14/11/2026) : un numéro national passait sans pays.
+  // Il passe désormais AVEC son pays, complété de l'indicatif.
+  it("accepte un numéro national avec son pays, et le complète", () => {
+    expect(verifierCompte({ provider: "wave", reference: "77 000 00 01", pays: "SN" })).toMatchObject({
+      accepte: true,
+      reference: "+221770000001",
+    });
+    // La Côte d'Ivoire garde le zéro de tête (plan à dix chiffres).
+    expect(verifierCompte({ provider: "wave", reference: "07 00 11 22 33", pays: "CI" })).toMatchObject({
+      accepte: true,
+      reference: "+2250700112233",
+    });
+  });
+
+  it("refuse un numéro national sans pays : l'argent partirait au hasard", () => {
+    expect(wave("77 000 00 01")).toMatchObject({ accepte: false, refus: "INDICATIF_MANQUANT" });
   });
 
   it("refuse ce qui n'est pas un numéro", () => {

@@ -1,3 +1,5 @@
+import { avecProtocole } from "@/lib/http/adresse";
+
 /**
  * Le lien d'une ressource hébergée ailleurs.
  *
@@ -58,7 +60,8 @@ export function hoteDuLien(url: string): string {
 }
 
 export function verifierLienExterne(brut: string): VerdictLien {
-  const saisi = brut.trim();
+  // « drive.google.com/… » reçoit https:// (Q-24) ; le reste se vérifie après.
+  const saisi = avecProtocole(brut);
   if (saisi.length === 0) return { ok: false, message: "Colle l'adresse du fichier." };
   if (saisi.length > LIEN_MAX) return { ok: false, message: "Cette adresse est trop longue pour être un lien de partage." };
 

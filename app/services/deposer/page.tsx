@@ -100,6 +100,14 @@ export default async function DeposerServicePage() {
               <div style={{ fontSize: 15.5, fontWeight: 800 }}>
                 Publier un service demande trois choses
               </div>
+              {/* Q-20 (recette du 14/11/2026) : l'écran annonçait « trois choses »
+                  et n'en montrait qu'une, celle qui manque. Les trois, dans
+                  l'ordre où `peutPublier` (lib/cms/droits.ts) les vérifie. */}
+              <ol data-conditions-service style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>
+                <li>avoir publié au moins une ressource ;</li>
+                <li>un badge Freelance ou Agence sur ton profil ;</li>
+                <li>un abonnement à jour.</li>
+              </ol>
               <p
                 style={{
                   fontSize: 14,
@@ -109,6 +117,7 @@ export default async function DeposerServicePage() {
                   textWrap: "pretty",
                 }}
               >
+                <strong>Ce qui te manque : </strong>
                 {MESSAGES_DROIT[droit.motif]}
               </p>
             </div>

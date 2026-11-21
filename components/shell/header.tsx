@@ -34,6 +34,14 @@ interface Suggestion {
   title: string;
   famille: string | null;
   slug: string;
+  /** La vignette de la couverture (Q-12) ; `null` sans couverture. */
+  vignette?: string | null;
+}
+
+/** Un créateur trouvé par son nom ou son pseudo (Q-12). */
+interface SuggestionCreateur {
+  username: string;
+  nom: string;
 }
 
 export interface UtilisateurEnTete {
@@ -98,8 +106,8 @@ function liensCompte(username: string | null): LienCompte[] {
       label: username ? "Mon profil public" : "Compléter mon profil",
       href: username ? `/createurs/${username}` : "/dashboard/profil",
     },
-    { label: "Règles de publication", href: null },
-    { label: "Support", href: null },
+    { label: "Règles de publication", href: "/regles-de-publication" },
+    { label: "Support", href: "/support" },
   ];
 }
 
@@ -142,11 +150,18 @@ export function Header({
     exemples: ["un mockup…", "une illu…", "une font…", "une photo…"],
     pause: focus || q !== "",
   });
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  // Ce que le panneau a à dire. Il ne s'ouvrait que s'il y avait des
-  // résultats : zéro résultat, recherche en cours et recherche en panne se
-  // rendaient tous par rien du tout (mesuré le 25/09, Qualitytest S29, S57).
-  const [etatRecherche, setEtatRecherche] = useState<"repos" | "chargement" | "pret" | "erreur">("repos");
+  // La dernière réponse du serveur, avec la saisie à laquelle elle répond.
+  // Tout le reste se DÉDUIT au rendu (L1, #65) : une recherche vide n'affiche
+  // rien, et une réponse qui ne correspond pas encore à la saisie, c'est « en
+  // cours ». Le panneau ne s'ouvrait que s'il y avait des résultats : zéro
+  // résultat, recherche en cours et recherche en panne se rendaient tous par
+  // rien du tout (mesuré le 25/09, Qualitytest S29, S57).
+  const [resultat, setResultat] = useState<{
+    pour: string;
+    etat: "pret" | "erreur";
+    suggestions: Suggestion[];
+    createurs: SuggestionCreateur[];
+  }>({ pour: "", etat: "pret", suggestions: [], createurs: [] });
   const router = useRouter();
   const [menuOuvert, setMenuOuvert] = useState<string | null>(null);
   const [compteOuvert, setCompteOuvert] = useState(false);
@@ -229,14 +244,10 @@ export function Header({
   // Les suggestions viennent de la base, pas d'une liste figée : c'est le seul
   // écart assumé avec la maquette, qui filtrait un tableau en dur.
   useEffect(() => {
-    if (q.trim().length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- vide les suggestions d'une recherche vide ; le reste de l'effet interroge le serveur.
-      setSuggestions([]);
-      setEtatRecherche("repos");
-      return;
-    }
+    // Champ vide : rien à demander. Ce qui s'affiche alors se DÉDUIT au rendu
+    // (`qVide`, plus bas) au lieu d'être posé ici (L1, #65).
+    if (q.trim().length === 0) return;
     const jeton = ++dernier.current;
-    setEtatRecherche("chargement");
     const minuteur = setTimeout(async () => {
       try {
         const reponse = await fetch(`/api/recherche?q=${encodeURIComponent(q)}`);
@@ -244,22 +255,28 @@ export function Header({
         const data = await reponse.json();
         // Une réponse plus ancienne ne doit pas écraser une plus récente.
         if (jeton !== dernier.current) return;
-        setSuggestions(data.items ?? []);
-        setEtatRecherche("pret");
+        setResultat({ pour: q, etat: "pret", suggestions: data.items ?? [], createurs: data.createurs ?? [] });
       } catch {
-        if (jeton === dernier.current) setEtatRecherche("erreur");
+        // La panne garde la liste précédente, comme avant : seul le message change.
+        if (jeton === dernier.current) setResultat((r) => ({ ...r, pour: q, etat: "erreur" }));
       }
     }, 180);
     return () => clearTimeout(minuteur);
   }, [q]);
 
-  const montreSuggestions = focus && q.trim().length > 0 && etatRecherche !== "repos";
+  // Une recherche vide n'affiche rien, quoi que garde la précédente ; une
+  // réponse qui ne correspond pas encore à la saisie, c'est « en cours ».
+  const qVide = q.trim().length === 0;
+  const suggestionsVues = qVide ? [] : resultat.suggestions;
+  const createursVus = qVide ? [] : resultat.createurs;
+  const etatVu: "repos" | "chargement" | "pret" | "erreur" = qVide ? "repos" : resultat.pour !== q ? "chargement" : resultat.etat;
+  const montreSuggestions = focus && !qVide && etatVu !== "repos";
   const messageRecherche =
-    etatRecherche === "erreur"
+    etatVu === "erreur"
       ? "La recherche ne répond pas. Réessaie dans un instant."
-      : etatRecherche === "pret" && suggestions.length === 0
+      : etatVu === "pret" && suggestionsVues.length === 0 && createursVus.length === 0
         ? `Aucune ressource ne correspond à « ${q.trim()} ».`
-        : etatRecherche === "chargement" && suggestions.length === 0
+        : etatVu === "chargement" && suggestionsVues.length === 0
           ? "Recherche…"
           : null;
 
@@ -390,6 +407,17 @@ export function Header({
             }}
             onFocus={() => setFocus(true)}
             onBlur={() => setTimeout(() => setFocus(false), 150)}
+            // Q-12 (recette du 14/11/2026) : Entrée ne menait nulle part. Elle ouvre
+            // la première suggestion — une ressource, sinon un créateur.
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const premiere = suggestionsVues[0];
+              const createur = createursVus[0];
+              if (!premiere && !createur) return;
+              e.preventDefault();
+              setFocus(false);
+              router.push((premiere ? `/products/${premiere.slug}` : `/createurs/${createur!.username}`) as Route);
+            }}
             placeholder={indication}
             aria-label="Rechercher une ressource"
             style={{
@@ -424,7 +452,7 @@ export function Header({
                   {messageRecherche}
                 </div>
               ) : null}
-              {etatRecherche !== "erreur" && suggestions.map((s) => (
+              {etatVu !== "erreur" && suggestionsVues.map((s) => (
                 <button
                   key={s.slug}
                   type="button"
@@ -451,13 +479,15 @@ export function Header({
                   }}
                 >
                   <span
+                    data-vignette-suggestion
+                    aria-hidden="true"
                     style={{
                       width: 26,
                       height: 26,
                       borderRadius: 8,
                       border: `2px solid ${ENCRE}`,
                       flex: "0 0 auto",
-                      background: LAVANDE_PROFOND,
+                      background: s.vignette ? `center / cover no-repeat url(${s.vignette})` : LAVANDE_PROFOND,
                     }}
                   />
                   <span style={{ flex: "1 1 auto" }}>{s.title}</span>
@@ -465,13 +495,47 @@ export function Header({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: 11,
-                      opacity: 0.55,
+                      // Q-30 : 55 % ne passait pas 4,5:1 sur blanc.
+                      opacity: 0.72,
                     }}
                   >
                     {s.famille}
                   </span>
                 </button>
               ))}
+              {/* Q-12 : « awa » ne trouvait pas Awa Diallo — seuls les titres
+                  étaient lus. Les créateurs suivent les ressources. */}
+              {etatVu !== "erreur" && createursVus.length > 0 ? (
+                <div style={{ borderTop: `2px dashed ${ENCRE}`, marginTop: 6, paddingTop: 6 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, textTransform: "uppercase", letterSpacing: ".1em", opacity: 0.72, padding: "2px 10px" }}>
+                    Créateurs
+                  </div>
+                  {createursVus.map((c) => (
+                    <button
+                      key={c.username}
+                      type="button"
+                      data-suggestion-createur
+                      onClick={() => {
+                        setFocus(false);
+                        router.push(`/createurs/${c.username}` as Route);
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        border: "none",
+                        background: "none",
+                        padding: "9px 10px",
+                        borderRadius: 11,
+                        cursor: "pointer",
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {c.nom} <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.72 }}>@{c.username}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -670,15 +734,34 @@ export function Header({
             avec la fonctionnalité qui le porte (plusieurs ressources, un seul
             paiement).
           */}
+          {/* Q-29 (relevé le 20/11/2026 en corrigeant Q-36) : le menu du compte ne
+              s'ouvrait qu'au survol de la souris — au clavier, ni « Mes achats » ni
+              « Se déconnecter » n'étaient atteignables. Le focus l'ouvre aussi, et
+              il se referme quand le focus quitte le bloc ; Échap le referme. */}
           <div
             onMouseEnter={() => {
               annulerFermeture();
               setCompteOuvert(true);
             }}
             onMouseLeave={() => fermerBientot(() => setCompteOuvert(false))}
+            onFocusCapture={() => {
+              annulerFermeture();
+              setCompteOuvert(true);
+            }}
+            onBlurCapture={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setCompteOuvert(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setCompteOuvert(false);
+            }}
             style={{ position: "relative" }}
           >
             <div
+              tabIndex={0}
+              role="button"
+              aria-haspopup="true"
+              aria-expanded={compteOuvert}
+              aria-label={`Mon compte${utilisateur ? ` (${utilisateur.nom})` : ""}`}
               style={{
                 display: "flex",
                 alignItems: "center",
