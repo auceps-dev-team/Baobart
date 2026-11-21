@@ -82,7 +82,7 @@ décidé — à placer avec le responsable du dépôt :
 | C6 — Pages catégorie | Une page par catégorie, utile au référencement. |
 | C7 — Devises | Conversion entre devises. |
 | C8 — Tâches de fond auto-hébergées | `JOBS_DRIVER` déclaré sans lecteur. |
-| L1 — Exceptions `react-hooks` 7 (#65) | 11 `set-state-in-effect` désactivées à la ligne, chacune motivée : migrer les lectures du navigateur vers `useSyncExternalStore`, les réponses d'action vers un état dérivé au rendu. Et les 6 `window.location.href` internes (avertissements) vers `router.push`, si le rechargement complet n'est pas voulu. |
+| L1 — Exceptions `react-hooks` 7 (#65) | 3 sur 11 migrées le 21/11 (partage : `useSyncExternalStore` ; recherche de l'en-tête : état déduit au rendu). Les 8 autres restent, chacune motivée à sa ligne : animations, réponses d'action serveur (dont la saisie gardée de #59), service worker, consentement. Les 6 `window.location.href` internes (avertissements) restent aussi. |
 
 ---
 
@@ -95,6 +95,12 @@ décidé — à placer avec le responsable du dépôt :
 | **JSON-LD sur les fiches** (note des avis pour Google) | La règle du dépôt n'autorise qu'**un** `dangerouslySetInnerHTML` (le blog). Un second se décide, il ne s'ajoute pas en passant. Lot C2. |
 | **Canal direct vers Gemini** (`agy -p`, outil `confier-a-gemini.sh` hors dépôt) | Pour qu'Argon écrive et teste sans intervention : une liste d'autorisations dans les réglages globaux d'Antigravity (proposée, non appliquée) et des crédits Argon (épuisés le 13/11). La lecture seule marche déjà. |
 | **Textes de loi sur les avis** (lois 2016-412 et 91-1000) | Lus par un juriste avant d'afficher les notes en production. |
+| **Q-39 — le délai de sept jours** (recette du 14/11) | Au huitième jour, une demande de remboursement passe au support sans que personne le sache : ni l'équipe, ni l'acheteur. À décider : qui prévenir (rôles), par quel canal, et ce qu'on dit à l'acheteur. L'ordonnanceur existe ; la notification se branche en un lot. |
+| **Q-41 — un remboursement avant un versement** (recette du 14/11) | Un remboursement fait deux jours avant un versement n'en est pas déduit : la plateforme avance l'argent. Choix d'argent : déduire au versement suivant (le code actuel le fait déjà pour un solde négatif) ou bloquer le versement. Le texte « après ton dernier versement » est faux dans ce cas. |
+| **La cadence de versement par défaut** | Les textes disent désormais « chaque mois par défaut » (#74), parce que le code verse chaque mois. Pour tenir la promesse d'origine « chaque semaine », c'est `CADENCE_PAR_DEFAUT` et le défaut du schéma — mais chaque virement bancaire est facturé. |
+| **#60 — « Ventes » à une vente par page** | Choisi par la session du collaborateur « sans trancher ». Une ligne compacte (trois par page) s'écarterait de la maquette. Et le champ de recherche de cet écran ne filtre rien. |
+| **Q-30 hors des pages de la recette** | 0 texte sous 4,5:1 sur les 7 pages de la recette (axe, #77). Le relevé Halo (#66) comptait 799 nœuds sur 41 pages, dont 380 sur `systeme/membres` et `statuts` : même méthode, page par page. |
+| **Base de développement** | Sans `_prisma_migrations`, elle ne prend pas les migrations : après #76, `ALTER TYPE "EmailTemplate" ADD VALUE IF NOT EXISTS 'REMBOURSE_PAR_EQUIPE';` à la main. |
 
 ---
 
@@ -102,6 +108,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.113.9 | (à venir) | L1 : 3 des 11 exceptions `set-state-in-effect` de #65 migrées — l'origine et le partage natif lus par `useSyncExternalStore` (`components/systeme/navigateur.ts`), l'état de la recherche de l'en-tête déduit au rendu. Les 8 autres restent, motivées. Et les décisions ouvertes par la recette, consignées ci-dessus. |
 | v1.113.8 | #79 | La recherche de l'en-tête (Q-12) : la vignette de la couverture, les créateurs trouvés par leur nom ou leur pseudo (vitrine publiée, compte ouvert), Entrée ouvre la première suggestion. « Aucun résultat » existait déjà (depuis le 02/10, mesuré) : gardé par un test. |
 | v1.113.7 | #77 | Se repérer (recette) : le fuseau des événements écrit, « heure d'Abidjan (GMT) » (Q-15) ; Explorer a un repère `main` et un titre de niveau 1, la fiche un `h1`, la fenêtre et la communauté donnent leur titre à l'onglet, le menu du compte s'ouvre au clavier (Q-29) ; plus aucun texte sous 4,5:1 sur les 7 pages de la recette, mesuré par axe (Q-30 : orange sombre en texte, encre sur orange, opacités à 72 %). Restent les autres pages du relevé Halo (799 nœuds sur 41 pages), dont l'administration. |
 | v1.113.6 | #76 | L'argent dit la même chose partout (recette) : « Solde à verser » lit gainsDe, comme Gains, et dit ce qui est encore retenu (Q-31) ; le créateur prévenu, cloche et courriel, quand l'équipe rembourse à sa place (Q-40, migration `REMBOURSE_PAR_EQUIPE`) ; « crédités aux créateurs » net des remboursements (piste 1) ; l'historique dit « ACCÈS CLOS » au lieu d'un « Télécharger » qui menait à une 403 (piste 1) ; la bienvenue mène au site (Q-28). |
