@@ -84,6 +84,7 @@ export function PanneauOperations({
   peutAgir,
   executer,
   recherche,
+  legendeRepliee = false,
 }: {
   legendeTitre: string;
   legende: LegendeOps[];
@@ -106,7 +107,20 @@ export function PanneauOperations({
    * les autres paramètres, le filtre actif par exemple.
    */
   recherche?: { valeur: string; conserver?: Record<string, string> };
+  /**
+   * La légende repliée sous un bouton, fermée au chargement.
+   *
+   * Décidé le 17/11/2026 par aucepsdev pour « Ventes » seulement : sous sa
+   * légende, la liste commençait à 671 px, et pas même une vente ne tenait sous
+   * le menu (règle du 14/11, PR #60). Replier n'est pas cacher — le reproche de
+   * l'en-tête ci-dessus : le bouton reste là, il annonce la légende et l'ouvre
+   * d'un geste. `<details>` natif : clavier, lecteur d'écran, aucun script.
+   */
+  legendeRepliee?: boolean;
 }) {
+  // Repliée : la légende vit dans un <details>, son titre devient le <summary>.
+  const Enveloppe = legendeRepliee ? "details" : "div";
+  const Titre = legendeRepliee ? "summary" : "div";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <section
@@ -118,8 +132,15 @@ export function PanneauOperations({
           padding: 20,
         }}
       >
-        <div
-          style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 12 }}
+        <Enveloppe data-legende={legendeRepliee ? "repliee" : undefined}>
+        <Titre
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "baseline",
+            gap: 12,
+            cursor: legendeRepliee ? "pointer" : undefined,
+          }}
         >
           <div style={{ flex: "1 1 auto", fontSize: 16, fontWeight: 800 }}>
             {legendeTitre}
@@ -127,7 +148,22 @@ export function PanneauOperations({
           <div style={{ fontFamily: MONO, fontSize: 11, opacity: 0.6 }}>
             le chiffre indique le nombre d&apos;actions permises
           </div>
-        </div>
+          {legendeRepliee ? (
+            <span
+              className="pression"
+              style={{
+                padding: "8px 14px",
+                border: `2px solid ${ENCRE}`,
+                borderRadius: 12,
+                background: LILAS,
+                fontSize: 13,
+                fontWeight: 800,
+              }}
+            >
+              Voir ou masquer les {legende.length} états
+            </span>
+          ) : null}
+        </Titre>
 
         <div
           style={{
@@ -205,6 +241,7 @@ export function PanneauOperations({
             </div>
           ))}
         </div>
+        </Enveloppe>
       </section>
 
       <section

@@ -3,10 +3,12 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { DashboardFrame, DashboardPanel, EmptyState } from "@/components/dashboard/frame";
+import { Pagination } from "@/components/dashboard/pagination";
 import { Vignette } from "@/components/dashboard/vignette";
 import { sessionCourante } from "@/lib/auth/session";
 import { connexionPuis } from "@/lib/auth/suite";
 import { LIBELLE_STATUT } from "@/lib/dashboard/lectures";
+import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { db } from "@/lib/db";
 import type { Currency, ProductFamily, ProductStatus } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE } from "@/lib/feed/types";
@@ -33,11 +35,21 @@ const FILTRES: Array<{ cle: string; libelle: string; statuts: ProductStatus[] | 
   { cle: "retirees", libelle: "Retirées", statuts: ["ARCHIVED", "SUSPENDED"] },
 ];
 
-export default async function MesProduitsPage({ searchParams }: { searchParams: Promise<{ statut?: string }> }) {
+/**
+ * Mesuré le 16/11/2026 à 1440 × 900, liste pleine (`pnpm design:remplir-listes`) : la
+ * liste commence à 246 px, une ressource tous les 84 px (74 de haut). Sous un menu qui
+ * descend au moins à 900 px, barre de pagination comprise : 7 ressources.
+ */
+// Ramené de 7 à 6 par la mesure d'après (16/11) : à 7, la LISTE tenait sous le menu,
+// mais la page entière descendait 32 px sous le menu (marges du panneau, 62 px sous la barre). Le choix retenu le 14/11 : la page s'arrête avec le menu.
+const PAR_PAGE = 6;
+
+export default async function MesProduitsPage({ searchParams }: { searchParams: Promise<{ statut?: string; page?: string }> }) {
   const utilisateur = await sessionCourante();
   if (!utilisateur) redirect(connexionPuis("/dashboard/produits"));
 
-  const demande = (await searchParams).statut;
+  const parametres = await searchParams;
+  const demande = parametres.statut;
   const filtre = FILTRES.find((f) => f.cle === demande) ?? FILTRES[0]!;
 
   const produits: Array<{
@@ -68,7 +80,9 @@ export default async function MesProduitsPage({ searchParams }: { searchParams: 
   });
 
   const compte = (f: (typeof FILTRES)[number]) => (f.statuts ? produits.filter((p) => f.statuts!.includes(p.status)).length : produits.length);
-  const visibles = filtre.statuts ? produits.filter((p) => filtre.statuts!.includes(p.status)) : produits;
+  const filtres = filtre.statuts ? produits.filter((p) => filtre.statuts!.includes(p.status)) : produits;
+  const paginees = paginer(filtres, parametres.page, PAR_PAGE);
+  const visibles = paginees.visibles;
   const enLigne = compte(FILTRES[1]!);
   const brouillons = compte(FILTRES[2]!);
 
@@ -155,6 +169,11 @@ export default async function MesProduitsPage({ searchParams }: { searchParams: 
             ))}
           </div>
         )}
+        <Pagination
+          page={paginees.page}
+          pages={paginees.pages}
+          adresse={(n) => adressePaginee("/dashboard/produits", { statut: filtre.cle === "toutes" ? undefined : filtre.cle }, n)}
+        />
       </DashboardPanel>
     </DashboardFrame>
   );
