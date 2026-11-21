@@ -34,6 +34,14 @@ interface Suggestion {
   title: string;
   famille: string | null;
   slug: string;
+  /** La vignette de la couverture (Q-12) ; `null` sans couverture. */
+  vignette?: string | null;
+}
+
+/** Un créateur trouvé par son nom ou son pseudo (Q-12). */
+interface SuggestionCreateur {
+  username: string;
+  nom: string;
 }
 
 export interface UtilisateurEnTete {
@@ -143,6 +151,7 @@ export function Header({
     pause: focus || q !== "",
   });
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [createurs, setCreateurs] = useState<SuggestionCreateur[]>([]);
   // Ce que le panneau a à dire. Il ne s'ouvrait que s'il y avait des
   // résultats : zéro résultat, recherche en cours et recherche en panne se
   // rendaient tous par rien du tout (mesuré le 25/09, Qualitytest S29, S57).
@@ -232,6 +241,7 @@ export function Header({
     if (q.trim().length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- vide les suggestions d'une recherche vide ; le reste de l'effet interroge le serveur.
       setSuggestions([]);
+      setCreateurs([]);
       setEtatRecherche("repos");
       return;
     }
@@ -245,6 +255,7 @@ export function Header({
         // Une réponse plus ancienne ne doit pas écraser une plus récente.
         if (jeton !== dernier.current) return;
         setSuggestions(data.items ?? []);
+        setCreateurs(data.createurs ?? []);
         setEtatRecherche("pret");
       } catch {
         if (jeton === dernier.current) setEtatRecherche("erreur");
@@ -257,7 +268,7 @@ export function Header({
   const messageRecherche =
     etatRecherche === "erreur"
       ? "La recherche ne répond pas. Réessaie dans un instant."
-      : etatRecherche === "pret" && suggestions.length === 0
+      : etatRecherche === "pret" && suggestions.length === 0 && createurs.length === 0
         ? `Aucune ressource ne correspond à « ${q.trim()} ».`
         : etatRecherche === "chargement" && suggestions.length === 0
           ? "Recherche…"
@@ -390,6 +401,17 @@ export function Header({
             }}
             onFocus={() => setFocus(true)}
             onBlur={() => setTimeout(() => setFocus(false), 150)}
+            // Q-12 (recette du 14/11/2026) : Entrée ne menait nulle part. Elle ouvre
+            // la première suggestion — une ressource, sinon un créateur.
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const premiere = suggestions[0];
+              const createur = createurs[0];
+              if (!premiere && !createur) return;
+              e.preventDefault();
+              setFocus(false);
+              router.push((premiere ? `/products/${premiere.slug}` : `/createurs/${createur!.username}`) as Route);
+            }}
             placeholder={indication}
             aria-label="Rechercher une ressource"
             style={{
@@ -451,13 +473,15 @@ export function Header({
                   }}
                 >
                   <span
+                    data-vignette-suggestion
+                    aria-hidden="true"
                     style={{
                       width: 26,
                       height: 26,
                       borderRadius: 8,
                       border: `2px solid ${ENCRE}`,
                       flex: "0 0 auto",
-                      background: LAVANDE_PROFOND,
+                      background: s.vignette ? `center / cover no-repeat url(${s.vignette})` : LAVANDE_PROFOND,
                     }}
                   />
                   <span style={{ flex: "1 1 auto" }}>{s.title}</span>
@@ -465,13 +489,47 @@ export function Header({
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: 11,
-                      opacity: 0.55,
+                      // Q-30 : 55 % ne passait pas 4,5:1 sur blanc.
+                      opacity: 0.72,
                     }}
                   >
                     {s.famille}
                   </span>
                 </button>
               ))}
+              {/* Q-12 : « awa » ne trouvait pas Awa Diallo — seuls les titres
+                  étaient lus. Les créateurs suivent les ressources. */}
+              {etatRecherche !== "erreur" && createurs.length > 0 ? (
+                <div style={{ borderTop: `2px dashed ${ENCRE}`, marginTop: 6, paddingTop: 6 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, textTransform: "uppercase", letterSpacing: ".1em", opacity: 0.72, padding: "2px 10px" }}>
+                    Créateurs
+                  </div>
+                  {createurs.map((c) => (
+                    <button
+                      key={c.username}
+                      type="button"
+                      data-suggestion-createur
+                      onClick={() => {
+                        setFocus(false);
+                        router.push(`/createurs/${c.username}` as Route);
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        border: "none",
+                        background: "none",
+                        padding: "9px 10px",
+                        borderRadius: 11,
+                        cursor: "pointer",
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {c.nom} <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.72 }}>@{c.username}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
