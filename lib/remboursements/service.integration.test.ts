@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { acheter } from "@/lib/checkout/achat";
 import { db } from "@/lib/db";
-import { achatsRemboursables, definirDelai, demander, demandesPourLeSupport, trancher } from "@/lib/remboursements/service";
+import { achatsRemboursables, definirDelai, demander, demandesPourLeSupport, prevenirDemandesEchues, trancher } from "@/lib/remboursements/service";
 
 const JOUR = 86_400_000;
 const AVANT = process.env.CHECKOUT_SIMULATION_ENABLED;
@@ -167,5 +167,79 @@ describe("une demande de remboursement", () => {
     const [a] = await achatsRemboursables(acheteur.id);
     expect(a).toMatchObject({ orderItemId: ligne, refus: null });
     expect((await demander({ acheteurId: acheteur.id, orderItemId: ligne, motif: MOTIF })).ok).toBe(true);
+  });
+});
+
+/**
+ * Q-39 (recette du 14/11/2026, décidé le 21/11) : au huitième jour sans réponse
+ * du créateur, la demande passait à l'équipe sans que personne le sache.
+ */
+describe("Q-39 — au huitième jour, le créateur et l'équipe sont prévenus", () => {
+  async function demandeOuverte() {
+    const a = await achat();
+    const d = await demander({ acheteurId: a.acheteur.id, orderItemId: a.ligne, motif: MOTIF });
+    if (!d.ok) throw new Error("demande");
+    return { ...a, demandeId: d.demandeId };
+  }
+
+  async function membre(role: "SUPPORT" | "ADMIN" | "SUPER_ADMIN" | "MODERATOR") {
+    const c = await compte(`equipe-${role.toLowerCase()}`);
+    await db.user.update({ where: { id: c.id }, data: { platformRole: role } });
+    return c;
+  }
+
+  const dans = (jours: number) => new Date(Date.now() + jours * JOUR);
+  const avisA = (userId: string, type: string) => db.notification.count({ where: { userId, type } });
+
+  it("prévient le créateur et ceux qui tranchent, cloche et courriel, une seule fois", async () => {
+    const { vendeur, acheteur } = await demandeOuverte();
+    const support = await membre("SUPPORT");
+    const admin = await membre("ADMIN");
+    const superAdmin = await membre("SUPER_ADMIN");
+    // Un modérateur n'a pas le pouvoir de trancher ; un administrateur suspendu
+    // ne peut plus agir.
+    const moderateur = await membre("MODERATOR");
+    const suspendu = await membre("ADMIN");
+    await db.user.update({ where: { id: suspendu.id }, data: { suspendedAt: new Date() } });
+
+    expect(await prevenirDemandesEchues(dans(8))).toMatchObject({ demandes: 1 });
+
+    expect(await avisA(vendeur.id, "DEMANDE_TRANSMISE")).toBe(1);
+    for (const m of [support, admin, superAdmin]) expect(await avisA(m.id, "DEMANDE_A_TRANCHER")).toBe(1);
+    for (const m of [moderateur, suspendu, acheteur, vendeur]) expect(await avisA(m.id, "DEMANDE_A_TRANCHER")).toBe(0);
+    expect(await db.emailOutbox.count({ where: { template: "DEMANDE_TRANSMISE" } })).toBe(1);
+    expect(await db.emailOutbox.count({ where: { template: "DEMANDE_A_TRANCHER" } })).toBe(3);
+
+    // La nuit suivante : rien de plus, ni dans la cloche, ni par courriel.
+    expect(await prevenirDemandesEchues(dans(9))).toEqual({ demandes: 0, avis: 0 });
+    expect(await db.notification.count({ where: { type: { in: ["DEMANDE_TRANSMISE", "DEMANDE_A_TRANCHER"] } } })).toBe(4);
+    expect(await db.emailOutbox.count({ where: { template: { in: ["DEMANDE_TRANSMISE", "DEMANDE_A_TRANCHER"] } } })).toBe(4);
+  });
+
+  it("ne dit rien avant le huitième jour, ni d'une demande déjà tranchée", async () => {
+    const ouverte = await demandeOuverte();
+    const tranchee = await demandeOuverte();
+    await membre("ADMIN");
+
+    expect(await prevenirDemandesEchues(dans(6))).toEqual({ demandes: 0, avis: 0 });
+
+    const refus = await trancher({
+      demandeId: tranchee.demandeId,
+      parId: tranchee.vendeur.id,
+      qualite: "CREATEUR",
+      decision: "REFUSER",
+      motif: "Le fichier s'ouvre bien chez moi.",
+    });
+    expect(refus.ok).toBe(true);
+
+    expect(await prevenirDemandesEchues(dans(8))).toMatchObject({ demandes: 1 });
+    expect(await avisA(ouverte.vendeur.id, "DEMANDE_TRANSMISE")).toBe(1);
+    expect(await avisA(tranchee.vendeur.id, "DEMANDE_TRANSMISE")).toBe(0);
+  });
+
+  it("l'acheteur lit que sa demande est transmise à l'équipe, et non plus « en attente du créateur »", async () => {
+    const { acheteur } = await demandeOuverte();
+    expect((await achatsRemboursables(acheteur.id))[0]!.demande!.chezLEquipe).toBe(false);
+    expect((await achatsRemboursables(acheteur.id, dans(8)))[0]!.demande!.chezLEquipe).toBe(true);
   });
 });

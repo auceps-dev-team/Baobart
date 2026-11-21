@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { ReglagesNotifications } from "@/components/notifications/reglages";
+import { peut } from "@/lib/auth/administration";
 import { sessionCourante } from "@/lib/auth/session";
-import { canauxPour, evenementsPour } from "@/lib/notifications/catalogue";
+import { canauxPour, evenementsPour, type Audience } from "@/lib/notifications/catalogue";
 import { lirePreferences } from "@/lib/notifications/preferences";
 import { BLANC, CADRE, ENCRE, JAUNE } from "@/lib/systeme/charte";
 
@@ -48,7 +49,12 @@ export default async function ReglagesNotificationsPage() {
   // Calculé côté serveur : le composant client n'a pas à relire la règle, il
   // affiche ce qui a été décidé ici. C'est aussi ce qui garantit que l'écran
   // et l'aiguilleur répondent la même chose — ils appellent la même fonction.
-  const etat = (["acheteur", "vendeur"] as const).map((audience) => ({
+  // La troisième section, pour ceux qui tranchent seulement (Q-39) : un membre
+  // ordinaire n'a pas à voir un avis qu'il ne recevra jamais.
+  const audiences: Audience[] = peut(utilisateur.role, "traiter_les_litiges")
+    ? ["acheteur", "vendeur", "equipe"]
+    : ["acheteur", "vendeur"];
+  const etat = audiences.map((audience) => ({
     audience,
     evenements: evenementsPour(audience).map((e) => ({
       evenement: e,

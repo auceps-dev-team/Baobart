@@ -140,11 +140,15 @@ export async function preparerLeCycle(
         )
       : cycleDate;
 
+    // La même règle que `preparerVersement`, dettes postérieures comprises
+    // (Q-41) : sinon on déciderait « payable » sur un montant que le
+    // versement, lui, ne trouverait pas.
     const solde = await soldeVersableJusqua(
       db,
       candidat.id,
       periodEnd,
       candidat.defaultCurrency,
+      cycleDate,
     );
 
     const decision = peutEtrePaye({

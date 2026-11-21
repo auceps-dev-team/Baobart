@@ -40,7 +40,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
-| Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
+| Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. Décisions du 21/11 : Q-39 et Q-41 (1.114.9), puis les filtres de « Ventes », puis Q-30 sur toutes les pages — empilés au-dessus de #82. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
 
 ---
 
@@ -71,7 +71,7 @@ décidé — à placer avec le responsable du dépôt :
 | B6 — Catégories du blog | Toujours vides. |
 | B7 — Vues des fiches | Jamais comptées. |
 | B9 — Champs personnalisés | Le vendeur ne voit pas les réponses. |
-| B10 — Concours | Ni dépôt d'œuvre, ni gagnant. |
+| B10 — Concours | Ni dépôt d'œuvre, ni gagnant. **Q-14** (recette) : après « M'inscrire », ni consigne, ni dépôt, ni courriel de confirmation. **Confié à aucepsdev le 21/11** ; la vérification revient à Claude, sur des critères écrits d'avance dans #61. |
 | B11 — Menu de compte | « Règles de publication » et « Support » affichés « bientôt » alors que les pages existent. |
 | B12 — Notifications push | Clés VAPID absentes ; « téléchargement prêt » jamais émis. |
 | B13 — Recherche des écrans d'administration | Réparée sur « Statuts » seulement. |
@@ -83,6 +83,9 @@ décidé — à placer avec le responsable du dépôt :
 | C7 — Devises | Conversion entre devises. |
 | C8 — Tâches de fond auto-hébergées | `JOBS_DRIVER` déclaré sans lecteur. |
 | L1 — Exceptions `react-hooks` 7 (#65) | 3 sur 11 migrées le 21/11 (partage : `useSyncExternalStore` ; recherche de l'en-tête : état déduit au rendu). Les 8 autres restent, chacune motivée à sa ligne : animations, réponses d'action serveur (dont la saisie gardée de #59), service worker, consentement. Les 6 `window.location.href` internes (avertissements) restent aussi. |
+| Ventes — des filtres qui filtrent (décidé le 21/11) | Sur « Ventes », la recherche et les états ne filtrent que la vente affichée (une par page depuis #60). Le responsable veut des filtres : côté serveur, par l'adresse, pour qu'ils tiennent avec la pagination. **Claude.** |
+| Q-30 — le contraste sur toutes les pages (décidé le 21/11) | 0 texte sous 4,5:1 sur les 7 pages de la recette (axe, #77) ; le relevé Halo (#66) en comptait 799 sur 41 pages, dont 380 sur `systeme/membres` et `statuts`. Mesurer toutes les pages, listes remplies, puis corriger à la source (la charte). **Claude.** |
+| Q-28 — les courriels en HTML (décidé le 21/11) | Le texte brut reste ; une version mise en forme s'ajoute, chaque valeur échappée. **Confié à aucepsdev** ; les contraintes du dépôt sont dans #61. |
 
 ---
 
@@ -95,11 +98,6 @@ décidé — à placer avec le responsable du dépôt :
 | **JSON-LD sur les fiches** (note des avis pour Google) | La règle du dépôt n'autorise qu'**un** `dangerouslySetInnerHTML` (le blog). Un second se décide, il ne s'ajoute pas en passant. Lot C2. |
 | **Canal direct vers Gemini** (`agy -p`, outil `confier-a-gemini.sh` hors dépôt) | Pour qu'Argon écrive et teste sans intervention : une liste d'autorisations dans les réglages globaux d'Antigravity (proposée, non appliquée) et des crédits Argon (épuisés le 13/11). La lecture seule marche déjà. |
 | **Textes de loi sur les avis** (lois 2016-412 et 91-1000) | Lus par un juriste avant d'afficher les notes en production. |
-| **Q-39 — le délai de sept jours** (recette du 14/11) | Au huitième jour, une demande de remboursement passe au support sans que personne le sache : ni l'équipe, ni l'acheteur. À décider : qui prévenir (rôles), par quel canal, et ce qu'on dit à l'acheteur. L'ordonnanceur existe ; la notification se branche en un lot. |
-| **Q-41 — un remboursement avant un versement** (recette du 14/11) | Un remboursement fait deux jours avant un versement n'en est pas déduit : la plateforme avance l'argent. Choix d'argent : déduire au versement suivant (le code actuel le fait déjà pour un solde négatif) ou bloquer le versement. Le texte « après ton dernier versement » est faux dans ce cas. |
-| **La cadence de versement par défaut** | Les textes disent désormais « chaque mois par défaut » (#74), parce que le code verse chaque mois. Pour tenir la promesse d'origine « chaque semaine », c'est `CADENCE_PAR_DEFAUT` et le défaut du schéma — mais chaque virement bancaire est facturé. |
-| **#60 — « Ventes » à une vente par page** | Choisi par la session du collaborateur « sans trancher ». Une ligne compacte (trois par page) s'écarterait de la maquette. Et le champ de recherche de cet écran ne filtre rien. |
-| **Q-30 hors des pages de la recette** | 0 texte sous 4,5:1 sur les 7 pages de la recette (axe, #77). Le relevé Halo (#66) comptait 799 nœuds sur 41 pages, dont 380 sur `systeme/membres` et `statuts` : même méthode, page par page. |
 | **Base de développement** | Sans `_prisma_migrations`, elle ne prend pas les migrations, et rien ne signale son retard. **Rattrapée le 21/11** : il lui manquait `20261120200000_rembourse_par_equipe` (#76) **et** `20261109100000_avis_notes` (v1.106.0, 13/11). L'écart se mesure en lecture seule — `prisma migrate diff --from-url <base de dev> --to-schema-datamodel prisma/schema.prisma --script`, vide après rattrapage — et se comble en appliquant le **fichier** de migration (`psql --single-transaction`), pas l'écart calculé, qui ne voit pas les `CHECK`. À refaire après chaque fusion qui porte une migration ; la vraie décision reste de lui rendre un historique (`prisma migrate resolve --applied`, migration par migration). |
 
 ---
@@ -108,6 +106,7 @@ décidé — à placer avec le responsable du dépôt :
 
 | Version | PR | Ce qui est livré |
 | --- | --- | --- |
+| v1.114.9 | #PR | Les deux décisions d'argent du 21/11. **Q-41** : un remboursement fait entre la fin de période et le cycle est déduit de ce versement-là (mesuré à la recette : 3 673 F préparés, 873 F réels) ; les soldes négatifs postérieurs sont pris, jusqu'à la veille du cycle — jamais le jour même, qu'un versement figerait. Une seule règle (`filtreSoldesAVerser`) pour le versement, la décision du cycle et l'écran « Gains ». **Q-39** : au huitième jour sans réponse, le créateur apprend que la demande passe à l'équipe, et l'équipe (les rôles qui tranchent) qu'elle l'attend — cloche et courriel, une fois, par la tâche de nuit des commandes ; l'acheteur lit « Transmise à l'équipe ». Migration `demandes_a_l_equipe`. **Décidé le 21/11 : la cadence reste mensuelle** — le code et les textes de #74 le disent déjà. |
 | v1.114.8 | #82 | `pnpm comptes:test` ne pose plus ses quatre comptes (mot de passe connu, administrateur compris) sur une base distante : sa garde cherchait « localhost » ou « baobart_test » n'importe où dans l'adresse. Mesuré le 21/11 : `…@localhost.exemple.invalid/db` et `…@base.exemple.invalid/baobart_test` passaient la garde et tentaient de se connecter ; elles sont refusées, et une base de ce poste (`localhost`, `127.0.0.1`) passe toujours. La garde lit l'hôte, et lui seul (`baseLocale`, la règle des scripts de design depuis #60). Après #78 (1.114.7). |
 | v1.114.6 | #80 | L1 : 3 des 11 exceptions `set-state-in-effect` de #65 migrées — l'origine et le partage natif lus par `useSyncExternalStore` (`components/systeme/navigateur.ts`), l'état de la recherche de l'en-tête déduit au rendu. Les 8 autres restent, motivées. Et les décisions ouvertes par la recette, consignées ci-dessus. |
 | v1.114.5 | #79 | La recherche de l'en-tête (Q-12) : la vignette de la couverture, les créateurs trouvés par leur nom ou leur pseudo (vitrine publiée, compte ouvert), Entrée ouvre la première suggestion. « Aucun résultat » existait déjà (depuis le 02/10, mesuré) : gardé par un test. |

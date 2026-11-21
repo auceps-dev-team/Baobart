@@ -157,6 +157,14 @@ describe("les impératifs", () => {
         // demande reçue, d'où part un délai de sept jours avant le support.
         "REMBOURSEMENT_REFUSE",
         "DEMANDE_REMBOURSEMENT",
+        // Ajoutés le 21/11 (Q-39) : le délai de sept jours expire. Le créateur
+        // perd la main sur son propre argent s'il n'apprend pas que l'équipe va
+        // trancher — c'est l'étape d'avant REMBOURSE_PAR_EQUIPE, impératif pour
+        // la même raison. Et l'équipe : la recette a mesuré qu'un avis qu'on
+        // n'envoie pas laisse un acheteur attendre sans fin ; le rendre
+        // désactivable, c'est rouvrir le défaut.
+        "DEMANDE_TRANSMISE",
+        "DEMANDE_A_TRANCHER",
         // Un déplacement prévu, parfois payé — qu'on annule, ou qu'on
         // maintient après l'avoir annulé (ajouté en v1.69.12 : qui a lu
         // « annulé » a pu renoncer à son déplacement).
@@ -198,15 +206,24 @@ describe("le catalogue lui-même", () => {
   });
 
   it("range chaque événement dans une audience", () => {
-    // L'écran de réglages sépare acheteur et vendeur : un événement sans
-    // audience n'apparaîtrait nulle part.
+    // L'écran de réglages sépare acheteur, vendeur et — pour ceux qui
+    // tranchent — l'équipe (Q-39, 21/11/2026) : un événement sans audience
+    // n'apparaîtrait nulle part.
     const acheteur = evenementsPour("acheteur");
     const vendeur = evenementsPour("vendeur");
+    const equipe = evenementsPour("equipe");
 
     expect(acheteur.length).toBeGreaterThan(0);
     expect(vendeur.length).toBeGreaterThan(0);
-    // Réunis, les deux couvrent tout — aucun événement orphelin.
-    expect(new Set([...acheteur, ...vendeur]).size).toBe(EVENEMENTS.length);
+    expect(equipe).toContain("DEMANDE_A_TRANCHER");
+    // Réunies, les trois couvrent tout — aucun événement orphelin.
+    expect(new Set([...acheteur, ...vendeur, ...equipe]).size).toBe(EVENEMENTS.length);
+  });
+
+  it("ne montre pas les avis de l'équipe aux acheteurs ni aux vendeurs", () => {
+    // Un membre ordinaire n'a pas à régler un avis qu'il ne recevra jamais.
+    expect(evenementsPour("acheteur")).not.toContain("DEMANDE_A_TRANCHER");
+    expect(evenementsPour("vendeur")).not.toContain("DEMANDE_A_TRANCHER");
   });
 
   it("couvre les deux publics, comme demandé", () => {

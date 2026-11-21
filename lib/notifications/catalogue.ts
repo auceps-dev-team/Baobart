@@ -73,7 +73,13 @@ export type Canal = (typeof CANAUX)[number];
  */
 export const CANAUX_LIVRES: readonly Canal[] = ["COURRIEL", "IN_APP"];
 
-export type Audience = "acheteur" | "vendeur" | "tous";
+/**
+ * `equipe` : ceux qui tranchent pour la plateforme — les rôles qui portent
+ * `traiter_les_litiges` (`lib/auth/administration.ts`). Ajoutée le 21/11/2026
+ * avec Q-39 : jusque-là, aucun avis ne s'adressait à l'équipe, et une demande
+ * de remboursement pouvait l'attendre sans que personne le sache.
+ */
+export type Audience = "acheteur" | "vendeur" | "equipe" | "tous";
 
 export interface Reglage {
   /** Pour qui, sur l'écran de préférences. Un vendeur ne veut pas relire les
@@ -115,6 +121,7 @@ export type EvenementNotifiable =
   | "VENTE_REALISEE"
   | "DEMANDE_REMBOURSEMENT"
   | "REMBOURSE_PAR_EQUIPE"
+  | "DEMANDE_TRANSMISE"
   | "VERSEMENT_ENVOYE"
   | "CONTENU_PUBLIE"
   | "CONTENU_REFUSE"
@@ -129,7 +136,9 @@ export type EvenementNotifiable =
   | "COMMUNAUTE_NOUVEAU_MESSAGE"
   | "COMMUNAUTE_NOUVEAU_MEMBRE"
   // ── Juridique ───────────────────────────────────────────────────────────
-  | "RETRAIT_JURIDIQUE";
+  | "RETRAIT_JURIDIQUE"
+  // ── Équipe ──────────────────────────────────────────────────────────────
+  | "DEMANDE_A_TRANCHER";
 
 /**
  * Tout, en un seul endroit.
@@ -246,6 +255,17 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
     explication: "Une demande restée sans réponse a été acceptée par l'équipe, et ton solde débité.",
     imperatif: true,
     modele: "REMBOURSE_PAR_EQUIPE",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+  // Ajouté le 21/11 (Q-39, recette du 14/11/2026) : au huitième jour, la
+  // demande passait au support sans que le créateur l'apprenne. Impératif,
+  // comme la demande elle-même : c'est le délai qu'elle annonçait qui expire.
+  DEMANDE_TRANSMISE: {
+    audience: "vendeur",
+    libelle: "Demande transmise à l'équipe",
+    explication: "Une demande de remboursement est restée sans réponse sept jours : l'équipe va trancher.",
+    imperatif: true,
+    modele: "DEMANDE_TRANSMISE",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
   VENTE_REALISEE: {
@@ -376,6 +396,21 @@ export const CATALOGUE: Record<EvenementNotifiable, Reglage> = {
       "Un tiers a notifié qu'un de tes contenus serait illicite, et il a été retiré le temps de l'examen.",
     imperatif: true,
     modele: "RETRAIT_JURIDIQUE",
+    defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
+  },
+
+  // ═════════════════════════════════════════════════════════════ équipe ══
+  // Ajouté le 21/11 (Q-39) : « sans réponse sous sept jours, l'équipe
+  // tranche » était écrit sur cinq écrans, et l'équipe n'en savait rien — il
+  // fallait penser à ouvrir « Remboursements à trancher ». Décidé par le
+  // responsable : prévenir l'équipe et le créateur. Impératif : un acheteur
+  // attend une réponse que personne d'autre ne donnera.
+  DEMANDE_A_TRANCHER: {
+    audience: "equipe",
+    libelle: "Remboursement à trancher",
+    explication: "Un créateur n'a pas répondu sous sept jours à une demande de remboursement : elle attend l'équipe.",
+    imperatif: true,
+    modele: "DEMANDE_A_TRANCHER",
     defauts: { COURRIEL: true, IN_APP: true, PUSH: false },
   },
 };

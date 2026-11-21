@@ -112,7 +112,11 @@ export function ReglagesNotifications({
               margin: "0 0 12px",
             }}
           >
-            {s.audience === "acheteur" ? "Quand tu achètes" : "Quand tu vends ou organises"}
+            {s.audience === "acheteur"
+              ? "Quand tu achètes"
+              : s.audience === "equipe"
+                ? "Pour l'équipe Baobart"
+                : "Quand tu vends ou organises"}
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

@@ -154,22 +154,77 @@ export async function crediterSolde(
 }
 
 /**
- * Cumul versable d'un créateur, arrêté à une date de fin de période incluse.
- * C'est la fonction que consomme la projection des versements.
+ * Les soldes qu'un versement prend — la règle, écrite une seule fois.
+ *
+ * Le versement, la décision de verser (`cycle.ts`) et l'écran « Gains » la
+ * lisent tous trois ici : un créateur ne doit pas lire « disponible : 3 673 F »
+ * pour recevoir 873 F le jour dit.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LES CRÉDITS ATTENDENT, LES DETTES N'ATTENDENT PAS (Q-41, décidé le 21/11/2026)
+ *
+ * Une vente attend la fin de sa période de rétention : c'est la protection
+ * contre un remboursement ou une contestation. Un remboursement, lui, est déjà
+ * parti chez l'acheteur. Le laisser attendre la même borne, c'était faire
+ * avancer l'argent par la plateforme : mesuré le 14/11 (recette, J+10), un
+ * versement « arrêté au 20 » payait 3 673 F alors qu'un remboursement de
+ * 2 800 F était parti le 22 — solde réel, 873 F.
+ *
+ * D'où, en plus des soldes jusqu'à la fin de période, **les soldes négatifs
+ * qui la suivent**, jusqu'à la veille de `dettesAvant`. Deux bornes, chacune
+ * avec sa raison :
+ *
+ *   — **négatifs seulement.** Un solde est la somme d'une journée. Un jour où
+ *     les ventes couvrent le remboursement reste positif ; ses ventes, encore
+ *     retenues, couvrent déjà ce qui est parti, et la plateforme n'avance rien.
+ *     Le prendre paierait ces ventes avant la fin de leur rétention ;
+ *   — **jamais le jour même.** Un solde pris par un versement est figé, et
+ *     `crediterSolde` refuse d'y écrire (`SoldeFigeError`) : une vente arrivée
+ *     dans l'après-midi échouerait. Aucun appel de production ne date une
+ *     écriture dans le passé (lu le 21/11 : `encaisserLigne`, `rembourserLigne`,
+ *     `enregistrerLitige` écrivent au jour même) ; figer un jour passé est sûr.
+ *     Un remboursement du jour même attend donc le versement suivant.
+ *
+ * Sans `dettesAvant`, la règle d'avant : la fin de période, et elle seule.
+ */
+export function filtreSoldesAVerser(
+  userId: string,
+  holdingCurrency: Currency,
+  finDePeriode: Date,
+  dettesAvant?: Date,
+): Prisma.BalanceWhereInput {
+  const fin = jour(finDePeriode);
+  const jusquALaFin: Prisma.BalanceWhereInput = { date: { lte: fin } };
+  return {
+    userId,
+    holdingCurrency,
+    state: "UNPAID",
+    ...(dettesAvant && jour(dettesAvant) > fin
+      ? {
+          OR: [
+            jusquALaFin,
+            { date: { gt: fin, lt: jour(dettesAvant) }, holdingAmount: { lt: 0 } },
+          ],
+        }
+      : jusquALaFin),
+  };
+}
+
+/**
+ * Cumul versable d'un créateur, arrêté à une date de fin de période incluse —
+ * dettes postérieures comprises quand `dettesAvant` est donné (voir
+ * `filtreSoldesAVerser`). C'est la fonction que consomme la projection des
+ * versements.
  */
 export async function soldeVersableJusqua(
   db: Prisma.TransactionClient,
   userId: string,
   finDePeriode: Date,
   holdingCurrency: Currency = "XOF",
+  dettesAvant?: Date,
 ): Promise<number> {
   const agregat = await db.balance.aggregate({
-    where: {
-      userId,
-      holdingCurrency,
-      state: "UNPAID",
-      date: { lte: jour(finDePeriode) },
-    },
+    where: filtreSoldesAVerser(userId, holdingCurrency, finDePeriode, dettesAvant),
     _sum: { holdingAmount: true },
   });
 
