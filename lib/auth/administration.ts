@@ -111,6 +111,15 @@ export function peut(role: RolePlateforme, pouvoir: Pouvoir): boolean {
 }
 
 /**
+ * Les rôles qui portent un pouvoir — pour écrire « à qui » sans recopier la
+ * table. Ajouté le 21/11/2026 (Q-39) : prévenir ceux qui peuvent trancher, et
+ * eux seuls ; un rôle qui gagne ou perd le pouvoir suit sans autre changement.
+ */
+export function rolesAyant(pouvoir: Pouvoir): RolePlateforme[] {
+  return (Object.keys(POUVOIRS) as RolePlateforme[]).filter((r) => POUVOIRS[r].includes(pouvoir));
+}
+
+/**
  * Le seuil des écrans **Système**.
  *
  * ───────────────────────────────────────────────────────────────────────

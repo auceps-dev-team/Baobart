@@ -10,6 +10,7 @@ import {
   projeterVersements,
 } from "@/lib/payments/payout-schedule";
 import { preparerLeCycle } from "@/lib/payments/cycle";
+import { gainsDe } from "@/lib/payments/gains";
 import { verserANouveau } from "@/lib/payments/reprise";
 import {
   annulerVersement,
@@ -300,6 +301,88 @@ describe("exécution d'un versement", () => {
     expect(pris.every((b) => b.state === "PROCESSING")).toBe(true);
     // Celle d'après reste versable.
     expect(soldes.some((b) => b.state === "UNPAID")).toBe(true);
+  });
+
+  /**
+   * Q-41 (recette du 14/11/2026, décidé le 21/11) : un remboursement fait
+   * entre la fin de période et le cycle est déduit de CE versement. Mesuré à
+   * la recette : « arrêté au 20 », 3 673 F préparés le 24 alors que 2 800 F
+   * étaient partis le 22. Ici, la fin de période est le 24 juillet et le
+   * cycle le 31 : un remboursement du 27 tombe entre les deux.
+   */
+  describe("Q-41 — un remboursement arrivé avant le versement en est déduit", () => {
+    const soldeDu = async (date: string) =>
+      db.balance.findFirstOrThrow({
+        where: { userId: createur, date: new Date(`${date}T00:00:00Z`) },
+      });
+
+    it("déduit le remboursement du 27, et prend son solde avec le versement", async () => {
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const b = await vendre(10_000, new Date("2026-07-21T10:00:00Z"));
+      await rembourserLigne({ orderItemId: a.ligneId, amount: 4_000, date: new Date("2026-07-27T10:00:00Z") });
+      const dette = await soldeDu("2026-07-27");
+      expect(dette.holdingAmount).toBeLessThan(0);
+
+      const { versement } = await preparer();
+
+      expect(versement.amount).toBe(a.net + b.net + dette.holdingAmount);
+      const apres = await soldeDu("2026-07-27");
+      expect(apres.state).toBe("PROCESSING");
+      expect(apres.payoutId).toBe(versement.id);
+    });
+
+    it("laisse au versement suivant un remboursement du jour même du cycle", async () => {
+      // Figer le solde du jour ferait échouer les ventes de l'après-midi
+      // (`SoldeFigeError`) : la dette du 31 attend le cycle suivant.
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const b = await vendre(10_000, new Date("2026-07-21T10:00:00Z"));
+      await rembourserLigne({ orderItemId: a.ligneId, amount: 4_000, date: new Date("2026-07-31T10:00:00Z") });
+
+      const { versement } = await preparer();
+
+      expect(versement.amount).toBe(a.net + b.net);
+      expect((await soldeDu("2026-07-31")).state).toBe("UNPAID");
+    });
+
+    it("ne prend pas un jour postérieur que ses propres ventes couvrent", async () => {
+      // Le 27 : une vente et un remboursement plus petit — solde positif. Ses
+      // ventes sont encore en rétention ; les verser maintenant serait payer
+      // avant l'heure, et la plateforme n'avance rien puisqu'elles couvrent.
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      await vendre(10_000, new Date("2026-07-27T09:00:00Z"));
+      await rembourserLigne({ orderItemId: a.ligneId, amount: 2_000, date: new Date("2026-07-27T10:00:00Z") });
+      expect((await soldeDu("2026-07-27")).holdingAmount).toBeGreaterThan(0);
+
+      const { versement } = await preparer();
+
+      expect(versement.amount).toBe(a.net);
+      expect((await soldeDu("2026-07-27")).state).toBe("UNPAID");
+    });
+
+    it("ne verse rien quand la dette dépasse la période, et ne fige aucun solde", async () => {
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const b = await vendre(10_000, new Date("2026-07-21T10:00:00Z"));
+      await rembourserLigne({ orderItemId: a.ligneId, amount: 10_000, date: new Date("2026-07-27T10:00:00Z") });
+      await rembourserLigne({ orderItemId: b.ligneId, amount: 10_000, date: new Date("2026-07-28T10:00:00Z") });
+
+      await expect(preparer(true)).rejects.toThrow(/Aucun solde versable/);
+      const soldes = await db.balance.findMany({ where: { userId: createur } });
+      expect(soldes.every((s) => s.state === "UNPAID")).toBe(true);
+    });
+
+    it("l'écran Gains annonce le montant que le versement prendra", async () => {
+      const a = await vendre(10_000, new Date("2026-07-20T10:00:00Z"));
+      const b = await vendre(10_000, new Date("2026-07-21T10:00:00Z"));
+      await rembourserLigne({ orderItemId: a.ligneId, amount: 4_000, date: new Date("2026-07-27T10:00:00Z") });
+
+      // Le jour du cycle, la rétention de sept jours s'arrête au 24 : la même
+      // borne que le versement.
+      const gains = await gainsDe(createur, CYCLE);
+      const { versement } = await preparer();
+
+      expect(gains.disponible).toBe(versement.amount);
+      expect(gains.disponible).toBeLessThan(a.net + b.net);
+    });
   });
 
   describe("un compte gelé ne laisse partir aucun argent", () => {
@@ -835,6 +918,24 @@ describe("le passage hebdomadaire", () => {
     expect(soldes.every((s) => s.state === "PROCESSING")).toBe(true);
     const versements = await db.payout.findMany();
     expect(versements.every((v) => v.status === "CREATING")).toBe(true);
+  });
+
+  it("Q-41 — ne verse pas une vente que l'on a remboursée depuis la fin de période", async () => {
+    // La vente du 20 est remboursée en entier le 27, entre la fin de période
+    // (24) et le cycle (31). Avant Q-41, le passage la versait quand même : la
+    // plateforme avançait l'argent déjà rendu à l'acheteur.
+    const a = await creerCreateurPayable({ email: "q41@cycle.test" });
+    const ligne = await db.orderItem.findFirstOrThrow({
+      where: { product: { sellerId: a } },
+      select: { id: true },
+    });
+    await rembourserLigne({ orderItemId: ligne.id, amount: 10_000, date: new Date("2026-07-27T10:00:00Z") });
+
+    const r = await preparerLeCycle({ cycleDate: CYCLE, rails: ["wave"] });
+
+    expect(r.prepares.map((p) => p.userId)).not.toContain(a);
+    expect(r.ecartes.map((e) => e.userId)).toContain(a);
+    expect(await db.payout.count({ where: { userId: a } })).toBe(0);
   });
 
   it("n'appelle que les rails du jour", async () => {

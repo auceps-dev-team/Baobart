@@ -83,6 +83,10 @@ export const MODELES = [
   // Ajouté le 20/11 (Q-40) : le créateur apprenait par une ligne « Tu dois »
   // que l'équipe avait remboursé à sa place.
   "REMBOURSE_PAR_EQUIPE",
+  // Ajoutés le 21/11 (Q-39) : au huitième jour, personne n'était prévenu que
+  // la demande passait à l'équipe — ni le créateur, ni l'équipe elle-même.
+  "DEMANDE_TRANSMISE",
+  "DEMANDE_A_TRANCHER",
 
   // ── Ajouté le 08/10 : un numéro de la lettre d'information ──────────────
   //
@@ -316,6 +320,18 @@ const SCHEMAS = {
     montant: z.string().min(1).max(40),
     motif: z.string().min(1).max(500),
   }),
+  DEMANDE_TRANSMISE: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    montant: z.string().min(1).max(40),
+    jours: z.number().int().positive(),
+  }),
+  DEMANDE_A_TRANCHER: z.object({
+    nom,
+    ressource: z.string().min(1).max(200),
+    montant: z.string().min(1).max(40),
+    jours: z.number().int().positive(),
+  }),
   REMBOURSEMENT_REFUSE: z.object({
     nom,
     ressource: z.string().min(1).max(200),
@@ -518,13 +534,9 @@ ${c.lien}` : "") +
   COMMANDE_REMBOURSEE: (c) => ({
     sujet: `Remboursement : ${c.ressource}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `${c.montant} repartent vers ton moyen de paiement, pour ` +
-      `« ${c.ressource} ».
-
-` +
+      `« ${c.ressource} ».\n\n` +
       (c.raison ? `Motif : ${c.raison}
 
 ` : "") +
@@ -539,17 +551,11 @@ ${c.lien}` : "") +
     // ouvrir.
     sujet: `Annulé : ${c.titre}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `L'événement « ${c.titre} », auquel tu étais inscrit, n'aura pas ` +
-      `lieu.
-
-` +
+      `lieu.\n\n` +
       `La raison donnée par l'organisateur :
-${c.raison}
-
-` +
+${c.raison}\n\n` +
       `Tu n'as rien à faire : ton inscription est annulée avec l'événement.` +
       SIGNATURE,
   }),
@@ -557,12 +563,8 @@ ${c.raison}
   VENTE_REALISEE: (c) => ({
     sujet: `Vente : ${c.ressource}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
-      `${c.montant} viennent d'être encaissés sur « ${c.ressource} ».
-
-` +
+      `Bonjour ${c.nom},\n\n` +
+      `${c.montant} viennent d'être encaissés sur « ${c.ressource} ».\n\n` +
       // Le brut et le net se distinguent ici, sinon le créateur croit à une
       // erreur en comparant ce message à son écran de gains.
       `C'est le prix payé par l'acheteur. Ce qui te revient, après frais, ` +
@@ -573,9 +575,7 @@ ${c.raison}
   CONTENU_PUBLIE: (c) => ({
     sujet: `En ligne : ${c.titre}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `« ${c.titre} » a été relu et publié. C'est visible de tout le monde, ` +
       `et les inscriptions sont ouvertes.` +
       SIGNATURE,
@@ -586,12 +586,8 @@ ${c.raison}
     // revient sans ouvrir le message.
     sujet: `Maintenu : ${c.titre}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
-      `L'annulation de « ${c.titre} » est levée : l'événement a bien lieu.
-
-` +
+      `Bonjour ${c.nom},\n\n` +
+      `L'annulation de « ${c.titre} » est levée : l'événement a bien lieu.\n\n` +
       `Ton inscription tient toujours — tu n'as rien à refaire.` +
       SIGNATURE,
   }),
@@ -624,17 +620,32 @@ ${c.raison}
   REMBOURSE_PAR_EQUIPE: (c) => ({
     sujet: `Remboursement fait par l'équipe : ${c.ressource}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `Un acheteur avait demandé le remboursement de « ${c.ressource} », et la demande est restée sans réponse. ` +
-      `L'équipe Baobart l'a acceptée à ta place : ${c.montant} ont été rendus, et ton solde en est débité. Le motif de l'acheteur :
-
-` +
-      `  « ${c.motif} »
-
-` +
+      `L'équipe Baobart l'a acceptée à ta place : ${c.montant} ont été rendus, et ton solde en est débité. Le motif de l'acheteur :\n\n` +
+      `  « ${c.motif} »\n\n` +
       `Le détail est dans ton tableau de bord, rubriques « Gains » et « Demandes de remboursement ».` +
+      SIGNATURE,
+  }),
+
+  DEMANDE_TRANSMISE: (c) => ({
+    sujet: `Demande transmise à l'équipe : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Un acheteur a demandé le remboursement de « ${c.ressource} » (${c.montant}), et la demande est restée ` +
+      `sans réponse pendant ${c.jours} jours. Elle passe à l'équipe Baobart, qui va trancher.\n\n` +
+      `Tu peux encore l'accepter ou la refuser toi-même, depuis ton tableau de bord, rubrique ` +
+      `« Demandes de remboursement », tant que l'équipe ne l'a pas fait.` +
+      SIGNATURE,
+  }),
+
+  DEMANDE_A_TRANCHER: (c) => ({
+    sujet: `Remboursement à trancher : ${c.ressource}`,
+    texte:
+      `Bonjour ${c.nom},\n\n` +
+      `Une demande de remboursement attend l'équipe : « ${c.ressource} » (${c.montant}). Le créateur n'y a pas ` +
+      `répondu sous ${c.jours} jours, et l'acheteur attend.\n\n` +
+      `Elle est sur l'écran « Remboursements à trancher » du tableau de bord.` +
       SIGNATURE,
   }),
 
@@ -661,20 +672,14 @@ ${c.raison}
   PAIEMENT_ABANDONNE: (c) => ({
     sujet: `Ton achat de « ${c.ressource} » attend encore`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `Tu as lancé l'achat de « ${c.ressource} » pour ${c.montant}, et le ` +
       `paiement n'est jamais arrivé chez nous. Cela arrive souvent : une ` +
       `invite qui se perd, un téléphone hors réseau, un code qu'on remet à ` +
-      `plus tard.
-
-` +
+      `plus tard.\n\n` +
       `Rien n'a été débité. Tu peux reprendre là où tu t'es arrêté :
 ` +
-      `${c.lien}
-
-` +
+      `${c.lien}\n\n` +
       `Passé ${c.heures} heures, la commande se referme d'elle-même — ` +
       `et tu pourras la relancer quand tu voudras.` +
       SIGNATURE,
@@ -683,28 +688,18 @@ ${c.raison}
   RETRAIT_JURIDIQUE: (c) => ({
     sujet: `Contenu retiré à titre provisoire — dossier ${c.reference}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `Une notification nous est parvenue au sujet d'un de tes contenus, et ` +
       `nous l'avons retiré le temps de l'examiner. Le retrait est ` +
       `PROVISOIRE : rien n'est supprimé, et le contenu revient si la ` +
-      `notification ne tient pas.
-
-` +
-      `Dossier : ${c.reference}
-
-` +
+      `notification ne tient pas.\n\n` +
+      `Dossier : ${c.reference}\n\n` +
       `Ce qui nous est signalé, dans les termes du notifiant :
 ` +
-      `${c.motif}
-
-` +
+      `${c.motif}\n\n` +
       `Tu peux répondre jusqu'au ${c.echeance}. Si tu réponds, nous ` +
       `réexaminons le dossier ; si tu ne réponds pas d'ici là, le retrait ` +
-      `devient définitif.
-
-` +
+      `devient définitif.\n\n` +
       `Nous ne jugeons pas qui a raison : nous appliquons l'article 3 de la ` +
       `loi n° 2008-08 sur les transactions électroniques, qui nous oblige à ` +
       `agir promptement une fois informés. Le litige lui-même relève du juge.` +
@@ -715,15 +710,9 @@ Répondre : ${c.lien}` : ""),
   CONTENU_REFUSE: (c) => ({
     sujet: `Non retenu : ${c.titre}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
-      `« ${c.titre} » ne paraîtra pas en l'état. Voici pourquoi :
-
-` +
-      `${c.motif}
-
-` +
+      `Bonjour ${c.nom},\n\n` +
+      `« ${c.titre} » ne paraîtra pas en l'état. Voici pourquoi :\n\n` +
+      `${c.motif}\n\n` +
       // Le refus n'est pas une impasse, et il faut le dire : sans cette
       // phrase, on croit que c'est terminé.
       `Corrige la fiche, remets-la en brouillon, puis renvoie-la en ` +
@@ -734,13 +723,9 @@ Répondre : ${c.lien}` : ""),
   CANDIDATURE_RECUE: (c) => ({
     sujet: `Candidature : ${c.offre}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `Quelqu'un vient de postuler à « ${c.offre} ». Le CV est joint à sa ` +
-      `fiche, dans l'écran des candidatures.
-
-` +
+      `fiche, dans l'écran des candidatures.\n\n` +
       // Rappel utile : le CV disparaît à la clôture de l'offre (§22).
       `Les CV sont conservés le temps de l'offre, puis supprimés.` +
       SIGNATURE,
@@ -749,12 +734,8 @@ Répondre : ${c.lien}` : ""),
   INSCRIPTION_EVENEMENT: (c) => ({
     sujet: `Inscription : ${c.titre}`,
     texte:
-      `Bonjour ${c.nom},
-
-` +
-      `Quelqu'un vient de s'inscrire à « ${c.titre} ».
-
-` +
+      `Bonjour ${c.nom},\n\n` +
+      `Quelqu'un vient de s'inscrire à « ${c.titre} ».\n\n` +
       // Ce message est éteint par défaut, précisément parce qu'il peut
       // arriver cent fois. On le rappelle à qui l'a allumé.
       `Tu reçois ce message parce que tu as demandé un courriel par ` +
@@ -765,13 +746,9 @@ Répondre : ${c.lien}` : ""),
   NOUVEL_ABONNE: (c) => ({
     sujet: "Un nouvel abonné sur Baobart",
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `${c.suiveur ?? "Quelqu'un"} suit désormais ta boutique. Tes prochaines publications ` +
-      `apparaîtront dans son fil.
-
-` +
+      `apparaîtront dans son fil.\n\n` +
       `Tu reçois ce message parce que tu l'as demandé — il est éteint par ` +
       `défaut.` +
       SIGNATURE,
@@ -796,19 +773,11 @@ Répondre : ${c.lien}` : ""),
   COMPTE_VERSEMENT_MODIFIE: (c) => ({
     sujet: "Ton compte de versement a été modifié",
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `Le compte sur lequel tu reçois tes versements vient d'être modifié. ` +
-      `Désormais, ton argent partira vers :
-
-` +
-      `  ${c.moyen} — ${c.compte}
-
-` +
-      `Si c'est bien toi, tu n'as rien à faire.
-
-` +
+      `Désormais, ton argent partira vers :\n\n` +
+      `  ${c.moyen} — ${c.compte}\n\n` +
+      `Si c'est bien toi, tu n'as rien à faire.\n\n` +
       `Si ce n'est PAS toi, écris-nous tout de suite : tant que ce compte est ` +
       `en place, c'est là que partiront tes prochains versements. Change-le ` +
       `depuis ton tableau de bord, rubrique « Versements », et préviens-nous.` +
@@ -826,21 +795,11 @@ Répondre : ${c.lien}` : ""),
   CODE_COMPTE_VERSEMENT: (c) => ({
     sujet: "Ton code pour changer de compte de versement",
     texte:
-      `Bonjour ${c.nom},
-
-` +
-      `Voici ton code pour enregistrer ce compte de versement :
-
-` +
-      `  ${c.destination}
-
-` +
-      `  ${c.codeSecret}
-
-` +
-      `Il expire dans ${c.minutes} minutes et ne vaut que pour ce compte.
-
-` +
+      `Bonjour ${c.nom},\n\n` +
+      `Voici ton code pour enregistrer ce compte de versement :\n\n` +
+      `  ${c.destination}\n\n` +
+      `  ${c.codeSecret}\n\n` +
+      `Il expire dans ${c.minutes} minutes et ne vaut que pour ce compte.\n\n` +
       `Si ce n'est PAS toi : ne donne ce code à personne, même à l'équipe ` +
       `Baobart. Quelqu'un utilise ta session — change ton mot de passe, et ` +
       `écris-nous.` +
@@ -862,28 +821,16 @@ Répondre : ${c.lien}` : ""),
     sujet: `${c.expediteur} t'écrit : ${c.sujet}`,
     repondreA: c.repondreA,
     texte:
-      `Bonjour ${c.nom},
-
-` +
+      `Bonjour ${c.nom},\n\n` +
       `${c.expediteur} t'a écrit depuis ta vitrine Baobart` +
       (c.profil ? ` (${c.profil})` : "") +
-      `.
-
-` +
-      `Sujet : ${c.sujet}
-
-` +
-      `${c.corps}
-
-` +
-      `———
-
-` +
+      `.\n\n` +
+      `Sujet : ${c.sujet}\n\n` +
+      `${c.corps}\n\n` +
+      `———\n\n` +
       `Pour lui répondre, réponds à ce courriel : ta réponse partira à ` +
       `${c.repondreA}. Ton adresse, elle, n'est dévoilée qu'à ce moment-là, ` +
-      `et à cette personne seulement.
-
-` +
+      `et à cette personne seulement.\n\n` +
       `Ce message t'importune ? Écris à l'équipe (${c.contact}) en citant la ` +
       `référence ${c.reference}. Tu peux aussi fermer ton bouton « Contact » ` +
       `depuis le profil de ta boutique : ${c.reglages}` +

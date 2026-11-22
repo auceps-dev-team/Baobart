@@ -97,8 +97,9 @@ export default async function RemboursementsPage({ searchParams }: { searchParam
                 </Link>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, opacity: 0.65 }}>{a.montant}</span>
                 {a.demande ? (
-                  <span data-statut={a.demande.statut} style={{ padding: "3px 10px", border: `2px solid ${ENCRE}`, borderRadius: 999, background: STATUT[a.demande.statut].fond, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>
-                    {STATUT[a.demande.statut].libelle}
+                  <span data-statut={a.demande.statut} data-chez-equipe={a.demande.chezLEquipe ? "" : undefined} style={{ padding: "3px 10px", border: `2px solid ${ENCRE}`, borderRadius: 999, background: STATUT[a.demande.statut].fond, fontFamily: "var(--font-mono)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>
+                    {/* Q-39 : au huitième jour, la demande n'attend plus le créateur. */}
+                    {a.demande.chezLEquipe ? "Transmise à l'équipe" : STATUT[a.demande.statut].libelle}
                   </span>
                 ) : null}
               </div>

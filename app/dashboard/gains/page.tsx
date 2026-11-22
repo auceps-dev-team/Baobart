@@ -106,7 +106,7 @@ export default async function GainsPage() {
             ? {
                 label: "À déduire",
                 valeur: formatMoney(-gains.aDeduire),
-                precision: "remboursé après ton dernier versement — retenu sur tes prochaines ventes",
+                precision: "remboursements plus gros que tes ventes pas encore versées — retenu sur tes prochaines ventes",
               }
             : {
                 label: "En attente de validation",
@@ -279,7 +279,7 @@ function introDe(gains: Awaited<ReturnType<typeof gainsDe>>): string {
   // 10/10/2026 — une seule commission (`lib/domain/fees.ts`).
   const part = `${gains.partCreateur} du prix de chaque vente te reviennent.`;
   if (gains.aDeduire > 0) {
-    return `${part} Tu dois ${formatMoney(gains.aDeduire)} : des remboursements sont arrivés après ton dernier versement. Ils seront retenus sur tes prochaines ventes.`;
+    return `${part} Tu dois ${formatMoney(gains.aDeduire)} : tes remboursements dépassent tes ventes pas encore versées. Ils seront retenus sur tes prochaines ventes.`;
   }
   if (gains.prochainVersement) {
     return `${part} Prochain versement le ${DATE.format(gains.prochainVersement)}.`;

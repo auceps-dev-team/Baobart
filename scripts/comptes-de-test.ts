@@ -45,6 +45,7 @@ import { PrismaClient } from "@prisma/client";
 // et non par un `tsx` nu.
 import { hacherMotDePasse } from "@/lib/auth/password";
 import { poserCreateurVerifie } from "../prisma/createur-verifie";
+import { baseLocale } from "./design/base-locale";
 
 const db = new PrismaClient();
 
@@ -52,9 +53,12 @@ const db = new PrismaClient();
 const MOT_DE_PASSE = "Baobart2026!";
 
 function refuserSiCeNEstPasDuDeveloppement() {
-  const url = process.env.DATABASE_URL ?? "";
-  const local =
-    url.includes("localhost") || url.includes("127.0.0.1") || url.includes("baobart_test");
+  // L'hôte, et lui seul (`baseLocale`, la règle des scripts de design depuis
+  // #60). Avant le 21/11/2026, « localhost » ou « baobart_test » n'importe où
+  // dans l'adresse suffisait : mesuré ce jour-là, `…@localhost.exemple.invalid/db`
+  // et `…@base.exemple.invalid/baobart_test` passaient la garde et tentaient
+  // de se connecter. Une `baobart_test` sur ce poste passe toujours.
+  const local = baseLocale(process.env.DATABASE_URL ?? "");
 
   if (!local) {
     console.error(
