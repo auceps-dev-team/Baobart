@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import type { EtatPromo } from "@/lib/commerce/actions-promo";
 import type { LigneUpsell } from "@/lib/commerce/upsell";
+import { ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * Les offres post-achat d'un vendeur.
@@ -43,7 +44,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 

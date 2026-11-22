@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { trancherTemoignage, type EtatDecision } from "@/lib/temoignages/actions";
 import { MOTIF_MIN, type StatutTemoignage } from "@/lib/temoignages/regles";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les gestes de relecture sous un témoignage.
@@ -59,14 +59,14 @@ export function DecisionTemoignage({ id, statut, sien }: { id: string; statut: S
             placeholder="Ce que l'auteur doit corriger — il le lira sur son écran."
             style={{ padding: "10px 12px", border: CADRE, borderRadius: 12, fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", resize: "vertical" }}
           />
-          <button type="submit" disabled={enRefus} style={{ ...bouton, background: ORANGE, color: BLANC, justifySelf: "start" }}>
+          <button type="submit" disabled={enRefus} style={{ ...bouton, background: ORANGE_SOMBRE, color: BLANC, justifySelf: "start" }}>
             {statut === "APPROVED" ? "Retirer, avec ce motif" : "Refuser, avec ce motif"}
           </button>
         </form>
       ) : null}
 
       {erreur ? (
-        <span role="status" style={{ fontSize: 12.5, fontWeight: 700, color: ORANGE }}>
+        <span role="status" style={{ fontSize: 12.5, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </span>
       ) : null}

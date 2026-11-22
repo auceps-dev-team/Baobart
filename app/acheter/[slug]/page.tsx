@@ -13,7 +13,7 @@ import { nomAfficheDuPilote } from "@/lib/payments/encaissement/noms";
 import { formatMoney } from "@/lib/i18n/money";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
 import { droitDeTelecharger } from "@/lib/products/queries";
-import { BLANC, CADRE, ENCRE, LAVANDE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, LAVANDE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Comment veux-tu payer ? — Baobart." };
 
@@ -240,7 +240,7 @@ export default async function ChoisirLePaiementPage({
             {nomAfficheDuPilote(operateur) ? (
               <>
                 Paiement traité par{" "}
-                <span style={{ color: ORANGE, fontWeight: 800 }}>{nomAfficheDuPilote(operateur)}</span>.
+                <span style={{ color: ORANGE_SOMBRE, fontWeight: 800 }}>{nomAfficheDuPilote(operateur)}</span>.
               </>
             ) : (
               <>Paiement simulé : environnement de test, rien n&apos;est débité.</>

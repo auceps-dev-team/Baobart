@@ -9,7 +9,7 @@ import {
 } from "@/lib/evenements/actions";
 import { GENRES, LIBELLE_GENRE } from "@/lib/evenements/enums";
 import type { Saisie } from "@/lib/evenements/validation";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire d'un événement — création et correction.
@@ -77,7 +77,7 @@ export function FormulaireEvenement({
             padding: "12px 15px",
             border: CADRE,
             borderRadius: 14,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13.5,
             fontWeight: 700,

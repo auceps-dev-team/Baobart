@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { retirerDuFilDe, signalerDansLeFilDe } from "@/lib/forum/actions";
-import { BLANC, CADRE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les deux gestes sur un message du fil : retirer, signaler.
@@ -102,7 +102,7 @@ export function GestesDeMessage({
             fontSize: 10,
             textTransform: "uppercase",
             letterSpacing: ".08em",
-            color: ORANGE,
+            color: ORANGE_SOMBRE,
             fontWeight: 700,
           }}
         >

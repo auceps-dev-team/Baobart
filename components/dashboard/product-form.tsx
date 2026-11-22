@@ -11,6 +11,7 @@ import {
   ORANGE,
 } from "@/components/shell/nav-data";
 import type { EtatProduit } from "@/lib/products/validation";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Formulaire « Publier une ressource », traduit de « Baobart Dashboard.dc.html »
@@ -364,7 +365,7 @@ export function FormulaireProduit({
                 padding: "13px 15px",
                 border: CADRE,
                 borderRadius: 14,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 fontSize: 13,
                 fontWeight: 700,

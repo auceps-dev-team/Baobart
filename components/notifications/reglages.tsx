@@ -11,7 +11,7 @@ import {
   type EvenementNotifiable,
 } from "@/lib/notifications/catalogue";
 import { reglerNotification } from "@/lib/notifications/actions";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Un interrupteur par couple (événement × canal).
@@ -90,7 +90,7 @@ export function ReglagesNotifications({
             padding: "10px 13px",
             border: CADRE,
             borderRadius: 12,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13,
             fontWeight: 700,

@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const LILAS = "#F4EEFC";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 const MONO = "var(--font-mono)";
@@ -15,7 +15,7 @@ const ETIQUETTE = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
 };
 
 export type ResultatOps = { ok: true; message: string } | { ok: false; message: string };
@@ -453,7 +453,7 @@ function Ligne({
               fontWeight: 700,
               letterSpacing: ".1em",
               paddingTop: 2,
-              opacity: 0.55,
+              color: ENCRE_DOUCE,
             }}
           >
             MOTIF

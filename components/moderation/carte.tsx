@@ -12,7 +12,7 @@ import {
 import { trancherArticleAvecMotif } from "@/lib/blog/actions";
 import { trancherEvenementAvecMotif } from "@/lib/evenements/actions";
 import { trancherService } from "@/lib/services/actions-moderation";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Un élément de la file, avec ses trois décisions.
@@ -125,7 +125,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
             padding: 14,
             border: CADRE,
             borderRadius: 16,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
           }}
         >
@@ -161,7 +161,7 @@ export function CarteAModerer({ element }: { element: ElementAModerer }) {
             padding: "10px 13px",
             border: CADRE,
             borderRadius: 12,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13,
             fontWeight: 700,

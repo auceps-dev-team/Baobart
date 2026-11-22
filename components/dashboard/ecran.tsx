@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { LigneEspace } from "@/components/dashboard/espace";
 import { Pagination } from "@/components/dashboard/pagination";
+import { ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * Coquille d'un écran de tableau de bord, traduite de « Baobart Dashboard.dc.html ».
@@ -170,7 +171,7 @@ export function EcranDashboard({
                   fontSize: 10.5,
                   textTransform: "uppercase",
                   letterSpacing: ".1em",
-                  opacity: 0.65,
+                  color: ENCRE_DOUCE,
                 }}
               >
                 {k.label}

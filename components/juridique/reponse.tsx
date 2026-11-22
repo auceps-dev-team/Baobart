@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import { repondreAuDossier, type EtatGeste } from "@/lib/juridique/actions";
-import { BLANC, CADRE, ENCRE, GRIS, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Répondre à une notification qui vise son contenu.
@@ -72,7 +72,7 @@ export function FormulaireReponse({ reference }: { reference: string }) {
       </label>
 
       {etat && !etat.ok ? (
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ORANGE }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {etat.message}
         </p>
       ) : null}

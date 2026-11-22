@@ -8,6 +8,7 @@ import { connexionPuis } from "@/lib/auth/suite";
 import { formatMoney } from "@/lib/i18n/money";
 import { REFUS_COURT } from "@/lib/payments/eligibilite";
 import { gainsDe } from "@/lib/payments/gains";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Revenus & versements — Baobart." };
 export const dynamic = "force-dynamic";
@@ -16,7 +17,6 @@ const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
 const PRUNE = "#C9A8F5";
-const ORANGE = "#E2622C";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 const DATE = new Intl.DateTimeFormat("fr-FR", {
@@ -250,7 +250,7 @@ export default async function GainsPage() {
                 maxWidth: 640,
                 fontSize: 12.5,
                 fontWeight: 700,
-                color: ORANGE,
+                color: ORANGE_SOMBRE,
               }}
             >
               L&apos;envoi effectif chez l&apos;opérateur n&apos;est pas encore

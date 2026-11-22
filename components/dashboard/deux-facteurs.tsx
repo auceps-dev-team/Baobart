@@ -6,6 +6,7 @@ import type {
   EtatDeuxFacteursAction,
 } from "@/lib/auth/actions-2fa";
 import type { EtatDeuxFacteurs } from "@/lib/auth/deux-facteurs";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le panneau de double authentification du profil.
@@ -73,7 +74,7 @@ function Codes({ codes }: { codes: string[] }) {
         background: "#FFF3EE",
       }}
     >
-      <div style={{ fontSize: 13.5, fontWeight: 800, color: ORANGE }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: ORANGE_SOMBRE }}>
         {"Note ces codes maintenant — ils ne seront plus jamais affichés."}
       </div>
       <p style={{ fontSize: 12.5, opacity: 0.8, margin: "6px 0 12px" }}>
@@ -227,7 +228,7 @@ export function PanneauDeuxFacteurs({
         </p>
 
         {etat.codesSecoursRestants <= 2 ? (
-          <p style={{ fontSize: 13, color: ORANGE, fontWeight: 700 }}>
+          <p style={{ fontSize: 13, color: ORANGE_SOMBRE, fontWeight: 700 }}>
             {
               "Il t'en reste peu. Renouvelle-les avant d'être bloqué dehors avec un téléphone perdu."
             }
@@ -284,7 +285,7 @@ export function PanneauDeuxFacteurs({
               <button
                 type="submit"
                 disabled={coupeEnCours}
-                style={{ ...bouton(BLANC), color: ORANGE }}
+                style={{ ...bouton(BLANC), color: ORANGE_SOMBRE }}
               >
                 {coupeEnCours ? "…" : "Couper"}
               </button>

@@ -12,15 +12,7 @@ import { REGLAGES_PAR_DEFAUT, ajouterJours, joursEntre } from "@/lib/ndank/cycle
 import { PALIERS } from "@/lib/ndank/etats";
 import { declencherRappelAbonnement } from "@/lib/payments/encaissement/bac-a-sable";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
-import {
-  BLANC,
-  CADRE,
-  ENCRE,
-  JAUNE,
-  LAVANDE,
-  ORANGE,
-  VERT,
-} from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Ton renouvellement — Baobart." };
 

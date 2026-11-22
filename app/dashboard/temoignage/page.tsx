@@ -7,7 +7,7 @@ import { connexionPuis } from "@/lib/auth/suite";
 import { db } from "@/lib/db";
 import { LIBELLE_STATUT } from "@/lib/temoignages/regles";
 import { monTemoignage } from "@/lib/temoignages/service";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Mon témoignage — Baobart." };
 export const dynamic = "force-dynamic";
@@ -67,7 +67,7 @@ export default async function MonTemoignagePage() {
               </span>
             </div>
             {t.status === "REJECTED" && t.refusedReason ? (
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: ORANGE }}>Motif : {t.refusedReason}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: ORANGE_SOMBRE }}>Motif : {t.refusedReason}</div>
             ) : null}
           </div>
         ) : null}

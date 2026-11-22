@@ -5,6 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 
 import { enregistrerUneCle, type EtatCles } from "@/lib/auth/actions-webauthn";
 import type { CleAffichee } from "@/lib/auth/webauthn";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le panneau des clés d'accès.
@@ -116,7 +117,7 @@ export function PanneauClesAcces({
                 <input type="hidden" name="id" value={c.id} />
                 <button
                   type="submit"
-                  style={{ ...bouton(BLANC), color: ORANGE, padding: "8px 13px" }}
+                  style={{ ...bouton(BLANC), color: ORANGE_SOMBRE, padding: "8px 13px" }}
                 >
                   Retirer
                 </button>
@@ -144,7 +145,7 @@ export function PanneauClesAcces({
               fontSize: 10,
               textTransform: "uppercase",
               letterSpacing: ".1em",
-              opacity: 0.55,
+              color: ENCRE_DOUCE,
               marginBottom: 6,
             }}
           >
@@ -246,7 +247,7 @@ export function PanneauClesAcces({
             background: "#FFF3EE",
           }}
         >
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: ORANGE }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: ORANGE_SOMBRE }}>
             {"Note ces codes maintenant — ils ne seront plus jamais affichés."}
           </div>
           <p style={{ fontSize: 12.5, opacity: 0.8, margin: "6px 0 12px" }}>

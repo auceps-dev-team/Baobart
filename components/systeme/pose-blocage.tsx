@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import type { EtatBlocage } from "@/lib/securite/actions-blocklist";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire qui pose un blocage.
@@ -67,7 +67,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 

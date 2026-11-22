@@ -31,6 +31,7 @@ import {
 import { champsDe } from "@/lib/commerce/champs";
 import { minimumLibre } from "@/lib/commerce/montant";
 import { libelleDelai } from "@/lib/remboursements/regles";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Ressource — Baobart." };
 export const dynamic = "force-dynamic";
@@ -50,7 +51,6 @@ const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
 const ORANGE = "#E2622C";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 
@@ -328,7 +328,7 @@ export default async function ProduitDuTableauDeBord({
       ) : null}
 
       {MESSAGES_ERREUR[erreur ?? ""] ? (
-        <div role="alert" style={{ marginBottom: 16, padding: "13px 15px", border: CADRE, borderRadius: 14, background: ORANGE, color: BLANC, fontSize: 13, fontWeight: 700 }}>
+        <div role="alert" style={{ marginBottom: 16, padding: "13px 15px", border: CADRE, borderRadius: 14, background: ORANGE_SOMBRE, color: BLANC, fontSize: 13, fontWeight: 700 }}>
           {MESSAGES_ERREUR[erreur ?? ""]}
         </div>
       ) : null}

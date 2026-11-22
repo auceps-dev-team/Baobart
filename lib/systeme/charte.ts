@@ -15,7 +15,22 @@ export const BLANC = "#FFFFFF";
 export const JAUNE = "#FFD84A";
 export const ORANGE = "#E2622C";
 /** Le SEUL orange autorisé en texte (globals.css, charte §4.2) : 5,36:1 sur blanc. */
-export const ORANGE_SOMBRE = "#B34A1F";
+// Q-30, élargi le 22/11/2026 : #B34A1F passait sur le blanc (5,36:1) mais pas
+// sur la lavande (4,19:1). Calculé ce jour-là : #A1411B tient sur tous les
+// fonds clairs, en texte (blanc 6,39:1, lavande 5,00:1) comme en fond sous du
+// blanc (6,39:1). L'orange de marque reste ORANGE : décor, grands titres.
+export const ORANGE_SOMBRE = "#A1411B";
+/**
+ * Le texte secondaire — dates, étiquettes, mentions. Il était écrit en ENCRE
+ * à `opacity: 0.55` ou `0.6`, recopié dans une dizaine de composants : sur
+ * un texte de 10 px, l'opacité faisait tomber le contraste à 3,99:1 sur la
+ * lavande, 4,11:1 sur le blanc (relevé axe du 22/11/2026, Q-30 : 810 des
+ * 1 048 textes en défaut venaient d'UN de ces styles). Une couleur pleine ne
+ * dépend plus du fond : 4,91:1 sur le mauve, son pire cas, 9,90:1 sur le blanc.
+ */
+export const ENCRE_DOUCE = "#46414C";
+/** Son pendant sur fond ENCRE : 10,96:1 (calculé le 22/11/2026). ENCRE_DOUCE y tombait à 1,89:1. */
+export const BLANC_DOUX = "#C9C4CF";
 export const LAVANDE = "#EADFF9";
 export const CADRE = `2.5px solid ${ENCRE}`;
 
@@ -43,7 +58,7 @@ export const TON: Record<Gravite, TonGravite> = {
     mot: "À VOIR",
   },
   panne: {
-    pastilleFond: ORANGE,
+    pastilleFond: ORANGE_SOMBRE,
     pastilleEncre: BLANC,
     ligneFond: "#FFF1EA",
     mot: "PANNE",
@@ -80,7 +95,7 @@ export const BANDEAU: Record<Gravite, Bandeau> = {
     texte: "La plateforme sert, mais quelque chose mérite un regard.",
   },
   panne: {
-    fond: ORANGE,
+    fond: ORANGE_SOMBRE,
     encre: BLANC,
     medaillon: JAUNE,
     glyphe: "✕",
@@ -111,7 +126,7 @@ export const TON_ETAT: Record<string, TonEtat> = {
   attend: { fond: JAUNE, encre: ENCRE },
   enRoute: { fond: MAUVE, encre: ENCRE },
   arrive: { fond: VERT, encre: ENCRE },
-  casse: { fond: ORANGE, encre: BLANC },
+  casse: { fond: ORANGE_SOMBRE, encre: BLANC },
   gele: { fond: ENCRE, encre: BLANC },
   neutre: { fond: BLANC, encre: ENCRE },
 };

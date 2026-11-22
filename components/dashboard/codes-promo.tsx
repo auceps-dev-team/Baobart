@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 
 import type { EtatPromo } from "@/lib/commerce/actions-promo";
 import type { LigneCodePromo } from "@/lib/commerce/codes-promo";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les codes promo d'un vendeur.
@@ -49,7 +50,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 
@@ -278,7 +279,7 @@ export function PanneauCodesPromo({
                       fontFamily: "inherit",
                       fontSize: 12.5,
                       fontWeight: 800,
-                      color: ORANGE,
+                      color: ORANGE_SOMBRE,
                       cursor: "pointer",
                     }}
                   >

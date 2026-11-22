@@ -5,7 +5,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { reglerPublicites, type EtatReglages } from "@/lib/publicites/actions";
 import { BORNES, type LimitesPub } from "@/lib/publicites/limites";
 import { ECART_MAX, ECART_MIN } from "@/lib/publicites/regles";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * Les réglages qui valent pour toutes les bannières.
@@ -218,7 +218,7 @@ function Nombre({
       {aide ? (
         <span style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.65, lineHeight: 1.45 }}>{aide}</span>
       ) : null}
-      <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.55 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: ENCRE_DOUCE }}>
         De {min} à {max}.
       </span>
     </label>

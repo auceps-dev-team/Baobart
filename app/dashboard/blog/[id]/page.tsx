@@ -8,7 +8,7 @@ import { GestesArticle } from "@/components/blog/gestes";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { articleAEditer, toutesLesCategories } from "@/lib/blog/queries";
 import { LIBELLE_ETAT } from "@/lib/cms/cycle";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +105,7 @@ export default async function EditerArticlePage({
               style={{
                 border: CADRE,
                 borderRadius: 20,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 boxShadow: `4px 4px 0 ${ENCRE}`,
                 padding: 18,

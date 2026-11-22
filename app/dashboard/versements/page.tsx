@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/i18n/money";
 import { configurationDe } from "@/lib/payments/configuration";
 import { facteurPropose } from "@/lib/payments/preuve";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Versements — Baobart." };
 export const dynamic = "force-dynamic";
@@ -15,7 +16,6 @@ export const dynamic = "force-dynamic";
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
-const ORANGE = "#E2622C";
 const LAVANDE = "#EADFF9";
 const LILAS = "#F4EEFC";
 const MAUVE = "#C9A8F5";
@@ -103,7 +103,7 @@ export default async function VersementsPage() {
               padding: "20px 22px",
               border: CADRE,
               borderRadius: 22,
-              background: ORANGE,
+              background: ORANGE_SOMBRE,
               color: BLANC,
               boxShadow: `6px 6px 0 ${ENCRE}`,
             }}

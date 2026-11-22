@@ -917,7 +917,10 @@
 
 @keyframes defil-allume {
   from {
-    opacity: 0.18;
+    /* 0,18 jusqu'au 22/11/2026 : 1,55:1 sur l'encre, un mot illisible tant
+       qu'il n'était pas « allumé » (Q-30). À 0,5 : 5,36:1 — il s'allume encore,
+       et reste lisible à toute position de défilement. */
+    opacity: 0.5;
   }
   to {
     opacity: 1;

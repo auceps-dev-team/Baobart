@@ -7,11 +7,11 @@ import {
   type EtatCompte,
 } from "@/lib/payments/actions";
 import { RAILS_PROPOSES } from "@/lib/payments/comptes";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 /**

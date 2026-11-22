@@ -7,7 +7,7 @@ import {
   trancherLeDossier,
   type EtatGeste,
 } from "@/lib/juridique/actions";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Trancher un dossier juridique.
@@ -211,7 +211,7 @@ const LIBELLE: Record<"RETIREE" | "RESTAUREE" | "CLASSEE", string> = {
 
 function Erreur({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 700, color: ORANGE }}>
+    <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 700, color: ORANGE_SOMBRE }}>
       {children}
     </p>
   );

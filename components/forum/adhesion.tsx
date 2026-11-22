@@ -6,7 +6,7 @@ import {
   quitterUneCommunaute,
   rejoindreUneCommunaute,
 } from "@/lib/forum/actions";
-import { BLANC, CADRE, ENCRE, GRIS, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Entrer dans une communauté, ou en sortir.
@@ -77,7 +77,7 @@ export function Adhesion({
       </button>
 
       {erreur ? (
-        <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: ORANGE }}>
+        <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </p>
       ) : null}

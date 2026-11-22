@@ -18,12 +18,11 @@ import {
 import type { RoleFichier } from "@/lib/upload/types";
 
 import { LienExterne } from "./lien-externe";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
-const ORANGE = "#E2622C";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 const TRAME = `repeating-linear-gradient(135deg,${BLANC} 0 8px,${ENCRE} 8px 18px)`;
@@ -507,7 +506,7 @@ export function FileUploader({
             marginTop: 12,
             fontSize: 13,
             fontWeight: 700,
-            color: ORANGE,
+            color: ORANGE_SOMBRE,
           }}
         >
           Aucun fichier attaché : un acheteur n&apos;aurait rien à télécharger.

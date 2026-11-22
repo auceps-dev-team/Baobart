@@ -15,13 +15,13 @@ import {
   type CodeCadence,
 } from "@/lib/payments/cadences";
 import { PAYS } from "@/lib/payments/rails";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
 const LAVANDE = "#EADFF9";
 const LILAS = "#F4EEFC";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 const TITRE = {

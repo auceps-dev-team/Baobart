@@ -9,7 +9,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { BAREME_XOF, partDuCreateur } from "@/lib/domain/fees";
 import { couverturesPopulaires } from "@/lib/feed/queries";
 import { RAILS_BAOBART } from "@/lib/payments/payout-schedule";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ORANGE, ENCRE_DOUCE, BLANC_DOUX } from "@/lib/systeme/charte";
 import { accorde } from "@/lib/i18n/accord";
 
 export const metadata = {
@@ -177,7 +177,7 @@ export default async function FonctionnalitesPage() {
                   style={{ border: CADRE, borderRadius: 28, boxShadow: `7px 7px 0 ${ENCRE}`, padding: 30, background: b.fond, color: b.sombre ? BLANC : ENCRE, scrollMarginTop: 120 }}
                 >
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".14em", opacity: 0.65 }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".14em", color: b.fond === ENCRE ? BLANC_DOUX : ENCRE_DOUCE }}>
                       0{i + 1} · {b.kicker}
                     </div>
                     <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3.6vw,44px)", lineHeight: 1, letterSpacing: "-1.6px", margin: "10px 0 0", textTransform: "uppercase" }}>{b.titre}</h2>

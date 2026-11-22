@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { deposerService, type EtatDepot } from "@/lib/services/actions";
 import type { CategorieChoix } from "@/lib/services/queries";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire de dépôt d'un service.
@@ -81,7 +81,7 @@ export function FormulaireService({ categories }: { categories: CategorieChoix[]
             padding: "12px 15px",
             border: CADRE,
             borderRadius: 14,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13.5,
             fontWeight: 700,

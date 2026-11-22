@@ -9,8 +9,9 @@ import {
   demarrerConnexionParCle,
 } from "@/lib/auth/actions-webauthn";
 
-import { BLANC, ENCRE, JAUNE, ORANGE } from "@/components/shell/nav-data";
+import { BLANC, ENCRE, JAUNE } from "@/components/shell/nav-data";
 import type { EtatFormulaire } from "@/lib/auth/actions";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire du second facteur.
@@ -65,7 +66,7 @@ export function FormulaireVerification({
           fontSize: 10,
           textTransform: "uppercase",
           letterSpacing: ".14em",
-          opacity: 0.55,
+          color: ENCRE_DOUCE,
         }}
       >
         Deuxième étape
@@ -97,7 +98,7 @@ export function FormulaireVerification({
             fontSize: 10,
             textTransform: "uppercase",
             letterSpacing: ".1em",
-            opacity: 0.55,
+            color: ENCRE_DOUCE,
             marginBottom: 7,
           }}
         >
@@ -131,7 +132,7 @@ export function FormulaireVerification({
               marginBottom: 0,
               fontSize: 13.5,
               fontWeight: 700,
-              color: ORANGE,
+              color: ORANGE_SOMBRE,
             }}
           >
             {etat.erreur}
@@ -170,7 +171,7 @@ export function FormulaireVerification({
               fontSize: 10,
               textTransform: "uppercase",
               letterSpacing: ".12em",
-              opacity: 0.5,
+              color: ENCRE_DOUCE,
             }}
           >
             <span style={{ flex: 1, height: 2, background: ENCRE, opacity: 0.2 }} />
@@ -232,7 +233,7 @@ export function FormulaireVerification({
                 marginBottom: 0,
                 fontSize: 13.5,
                 fontWeight: 700,
-                color: ORANGE,
+                color: ORANGE_SOMBRE,
               }}
             >
               {erreurCle}

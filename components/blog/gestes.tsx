@@ -9,7 +9,7 @@ import {
   trancherArticleAvecMotif,
   type EtatGeste,
 } from "@/lib/blog/actions";
-import { BLANC, CADRE, ENCRE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Ce qu'on peut faire d'un article.
@@ -80,7 +80,7 @@ export function GestesArticle({
             padding: "10px 13px",
             border: CADRE,
             borderRadius: 12,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13,
             fontWeight: 700,

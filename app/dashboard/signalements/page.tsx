@@ -21,7 +21,7 @@ import {
   messagesSignales,
   type Origine,
 } from "@/lib/forum/signalements";
-import { BLANC, CADRE, ENCRE, JAUNE, MAUVE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, MAUVE, ORANGE, VERT, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Signalements & DMCA — Baobart." };
 export const dynamic = "force-dynamic";
@@ -639,7 +639,7 @@ export default async function SignalementsPage({
                   « {d.motif} »
                 </span>
               ) : (
-                <span style={{ fontSize: 13, opacity: 0.5, flex: "1 1 240px" }}>
+                <span style={{ fontSize: 13, color: ENCRE_DOUCE, flex: "1 1 240px" }}>
                   sans motif écrit
                 </span>
               )}

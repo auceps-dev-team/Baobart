@@ -7,7 +7,7 @@ import {
   type EtatDepot,
 } from "@/lib/juridique/actions";
 import type { Manque, Saisie } from "@/lib/juridique/article47";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Déposer une notification.
@@ -97,7 +97,7 @@ export function FormulaireNotification() {
       ) : null}
 
       {etat && !etat.ok ? (
-        <p style={{ ...P, color: ORANGE, fontWeight: 700 }}>{etat.message}</p>
+        <p style={{ ...P, color: ORANGE_SOMBRE, fontWeight: 700 }}>{etat.message}</p>
       ) : null}
 
       <form action={envoyer} style={{ display: "grid", gap: 26 }}>
@@ -431,7 +431,7 @@ function Champ({
       ) : null}
       {children}
       {erreur ? (
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: ORANGE }}>{erreur}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: ORANGE_SOMBRE }}>{erreur}</span>
       ) : null}
     </label>
   );

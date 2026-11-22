@@ -401,7 +401,7 @@ export function AuthForm({
               padding: "13px 15px",
               border: CADRE,
               borderRadius: 14,
-              background: ORANGE,
+              background: ORANGE_SOMBRE,
               color: BLANC,
               fontSize: 13,
               fontWeight: 700,

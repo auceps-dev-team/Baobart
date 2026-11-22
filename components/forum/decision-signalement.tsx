@@ -8,7 +8,7 @@ import {
   retirerUnMessageSignale,
 } from "@/lib/forum/actions";
 import type { Origine } from "@/lib/forum/signalements";
-import { BLANC, CADRE, ENCRE, GRIS, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Trancher un signalement, et fermer une communauté.
@@ -101,7 +101,7 @@ export function DecisionSignalement({
       </div>
 
       {erreur ? (
-        <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: ORANGE }}>
+        <p style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </p>
       ) : null}
@@ -205,7 +205,7 @@ export function FermerLaCommunaute({
       </div>
 
       {erreur ? (
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ORANGE }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </p>
       ) : null}

@@ -9,7 +9,7 @@ import {
 } from "@/lib/blog/actions";
 import { televerserImageArticle } from "@/lib/blog/images";
 import type { Saisie } from "@/lib/blog/validation";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Écrire un article.
@@ -78,7 +78,7 @@ export function FormulaireArticle({
             padding: "12px 15px",
             border: CADRE,
             borderRadius: 14,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13.5,
             fontWeight: 700,
@@ -488,7 +488,7 @@ function EnvoiImage({
       </label>
 
       {erreur ? (
-        <span style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </span>
       ) : null}

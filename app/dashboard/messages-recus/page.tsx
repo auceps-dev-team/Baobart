@@ -5,7 +5,7 @@ import { BoutonTraiter } from "@/components/contact/traiter";
 import { DashboardFrame } from "@/components/dashboard/frame";
 import { exigerUnDesPouvoirs } from "@/lib/auth/acces-administration";
 import { boiteDeReception, genresLusPar } from "@/lib/contact/service";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, MAUVE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, MAUVE, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Messages reçus — Baobart." };
 export const dynamic = "force-dynamic";
@@ -60,7 +60,7 @@ export default async function MessagesRecusPage({ searchParams }: { searchParams
                   {m.genre === "SPONSOR" ? "Sponsoring" : "Contact"}
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 800 }}>{m.sujet}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.55 }}>{DATE.format(m.recuLe)}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE_DOUCE }}>{DATE.format(m.recuLe)}</span>
               </div>
               <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700 }}>
                 {m.nom} ·{" "}

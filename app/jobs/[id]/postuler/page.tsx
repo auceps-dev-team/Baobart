@@ -8,7 +8,7 @@ import { Header } from "@/components/shell/header";
 import { sessionCourante } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { offrePublique } from "@/lib/jobs/queries";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Postuler — Baobart." };
 export const dynamic = "force-dynamic";
@@ -185,7 +185,7 @@ export default async function PostulerPage({
                     padding: 16,
                     border: CADRE,
                     borderRadius: 18,
-                    background: ORANGE,
+                    background: ORANGE_SOMBRE,
                     color: BLANC,
                   }}
                 >

@@ -7,7 +7,7 @@ import {
   seDesinscrire,
   type EtatInscription,
 } from "@/lib/evenements/actions-inscription";
-import { BLANC, CADRE, ENCRE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * S'inscrire, ou se retirer.
@@ -154,7 +154,7 @@ function Message({ texte }: { texte: string }) {
         padding: "10px 13px",
         border: CADRE,
         borderRadius: 12,
-        background: ORANGE,
+        background: ORANGE_SOMBRE,
         color: BLANC,
         fontSize: 12.5,
         fontWeight: 700,

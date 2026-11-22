@@ -7,7 +7,7 @@ import { sansRemiseAZero } from "@/lib/formulaires/sans-remise";
 import { deposerOffre, type EtatDepot } from "@/lib/jobs/actions";
 import { LIBELLE_MODE, LIBELLE_TYPE, MODES, TYPES } from "@/lib/jobs/enums";
 import { PAYS } from "@/lib/payments/rails";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire de dépôt d'une offre.
@@ -92,7 +92,7 @@ export function FormulaireOffre() {
             padding: "12px 15px",
             border: CADRE,
             borderRadius: 14,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13.5,
             fontWeight: 700,

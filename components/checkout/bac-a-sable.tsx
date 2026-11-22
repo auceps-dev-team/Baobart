@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 
 import type { ResultatBac } from "@/lib/payments/encaissement/bac-a-sable";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les deux boutons qui jouent l'opérateur.
@@ -104,7 +104,7 @@ export function BacASable({
             padding: "10px 13px",
             border: CADRE,
             borderRadius: 12,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13,
             fontWeight: 700,

@@ -9,7 +9,7 @@ import {
   type EtatFormulairePub,
 } from "@/lib/publicites/actions";
 import { lienExterieur, FREQUENCE_MAX, FREQUENCE_MIN, FREQUENCE_PAR_DEFAUT, type SaisiePub } from "@/lib/publicites/regles";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Créer ou corriger une publicité, en la voyant telle qu'elle paraîtra.
@@ -62,7 +62,7 @@ export function FormulairePublicite({
     >
       <form action={envoyer} style={{ display: "grid", gap: 16 }}>
         {etat && !etat.ok ? (
-          <div role="status" style={{ ...bandeau, background: ORANGE, color: BLANC }}>
+          <div role="status" style={{ ...bandeau, background: ORANGE_SOMBRE, color: BLANC }}>
             {etat.message}
           </div>
         ) : null}
@@ -325,7 +325,7 @@ function EnvoiMedia({
         />
       </label>
       {erreur ? (
-        <span role="status" style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>
+        <span role="status" style={{ fontSize: 12, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </span>
       ) : null}
