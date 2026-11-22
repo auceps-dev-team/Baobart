@@ -9,6 +9,7 @@ import {
   reponseIntrouvable,
 } from "@/lib/securite/cron";
 import { relancerLesPaiementsOublies } from "@/lib/commerce/relance-paiement";
+import { prevenirDemandesEchues } from "@/lib/remboursements/service";
 
 /**
  * Le passage qui referme les commandes qu'aucun rappel n'a conclues.
@@ -70,19 +71,35 @@ export async function GET(requete: Request) {
   // plutôt qu'une cinquième route à configurer et à oublier.
   const candidatures = (await purgerCandidaturesTerminees()).effacees;
 
+  // Q-39 (21/11/2026) : au huitième jour sans réponse du créateur, prévenir
+  // le créateur et l'équipe que la demande de remboursement passe à l'équipe.
+  // Mutualisé ici pour la même raison que les CV : une route de plus serait
+  // une de plus à configurer, et à oublier. En dernier, et à part : un avis
+  // qui échoue ne doit pas faire perdre le bilan des ménages déjà faits.
+  let demandes = { demandes: 0, avis: 0 };
+  try {
+    demandes = await prevenirDemandesEchues();
+  } catch (cause) {
+    journal.erreur("avis des demandes de remboursement échues en échec", {
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+
   // Un passage vide est le cas normal. Ne journaliser que ce qui s'est passé
   // évite de noyer les incidents sous la routine.
   if (
     fermees > 0 ||
     abonnements > 0 ||
     candidatures > 0 ||
-    relances.envoyees > 0
+    relances.envoyees > 0 ||
+    demandes.demandes > 0
   ) {
     journal.info("passage de ménage", {
       fermees,
       abonnements,
       candidatures,
       relances: relances.envoyees,
+      demandesEchues: demandes.demandes,
     });
   }
 
@@ -91,5 +108,6 @@ export async function GET(requete: Request) {
     abonnements,
     candidatures,
     relances,
+    demandesEchues: demandes,
   });
 }

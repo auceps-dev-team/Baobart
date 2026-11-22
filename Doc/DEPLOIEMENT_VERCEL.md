@@ -174,7 +174,7 @@ vide. C'est délibéré : mieux vaut ne rien faire que laisser l'URL ouverte.
 |---|---|---|
 | `/api/cron/versements` | lun-ven 6 h | Prépare **et envoie** les versements du cycle |
 | `/api/cron/courriels` | toutes les 5 min | Vide la file d'envoi |
-| `/api/cron/commandes` | chaque jour 4 h 30 | Referme les commandes qu'aucun rappel n'a conclues |
+| `/api/cron/commandes` | chaque jour 4 h 30 | Referme les commandes qu'aucun rappel n'a conclues ; prévient le créateur et l'équipe des demandes de remboursement sans réponse depuis sept jours (Q-39) |
 
 Le troisième est né du mobile money. Une commande s'ouvre puis attend le rappel
 de l'opérateur ; beaucoup d'acheteurs n'iront pas au bout. Sans ce ménage,

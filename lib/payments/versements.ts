@@ -3,6 +3,7 @@ import "server-only";
 import type { Currency, PayoutMethod, PayoutStatus } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import { filtreSoldesAVerser } from "@/lib/domain/balances";
 import { notifier } from "@/lib/notifications/aiguilleur";
 import { formatMoney } from "@/lib/i18n/money";
 import { masquerCompte } from "@/lib/payments/gains";
@@ -118,13 +119,10 @@ export async function preparerVersement(input: PreparationInput) {
   );
 
   return db.$transaction(async (tx) => {
+    // Jusqu'à la fin de période, plus les remboursements arrivés depuis, la
+    // veille du cycle comprise (Q-41) : voir `filtreSoldesAVerser`.
     const soldes = await tx.balance.findMany({
-      where: {
-        userId,
-        holdingCurrency,
-        state: "UNPAID",
-        date: { lte: periodEnd },
-      },
+      where: filtreSoldesAVerser(userId, holdingCurrency, periodEnd, cycle),
       select: { id: true, holdingAmount: true },
     });
 

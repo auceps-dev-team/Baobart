@@ -61,9 +61,12 @@ export interface Gains {
   enAttente: number;
   /**
    * Ce que le créateur doit à la plateforme : la somme non versée quand elle
-   * est négative — typiquement un remboursement arrivé après un versement.
-   * Zéro sinon. Elle sera retenue sur les prochaines ventes, puisque le cycle
-   * additionne toutes les lignes non versées, négatives comprises.
+   * est négative — des remboursements plus gros que les ventes pas encore
+   * versées. Zéro sinon. Elle sera retenue sur les prochaines ventes, puisque
+   * le cycle additionne toutes les lignes non versées, négatives comprises.
+   *
+   * Ce n'est plus « un remboursement arrivé après un versement » : depuis Q-41
+   * (21/11/2026), un remboursement arrivé AVANT est déduit de ce versement-là.
    */
   aDeduire: number;
   /** Cumul versé depuis le 1er janvier. */
@@ -149,7 +152,9 @@ export async function gainsDe(
   );
 
   const [disponible, totalNonVerse] = await Promise.all([
-    soldeVersableJusqua(db, userId, finRetention, devise),
+    // Dettes postérieures comprises, jusqu'à hier (Q-41) : le versement les
+    // déduit, l'écran doit donc les déduire aussi.
+    soldeVersableJusqua(db, userId, finRetention, devise, maintenant),
     soldeVersableJusqua(db, userId, jour(maintenant), devise),
   ]);
 

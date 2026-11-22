@@ -82,6 +82,8 @@ const CHARGES: Record<Modele, Record<string, unknown>> = {
   DEMANDE_REMBOURSEMENT: { nom: "Awa", ressource: "Pack textures", montant: "4 500 F", motif: "Le fichier ne s'ouvre pas.", jours: 7 },
   REMBOURSEMENT_REFUSE: { nom: "Kofi", ressource: "Pack textures", motif: "Le fichier s'ouvre avec Illustrator 2024.", par: "le créateur" },
   REMBOURSE_PAR_EQUIPE: { nom: "Awa", ressource: "Pack textures", montant: "2 800 F", motif: "Le fichier ne s'ouvre pas." },
+  DEMANDE_TRANSMISE: { nom: "Awa", ressource: "Pack textures", montant: "2 800 F", jours: 7 },
+  DEMANDE_A_TRANCHER: { nom: "Serge", ressource: "Pack textures", montant: "2 800 F", jours: 7 },
   INFOLETTRE: { sujet: "Les nouveautés d'octobre", corps: "Trois nouvelles familles de ressources arrivent.", desinscrire: "https://baobart.test/infolettre/desinscription?jeton=abc.def" },
   COMPTE_VERSEMENT_MODIFIE: { nom: "Awa", moyen: "Orange Money", compte: "···· 4821" },
   CODE_COMPTE_VERSEMENT: { nom: "Awa", codeSecret: "482913", destination: "Wave — ···· 2233", minutes: 15 },

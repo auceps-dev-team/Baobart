@@ -207,7 +207,8 @@ fait jamais Y » ne se prouve par **aucun** nombre d'appels : elle exige d'avoir
 avoir lu pour en être sûr.** Souvent, la phrase s'arrête là.
 
 Le cas de ce dépôt : « ce projet ne rend d'HTML nulle part » a été écrit dans
-l'en-tête de `lib/blog/corps.ts` et dans §28 de la spec, et toute la conception
+l'en-tête de `lib/cms/corps.ts` (anciennement cité `lib/blog/corps.ts`, chemin
+qui n'existe pas — relevé le 21/11/2026) et dans §28 de la spec, et toute la conception
 du blog repose dessus. La preuve tenait en **un grep, quatre termes, un glob
 qui excluait `.mjs` et `.js`**.
 

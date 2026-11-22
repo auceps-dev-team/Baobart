@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Currency, RefundRequestStatus } from "@prisma/client";
 
+import { rolesAyant } from "@/lib/auth/administration";
 import { db } from "@/lib/db";
 import { encaisseDe } from "@/lib/domain/encaisse";
 import { formatMoney } from "@/lib/i18n/money";
@@ -109,7 +110,17 @@ export interface AchatRemboursable {
   jusquA: Date | null;
   /** Pourquoi on ne peut pas, quand on ne peut pas. */
   refus: Refus | null;
-  demande: { statut: RefundRequestStatus; motifRefus: string | null; parLeSupport: boolean; le: Date } | null;
+  demande: {
+    statut: RefundRequestStatus;
+    motifRefus: string | null;
+    parLeSupport: boolean;
+    le: Date;
+    /**
+     * En attente, et passée à l'équipe (Q-39) : l'acheteur lisait « En attente
+     * du créateur » au huitième jour comme au premier.
+     */
+    chezLEquipe: boolean;
+  } | null;
 }
 
 export async function achatsRemboursables(acheteurId: string, maintenant: Date = new Date()): Promise<AchatRemboursable[]> {
@@ -131,7 +142,15 @@ export async function achatsRemboursables(acheteurId: string, maintenant: Date =
       montant: formatMoney(encaisseDe(l), l.order.currency),
       jusquA: e.ok ? e.jusquA : null,
       refus: e.ok ? null : e.motif,
-      demande: d ? { statut: d.status, motifRefus: d.refusalReason, parLeSupport: d.decidedBySupport, le: d.decidedAt ?? d.createdAt } : null,
+      demande: d
+        ? {
+            statut: d.status,
+            motifRefus: d.refusalReason,
+            parLeSupport: d.decidedBySupport,
+            le: d.decidedAt ?? d.createdAt,
+            chezLEquipe: d.status === "PENDING" && passeAuSupportLe(d.createdAt).getTime() <= maintenant.getTime(),
+          }
+        : null,
     });
   }
   return rendu;
@@ -255,6 +274,113 @@ export async function demandesPourLeSupport(maintenant: Date = new Date()): Prom
     select: SELECT_DEMANDE,
   });
   return lignes.map(enDemandeRecue);
+}
+
+/**
+ * Q-39 (recette du 14/11/2026, décidé le 21/11) : au huitième jour, prévenir.
+ *
+ * « Sans réponse sous sept jours, l'équipe tranche » est écrit sur cinq écrans.
+ * Mesuré à la recette : au huitième jour, la demande était bien sur l'écran
+ * « Remboursements à trancher » — et personne ne le savait. Il fallait penser
+ * à ouvrir cet écran ; sinon, la demande attendait sans fin.
+ *
+ * Rien ne SE PRODUIT au huitième jour : la liste de l'équipe se recalcule à
+ * chaque lecture (`demandesPourLeSupport`). D'où ce passage, appelé chaque nuit
+ * par l'ordonnanceur des commandes. Le responsable a décidé qui prévenir :
+ *
+ *   — **le créateur**, qui apprend que la demande passe à l'équipe — et qu'il
+ *     peut encore y répondre, `trancher` ne fermant pas la porte au créateur ;
+ *   — **l'équipe** : chaque compte dont le rôle porte `traiter_les_litiges`,
+ *     c'est-à-dire ceux qui ont la main sur l'écran où l'on tranche. Ni un
+ *     compte suspendu, ni un compte effacé.
+ *
+ * Une fois par demande et par personne : les clés portent la demande, et
+ * l'aiguilleur refuse une clé déjà posée. Une demande dont le créateur a déjà
+ * été prévenu est sautée sans rien appeler, pour qu'une demande oubliée des
+ * mois ne coûte pas un passage complet chaque nuit.
+ */
+export async function prevenirDemandesEchues(
+  maintenant: Date = new Date(),
+): Promise<{ demandes: number; avis: number }> {
+  const echues = await db.refundRequest.findMany({
+    where: { status: "PENDING", createdAt: { lte: new Date(maintenant.getTime() - JOURS_AVANT_SUPPORT * JOUR) } },
+    orderBy: { createdAt: "asc" },
+    take: 200,
+    select: {
+      id: true,
+      orderItem: {
+        select: {
+          price: true,
+          quantity: true,
+          tipAmount: true,
+          order: { select: { currency: true } },
+          product: {
+            select: { name: true, sellerId: true },
+          },
+        },
+      },
+    },
+  });
+  if (echues.length === 0) return { demandes: 0, avis: 0 };
+
+  // La cloche range ses clés sous `in-app:<clé>` (`aiguilleur.ts`). Un avis
+  // impératif y est toujours écrit : sa présence dit « déjà prévenu ».
+  const cleVendeur = (id: string) => `demande-transmise-${id}`;
+  const deja = new Set(
+    (
+      await db.notification.findMany({
+        where: { cle: { in: echues.map((d) => `in-app:${cleVendeur(d.id)}`) } },
+        select: { cle: true },
+      })
+    ).map((n) => n.cle),
+  );
+  const aPrevenir = echues.filter((d) => !deja.has(`in-app:${cleVendeur(d.id)}`));
+  if (aPrevenir.length === 0) return { demandes: 0, avis: 0 };
+
+  const equipe = await db.user.findMany({
+    where: {
+      platformRole: { in: rolesAyant("traiter_les_litiges") },
+      suspendedAt: null,
+      anonymizedAt: null,
+    },
+    select: { id: true },
+  });
+
+  let avis = 0;
+  for (const d of aPrevenir) {
+    const ligne = d.orderItem;
+    const ressource = ligne.product.name;
+    const montant = formatMoney(encaisseDe(ligne), ligne.order.currency);
+
+    const auVendeur = await notifier({
+      destinataireId: ligne.product.sellerId,
+      evenement: "DEMANDE_TRANSMISE",
+      cle: cleVendeur(d.id),
+      titre: `Demande transmise à l'équipe — ${ressource}`,
+      corps: `Sans réponse sous ${JOURS_AVANT_SUPPORT} jours, la demande de remboursement de ${montant} passe à l'équipe Baobart, qui va trancher. Tu peux encore y répondre tant qu'elle ne l'a pas fait.`,
+      lien: "/dashboard/ventes/remboursements",
+      charge: { ressource, montant, jours: JOURS_AVANT_SUPPORT },
+    });
+    avis += auVendeur.canaux.length > 0 ? 1 : 0;
+
+    for (const membre of equipe) {
+      const aLEquipe = await notifier({
+        destinataireId: membre.id,
+        evenement: "DEMANDE_A_TRANCHER",
+        cle: `demande-a-trancher-${d.id}-${membre.id}`,
+        titre: `Remboursement à trancher — ${ressource}`,
+        // Sans le nom du créateur : écrit ici, il survivrait à l'effacement de
+        // son compte (la purge retire les avis par destinataire). L'écran où
+        // l'on tranche le montre, à jour.
+        corps: `Le créateur n'a pas répondu sous ${JOURS_AVANT_SUPPORT} jours à une demande de remboursement de ${montant}. L'acheteur attend.`,
+        lien: "/dashboard/remboursements-a-trancher",
+        charge: { ressource, montant, jours: JOURS_AVANT_SUPPORT },
+      });
+      avis += aLEquipe.canaux.length > 0 ? 1 : 0;
+    }
+  }
+
+  return { demandes: aPrevenir.length, avis };
 }
 
 export type Decision = "ACCEPTER" | "REFUSER";

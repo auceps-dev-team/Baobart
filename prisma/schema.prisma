@@ -3628,6 +3628,10 @@ enum EmailTemplate {
   /// Ajouté le 20/11/2026 (Q-40) : le créateur prévenu quand l'équipe a
   /// remboursé à sa place une demande restée sans réponse.
   REMBOURSE_PAR_EQUIPE
+  /// Ajoutés le 21/11/2026 (Q-39) : au huitième jour sans réponse, le créateur
+  /// apprend que la demande passe à l'équipe, et l'équipe qu'elle l'attend.
+  DEMANDE_TRANSMISE
+  DEMANDE_A_TRANCHER
 }
 
 /// File d'attente des messages transactionnels.
