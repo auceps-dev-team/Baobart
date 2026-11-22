@@ -328,8 +328,6 @@ const SCHEMAS = {
     ressource: z.string().min(1).max(200),
     montant: z.string().min(1).max(40),
     jours: z.number().int().positive(),
-    /** Le créateur qui n'a pas répondu : affiché, sinon « le créateur ». */
-    vendeur: z.string().min(1).max(120),
   }),
   REMBOURSEMENT_REFUSE: z.object({
     nom,
@@ -642,7 +640,7 @@ ${c.raison}\n\n` +
     sujet: `Remboursement à trancher : ${c.ressource}`,
     texte:
       `Bonjour ${c.nom},\n\n` +
-      `Une demande de remboursement attend l'équipe : « ${c.ressource} » (${c.montant}). ${c.vendeur} n'y a pas ` +
+      `Une demande de remboursement attend l'équipe : « ${c.ressource} » (${c.montant}). Le créateur n'y a pas ` +
       `répondu sous ${c.jours} jours, et l'acheteur attend.\n\n` +
       `Elle est sur l'écran « Remboursements à trancher » du tableau de bord.` +
       SIGNATURE,

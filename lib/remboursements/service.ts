@@ -315,7 +315,7 @@ export async function prevenirDemandesEchues(
           tipAmount: true,
           order: { select: { currency: true } },
           product: {
-            select: { name: true, sellerId: true, seller: { select: { profile: { select: { displayName: true } } } } },
+            select: { name: true, sellerId: true },
           },
         },
       },
@@ -351,7 +351,6 @@ export async function prevenirDemandesEchues(
     const ligne = d.orderItem;
     const ressource = ligne.product.name;
     const montant = formatMoney(encaisseDe(ligne), ligne.order.currency);
-    const vendeur = ligne.product.seller.profile?.displayName ?? "Le créateur";
 
     const auVendeur = await notifier({
       destinataireId: ligne.product.sellerId,
@@ -370,9 +369,12 @@ export async function prevenirDemandesEchues(
         evenement: "DEMANDE_A_TRANCHER",
         cle: `demande-a-trancher-${d.id}-${membre.id}`,
         titre: `Remboursement à trancher — ${ressource}`,
-        corps: `${vendeur} n'a pas répondu sous ${JOURS_AVANT_SUPPORT} jours à une demande de remboursement de ${montant}. L'acheteur attend.`,
+        // Sans le nom du créateur : écrit ici, il survivrait à l'effacement de
+        // son compte (la purge retire les avis par destinataire). L'écran où
+        // l'on tranche le montre, à jour.
+        corps: `Le créateur n'a pas répondu sous ${JOURS_AVANT_SUPPORT} jours à une demande de remboursement de ${montant}. L'acheteur attend.`,
         lien: "/dashboard/remboursements-a-trancher",
-        charge: { ressource, montant, jours: JOURS_AVANT_SUPPORT, vendeur },
+        charge: { ressource, montant, jours: JOURS_AVANT_SUPPORT },
       });
       avis += aLEquipe.canaux.length > 0 ? 1 : 0;
     }
