@@ -201,7 +201,8 @@ async function assurerDonnees() {
  * apparaître les sections en entrant à l'écran : au premier relevé, axe
  * mesurait des titres hors de l'écran, encore transparents (1,06:1) — un état
  * que personne ne voit. L'état intermédiaire, lui, est couvert autrement : le
- * plancher de `defil-allume` passe de 0,18 à 0,5 (5,36:1).
+ * plancher de `defil-allume` passe de 0,18 à 0,6 (5,50:1 sur /a-propos, dont le
+ * paragraphe est lui-même à 0,85), gardé par `contraste.spec.ts` sans défilement.
  */
 async function defilerJusquEnBas(page: Page) {
   await page.evaluate(async () => {

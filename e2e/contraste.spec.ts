@@ -85,7 +85,9 @@ test.describe("le contraste des textes (Q-30)", () => {
 
   test("/a-propos, avant tout défilement : le texte qui « s'allume » reste lisible", async ({ page }) => {
     // Le plancher de `defil-allume` : 0,18 donnait 1,55:1 aux mots pas encore
-    // allumés — 37 textes sur cette page au relevé du 22/11. À 0,5 : 5,36:1.
+    // allumés — 37 textes sur cette page au relevé du 22/11. À 0,6, multiplié
+    // par les 0,85 du paragraphe : 5,50:1 (0,5 ne donnait que 4,18:1 — ce test
+    // l'a attrapé ; le relevé complet, qui fait défiler, ne le voyait plus).
     await page.goto("/a-propos");
     await fermerLeBandeau(page);
     expect(await contraste(page, "/a-propos (sans défilement)")).toBe(0);
