@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { journal } from "@/lib/observabilite/journal";
 import { masquerCompte } from "@/lib/payments/gains";
 import { clesDesVisuels } from "@/lib/profil/visuels-service";
+import { prefixeAvisAbonne } from "@/lib/social/regles";
 import { supprimerObjet } from "@/lib/upload/storage";
 
 /**
@@ -209,6 +210,32 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
         WHERE e."id" = r."eventId"
       `;
 
+      // ── Les compteurs de suivi des AUTRES, avant que ses `Follow` partent ─
+      //
+      // La boucle ci-dessous supprime ses lignes `Follow` dans les deux sens ;
+      // les compteurs dénormalisés de ceux qu'il suivait (`followersCount`,
+      // `Profile.followerCount`) et de ceux qui le suivaient (`followingCount`)
+      // ne bougeaient pas : un abonné fantôme sur la fiche, la session et
+      // l'annuaire. Mesuré le 21/11 (lib/social/abonnes.integration.test.ts) :
+      // 2 au lieu de 1. Recomptés à la source, sans ses lignes, en trois
+      // requêtes quelle que soit la taille de son audience — juste même si un
+      // compteur avait dérivé avant.
+      await tx.$executeRaw`
+        UPDATE "User" AS u
+        SET "followersCount" = (SELECT COUNT(*)::int FROM "Follow" f WHERE f."followingId" = u."id" AND f."followerId" <> ${userId})
+        WHERE u."id" IN (SELECT "followingId" FROM "Follow" WHERE "followerId" = ${userId})
+      `;
+      await tx.$executeRaw`
+        UPDATE "Profile" AS p
+        SET "followerCount" = (SELECT COUNT(*)::int FROM "Follow" f WHERE f."followingId" = p."userId" AND f."followerId" <> ${userId})
+        WHERE p."userId" IN (SELECT "followingId" FROM "Follow" WHERE "followerId" = ${userId})
+      `;
+      await tx.$executeRaw`
+        UPDATE "User" AS u
+        SET "followingCount" = (SELECT COUNT(*)::int FROM "Follow" f WHERE f."followerId" = u."id" AND f."followingId" <> ${userId})
+        WHERE u."id" IN (SELECT "followerId" FROM "Follow" WHERE "followingId" = ${userId})
+      `;
+
       for (const [table, ...colonnes] of A_SUPPRIMER) {
         // Le client Prisma est indexé par nom de modèle ; le cast est le prix
         // à payer pour parcourir une liste plutôt que d'écrire trente appels
@@ -284,6 +311,34 @@ export async function anonymiser(userId: string): Promise<BilanEffacement> {
       if (lettre.count > 0) supprimees["newsletterSubscriber (adresse)"] = lettre.count;
       const ecrits = await tx.contactMessage.deleteMany({ where: { email: adresse } });
       if (ecrits.count > 0) supprimees["contactMessage (adresse)"] = ecrits.count;
+
+      // Les courriels qui lui étaient adressés, partis ou en attente.
+      // `EmailOutbox` n'a pas de colonne vers `User` : seule l'adresse l'y
+      // relie. Sans cette ligne, un courriel en attente partait vers une
+      // personne effacée, et un courriel parti gardait sa charge (son nom, ce
+      // qu'il a acheté). Lu le 21/11 en écrivant la purge qui suit, mesuré par
+      // lib/social/abonnes.integration.test.ts.
+      //
+      // Une ligne en plein envoi part aussi : le facteur, qui la marque
+      // ensuite par `update`, journalisera une erreur. C'est le prix accepté —
+      // le courriel ne repartira pas, et l'adresse ne survit pas à l'effacement.
+      const courriels = await tx.emailOutbox.deleteMany({ where: { recipient: { equals: adresse, mode: "insensitive" } } });
+      if (courriels.count > 0) supprimees["emailOutbox (adresse)"] = courriels.count;
+
+      // ── Son nom chez les créateurs qu'il suivait ───────────────────────
+      //
+      // Depuis le 21/11, l'avis « Nouvel abonné » NOMME le suiveur (décision
+      // du responsable). Cet avis appartient au créateur : la boucle plus haut,
+      // qui retire les notifications par `userId`, ne le voit pas. Il part par
+      // le préfixe de sa clé (`prefixeAvisAbonne`), avec le courriel qui le
+      // double — `in-app:` et `courriel:` sont les deux canaux de
+      // `lib/notifications/aiguilleur.ts`. Si l'aiguilleur changeait ses
+      // préfixes, le test d'intégration de la purge échouerait.
+      const prefixe = prefixeAvisAbonne(userId);
+      const avisAbonne = await tx.notification.deleteMany({ where: { cle: { startsWith: `in-app:${prefixe}` } } });
+      if (avisAbonne.count > 0) supprimees["notification (« Nouvel abonné » chez les créateurs)"] = avisAbonne.count;
+      const courrielsAbonne = await tx.emailOutbox.deleteMany({ where: { idempotencyKey: { startsWith: `courriel:${prefixe}` } } });
+      if (courrielsAbonne.count > 0) supprimees["emailOutbox (« Nouvel abonné » chez les créateurs)"] = courrielsAbonne.count;
 
       // ── Caviardage des coordonnées bancaires dans les versements passés ─
       // Un versement (Payout) ne peut être supprimé pour des raisons comptables,

@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cleAvisAbonne,
   COMMENTAIRE_MAX,
   compteurApresBascule,
   ilYA,
+  nomDansLAvis,
   peutRetirerCommentaire,
+  phraseDesAbonnes,
+  prefixeAvisAbonne,
+  presenterAbonne,
+  suitDepuis,
   verifierCommentaire,
   verifierSuivi,
 } from "./regles";
@@ -139,5 +145,92 @@ describe("temps relatif", () => {
 
   it("précise l'année quand elle change", () => {
     expect(ilYA(new Date(2025, 10, 2, 12, 0, 0), t)).toMatch(/2025/);
+  });
+});
+
+describe("ce qu'un créateur voit de ses abonnés (lot 5a)", () => {
+  const profil = {
+    displayName: "Awa Diallo",
+    username: "awa-diallo",
+    speciality: "Illustration",
+    city: "Dakar",
+    avatarUrl: "https://exemple.test/awa.png",
+    acceptsMessages: true,
+  };
+  const depuis = new Date(2026, 10, 20);
+  const brut = { userId: "u1", suitDepuis: depuis, suspendu: false, ressourcesPubliees: 3, profil };
+
+  it("avec une vitrine : ce qu'elle montre déjà, et « Message » vers son contact", () => {
+    expect(presenterAbonne(brut)).toEqual({
+      userId: "u1",
+      nom: "Awa Diallo",
+      presentation: "Illustration · Dakar",
+      avatarUrl: "https://exemple.test/awa.png",
+      vitrine: "/@awa-diallo",
+      ecrire: "/@awa-diallo#contact",
+      suitDepuis: depuis,
+    });
+  });
+
+  it("sans ressource publiée : le nom, et rien de ce que son profil garde pour lui", () => {
+    const vu = presenterAbonne({ ...brut, ressourcesPubliees: 0 });
+    expect(vu).toMatchObject({ nom: "Awa Diallo", presentation: null, avatarUrl: null, vitrine: null, ecrire: null });
+  });
+
+  it("suspendu : dans la liste, sans vitrine — et sans dire pourquoi", () => {
+    const vu = presenterAbonne({ ...brut, suspendu: true });
+    expect(vu).toMatchObject({ nom: "Awa Diallo", vitrine: null, ecrire: null, presentation: null });
+    expect(JSON.stringify(vu)).not.toMatch(/suspen/i);
+  });
+
+  it("fermé aux messages : sa vitrine, mais pas de « Message »", () => {
+    const vu = presenterAbonne({ ...brut, profil: { ...profil, acceptsMessages: false } });
+    expect(vu.vitrine).toBe("/@awa-diallo");
+    expect(vu.ecrire).toBeNull();
+  });
+
+  it("une vitrine sans spécialité ni ville n'invente pas de présentation", () => {
+    expect(presenterAbonne({ ...brut, profil: { ...profil, speciality: " ", city: null } }).presentation).toBeNull();
+    expect(presenterAbonne({ ...brut, profil: { ...profil, speciality: null } }).presentation).toBe("Dakar");
+  });
+
+  it("sans profil, ou un nom vide : « Membre Baobart », jamais une case vide", () => {
+    expect(presenterAbonne({ ...brut, profil: null }).nom).toBe("Membre Baobart");
+    expect(presenterAbonne({ ...brut, profil: { ...profil, displayName: "  " } }).nom).toBe("Membre Baobart");
+  });
+
+  it("la phrase d'en-tête : zéro, un, et le nombre exact au-delà", () => {
+    expect(phraseDesAbonnes(0)).toBe("Personne ne suit encore ton travail.");
+    expect(phraseDesAbonnes(1)).toBe("1 personne suit ton travail.");
+    // Groupé à la française (espace fine insécable), pas abrégé en « 1,2 k ».
+    expect(phraseDesAbonnes(1240)).toMatch(/^1\s240 personnes suivent ton travail\.$/);
+  });
+});
+
+describe("suitDepuis — la ligne d'un abonné sans vitrine", () => {
+  const t = new Date(2026, 10, 21, 12, 0, 0);
+  it("raccorde chacune des trois formes de ilYA", () => {
+    expect(suitDepuis(new Date(2026, 10, 21, 11, 59, 30), t)).toBe("te suit depuis un instant");
+    expect(suitDepuis(new Date(2026, 10, 21, 11, 15, 0), t)).toBe("te suit depuis 45 min");
+    expect(suitDepuis(new Date(2026, 10, 18, 12, 0, 0), t)).toBe("te suit depuis 3 j");
+    expect(suitDepuis(new Date(2026, 9, 2, 12, 0, 0), t)).toMatch(/^te suit depuis le 2 oct\.$/);
+  });
+});
+
+describe("l'avis « Nouvel abonné » : sa clé et le nom qu'il donne", () => {
+  it("la clé commence par le suiveur, et son préfixe la retrouve", () => {
+    const cle = cleAvisAbonne("suiveur1", "createur9");
+    expect(cle).toBe("abonne-suiveur1-createur9");
+    expect(cle.startsWith(prefixeAvisAbonne("suiveur1"))).toBe(true);
+  });
+
+  it("le tiret final empêche un identifiant d'en attraper un plus long", () => {
+    expect(cleAvisAbonne("suiveur12", "c").startsWith(prefixeAvisAbonne("suiveur1"))).toBe(false);
+  });
+
+  it("le nom affiché, ou « Un membre Baobart » — jamais une case vide", () => {
+    expect(nomDansLAvis("  Awa Diallo ")).toBe("Awa Diallo");
+    expect(nomDansLAvis("   ")).toBe("Un membre Baobart");
+    expect(nomDansLAvis(null)).toBe("Un membre Baobart");
   });
 });
