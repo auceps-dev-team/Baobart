@@ -8,6 +8,21 @@ import { ENCRE, ORANGE } from "@/lib/systeme/charte";
  * dépendance de plus pour cela serait du poids envoyé à chaque visite.
  * Un mois négatif (plus de remboursements que de ventes) garde une barre
  * nulle et affiche son montant : la hauteur ne ment pas, le chiffre non plus.
+ *
+ * En `flex`, pas en `grid` : sous 900 px, `app/globals.css` ramène à une
+ * colonne toute grille déclarée en ligne (une règle de mise en page, v1.72.2).
+ * En grille, les six mois s'empilaient dans les 190 px et recouvraient la carte
+ * suivante (mesuré le 21/11 à 360 px : six rangées au lieu d'une, sur les trois
+ * pages qui l'emploient). Gardé par `e2e/mobile.spec.ts`.
+ *
+ * Sous 620 px, la maquette mobile (`Baobart Mobile.dc.html`, écrans 04 et 10)
+ * dessine les barres sans montant ni mois, à 5 px d'écart, et l'écran 10 met
+ * le premier et le dernier mois sous le graphique : `.graphique-mois` dans
+ * `globals.css`. Ce n'est pas qu'une question de goût, c'est mesuré :
+ * « 1 234,6k » fait 51 px dans une colonne de 31 à 360 px (21/11, ce poste) ;
+ * « sept. » 36 px dans 30 à 320 px (21/11, la CI — ses polices sont plus
+ * larges qu'ici). Montants et mois restent dans l'`aria-label`, et le montant
+ * du mois en cours sur la carte du dessus.
  */
 export function RevenusParMois({
   barres,
@@ -23,26 +38,35 @@ export function RevenusParMois({
 }) {
   const max = Math.max(1, ...barres.map((b) => b.montant));
   return (
-    <div
-      role="img"
-      aria-label={`${quoi} des six derniers mois : ${barres.map((b) => `${b.libelle} ${format(b.montant)}`).join(", ")}`}
-      style={{ display: "grid", gridTemplateColumns: `repeat(${barres.length}, 1fr)`, gap: 12, alignItems: "end", height: 190, borderTop: `2px solid ${ENCRE}`, paddingTop: 14 }}
-    >
-      {barres.map((b) => (
-        <div key={b.cle} style={{ display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-end", height: "100%", gap: 6 }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "center", opacity: 0.75 }}>{format(b.montant)}</span>
-          <span
-            style={{
-              height: `${Math.max(0, (b.montant / max) * 100)}%`,
-              minHeight: b.montant > 0 ? 6 : 2,
-              border: `2px solid ${ENCRE}`,
-              borderRadius: 8,
-              background: b.montant > 0 ? couleur : "transparent",
-            }}
-          />
-          <span style={{ fontSize: 12, fontWeight: 800, textAlign: "center" }}>{b.libelle}</span>
-        </div>
-      ))}
+    <div>
+      <div
+        role="img"
+        aria-label={`${quoi} des six derniers mois : ${barres.map((b) => `${b.libelle} ${format(b.montant)}`).join(", ")}`}
+        className="graphique-mois"
+        style={{ display: "flex", alignItems: "flex-end", height: 190, borderTop: `2px solid ${ENCRE}`, paddingTop: 14 }}
+      >
+        {barres.map((b) => (
+          <div key={b.cle} style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", alignItems: "stretch", justifyContent: "flex-end", height: "100%", gap: 6 }}>
+            <span className="graphique-mois-montant" style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "center", opacity: 0.75 }}>{format(b.montant)}</span>
+            <span
+              style={{
+                height: `${Math.max(0, (b.montant / max) * 100)}%`,
+                minHeight: b.montant > 0 ? 6 : 2,
+                border: `2px solid ${ENCRE}`,
+                borderRadius: 8,
+                background: b.montant > 0 ? couleur : "transparent",
+              }}
+            />
+            <span className="graphique-mois-libelle" style={{ fontSize: 12, fontWeight: 800, textAlign: "center" }}>{b.libelle}</span>
+          </div>
+        ))}
+      </div>
+      {/* Sous 620 px seulement (voir `.graphique-mois-bornes`) : le premier et le dernier mois,
+          comme l'écran 10 de la maquette mobile. Lus dans l'`aria-label` du graphique, d'où `aria-hidden`. */}
+      <div className="graphique-mois-bornes" aria-hidden="true">
+        <span>{barres[0]?.libelle}</span>
+        <span>{barres.at(-1)?.libelle}</span>
+      </div>
     </div>
   );
 }
