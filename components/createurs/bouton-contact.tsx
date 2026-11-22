@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useActionState, useRef } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { ChampsAntiBot } from "@/components/auth/champs-antibot";
 import { ecrireAuCreateurAction, type EtatMessage } from "@/lib/contact/actions-createur";
@@ -44,6 +44,14 @@ export function BoutonContact({
     ecrireAuCreateurAction.bind(null, username),
     null,
   );
+
+  // « Message », dans la liste des abonnés (lot 5a, `/dashboard/abonnes`), mène
+  // à `/@pseudo#contact` : la fenêtre s'ouvre d'elle-même, sans second clic.
+  // Sans session, il n'y a pas de fenêtre (le lien de connexion plus bas) : rien ne se passe.
+  useEffect(() => {
+    const f = fenetre.current;
+    if (window.location.hash === "#contact" && f && !f.open) f.showModal();
+  }, []);
 
   if (!adresseDeReponse) {
     return (

@@ -1,7 +1,9 @@
 import "server-only";
 
 import { estOfferte, libelleDuPrix } from "@/lib/commerce/montant";
+import { pageDemandee } from "@/lib/dashboard/pagination";
 import { db } from "@/lib/db";
+import { presenterAbonne, type AbonneVu } from "@/lib/social/regles";
 
 /** Ce que la fiche doit savoir de la relation entre le visiteur et l'objet. */
 export interface EtatSocial {
@@ -260,4 +262,78 @@ export async function createursSuivis(userId: string): Promise<CreateurSuivi[]> 
     ressourcesPubliees: s.following._count.products,
     suiviLe: s.createdAt,
   }));
+}
+
+export interface PageDAbonnes {
+  /** Toutes les lignes `Follow` vers ce créateur : le même nombre que `followersCount`. */
+  total: number;
+  page: number;
+  pages: number;
+  abonnes: AbonneVu[];
+}
+
+/**
+ * Ceux qui suivent un créateur, une page à la fois — écran « Abonnés » (lot 5a,
+ * maquette `c_abonnes`). Les plus récents d'abord.
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * PAGINÉ EN BASE, PAS EN MÉMOIRE
+ *
+ * `createursSuivis`, plus haut, lit 200 lignes puis la page les découpe. Ça
+ * tient pour ceux qu'on suit ; pas pour ceux qui nous suivent : un créateur à
+ * 1 240 abonnés (le chiffre de la maquette) n'en aurait vu que 200, et la
+ * barre de pagination lui aurait dit « page 50 sur 50 » sans rien signaler.
+ * Ici : le total d'abord, la page ramenée dans ses bornes (`pageDemandee`),
+ * puis `skip`/`take` sur un ordre total — la date, puis l'identifiant, pour
+ * que deux suivis de la même milliseconde ne changent pas de page d'une
+ * lecture à l'autre.
+ *
+ * L'index `Follow(followingId)` suffit aux volumes attendus : la maquette dessine
+ * 1 240 abonnés, et la base de développement n'a aucune ligne `Follow` (mesuré
+ * le 21/11). Un index `(followingId, createdAt)` servirait la page sans tri, le
+ * jour où une liste compterait des dizaines de milliers d'abonnés.
+ *
+ * Ce qu'on montre de chacun est décidé par `presenterAbonne` (lib/social/regles.ts).
+ */
+export async function abonnesDe(createurId: string, brutPage: string | undefined, parPage: number): Promise<PageDAbonnes> {
+  if (!Number.isInteger(parPage) || parPage < 1) throw new Error(`abonnesDe : taille de page invalide (${parPage})`);
+
+  const total = await db.follow.count({ where: { followingId: createurId } });
+  const pages = Math.max(1, Math.ceil(total / parPage));
+  const page = pageDemandee(brutPage, pages);
+
+  const lignes = await db.follow.findMany({
+    where: { followingId: createurId },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (page - 1) * parPage,
+    take: parPage,
+    select: {
+      createdAt: true,
+      follower: {
+        select: {
+          id: true,
+          suspendedAt: true,
+          profile: {
+            select: { displayName: true, username: true, speciality: true, city: true, avatarUrl: true, acceptsMessages: true },
+          },
+          _count: { select: { products: { where: { status: "PUBLISHED" } } } },
+        },
+      },
+    },
+  });
+
+  return {
+    total,
+    page,
+    pages,
+    abonnes: lignes.map((l) =>
+      presenterAbonne({
+        userId: l.follower.id,
+        suitDepuis: l.createdAt,
+        suspendu: l.follower.suspendedAt !== null,
+        ressourcesPubliees: l.follower._count.products,
+        profil: l.follower.profile,
+      }),
+    ),
+  };
 }

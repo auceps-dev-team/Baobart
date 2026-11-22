@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { notifier } from "@/lib/notifications/aiguilleur";
 import { meriteSignalement } from "@/lib/social/moderation";
 import {
+  cleAvisAbonne,
+  nomDansLAvis,
   peutRetirerCommentaire,
   verifierCommentaire,
   verifierSuivi,
@@ -151,14 +153,25 @@ export async function basculerSuiviDe(
   //
   // Défaut courriel à `false` au catalogue : c'est, avec les inscriptions,
   // l'événement le plus fréquent et le moins actionnable.
+  //
+  // L'avis NOMME le suiveur depuis le 21/11 (décision du responsable, relayée
+  // dans #61) : son nom affiché, que la liste des abonnés montre aussi
+  // (`presenterAbonne`), jamais son adresse. Jusque-là il disait « Quelqu'un » ;
+  // aucune raison écrite n'a été trouvée (relu par l'autre session, le 21/11).
+  // Le nom vit désormais chez le créateur : l'effacement du suiveur retire ces
+  // avis par le préfixe de leur clé (`prefixeAvisAbonne`, lib/rgpd/effacement.ts).
   if (!existant) {
+    const suiveur = await db.profile.findUnique({ where: { userId }, select: { displayName: true } });
+    const nom = nomDansLAvis(suiveur?.displayName);
     await notifier({
       destinataireId: createurId,
       evenement: "NOUVEL_ABONNE",
-      cle: `abonne-${userId}-${createurId}`,
+      cle: cleAvisAbonne(userId, createurId),
       titre: "Nouvel abonné",
-      corps: "Quelqu'un suit désormais ta boutique.",
-      lien: "/dashboard/boutique",
+      corps: `${nom} suit désormais ta boutique.`,
+      charge: { suiveur: nom },
+      // La liste des abonnés (lot 5a, 21/11) ; avant elle, la boutique, faute de mieux.
+      lien: "/dashboard/abonnes",
     });
   }
 

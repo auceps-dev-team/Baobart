@@ -155,6 +155,27 @@ test.describe("les listes paginées tiennent sous le menu", () => {
     expect(courante).toBe(total);
   });
 
+  test("Abonnés : la grille de personnes et la page s'arrêtent avec le menu (lot 5a)", async ({ page, context, baseURL }) => {
+    // Le vendeur de `acheteurCharge` a des ressources publiées : un menu de créateur, une vitrine.
+    const { vendeur } = await acheteurCharge(1);
+    const marque = unique("pag-abo");
+    for (let i = 1; i <= 30; i++) {
+      const s = await db.user.create({
+        data: { email: `${marque}-${i}@baobart.test`, profile: { create: { username: `${marque}-${i}`, displayName: `Abonné ${marque} ${i}` } } },
+        select: { id: true },
+      });
+      await db.follow.create({ data: { followerId: s.id, followingId: vendeur } });
+    }
+    await seConnecter(context, vendeur, baseURL!);
+
+    await page.goto("/dashboard/abonnes");
+    await expect(page.getByRole("navigation", { name: "Pages" })).toContainText("page 1 sur 2");
+    const { basMenu, basListe, hauteurPage, sansHauteur } = await mesurer(page);
+    expect(sansHauteur, "la mesure du menu voit tout son contenu").toBe(0);
+    expect(basListe!, `bas de la liste ${Math.round(basListe!)} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(basMenu);
+    expect(hauteurPage, `page ${hauteurPage} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(Math.ceil(basMenu));
+  });
+
   test("Ventes : la légende repliée s'ouvre d'un geste, et la liste tient sous le menu", async ({ page, context, baseURL }) => {
     // Le vendeur de `acheteurCharge` a vendu ses quatorze ressources : quatorze ventes.
     const { vendeur } = await acheteurCharge(14);

@@ -276,7 +276,10 @@ const SCHEMAS = {
   }),
   CANDIDATURE_RECUE: z.object({ nom, offre: z.string().min(1).max(160) }),
   INSCRIPTION_EVENEMENT: z.object({ nom, titre: z.string().min(1).max(160) }),
-  NOUVEL_ABONNE: z.object({ nom }),
+  // `suiveur` : le nom affiché de qui suit (décision du responsable, 21/11 :
+  // « Nouvel abonné » nomme la personne). Facultatif : un courriel déposé avant
+  // cette version n'en a pas, et doit encore pouvoir partir — il dit alors « Quelqu'un ».
+  NOUVEL_ABONNE: z.object({ nom, suiveur: nom.optional() }),
   RETRAIT_JURIDIQUE: z.object({
     nom,
     reference: z.string().min(1).max(40),
@@ -744,7 +747,7 @@ Répondre : ${c.lien}` : ""),
     sujet: "Un nouvel abonné sur Baobart",
     texte:
       `Bonjour ${c.nom},\n\n` +
-      `Quelqu'un suit désormais ta boutique. Tes prochaines publications ` +
+      `${c.suiveur ?? "Quelqu'un"} suit désormais ta boutique. Tes prochaines publications ` +
       `apparaîtront dans son fil.\n\n` +
       `Tu reçois ce message parce que tu l'as demandé — il est éteint par ` +
       `défaut.` +

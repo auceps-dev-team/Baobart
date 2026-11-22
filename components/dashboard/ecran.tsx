@@ -359,7 +359,8 @@ const ACTION = {
   whiteSpace: "nowrap" as const,
 };
 
-function Vide({
+/** Exporté pour `GrillePersonnes` (components/dashboard/personnes.tsx) : le même vide partout. */
+export function Vide({
   titre,
   texte,
   action,
