@@ -206,6 +206,11 @@ describe("Q-39 — au huitième jour, le créateur et l'équipe sont prévenus",
 
     expect(await avisA(vendeur.id, "DEMANDE_TRANSMISE")).toBe(1);
     for (const m of [support, admin, superAdmin]) expect(await avisA(m.id, "DEMANDE_A_TRANCHER")).toBe(1);
+    // Le nom du créateur n’est écrit nulle part chez l’équipe : il survivrait à
+    // l’effacement de son compte (même raison que « Nouvel abonné », #81).
+    const nomVendeur = (await db.profile.findUniqueOrThrow({ where: { userId: vendeur.id }, select: { displayName: true } })).displayName;
+    const chezLEquipe = await db.notification.findFirstOrThrow({ where: { userId: admin.id, type: "DEMANDE_A_TRANCHER" }, select: { titre: true, corps: true, payload: true } });
+    expect(JSON.stringify(chezLEquipe)).not.toContain(nomVendeur);
     for (const m of [moderateur, suspendu, acheteur, vendeur]) expect(await avisA(m.id, "DEMANDE_A_TRANCHER")).toBe(0);
     expect(await db.emailOutbox.count({ where: { template: "DEMANDE_TRANSMISE" } })).toBe(1);
     expect(await db.emailOutbox.count({ where: { template: "DEMANDE_A_TRANCHER" } })).toBe(3);
