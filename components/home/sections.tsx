@@ -20,6 +20,7 @@ import type { ResumeCollection } from "@/lib/collections/service";
 import type { Filtre } from "@/lib/feed/types";
 import type { TemoignagePublic } from "@/lib/temoignages/service";
 import { accorde } from "@/lib/i18n/accord";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Sections de l'accueil, traduites de « Baobart Accueil.dc.html ».
@@ -73,7 +74,7 @@ export function RubanBaseline() {
             {mot}
           </span>
         ))}
-        <span aria-hidden style={{ color: ORANGE, fontSize: 19 }}>
+        <span aria-hidden style={{ color: ORANGE_SOMBRE, fontSize: 19 }}>
           ●
         </span>
       </Defile>
@@ -525,7 +526,7 @@ export function EspacesEquipe({
                       <div style={{ width: 34, height: 34, flex: "0 0 auto", border: CADRE, borderRadius: 99, background: TUILES[i % TUILES.length] }} />
                       <div style={{ border: CADRE, borderRadius: 14, borderTopLeftRadius: 4, background: LAVANDE_CLAIR, padding: "10px 13px", minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 800 }}>
-                          {m.auteur} <span style={{ fontWeight: 600, opacity: 0.55 }}>{m.quand}</span>
+                          {m.auteur} <span style={{ fontWeight: 600, color: ENCRE_DOUCE }}>{m.quand}</span>
                         </div>
                         <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.4, marginTop: 3, overflowWrap: "anywhere" }}>{m.texte}</div>
                       </div>

@@ -5,17 +5,7 @@ import type { NomIcone } from "@/lib/icones/donnees";
 import { useCallback, useEffect, useState } from "react";
 
 import { enregistrerAppareil, retirerAppareil } from "@/lib/push/actions";
-import {
-  BLANC,
-  CADRE,
-  ENCRE,
-  GRIS,
-  JAUNE,
-  LAVANDE,
-  MAUVE,
-  ORANGE,
-  VERT,
-} from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, LAVANDE, MAUVE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le réglage des notifications, et le service worker qui va avec.
@@ -457,7 +447,7 @@ export function Notifications({
               padding: "10px 13px",
               border: CADRE,
               borderRadius: 12,
-              background: ORANGE,
+              background: ORANGE_SOMBRE,
               color: BLANC,
               fontSize: 13,
               fontWeight: 700,

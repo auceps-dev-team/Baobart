@@ -1,13 +1,7 @@
 import { Icone } from "@/components/icones/icone";
 import type { ReactNode } from "react";
 
-import {
-  BANDEAU,
-  CADRE,
-  ENCRE,
-  TON,
-  type TonGravite,
-} from "@/lib/systeme/charte";
+import { BANDEAU, CADRE, ENCRE, TON, type TonGravite } from "@/lib/systeme/charte";
 import type { Gravite } from "@/lib/systeme/diagnostic";
 
 /**
@@ -74,7 +68,6 @@ export function BandeauGravite({
             fontSize: 10.5,
             textTransform: "uppercase",
             letterSpacing: ".14em",
-            opacity: 0.7,
           }}
         >
           {b.surtitre}

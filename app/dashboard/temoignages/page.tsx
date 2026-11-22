@@ -6,7 +6,7 @@ import { DecisionTemoignage } from "@/components/temoignages/decision";
 import { exigerLePouvoir } from "@/lib/auth/acces-administration";
 import { LIBELLE_STATUT } from "@/lib/temoignages/regles";
 import { aModerer } from "@/lib/temoignages/service";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, VERT, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Témoignages — Baobart." };
 export const dynamic = "force-dynamic";
@@ -74,7 +74,7 @@ export default async function TemoignagesPage() {
                   <span style={{ fontSize: 14, fontWeight: 800 }}>{t.author.profile?.displayName ?? "Membre"}</span>
                 )}
                 {t.role ? <span style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.65 }}>{t.role}</span> : null}
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.55 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: ENCRE_DOUCE }}>
                   {t.updatedAt.toLocaleDateString("fr-FR", { timeZone: "UTC" })}
                 </span>
               </div>

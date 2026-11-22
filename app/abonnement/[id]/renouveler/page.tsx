@@ -25,15 +25,7 @@ import {
 } from "@/lib/ndank/cycle";
 import { etatDe } from "@/lib/ndank/etats";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
-import {
-  BLANC,
-  CADRE,
-  ENCRE,
-  GRIS,
-  JAUNE,
-  LAVANDE,
-  ORANGE,
-} from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, LAVANDE, ORANGE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Renouveler ton abonnement — Baobart." };
 
@@ -299,7 +291,7 @@ export default async function RenouvelerPage({
               padding: 14,
               border: CADRE,
               borderRadius: 16,
-              background: ORANGE,
+              background: ORANGE_SOMBRE,
               color: BLANC,
               fontSize: 13.5,
               fontWeight: 700,

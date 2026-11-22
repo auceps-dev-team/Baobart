@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 
 import { ajouterLienExterne } from "@/lib/upload/actions";
 import { NOM_MAX, LIEN_MAX, verifierLienExterne } from "@/lib/products/lien-externe";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 export interface LienAjoute {

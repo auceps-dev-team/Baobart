@@ -8,16 +8,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { LIBELLE_MODE, LIBELLE_TYPE } from "@/lib/jobs/enums";
 import { joursAvantCloture, offrePublique } from "@/lib/jobs/queries";
 import { budget, ilYA } from "@/lib/jobs/format";
-import {
-  BLANC,
-  CADRE,
-  ENCRE,
-  JAUNE,
-  LAVANDE,
-  MAUVE,
-  ORANGE,
-  VERT,
-} from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ORANGE, VERT } from "@/lib/systeme/charte";
 
 export const dynamic = "force-dynamic";
 

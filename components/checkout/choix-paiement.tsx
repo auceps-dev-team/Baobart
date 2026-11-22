@@ -14,7 +14,7 @@ import {
   railValide,
   railsDe,
 } from "@/lib/payments/rails";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 import { nomAfficheDuPilote } from "@/lib/payments/encaissement/noms";
 
 /** La lavande claire de la charte, pour les fonds secondaires. */
@@ -566,7 +566,7 @@ export function ChoixPaiement({
                 padding: "3px 8px",
                 border: CADRE,
                 borderRadius: 999,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 marginLeft: 6,
               }}

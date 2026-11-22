@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { useState, useTransition } from "react";
 
 import { archiverPublicite, basculerPause } from "@/lib/publicites/actions";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Modifier, suspendre, archiver — sous chaque publicité.
@@ -87,7 +87,7 @@ export function GestesPublicite({
 
 function Erreur({ children }: { children: React.ReactNode }) {
   return (
-    <span role="status" style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>
+    <span role="status" style={{ fontSize: 12, fontWeight: 700, color: ORANGE_SOMBRE }}>
       {children}
     </span>
   );

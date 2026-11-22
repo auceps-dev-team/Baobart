@@ -9,7 +9,7 @@ import { LIBELLE_ETAT } from "@/lib/cms/cycle";
 import { accesAuxEvenements, exigerAccesAuxEvenements } from "@/lib/evenements/garde";
 import { LIBELLE_PHASE, phaseDe, placesRestantes } from "@/lib/evenements/phases";
 import { evenementAEditer, pourChampDateHeure } from "@/lib/evenements/queries";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const dynamic = "force-dynamic";
 
@@ -121,7 +121,7 @@ export default async function EditerEvenementPage({
               style={{
                 border: CADRE,
                 borderRadius: 20,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 boxShadow: `4px 4px 0 ${ENCRE}`,
                 padding: 18,
@@ -165,7 +165,7 @@ export default async function EditerEvenementPage({
               style={{
                 border: CADRE,
                 borderRadius: 20,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 boxShadow: `4px 4px 0 ${ENCRE}`,
                 padding: 18,

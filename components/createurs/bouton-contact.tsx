@@ -7,7 +7,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { ChampsAntiBot } from "@/components/auth/champs-antibot";
 import { ecrireAuCreateurAction, type EtatMessage } from "@/lib/contact/actions-createur";
 import { CORPS_MAX, SUJET_MAX } from "@/lib/contact/createur";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const LAVANDE_CLAIR = "#F4EEFC";
 
@@ -92,7 +92,7 @@ export function BoutonContact({
             <form action={envoyer} style={{ display: "grid", gap: 12, marginTop: 16, position: "relative" }}>
               <ChampsAntiBot ouverture={ouverture} />
               {etat && !etat.ok ? (
-                <div role="alert" style={{ ...bandeau, background: ORANGE, color: BLANC }}>
+                <div role="alert" style={{ ...bandeau, background: ORANGE_SOMBRE, color: BLANC }}>
                   {etat.message}
                 </div>
               ) : null}

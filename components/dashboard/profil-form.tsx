@@ -9,7 +9,7 @@ import { Medaillon } from "@/components/reseaux/logos";
 import { enregistrerProfil, type EtatProfil } from "@/lib/profil/actions";
 import type { Saisie } from "@/lib/profil/validation";
 import { RESEAUX, exempleDuReseau, nomDuReseau } from "@/lib/reseaux/reseaux";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire du profil public.
@@ -97,7 +97,7 @@ export function FormulaireProfil({
             padding: "13px 15px",
             border: CADRE,
             borderRadius: 14,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13.5,
             fontWeight: 700,

@@ -7,7 +7,7 @@ import {
   ouvrirUneCommunaute,
   type EtatFormulaire,
 } from "@/lib/forum/actions";
-import { BLANC, CADRE, ENCRE, GRIS, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les deux formulaires des communautés.
@@ -169,7 +169,7 @@ function Champ({
       ) : null}
       {children}
       {erreur ? (
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: ORANGE }}>{erreur}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: ORANGE_SOMBRE }}>{erreur}</span>
       ) : null}
     </label>
   );
@@ -179,7 +179,7 @@ function Champ({
 function Erreur({ etat }: { etat: EtatFormulaire | null }) {
   if (!etat || etat.ok || etat.champ) return null;
   return (
-    <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: ORANGE }}>
+    <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: ORANGE_SOMBRE }}>
       {etat.message}
     </p>
   );

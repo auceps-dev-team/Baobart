@@ -12,12 +12,12 @@ import {
 import { connexionPuis } from "@/lib/auth/suite";
 import { COMMENTAIRE_MAX, COMMENTAIRE_RETIRE, ilYA } from "@/lib/social/regles";
 import type { CommentaireRendu } from "@/lib/social/queries";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
 const LAVANDE_CLAIR = "#F4EEFC";
-const ORANGE_SOMBRE = "#B34A1F";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 /**
@@ -187,7 +187,7 @@ function Bulle({
         >
           <div style={{ fontSize: 12, fontWeight: 800 }}>
             {commentaire.auteur}{" "}
-            <span style={{ fontWeight: 600, opacity: 0.55 }}>
+            <span style={{ fontWeight: 600, color: ENCRE_DOUCE }}>
               {ilYA(commentaire.publieLe)}
             </span>
             {/* Visible du seul créateur : dire publiquement « signalé »

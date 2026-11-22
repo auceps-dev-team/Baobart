@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { ChampsAntiBot } from "@/components/auth/champs-antibot";
 import { envoyerMessage, type EtatEnvoi } from "@/lib/contact/actions";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const LAVANDE_CLAIR = "#F4EEFC";
 
@@ -43,7 +43,7 @@ export function FormulaireContact({
     <form action={envoyer} data-contact={genre} style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, position: "relative" }}>
       <ChampsAntiBot ouverture={ouverture} />
       {etat && !etat.ok ? (
-        <div role="alert" style={{ ...bandeau, gridColumn: "1 / -1", background: ORANGE, color: BLANC }}>
+        <div role="alert" style={{ ...bandeau, gridColumn: "1 / -1", background: ORANGE_SOMBRE, color: BLANC }}>
           {etat.message}
         </div>
       ) : null}

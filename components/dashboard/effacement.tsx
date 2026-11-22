@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 
 import type { EtatAction } from "@/lib/rgpd/actions";
 import type { EtatEffacement } from "@/lib/rgpd/effacement";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le panneau « effacer mon compte ».
@@ -48,7 +49,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 
@@ -111,7 +112,7 @@ export function PanneauEffacement({
   if (etat.demande && etat.executeLe) {
     return (
       <div>
-        <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: ORANGE }}>
+        <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {`Effacement programmé le ${DATE.format(etat.executeLe)}.`}
         </p>
         <p style={{ fontSize: 13, opacity: 0.8, marginTop: 6 }}>
@@ -193,7 +194,7 @@ export function PanneauEffacement({
             fontFamily: "inherit",
             fontSize: 13.5,
             fontWeight: 800,
-            color: ORANGE,
+            color: ORANGE_SOMBRE,
             cursor: "pointer",
           }}
         >
@@ -232,7 +233,7 @@ export function PanneauEffacement({
                 padding: "11px 17px",
                 border: CADRE,
                 borderRadius: 13,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 fontFamily: "inherit",
                 fontSize: 13.5,

@@ -6,7 +6,7 @@ import {
   partagerUneCollection,
   retirerUneCollection,
 } from "@/lib/forum/actions";
-import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, GRIS, JAUNE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Partager une collection, ou la retirer de l'espace.
@@ -132,7 +132,7 @@ export function PartagerUneCollection({
       </div>
 
       {erreur ? (
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ORANGE }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </p>
       ) : null}
@@ -186,7 +186,7 @@ export function RetirerLaCollection({
       </button>
 
       {erreur ? (
-        <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: ORANGE }}>
+        <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: ORANGE_SOMBRE }}>
           {erreur}
         </p>
       ) : null}

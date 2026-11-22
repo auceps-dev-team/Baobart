@@ -12,7 +12,7 @@ import {
   trancherEvenementAvecMotif,
   type EtatGeste,
 } from "@/lib/evenements/actions";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les gestes sur un événement : publier, retirer, annuler.
@@ -120,7 +120,7 @@ export function GestesEvenement({
             padding: "10px 13px",
             border: CADRE,
             borderRadius: 12,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13,
             fontWeight: 700,

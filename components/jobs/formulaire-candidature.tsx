@@ -7,7 +7,7 @@ import {
   type EtatPostuler,
 } from "@/lib/jobs/actions-postuler";
 import { CV_TAILLE_MAX, MESSAGE_MAX } from "@/lib/jobs/candidature";
-import { BLANC, CADRE, ENCRE, JAUNE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, VERT, ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le formulaire de candidature.
@@ -74,7 +74,7 @@ export function FormulaireCandidature({ offreId }: { offreId: string }) {
             padding: "12px 15px",
             border: CADRE,
             borderRadius: 14,
-            background: ORANGE,
+            background: ORANGE_SOMBRE,
             color: BLANC,
             fontSize: 13.5,
             fontWeight: 700,
@@ -115,7 +115,7 @@ export function FormulaireCandidature({ offreId }: { offreId: string }) {
 
       <div>
         <label htmlFor="message" style={etiquette}>
-          Mot d&apos;accompagnement <span style={{ opacity: 0.5, fontWeight: 400 }}>· facultatif</span>
+          Mot d&apos;accompagnement <span style={{ color: ENCRE_DOUCE, fontWeight: 400 }}>· facultatif</span>
         </label>
         <textarea
           id="message"
@@ -167,7 +167,9 @@ const etiquette = {
   fontSize: 10.5,
   textTransform: "uppercase" as const,
   letterSpacing: ".12em",
-  opacity: 0.6,
+  // Une couleur pleine, pas une opacité : l'opacité se multiplie dans les
+  // enfants — « · facultatif » tombait à 3,26:1 (relevé axe du 22/11/2026).
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 

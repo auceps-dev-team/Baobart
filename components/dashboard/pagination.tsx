@@ -16,7 +16,7 @@ export function Pagination({ page, pages, adresse }: { page: number; pages: numb
         {libelle}
       </Link>
     ) : (
-      <span style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, fontSize: 13, fontWeight: 800, opacity: 0.35 }}>{libelle}</span>
+      <span aria-disabled="true" style={{ padding: "8px 14px", border: `2px solid ${ENCRE}`, borderRadius: 12, fontSize: 13, fontWeight: 800, opacity: 0.35 }}>{libelle}</span>
     );
   return (
     <nav aria-label="Pages" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 16 }}>

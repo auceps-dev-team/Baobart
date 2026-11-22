@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 
 import type { EtatPromo } from "@/lib/commerce/actions-promo";
 import type { ChampDeclare } from "@/lib/commerce/champs";
+import { ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Les questions posées à l'achat, sur une ressource.
@@ -50,7 +51,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 
@@ -117,7 +118,7 @@ export function PanneauChampsProduit({
                     fontFamily: "inherit",
                     fontSize: 12.5,
                     fontWeight: 800,
-                    color: ORANGE,
+                    color: ORANGE_SOMBRE,
                     cursor: "pointer",
                   }}
                 >

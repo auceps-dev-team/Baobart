@@ -147,7 +147,7 @@ export default async function ForfaitPage() {
             {/* La même grille que Tarifs : l'ouvert en couleur, le reste grisé
                 avec « Bientôt » (décidé le 05/10). */}
             {[...plans].sort((a, b) => Number(b.openForSubscription) - Number(a.openForSubscription) || a.priceMonthly - b.priceMonthly).map((plan) => (
-              <div key={plan.id} data-plan={plan.code} style={{ border: `2.5px solid ${ENCRE}`, borderRadius: 20, padding: 18, background: plan.openForSubscription ? JAUNE : "#FFFFFF", boxShadow: `4px 4px 0 ${ENCRE}`, opacity: plan.openForSubscription ? 1 : 0.5, filter: plan.openForSubscription ? undefined : "grayscale(1)" }}>
+              <div key={plan.id} data-plan={plan.code} style={{ border: `2.5px ${plan.openForSubscription ? "solid" : "dashed"} ${ENCRE}`, borderRadius: 20, padding: 18, background: plan.openForSubscription ? JAUNE : "#FFFFFF", boxShadow: `4px 4px 0 ${ENCRE}`, filter: plan.openForSubscription ? undefined : "grayscale(1)" }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 22 }}>{plan.name}</div>
                 <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900 }}>
                   {formatMoney(plan.priceMonthly, "XOF")}

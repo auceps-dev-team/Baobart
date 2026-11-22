@@ -10,7 +10,7 @@ import { sessionCourante } from "@/lib/auth/session";
 import { MESSAGES as MESSAGES_DROIT, peutPublier } from "@/lib/cms/droits";
 import { categoriesPourChoix } from "@/lib/services/queries";
 import { lireQualifications } from "@/lib/services/qualifications";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Proposer un service — Baobart." };
 export const dynamic = "force-dynamic";
@@ -92,7 +92,7 @@ export default async function DeposerServicePage() {
                 padding: "18px 20px",
                 border: CADRE,
                 borderRadius: 20,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 boxShadow: `5px 5px 0 ${ENCRE}`,
               }}

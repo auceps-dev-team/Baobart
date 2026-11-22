@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
 import { basculerEpingle, choixPourEpingler, creerEtEpingler } from "@/lib/collections/actions";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 const ENCRE = "#121212";
 const BLANC = "#FFFFFF";
 const JAUNE = "#FFD84A";
-const ORANGE = "#E2622C";
 const CADRE = `2.5px solid ${ENCRE}`;
 
 type Collection = { id: string; titre: string; partageeAvec: string | null; contient: boolean };
@@ -170,7 +170,7 @@ export function ChoixEpingle({
         </form>
 
         {erreur ? (
-          <div role="status" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: ORANGE }}>
+          <div role="status" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: ORANGE_SOMBRE }}>
             {erreur}
           </div>
         ) : null}

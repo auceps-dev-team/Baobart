@@ -3,8 +3,9 @@
 import { useActionState } from "react";
 
 import { EtapesTelephone } from "@/components/auth/etapes-telephone";
-import { BLANC, ENCRE, ORANGE } from "@/components/shell/nav-data";
+import { BLANC, ENCRE } from "@/components/shell/nav-data";
 import type { EtatTelephone } from "@/lib/auth/actions-telephone";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 /**
  * Le numéro de téléphone du compte : le prouver, le changer, le retirer.
@@ -63,7 +64,7 @@ export function PanneauTelephone({
               border: `2.5px solid ${ENCRE}`,
               borderRadius: 13,
               background: BLANC,
-              color: ORANGE,
+              color: ORANGE_SOMBRE,
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: 800,

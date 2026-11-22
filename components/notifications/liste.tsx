@@ -9,7 +9,7 @@ import {
   marquerNotificationLue,
   toutMarquerLuAction,
 } from "@/lib/notifications/actions";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * La liste, et ses deux gestes.
@@ -144,7 +144,7 @@ export function ListeNotifications({
                   style={{
                     fontFamily: "var(--font-mono)",
                     fontSize: 10.5,
-                    opacity: 0.6,
+                    color: ENCRE_DOUCE,
                   }}
                 >
                   {l.quand.toLocaleDateString("fr-FR", {

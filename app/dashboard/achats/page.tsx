@@ -13,13 +13,13 @@ import { encaissementPossible } from "@/lib/checkout/achat";
 import { adressePaginee, paginer } from "@/lib/dashboard/pagination";
 import { historiqueDesAchats } from "@/lib/dashboard/queries";
 import { formatMoney, formatPrice } from "@/lib/i18n/money";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Historique des achats — Baobart." };
 export const dynamic = "force-dynamic";
 
 const PRUNE = "#C9A8F5";
 const BLANC = "#FFFFFF";
-const ORANGE = "#E2622C";
 
 const DATE = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -163,7 +163,7 @@ export default async function HistoriqueDesAchatsPage({
               marginTop: 16,
               fontSize: 12.5,
               fontWeight: 700,
-              color: ORANGE,
+              color: ORANGE_SOMBRE,
               maxWidth: 640,
             }}
           >

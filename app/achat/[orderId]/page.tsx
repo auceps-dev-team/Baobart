@@ -14,15 +14,7 @@ import { db } from "@/lib/db";
 import { offreApresAchat } from "@/lib/commerce/upsell";
 import { formatMoney } from "@/lib/i18n/money";
 import { piloteCourant } from "@/lib/payments/encaissement/pilotes";
-import {
-  BLANC,
-  CADRE,
-  ENCRE,
-  JAUNE,
-  LAVANDE,
-  ORANGE,
-  VERT,
-} from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT, ENCRE_DOUCE, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const metadata = { title: "Ton paiement — Baobart." };
 
@@ -510,10 +502,10 @@ export default async function RetourPaiementPage({
                   formatMoney(offre.prix, offre.devise as Parameters<typeof formatMoney>[1])
                 ) : (
                   <>
-                    <span style={{ textDecoration: "line-through", opacity: 0.55 }}>
+                    <span style={{ textDecoration: "line-through", color: ENCRE_DOUCE }}>
                       {formatMoney(offre.prix, offre.devise as Parameters<typeof formatMoney>[1])}
                     </span>{" "}
-                    <span style={{ color: ORANGE }}>
+                    <span style={{ color: ORANGE_SOMBRE }}>
                       {formatMoney(offre.prixFinal, offre.devise as Parameters<typeof formatMoney>[1])}
                     </span>{" "}
                     <span style={{ fontSize: 12.5, opacity: 0.75 }}>

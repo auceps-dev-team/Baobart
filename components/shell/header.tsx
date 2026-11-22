@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type Rea
 import { usePlaceholderTape } from "@/components/anime/placeholder-tape";
 import { Icone } from "@/components/icones/icone";
 import { deconnecter } from "@/lib/auth/actions";
+import { ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 import {
   BLANC,
@@ -928,7 +929,7 @@ export function Header({
                           fontFamily: "inherit",
                           fontSize: 13.5,
                           fontWeight: 700,
-                          color: ORANGE,
+                          color: ORANGE_SOMBRE,
                           background: ORANGE_PALE,
                           cursor: "pointer",
                         }}

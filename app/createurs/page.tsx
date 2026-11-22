@@ -9,7 +9,7 @@ import { famillesDesCreateurs, listerCreateurs, suivisParmi } from "@/lib/create
 import type { ProductFamily } from "@/lib/domain/prisma-types";
 import { LIBELLE_PAR_FAMILLE } from "@/lib/feed/types";
 import { formatCount } from "@/lib/i18n/money";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, MAUVE, ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 export const metadata = {
   title: "Les créateurs — Baobart.",
@@ -116,7 +116,7 @@ export default async function CreateursPage({
                     fontSize: 11,
                     textTransform: "uppercase",
                     letterSpacing: ".1em",
-                    opacity: 0.55,
+                    color: ENCRE_DOUCE,
                   }}
                 >
                   Publie

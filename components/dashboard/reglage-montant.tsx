@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 
 import type { EtatPromo } from "@/lib/commerce/actions-promo";
+import { ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * Comment se décide le prix d'une ressource.
@@ -41,7 +42,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 6,
 };
 

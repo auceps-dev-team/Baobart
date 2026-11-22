@@ -12,7 +12,7 @@ import { estInscrit } from "@/lib/evenements/inscription";
 import { LIBELLE_PHASE, placesRestantes } from "@/lib/evenements/phases";
 import { evenementPublic } from "@/lib/evenements/queries";
 import { formatMoney, type Currency } from "@/lib/i18n/money";
-import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT } from "@/lib/systeme/charte";
+import { BLANC, CADRE, ENCRE, JAUNE, LAVANDE, ORANGE, VERT, ORANGE_SOMBRE } from "@/lib/systeme/charte";
 
 export const dynamic = "force-dynamic";
 
@@ -133,7 +133,7 @@ export default async function FicheEvenementPage({
                 marginTop: 20,
                 border: CADRE,
                 borderRadius: 22,
-                background: ORANGE,
+                background: ORANGE_SOMBRE,
                 color: BLANC,
                 boxShadow: `6px 6px 0 ${ENCRE}`,
                 padding: 22,

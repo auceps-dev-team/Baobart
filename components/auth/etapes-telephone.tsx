@@ -6,6 +6,7 @@ import { ChampsAntiBot } from "@/components/auth/champs-antibot";
 import { BLANC, ENCRE, JAUNE, ORANGE } from "@/components/shell/nav-data";
 import type { EtatTelephone } from "@/lib/auth/actions-telephone";
 import { PAYS, PAYS_PAR_DEFAUT } from "@/lib/payments/rails";
+import { ENCRE_DOUCE } from "@/lib/systeme/charte";
 
 /**
  * Les deux étapes d'un code par SMS : le numéro, puis les six chiffres.
@@ -33,7 +34,7 @@ const etiquette = {
   fontSize: 10,
   textTransform: "uppercase" as const,
   letterSpacing: ".1em",
-  opacity: 0.55,
+  color: ENCRE_DOUCE,
   marginBottom: 7,
 };
 
