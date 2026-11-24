@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. Décisions du 21/11 : Q-39 et Q-41 (1.114.9), puis les filtres de « Ventes », puis Q-30 sur toutes les pages — empilés au-dessus de #82. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
+| **B10 / Q-14 — le concours** (confié à aucepsdev le 21/11 ; vérification par Claude `auceps-dev-team`, critères écrits dans #61) : la consigne, le dépôt d'œuvres, les confirmations, les accès, l'effacement ; le gagnant après décision | Claude (`aucepsdev`) | `claude/concours` | Commencé le 24/11, annoncé dans #61. Lu dans la maquette (`Baobart Accueil.dc.html`, l. 1887-1890) : « Jusqu'à 3 propositions par concours, avant la date de clôture » ; « Le jury tranche — 5 créatifs invités, résultats publiés sur l'accueil » ; les gagnants « rémunérés » (l. 1210). Trois questions restent (« Décisions attendues »). | Les sept points de #61 (21/11, 21 h 58) : parcours au navigateur rejoué par l'autre session, un test d'accès par garde (rouge si on la retire), suite d'intégration complète, CI verte. |
 
 ---
 
@@ -71,7 +72,6 @@ décidé — à placer avec le responsable du dépôt :
 | B6 — Catégories du blog | Toujours vides. |
 | B7 — Vues des fiches | Jamais comptées. |
 | B9 — Champs personnalisés | Le vendeur ne voit pas les réponses. |
-| B10 — Concours | Ni dépôt d'œuvre, ni gagnant. **Q-14** (recette) : après « M'inscrire », ni consigne, ni dépôt, ni courriel de confirmation. **Confié à aucepsdev le 21/11** ; la vérification revient à Claude, sur des critères écrits d'avance dans #61. |
 | B11 — Menu de compte | « Règles de publication » et « Support » affichés « bientôt » alors que les pages existent. |
 | B12 — Notifications push | Clés VAPID absentes ; « téléchargement prêt » jamais émis. |
 | B13 — Recherche des écrans d'administration | Réparée sur « Statuts » seulement. |
@@ -92,6 +92,9 @@ décidé — à placer avec le responsable du dépôt :
 
 | Question | Ce qui en dépend |
 | --- | --- |
+| **Concours — qui saisit le verdict du jury** (Q-14, relevé le 24/11) | La maquette dit « le jury tranche — 5 créatifs invités » ; l'application n'a pas de comptes de jury. Qui enregistre les gagnants : l'organisateur du concours, ou l'équipe (pouvoir `publier_du_contenu`) ? Dans les deux cas : tracé à l'audit, et personne ne peut se désigner lui-même. Bloque l'écran des résultats. |
+| **Concours — comment la dotation est versée** (Q-14) | La maquette promet des gagnants « rémunérés » (`prizeAmount`). Par le grand livre et les versements de la plateforme (une écriture « dotation » à créer, avec ses règles d'argent), ou hors plateforme, la page ne faisant qu'annoncer le montant ? Bloque toute écriture d'argent ; l'affichage du montant n'en dépend pas. |
+| **Concours — un stockage dans la CI** (Q-14) | Le parcours « s'inscrire → lire la consigne → déposer → voir l'œuvre reçue », au navigateur, demande un stockage d'objets : la CI n'en a aucun (lu dans `.github/workflows/ci.yml` le 24/11), et aucun test navigateur ne téléverse aujourd'hui. Ajouter un service MinIO au job « Parcours au navigateur » touche la configuration commune. Sans lui, le dépôt s'éprouve en intégration (stockage simulé, comme `lib/upload/provenance.integration.test.ts`), et le parcours au navigateur s'arrête avant l'envoi du fichier. |
 | **Facturation** : forfaits payants (B3) et reçus / factures (C3) | Plusieurs écrans d'abonnement ; le mérite « Fidèle » (personne ne peut l'obtenir tant que seul le forfait gratuit est ouvert). |
 | **Mises à jour majeures** : Next 16 (#46), Vitest 5 (#45) — `eslint-config-next` 16 réglé par #65 | Chacune est un lot à part, avec la suite complète et le navigateur. Ne pas les fusionner en même temps qu'autre chose. Avec Next 16 : retirer la garde `useEffectEvent` de `eslint.config.mjs`. Avec Prisma 7 : retirer le forçage d'`effect` (#63). |
 | **JSON-LD sur les fiches** (note des avis pour Google) | La règle du dépôt n'autorise qu'**un** `dangerouslySetInnerHTML` (le blog). Un second se décide, il ne s'ajoute pas en passant. Lot C2. |
