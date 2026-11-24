@@ -20,8 +20,12 @@
  * §4.2 demande TipTap et un corps en HTML sanitisé. On ne le fait pas, et la
  * raison n'est pas le coût de l'éditeur.
  *
- * **L'application ne rend d'HTML nulle part.** Tout ce qui s'affiche passe par
- * React, qui échappe. C'est une
+ * **Le site ne rend d'HTML nulle part.** Tout ce qui s'affiche passe par
+ * React, qui échappe. (Précisé le 24/11/2026, Q-28 : la phrase disait
+ * « l'application ». Les courriels ont désormais une partie HTML, tirée de leur
+ * texte et échappée en un seul endroit, `lib/email/html.ts` ; aucun HTML n'y
+ * est stocké ni accepté d'un utilisateur, et le raisonnement ci-dessous tient.)
+ * C'est une
  * propriété rare et elle se perd en une ligne : le jour où l'on accepte de
  * l'HTML stocké, la question n'est plus « est-ce que le site est sûr » mais
  * « est-ce que le sanitiseur est à jour », ce qui est une bien moins bonne

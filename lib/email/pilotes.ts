@@ -121,7 +121,10 @@ const RESEND: Pilote = {
           from: expediteur(),
           to: [destinataire],
           subject: message.sujet,
+          // Deux parties (Q-28) : le texte pour les clients qui n'affichent que lui,
+          // le HTML tiré du même texte (lib/email/html.ts) pour les autres.
           text: message.texte,
+          html: message.html,
           ...repondreA(message, "reply_to"),
         }),
         signal: abandon,
@@ -267,6 +270,7 @@ const SMTP: Pilote = {
         to: destinataire,
         subject: message.sujet,
         text: message.texte,
+        html: message.html,
         ...repondreA(message, "replyTo"),
       });
       return { ok: true, reference: resultat.messageId ?? null };

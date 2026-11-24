@@ -118,7 +118,7 @@ describe("« Répondre à »", () => {
     );
     vi.stubGlobal("fetch", appel);
     try {
-      await POUR_TESTS.RESEND.envoyer("awa@baobart.test", { sujet: "s", texte: "t", repondreA });
+      await POUR_TESTS.RESEND.envoyer("awa@baobart.test", { sujet: "s", texte: "t", html: "<p>t</p>", repondreA });
       const init = appel.mock.calls[0]?.[1] as RequestInit | undefined;
       return JSON.parse(String(init?.body)) as Record<string, unknown>;
     } finally {
@@ -138,5 +138,25 @@ describe("« Répondre à »", () => {
 
   it("est omis plutôt que de glisser un en-tête", async () => {
     expect(await corpsEnvoye("a@b.test\r\nBcc: voleur@exemple.com")).not.toHaveProperty("reply_to");
+  });
+});
+
+describe("les deux parties du message (Q-28)", () => {
+  it("Resend reçoit le texte ET le HTML", async () => {
+    const avant = process.env.RESEND_API_KEY;
+    process.env.RESEND_API_KEY = "re_test";
+    const appel = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
+      async () => new Response(JSON.stringify({ id: "x" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", appel);
+    try {
+      await POUR_TESTS.RESEND.envoyer("awa@baobart.test", { sujet: "s", texte: "le texte", html: "<p>le texte</p>" });
+      const corps = JSON.parse(String((appel.mock.calls[0]?.[1] as RequestInit).body)) as Record<string, unknown>;
+      expect(corps).toMatchObject({ text: "le texte", html: "<p>le texte</p>" });
+    } finally {
+      vi.unstubAllGlobals();
+      if (avant === undefined) delete process.env.RESEND_API_KEY;
+      else process.env.RESEND_API_KEY = avant;
+    }
   });
 });

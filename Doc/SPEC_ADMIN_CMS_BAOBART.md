@@ -1826,8 +1826,19 @@ Gumroad a fait et que Baobart n'a pas : une adresse morte reçoit indéfiniment.
 §4.2 demandait TipTap et un corps en HTML sanitisé. Refusé, et la raison n'est
 pas le coût de l'éditeur.
 
-**L'application ne rend d'HTML nulle part.** Tout ce qui s'affiche passe par
+**Le site ne rend d'HTML nulle part.** Tout ce qui s'affiche passe par
 React, qui échappe.
+
+*Précisé le 24/11/2026 (Q-28, v1.117.0)* : la phrase disait « l'application ».
+Depuis, les **courriels** ont une partie HTML, fabriquée hors de React par
+`lib/email/html.ts`. Ce qui en garantit l'échappement :
+- le HTML est tiré du texte de chaque modèle, jamais écrit à la main ni stocké ;
+- le texte entier passe par une seule fonction, `echapper`, avant toute mise en forme ;
+- seules les adresses des champs « lien » deviennent cliquables ;
+- un test piégé couvre chacun des 31 modèles (`lib/email/modeles.test.ts`).
+
+Le raisonnement de ce paragraphe tient : aucun HTML venu d'un utilisateur n'est
+accepté, et aucun sanitiseur n'est nécessaire.
 
 *Mesuré le 17 septembre 2026* : une occurrence de `dangerouslySetInnerHTML` sur
 tout le dépôt — le JSON-LD ci-dessous ; cinq de `innerHTML`/`outerHTML`, toutes

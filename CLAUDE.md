@@ -217,7 +217,11 @@ Revérifiée correctement, la conclusion tenait — mais pas telle qu'écrite :
 (quatre et une). Ce fichier n'est pas servi, donc la propriété vaut ; mais le
 prochain qui grep aurait trouvé ces cinq occurrences et cru que l'en-tête
 mentait. Depuis le versement du 13/11/2026, `Baobart Design/baobart-icons.js`
-en ajoute deux, dans le même dossier non servi.
+en ajoute deux, dans le même dossier non servi. Et depuis le 24/11/2026 (Q-28,
+v1.117.0), la phrase est fausse au pied de la lettre : les courriels ont une
+partie HTML, produite hors de React par `lib/email/html.ts` — tirée du texte,
+échappée par une seule fonction, un test piégé sur chacun des modèles. La spec
+et l'en-tête disent désormais « le site », qui ne rend toujours aucun HTML.
 
 ### Le silence d'une source n'est pas une preuve
 
