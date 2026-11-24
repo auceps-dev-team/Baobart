@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
+import type { ReactNode } from "react";
 
 import { Vide } from "@/components/dashboard/ecran";
 import { Pagination } from "@/components/dashboard/pagination";
@@ -29,6 +30,8 @@ export interface Personne {
     nomAccessible: string;
     fond?: string;
   };
+  /** Un bouton plutôt qu'un lien — « Suivi ✓ » (`BoutonSuiviCarte`, lot 5b). Prend la place d'`action`. */
+  bouton?: ReactNode;
 }
 
 /**
@@ -136,7 +139,9 @@ export function GrillePersonnes({
               >
                 {p.action.label}
               </Link>
-            ) : null}
+            ) : (
+              (p.bouton ?? null)
+            )}
           </li>
         ))}
       </ul>

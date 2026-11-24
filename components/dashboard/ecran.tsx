@@ -25,6 +25,13 @@ export interface Indicateur {
   valeur: string;
   precision?: string;
   fond?: string;
+  /**
+   * La carte entière mène à la liste qu'elle compte — « Abonnés » vers
+   * `/dashboard/abonnes` (lot 5b). Un ajout à la maquette, qui ne dessine
+   * aucun chemin vers `c_abonnes` : sans lui, la liste des abonnés ne
+   * s'atteindrait que par une notification.
+   */
+  href?: string;
 }
 
 export interface Ligne {
@@ -162,6 +169,7 @@ export function EcranDashboard({
                 boxShadow: `5px 5px 0 ${ENCRE}`,
                 padding: 18,
                 background: k.fond ?? BLANC,
+                position: "relative",
               }}
             >
               <div
@@ -189,6 +197,15 @@ export function EcranDashboard({
                 <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.7 }}>
                   {k.precision}
                 </div>
+              ) : null}
+              {k.href ? (
+                // Étiré sur la carte, sans texte à lui : la carte garde le dessin de la
+                // maquette, et le lien se nomme par ce qu'elle affiche.
+                <Link
+                  href={k.href as Route}
+                  aria-label={`${k.label} : ${k.valeur}${k.precision ? `, ${k.precision}` : ""} — voir la liste`}
+                  style={{ position: "absolute", inset: 0, borderRadius: 20 }}
+                />
               ) : null}
             </div>
           ))}

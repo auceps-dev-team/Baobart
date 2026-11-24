@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { sessionCourante } from "@/lib/auth/session";
+import { marquerFilVu } from "@/lib/social/fil";
 import {
   basculerLikeDe,
   basculerSuiviDe,
@@ -50,7 +51,25 @@ export async function basculerSuivi(createurId: string): Promise<Reponse> {
   if (!resultat.ok) return resultat;
 
   revalidatePath("/dashboard/abonnements");
+  // Pas `/dashboard/suivre` : revalider la page affichée la redessine aussitôt, et la
+  // carte « Suivi ✓ » qu'on vient de défaire disparaîtrait sous le doigt — sans
+  // moyen de revenir sur un clic malheureux. La page est `force-dynamic` : la
+  // prochaine visite est fraîche de toute façon.
   return { ok: true, actif: resultat.actif, total: resultat.total };
+}
+
+/**
+ * « Suivre les détails » a été vu jusqu'à `rendueLe` (lot 5b) — appelée par le
+ * navigateur une fois la première page du fil affichée (`MarqueFilVu`).
+ *
+ * Sans `revalidatePath` : la page ouverte garde ses « NOUVEAU » tant qu'on la
+ * lit ; la prochaine visite dira « VU ». Les bornes (date illisible, future,
+ * qui reculerait) sont tenues par `marquerFilVu`.
+ */
+export async function marquerFilVuAction(rendueLe: string): Promise<void> {
+  const utilisateur = await sessionCourante();
+  if (!utilisateur) return;
+  await marquerFilVu(utilisateur.id, new Date(rendueLe));
 }
 
 export type ReponseCommentaire =

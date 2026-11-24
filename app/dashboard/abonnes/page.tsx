@@ -29,9 +29,10 @@ export const dynamic = "force-dynamic";
  *   vitrine n'a rendu public que son nom (`presenterAbonne`, lib/social/regles.ts).
  * - **Atteignable.** La maquette ne met `c_abonnes` ni au menu (l. 893-916) ni
  *   dans `SUB_PARENT` (l. 1995) : sa ligne 2481 la ramène au tableau de bord.
- *   Ici, la notification « Nouvel abonné » y mène, et « Suivre les détails »
- *   (lot 5b) y mènera. Faute d'entrée à elle, la barre allume « Tableau de
- *   bord », comme le repli de la maquette.
+ *   Ici, la notification « Nouvel abonné » y mène, et la carte « Abonnés » de
+ *   « Suivre les détails » (lot 5b). C'est une sous-page de celle-ci : la barre
+ *   allume « Suivre les détails » (l'adresse seule allumerait « Tableau de
+ *   bord », `/dashboard` étant son plus long préfixe).
  *
  * `PAR_PAGE` : calculé le 21/11, pas mesuré à l'écran — la machine servait à
  * autre chose. À 1440 px, la grille a trois colonnes (1 100 px utiles, cartes de
@@ -63,7 +64,7 @@ export default async function AbonnesPage({ searchParams }: { searchParams: Prom
 
   return (
     <div data-shell="1" style={{ display: "flex", minHeight: "100vh", background: "#EADFF9" }}>
-      <DashboardSidebar etape={utilisateur.progression.etape} nom={utilisateur.nom} email={utilisateur.email} />
+      <DashboardSidebar etape={utilisateur.progression.etape} nom={utilisateur.nom} email={utilisateur.email} actif="c_suivre" />
 
       <EcranDashboard
         titre="Abonnés"
