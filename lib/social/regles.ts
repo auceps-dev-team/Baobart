@@ -245,11 +245,16 @@ export function phraseDesAbonnes(total: number): string {
  * sans vitrine. Bâtie sur `ilYA`, dont les trois formes ne se raccordent pas
  * pareil à « depuis » : « à l'instant », « il y a … », une date.
  */
-export function suitDepuis(quand: Date, maintenant: Date = new Date()): string {
+export function suitDepuis(
+  quand: Date,
+  maintenant: Date = new Date(),
+  // « tu suis » pour un créateur que l'on suit (lot 5b, les cartes de « Suivre les détails »).
+  sujet: "te suit" | "tu suis" = "te suit",
+): string {
   const relatif = ilYA(quand, maintenant);
-  if (relatif === "à l'instant") return "te suit depuis un instant";
-  if (relatif.startsWith("il y a ")) return `te suit depuis ${relatif.slice("il y a ".length)}`;
-  return `te suit depuis le ${relatif}`;
+  if (relatif === "à l'instant") return `${sujet} depuis un instant`;
+  if (relatif.startsWith("il y a ")) return `${sujet} depuis ${relatif.slice("il y a ".length)}`;
+  return `${sujet} depuis le ${relatif}`;
 }
 
 // ─────────────────────────────────────────────────── l'avis « Nouvel abonné » ──
@@ -275,4 +280,45 @@ export function prefixeAvisAbonne(suiveurId: string): string {
 /** Le nom que l'avis donne au suiveur : son nom affiché, jamais son adresse. */
 export function nomDansLAvis(displayName: string | null | undefined): string {
   return displayName?.trim() || "Un membre Baobart";
+}
+
+// ─────────────────────────────────────────── le fil « Suivre les détails » ──
+
+export type EtatDansLeFil = "NOUVEAU" | "VU";
+
+/**
+ * « NOUVEAU » ou « VU », pour une ligne du fil (maquette `c_suivre`, lot 5b).
+ *
+ * « NOUVEAU » veut dire : publiée depuis ta dernière visite du fil. Qui n'est
+ * jamais venu voit tout « NOUVEAU » — c'est vrai, il n'a rien vu. La visite
+ * se mémorise APRÈS l'affichage (`marquerFilVu`, lib/social/fil.ts) : la page
+ * qui montre « NOUVEAU » ne se dément pas elle-même pendant qu'on la lit.
+ */
+export function etatDansLeFil(publieeLe: Date, vuJusquA: Date | null): EtatDansLeFil {
+  return vuJusquA === null || publieeLe > vuJusquA ? "NOUVEAU" : "VU";
+}
+
+/**
+ * Le lundi 0 h de la semaine de `maintenant` : « Publications suivies · cette
+ * semaine ». En UTC, pour la raison écrite dans `lib/dashboard/mois.ts` :
+ * l'heure légale d'Abidjan est l'heure universelle toute l'année.
+ */
+export function debutDeSemaine(maintenant: Date): Date {
+  const depuisLundi = (maintenant.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth(), maintenant.getUTCDate() - depuisLundi));
+}
+
+/**
+ * Jusqu'où avancer la marque « fil vu », ou `null` s'il n'y a rien à écrire.
+ *
+ * Le navigateur propose l'instant où la page a été rendue — pas l'instant où
+ * il répond : une ressource parue entre les deux n'a pas été vue. On ne le
+ * croit pas pour autant : une date illisible ne s'écrit pas, une date future
+ * est ramenée à maintenant, et la marque ne recule jamais (deux onglets).
+ */
+export function avancerVuJusquA(propose: Date, actuel: Date | null, maintenant: Date): Date | null {
+  if (Number.isNaN(propose.getTime())) return null;
+  const borne = propose > maintenant ? maintenant : propose;
+  if (actuel !== null && borne <= actuel) return null;
+  return borne;
 }

@@ -147,6 +147,10 @@ const CREATEUR: Array<EntreeNav & { desLAtelier?: boolean }> = [
   { cle: "c_commissions", label: "Commissions", icone: "pie", href: "/dashboard/commissions" },
   { cle: "c_stats", label: "Statistiques", icone: "bars", href: "/dashboard/statistiques" },
   { cle: "c_profil", label: "Profil de la boutique", icone: "user", href: "/dashboard/boutique" },
+  // Lot 5b. La maquette la range entre « Mes achats » et « All Access » (l. 912) ; ce menu n'a ni
+  // l'un ni l'autre, elle prend donc la place qui garde l'ordre : avant « Avis & commentaires ».
+  // Le glyphe ☍ est celui d'« Abonnements » côté acheteur dans la maquette : même icône.
+  { cle: "c_suivre", label: "Suivre les détails", icone: "users", href: "/dashboard/suivre" },
   { cle: "c_avis", label: "Avis & commentaires", icone: "star", href: "/dashboard/avis" },
 ];
 

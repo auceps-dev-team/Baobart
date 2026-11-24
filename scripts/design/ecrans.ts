@@ -241,7 +241,7 @@ export const ECRANS: EcranMaquette[] = [
   tableau("createur", "c_notifs", "Notifications", "/dashboard/notifications"),
   tableau("createur", "c_notifs_reglages", "Notifications · Réglages", "/dashboard/notifications/reglages"),
   tableau("createur", "c_purchases", "Mes achats", "/dashboard/achats"),
-  tableau("createur", "c_suivre", "Suivre les détails", null, { note: "Lot 5b — le fil « Suivre les détails » (A5)" }),
+  tableau("createur", "c_suivre", "Suivre les détails", "/dashboard/suivre"),
   tableau("createur", "c_allaccess", "All Access", null, { note: "Lot 8 — Pass All Access (A6)" }),
   tableau("createur", "c_subscription", "Abonnement", "/dashboard/forfait"),
   tableau("createur", "c_avis", "Créateur feedback", "/dashboard/avis"),
@@ -349,7 +349,7 @@ export const ROUTES_SANS_MAQUETTE: { route: string; compte?: Compte; note?: stri
     // Pas une entrée `tableau(…, "c_abonnes", …)` : la maquette dessine bien l'écran dans ses données
     // (l. 1764), mais ni son menu ni `SUB_PARENT` ne le nomment, et sa ligne 2481 ramène alors
     // `key: c_abonnes` au tableau de bord. La capture aurait comparé la page au mauvais écran, sans rien dire.
-    note: "« Abonnés » (lot 5a, c_abonnes) : dessiné dans les données de la maquette, mais inatteignable par son menu",
+    note: "« Abonnés » (lot 5a, c_abonnes) : dessiné dans les données de la maquette, mais inatteignable par son menu ; ici, sous-page de « Suivre les détails » (lot 5b)",
   },
   { route: "/dashboard/statuts", compte: "admin" },
   { route: "/dashboard/temoignage", compte: "client" },

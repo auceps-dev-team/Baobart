@@ -470,6 +470,11 @@ model User {
   followersCount Int @default(0)
   followingCount Int @default(0)
 
+  /// Jusqu'où le fil « Suivre les détails » a été vu (lot 5b) : une publication
+  /// plus récente y est « NOUVEAU », les autres « VU ». Posée APRÈS l'affichage
+  /// de la première page, jamais pendant le rendu (`lib/social/fil.ts`).
+  followFeedSeenAt DateTime?
+
   /// Secret TOTP, chiffre (AES-256-GCM, voir `lib/auth/totp.ts`).
   ///
   /// Chiffre et non en clair : un secret TOTP est un secret PARTAGE — qui
@@ -1483,6 +1488,19 @@ model Product {
   /// dériver le total. `ratingAvg` et `ratingCount` en découlent.
   ratingStars    Int[]   @default([0, 0, 0, 0, 0])
 
+  /// La PREMIÈRE mise en ligne — ce que le fil « Suivre les détails » annonce
+  /// (« Kofi a publié… », lot 5b, `lib/social/fil.ts`).
+  ///
+  /// Posée par un DÉCLENCHEUR SQL, pas par le code : huit chemins écrivent
+  /// `PUBLISHED` (lu le 24/11 — la publication, la levée d'une sanction de
+  /// risque, la levée d'un retrait juridique, et cinq scripts ou jeux de
+  /// démonstration). Le déclencheur la pose quand une ligne devient
+  /// `PUBLISHED` sans en avoir, et ne la remet jamais à zéro : une ressource
+  /// dépubliée puis republiée n'est pas réannoncée. Voir la migration
+  /// `20261124100000_premiere_publication`. Avant elle, aucune date n'était
+  /// gardée : l'existant a été rattrapé sur `createdAt`, une approximation.
+  firstPublishedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1505,6 +1523,7 @@ model Product {
   @@index([status, family, createdAt, id]) // curseur feed filtré par famille
   @@index([sellerId, status])
   @@index([isStaffPicked, staffPickedAt])
+  @@index([sellerId, firstPublishedAt]) // le fil des créateurs suivis, du plus récent au plus ancien
 }
 
 /// Deux natures de fichier, pas une. Le fichier source est ce que l'acheteur

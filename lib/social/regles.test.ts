@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  avancerVuJusquA,
   cleAvisAbonne,
   COMMENTAIRE_MAX,
   compteurApresBascule,
+  debutDeSemaine,
+  etatDansLeFil,
   ilYA,
   nomDansLAvis,
   peutRetirerCommentaire,
@@ -232,5 +235,38 @@ describe("l'avis « Nouvel abonné » : sa clé et le nom qu'il donne", () => {
     expect(nomDansLAvis("  Awa Diallo ")).toBe("Awa Diallo");
     expect(nomDansLAvis("   ")).toBe("Un membre Baobart");
     expect(nomDansLAvis(null)).toBe("Un membre Baobart");
+  });
+});
+
+describe("le fil « Suivre les détails » (lot 5b)", () => {
+  const t = new Date(Date.UTC(2026, 10, 24, 12, 0, 0)); // mardi 24/11/2026, midi
+
+  it("NOUVEAU : publiée après la dernière visite ; jamais venu, tout est nouveau", () => {
+    const vu = new Date(Date.UTC(2026, 10, 23));
+    expect(etatDansLeFil(new Date(Date.UTC(2026, 10, 23, 8)), vu)).toBe("NOUVEAU");
+    expect(etatDansLeFil(new Date(Date.UTC(2026, 10, 22)), vu)).toBe("VU");
+    expect(etatDansLeFil(vu, vu)).toBe("VU"); // à l'instant même de la visite : elle était à l'écran
+    expect(etatDansLeFil(new Date(Date.UTC(2020, 0, 1)), null)).toBe("NOUVEAU");
+  });
+
+  it("« cette semaine » commence le lundi 0 h, heure d'Abidjan (UTC)", () => {
+    expect(debutDeSemaine(t).toISOString()).toBe("2026-11-23T00:00:00.000Z");
+    // Le lundi lui-même, et le dimanche soir qui finit la semaine.
+    expect(debutDeSemaine(new Date(Date.UTC(2026, 10, 23, 0, 0, 1))).toISOString()).toBe("2026-11-23T00:00:00.000Z");
+    expect(debutDeSemaine(new Date(Date.UTC(2026, 10, 29, 23, 59))).toISOString()).toBe("2026-11-23T00:00:00.000Z");
+    // Une semaine à cheval sur deux mois.
+    expect(debutDeSemaine(new Date(Date.UTC(2026, 11, 2, 9))).toISOString()).toBe("2026-11-30T00:00:00.000Z");
+  });
+
+  it("la marque « fil vu » avance, ne recule jamais, et ne va pas dans le futur", () => {
+    const avant = new Date(Date.UTC(2026, 10, 24, 11));
+    expect(avancerVuJusquA(avant, null, t)).toEqual(avant);
+    expect(avancerVuJusquA(avant, new Date(Date.UTC(2026, 10, 24, 11, 30)), t)).toBeNull(); // deux onglets : pas de recul
+    expect(avancerVuJusquA(new Date(Date.UTC(2027, 0, 1)), null, t)).toEqual(t); // une date future est ramenée à maintenant
+    expect(avancerVuJusquA(new Date("n'importe quoi"), null, t)).toBeNull();
+  });
+
+  it("« tu suis depuis » pour un créateur suivi", () => {
+    expect(suitDepuis(new Date(Date.UTC(2026, 10, 21, 12)), t, "tu suis")).toBe("tu suis depuis 3 j");
   });
 });

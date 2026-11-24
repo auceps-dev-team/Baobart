@@ -176,6 +176,36 @@ test.describe("les listes paginées tiennent sous le menu", () => {
     expect(hauteurPage, `page ${hauteurPage} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(Math.ceil(basMenu));
   });
 
+  test("Suivre les détails : le fil, les cartes de personnes et la page s'arrêtent avec le menu (lot 5b)", async ({ page, context, baseURL }) => {
+    // Le cas le plus haut de la page : un fil de plusieurs pages, ET les quatre cartes de
+    // personnes (deux abonnés, deux créateurs suivis), qui suivent la liste.
+    const { vendeur } = await acheteurCharge(1);
+    const marque = unique("pag-suiv");
+    const createurs: string[] = [];
+    for (let i = 1; i <= 2; i++) {
+      const c = await db.user.create({
+        data: { email: `${marque}-c${i}@baobart.test`, profile: { create: { username: `${marque}-c${i}`, displayName: `Créateur ${marque} ${i}` } } },
+        select: { id: true },
+      });
+      createurs.push(c.id);
+      await db.follow.create({ data: { followerId: vendeur, followingId: c.id } });
+      await db.follow.create({ data: { followerId: c.id, followingId: vendeur } });
+      for (let j = 1; j <= 5; j++) {
+        await db.product.create({
+          data: { sellerId: c.id, name: `Fil ${marque} ${i}-${j}`, slug: `${marque}-${i}-${j}`, price: 1_000 * j, currency: "XOF", status: "PUBLISHED" },
+        });
+      }
+    }
+    await seConnecter(context, vendeur, baseURL!);
+
+    await page.goto("/dashboard/suivre");
+    await expect(page.getByRole("navigation", { name: "Pages" })).toContainText("page 1 sur 4");
+    const { basMenu, basListe, hauteurPage, sansHauteur } = await mesurer(page);
+    expect(sansHauteur, "la mesure du menu voit tout son contenu").toBe(0);
+    expect(basListe!, `bas de la liste ${Math.round(basListe!)} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(basMenu);
+    expect(hauteurPage, `page ${hauteurPage} px, bas du menu ${Math.round(basMenu)} px`).toBeLessThanOrEqual(Math.ceil(basMenu));
+  });
+
   test("Ventes : la légende repliée s'ouvre d'un geste, et la liste tient sous le menu", async ({ page, context, baseURL }) => {
     // Le vendeur de `acheteurCharge` a vendu ses quatorze ressources : quatorze ventes.
     const { vendeur } = await acheteurCharge(14);
