@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-import { ChargeInvalide, MODELES, rendre, type Modele } from "./modeles";
+import { CHAMPS_LIENS, ChargeInvalide, MODELES, rendre, type Modele } from "./modeles";
 
 const CHARGES: Record<Modele, Record<string, unknown>> = {
   BIENVENUE: { nom: "Awa", site: "https://baobart.test" },
@@ -279,5 +283,139 @@ describe("« Nouvel abonné » nomme le suiveur (décision du 21/11)", () => {
 
   it("un nom vide est refusé au dépôt, pas envoyé tel quel", () => {
     expect(() => rendre("NOUVEL_ABONNE", { nom: "Awa", suiveur: "" })).toThrow(ChargeInvalide);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Q-28 — LA PARTIE HTML (décidé le 21/11/2026)
+//
+// Le HTML est tiré du texte par `versHtml` (lib/email/html.ts). Ces tests
+// passent par TOUS les modèles, pas par un seul : c'est le critère de relecture
+// posé dans #61 le 21/11 (« une charge piégée sur chaque modèle »).
+// ════════════════════════════════════════════════════════════════════════════
+
+/** 34 caractères : sous toutes les longueurs maximales des schémas (40 au plus court). */
+const PIEGE = `"><img src=x onerror=1><a href=//x>`;
+/** Une adresse qui tente de fermer l'attribut `href` et d'ouvrir une balise. */
+const LIEN_PIEGE = `https://baobart.test/piege?a="><img src=x>`;
+/** Les champs qui gardent leur exemple : un format strict que le piège ne passerait pas. */
+const FORMAT_STRICT = new Set(["repondreA", "codeSecret"]);
+/** Tout ce que `versHtml` écrit lui-même. Une autre balise viendrait du contenu. */
+const BALISES_PERMISES = new Set(["!doctype", "html", "head", "meta", "title", "body", "div", "p", "br", "hr", "a"]);
+
+function chargePiegee(modele: Modele): Record<string, unknown> {
+  const piegee: Record<string, unknown> = {};
+  for (const [cle, valeur] of Object.entries(CHARGES[modele])) {
+    if (typeof valeur !== "string" || FORMAT_STRICT.has(cle)) piegee[cle] = valeur;
+    else piegee[cle] = CHAMPS_LIENS.has(cle) ? LIEN_PIEGE : PIEGE;
+  }
+  if (modele === "NOUVEL_ABONNE") piegee.suiveur = PIEGE;
+  return piegee;
+}
+
+/** Le texte que lit quelqu'un dans le HTML : le cadre blanc, balises ôtées, entités rendues. */
+function texteLuDansLeHtml(html: string): string {
+  const cadre = html.slice(html.indexOf('<div style="background:#FFFFFF'));
+  return cadre
+    .replace(/<br>/g, "\n")
+    .replace(/<\/p>/g, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** Lignes non vides, sans les filets (« — », « ——— »), espaces resserrés. */
+const lignesUtiles = (t: string) =>
+  t
+    .split("\n")
+    .map((l) => l.trim().replace(/\s+/g, " "))
+    .filter((l) => l !== "" && !/^[—–-]+$/.test(l));
+
+describe("la partie HTML des courriels (Q-28)", () => {
+  it.each(MODELES)("%s : une charge piégée ne produit aucune balise, ni dans le texte ni dans un lien", (modele) => {
+    const m = rendre(modele, chargePiegee(modele));
+    expect(m.html).not.toContain("<img");
+    expect(m.html).not.toContain("<a href=//");
+    // Seules les balises que `versHtml` produit lui-même, et aucun attribut d'événement.
+    const balises = [...m.html.matchAll(/<\/?([a-z!][a-z0-9]*)/gi)].map((t) => t[1]!.toLowerCase());
+    expect(balises.filter((b) => !BALISES_PERMISES.has(b))).toEqual([]);
+    // Les valeurs entre guillemets ôtées d'abord : le sujet piégé y figure, échappé, et
+    // « onerror= » n'y est que du texte. L'échappement garantit qu'aucun `"` brut n'y reste.
+    const attributs = [...m.html.matchAll(/<[^>]*>/g)].map((t) => t[0].replace(/"[^"]*"/g, '""'));
+    expect(attributs.filter((t) => /\son[a-z]+\s*=/i.test(t))).toEqual([]);
+    // Le piège est bien arrivé jusqu'au HTML — mais échappé.
+    if (m.texte.includes(PIEGE)) expect(m.html).toContain("&quot;&gt;&lt;img src=x onerror=1&gt;");
+    // Tout lien produit pointe vers une adresse fabriquée par le code, rien d'autre.
+    for (const [, href] of m.html.matchAll(/<a href="([^"]*)"/g)) expect(href).toMatch(/^https:\/\/baobart\.test\//);
+  });
+
+  it.each(MODELES)("%s : le HTML dit exactement ce que dit le texte", (modele) => {
+    const m = rendre(modele, CHARGES[modele]);
+    expect(lignesUtiles(texteLuDansLeHtml(m.html))).toEqual(lignesUtiles(m.texte));
+  });
+
+  it.each(MODELES)("%s : ni image, ni script, ni ressource externe", (modele) => {
+    const { html } = rendre(modele, CHARGES[modele]);
+    for (const interdit of ["<img", "<script", "<link", "<style", "<iframe", "src=", "url("]) expect(html).not.toContain(interdit);
+  });
+
+  it("chaque adresse des champs « lien » devient un lien ; chaque adresse des exemples est déclarée comme telle", () => {
+    for (const modele of MODELES) {
+      const m = rendre(modele, CHARGES[modele]);
+      for (const [cle, valeur] of Object.entries(CHARGES[modele])) {
+        if (typeof valeur !== "string" || !/^https?:\/\//.test(valeur)) continue;
+        // Un champ d'adresse sous un autre nom resterait du texte : il doit être déclaré.
+        expect(CHAMPS_LIENS.has(cle), `${modele}.${cle} porte une adresse sans être dans CHAMPS_LIENS`).toBe(true);
+        // Le lien peut prolonger l'adresse du champ (« ${c.site}/explore ») : il commence par elle.
+        if (m.texte.includes(valeur)) expect(m.html, `${modele}.${cle}`).toContain(`<a href="${valeur}`);
+      }
+    }
+  });
+
+  it("une adresse glissée par un utilisateur reste du texte", () => {
+    const m = rendre("COMMANDE_REMBOURSEE", { ...CHARGES.COMMANDE_REMBOURSEE, raison: "Voir https://piege.test/connexion pour le détail." });
+    expect(m.html).toContain("https://piege.test/connexion");
+    expect(m.html).not.toContain('href="https://piege.test');
+  });
+
+  it("un lien en javascript: n'est jamais cliquable, même dans un champ « lien »", () => {
+    // `RETRAIT_JURIDIQUE.lien` est validé par `z.string().url()`, qui l'accepte.
+    const m = rendre("RETRAIT_JURIDIQUE", { ...CHARGES.RETRAIT_JURIDIQUE, lien: "javascript:alert(1)" });
+    expect(m.texte).toContain("javascript:alert(1)");
+    expect(m.html).not.toContain('href="javascript');
+  });
+
+  it("le sujet, dans le titre de la page, est échappé lui aussi", () => {
+    const m = rendre("INFOLETTRE", { ...CHARGES.INFOLETTRE, sujet: "</title><script>x</script>" });
+    expect(m.html).toContain("<title>&lt;/title&gt;&lt;script&gt;x&lt;/script&gt;</title>");
+  });
+});
+
+describe("les gabarits n'ont aucun saut de ligne littéral", () => {
+  it("chaque morceau de gabarit de modeles.ts écrit `\\n`, jamais un vrai retour à la ligne", () => {
+    // Un retour à la ligne écrit dans le code devient `\r\n` quand le dépôt est
+    // extrait sous Windows (relevé par #83). Compté avec le compilateur, et pas
+    // avec un motif de recherche : mesuré le 24/11, le motif « ligne qui commence
+    // par ` + » en voyait 2, le compilateur 8.
+    const chemin = path.join(__dirname, "modeles.ts");
+    const source = ts.createSourceFile(chemin, readFileSync(chemin, "utf8"), ts.ScriptTarget.Latest, true);
+    const fautifs: number[] = [];
+    const morceaux = new Set([
+      ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+      ts.SyntaxKind.TemplateHead,
+      ts.SyntaxKind.TemplateMiddle,
+      ts.SyntaxKind.TemplateTail,
+    ]);
+    const visiter = (n: ts.Node) => {
+      if (morceaux.has(n.kind) && /\r?\n/.test(n.getText(source))) {
+        fautifs.push(source.getLineAndCharacterOfPosition(n.getStart(source)).line + 1);
+      }
+      ts.forEachChild(n, visiter);
+    };
+    visiter(source);
+    expect(fautifs, `lignes ${fautifs.join(", ")}`).toEqual([]);
   });
 });

@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { versHtml } from "@/lib/email/html";
 import { adressePlausible } from "@/lib/email/pilotes";
 
 /**
- * Le texte des messages transactionnels, et rien d'autre.
+ * Le texte des messages transactionnels — et, tirée de lui par `rendre`, leur
+ * partie HTML (Q-28, `lib/email/html.ts`). Aucun modèle n'écrit de HTML.
  *
  * Module pur : il transforme une charge utile en sujet et corps. Aucune base,
  * aucun réseau — ce qui rend le contenu des messages éprouvable, et c'est
@@ -137,6 +139,12 @@ export type Modele = (typeof MODELES)[number];
 export interface Message {
   sujet: string;
   texte: string;
+  /**
+   * La même chose, mise en forme (Q-28). Tirée du texte par `versHtml`
+   * (lib/email/html.ts), qui échappe tout avant de mettre en forme : aucun
+   * modèle n'écrit de HTML. Les pilotes envoient les deux parties.
+   */
+  html: string;
   /**
    * L'adresse où part une réponse (« Reply-To »). Absente partout sauf pour
    * `MESSAGE_CREATEUR` : un avis de Baobart auquel on répondrait n'a personne
@@ -405,8 +413,19 @@ export type ChargeDe<M extends Modele> = z.infer<(typeof SCHEMAS)[M]>;
 
 const SIGNATURE = "\n\n— L'équipe Baobart\n";
 
+/** Ce que chaque modèle écrit : le texte. Le HTML en est tiré par `rendre`, jamais écrit ici. */
+type TexteSeul = Omit<Message, "html">;
+
+/**
+ * Les champs qui portent une adresse fabriquée par le code : leurs ORIGINES, et
+ * elles seules, deviennent cliquables dans le HTML (`lib/email/html.ts`). Un
+ * champ « lien » ajouté sous un autre nom doit venir ici — le test « chaque
+ * adresse des exemples est déclarée » le rappelle.
+ */
+export const CHAMPS_LIENS: ReadonlySet<string> = new Set(["lien", "site", "confirmer", "desinscrire", "contact", "reglages", "profil"]);
+
 const TEXTES: {
-  [M in Modele]: (c: ChargeDe<M>) => Message;
+  [M in Modele]: (c: ChargeDe<M>) => TexteSeul;
 } = {
   BIENVENUE: (c) => ({
     sujet: `Bienvenue sur Baobart, ${c.nom}`,
@@ -416,10 +435,7 @@ const TEXTES: {
       `télécharger ce qui est offert.\n\n` +
       `Quand tu voudras vendre, dépose une ressource : la boutique s'ouvre ` +
       `toute seule au premier dépôt.` +
-      (c.site ? `
-
-Le catalogue : ${c.site}/explore
-Ton espace : ${c.site}/dashboard` : "") +
+      (c.site ? `\n\nLe catalogue : ${c.site}/explore\nTon espace : ${c.site}/dashboard` : "") +
       SIGNATURE,
   }),
 
@@ -442,9 +458,7 @@ Ton espace : ${c.site}/dashboard` : "") +
       `  ${c.ressource}\n  ${c.montant}\n\n` +
       `Retrouve le fichier dans ton espace, rubrique « Mes achats ». Il y ` +
       `reste disponible.` +
-      (c.lien ? `
-
-${c.lien}` : "") +
+      (c.lien ? `\n\n${c.lien}` : "") +
       SIGNATURE,
   }),
 
@@ -537,9 +551,7 @@ ${c.lien}` : "") +
       `Bonjour ${c.nom},\n\n` +
       `${c.montant} repartent vers ton moyen de paiement, pour ` +
       `« ${c.ressource} ».\n\n` +
-      (c.raison ? `Motif : ${c.raison}
-
-` : "") +
+      (c.raison ? `Motif : ${c.raison}\n\n` : "") +
       `Le délai dépend de l'opérateur — compte quelques jours. L'accès à la ` +
       `ressource est retiré.` +
       SIGNATURE,
@@ -554,8 +566,7 @@ ${c.lien}` : "") +
       `Bonjour ${c.nom},\n\n` +
       `L'événement « ${c.titre} », auquel tu étais inscrit, n'aura pas ` +
       `lieu.\n\n` +
-      `La raison donnée par l'organisateur :
-${c.raison}\n\n` +
+      `La raison donnée par l'organisateur :\n${c.raison}\n\n` +
       `Tu n'as rien à faire : ton inscription est annulée avec l'événement.` +
       SIGNATURE,
   }),
@@ -677,8 +688,7 @@ ${c.raison}\n\n` +
       `paiement n'est jamais arrivé chez nous. Cela arrive souvent : une ` +
       `invite qui se perd, un téléphone hors réseau, un code qu'on remet à ` +
       `plus tard.\n\n` +
-      `Rien n'a été débité. Tu peux reprendre là où tu t'es arrêté :
-` +
+      `Rien n'a été débité. Tu peux reprendre là où tu t'es arrêté :\n` +
       `${c.lien}\n\n` +
       `Passé ${c.heures} heures, la commande se referme d'elle-même — ` +
       `et tu pourras la relancer quand tu voudras.` +
@@ -694,8 +704,7 @@ ${c.raison}\n\n` +
       `PROVISOIRE : rien n'est supprimé, et le contenu revient si la ` +
       `notification ne tient pas.\n\n` +
       `Dossier : ${c.reference}\n\n` +
-      `Ce qui nous est signalé, dans les termes du notifiant :
-` +
+      `Ce qui nous est signalé, dans les termes du notifiant :\n` +
       `${c.motif}\n\n` +
       `Tu peux répondre jusqu'au ${c.echeance}. Si tu réponds, nous ` +
       `réexaminons le dossier ; si tu ne réponds pas d'ici là, le retrait ` +
@@ -703,9 +712,7 @@ ${c.raison}\n\n` +
       `Nous ne jugeons pas qui a raison : nous appliquons l'article 3 de la ` +
       `loi n° 2008-08 sur les transactions électroniques, qui nous oblige à ` +
       `agir promptement une fois informés. Le litige lui-même relève du juge.` +
-      (c.lien ? `
-
-Répondre : ${c.lien}` : ""),
+      (c.lien ? `\n\nRépondre : ${c.lien}` : ""),
   }),
   CONTENU_REFUSE: (c) => ({
     sujet: `Non retenu : ${c.titre}`,
@@ -896,10 +903,17 @@ export function rendre(modele: Modele, charge: unknown): Message {
     throw new ChargeInvalide(modele, detail);
   }
 
-  const rendu = (TEXTES[modele] as (c: unknown) => Message)(lu.data);
+  const rendu = (TEXTES[modele] as (c: unknown) => TexteSeul)(lu.data);
+  const sujet = sujetSur(rendu.sujet);
+  // Les adresses qui ont le droit de devenir des liens dans le HTML : celles des
+  // champs « lien » de la charge, déjà validés par le schéma.
+  const liens = Object.entries(lu.data as Record<string, unknown>)
+    .filter(([cle, valeur]) => CHAMPS_LIENS.has(cle) && typeof valeur === "string")
+    .map(([, valeur]) => valeur as string);
   return {
-    sujet: sujetSur(rendu.sujet),
+    sujet,
     texte: rendu.texte,
+    html: versHtml(rendu.texte, { sujet, liens }),
     ...(rendu.repondreA ? { repondreA: rendu.repondreA } : {}),
   };
 }
