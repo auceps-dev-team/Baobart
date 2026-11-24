@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. Décisions du 21/11 : Q-39 et Q-41 (1.114.9), puis les filtres de « Ventes », puis Q-30 sur toutes les pages — empilés au-dessus de #82. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
+| **Lot 5b — Suivre les détails** (A5, page `c_suivre`) : le fil des créateurs suivis (« X a publié… », NOUVEAU / VU), les trois compteurs, abonnés et abonnements, l'entrée du menu créateur | Claude (`aucepsdev`) | `claude/suivre` | Commencé le 24/11, annoncé dans #61. Une date de première publication sur `Product`, posée par un déclencheur SQL. | Un test d'intégration par chemin de publication (rouge puis vert), tests navigateur et axe, CI verte, relecture par l'autre session. |
 
 ---
 
@@ -53,12 +54,11 @@ juste après le lot 4).
 | :-: | --- | --- | --- |
 | 1 | **Design — D2b mobile, les écrans dessinés** | Les écrans de `Baobart Mobile.dc.html` que l'application n'a pas : accueil en deux colonnes avec barre d'onglets, catalogue, fiche avec barre d'achat fixe, tableau de bord créateur, « Mes produits » en cartes, statistiques, profil et badges, connexion (D1b, « Mobile »). | Coupé du D2 le 20/11. Après D2a. Première tranche (en-tête, barre d'onglets) : #70. 🧭 Le panier (écran 08) attend le responsable. Statistiques (10) et Badges (06), dont les maquettes mobile et bureau ne dessinent pas le même contenu (Statistiques : l'audience au bureau, `c_stats` l. 1735, l'argent au téléphone ; Badges : « Mes badges » au bureau, un profil au téléphone) : **décidé le 21/11 par le responsable, voie (b)** — le contenu du bureau, avec la mise en forme de la maquette mobile (relayé dans #61, message de 11 h 07). L'accueil, l'en-tête, la fiche, « Mes produits » et l'accueil créateur sont dans `main` (pile #74 à #80) : la voie est libre. |
 | 2 | **Design — D3/D4 Dashboard** | Aligner les ~20 écrans nouvellement dessinés (blog, événements, infolettre, publicités, remboursements, liste noire, témoignages, candidatures, dossiers, promos, réglages…). | La plupart des fonctionnalités existent : on aligne, on ne construit pas. |
-| 3 | **Lot 5b — Suivre les détails** (A5, page `c_suivre`) | Le fil des créateurs suivis (« X a publié… », NOUVEAU / VU), les trois compteurs, abonnés et abonnements. L'entrée « Suivre les détails » du menu créateur. | Coupé du lot 5 le 21/11 : 5a (la liste des abonnés) est en cours. Demande une date de première publication sur `Product`, qui n'en a pas (lu le 21/11). Le compteur est juste depuis v1.105.1. |
-| 4 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
-| 5 | **Lot 8 — Pass All Access** (A6) | Un catalogue entier pour une durée fixe. | |
-| 6 | **Lot 9 — Connexion sociale, import Figma / Canva / Framer** (A8, A9) | | 🧭 Le responsable du dépôt doit créer les identifiants chez chaque fournisseur. |
-| 7 | **Lot 10 — Appels, café, commandes sur mesure** (A15) | Avec un échange enregistré sur la plateforme. | Débloque « Répond vite » (< 24 h) et les **avis sur les services**. |
-| 8 | **Les 8 fonctionnalités que le plan repousse** | Affiliation (A11), infolettre du créateur (A12), soutien récurrent (A13), paiement en plusieurs fois (A14), équipes (A16), assistant IA (A17), produits physiques (A18), Shield couches 1, 3, 4 (A10). | Après les dix lots (décision du 04/11). |
+| 3 | **Lot 6 — Pilotage de l'administration** (A4) | Vue d'ensemble, journal d'activité, réglages, taxonomie ; puis boutiques, catalogue, finances, abonnements. **Plus l'attribution de « VIP »** (décision du 09/11). | VIP : geste tracé à l'audit, avec motif, dessiné en jeton rond. |
+| 4 | **Lot 8 — Pass All Access** (A6) | Un catalogue entier pour une durée fixe. | |
+| 5 | **Lot 9 — Connexion sociale, import Figma / Canva / Framer** (A8, A9) | | 🧭 Le responsable du dépôt doit créer les identifiants chez chaque fournisseur. |
+| 6 | **Lot 10 — Appels, café, commandes sur mesure** (A15) | Avec un échange enregistré sur la plateforme. | Débloque « Répond vite » (< 24 h) et les **avis sur les services**. |
+| 7 | **Les 8 fonctionnalités que le plan repousse** | Affiliation (A11), infolettre du créateur (A12), soutien récurrent (A13), paiement en plusieurs fois (A14), équipes (A16), assistant IA (A17), produits physiques (A18), Shield couches 1, 3, 4 (A10). | Après les dix lots (décision du 04/11). |
 
 **Ensuite, les raccords et les partielles** (inventaire §3 et §4), sans ordre
 décidé — à placer avec le responsable du dépôt :
