@@ -41,6 +41,7 @@ Légende : ⏳ en cours · 📋 à faire · 🧭 décision attendue · ✅ fait
 | Tâche | Qui | Branche | Où on en est (relevé le 13/11) | Critère de fin — la preuve |
 | --- | --- | --- | --- | --- |
 | Les défauts de la recette par personas (Q-11 à Q-44, promesses de la piste 1), L1, #64 | Claude (`auceps-dev-team`) | une PR par lot, empilées au-dessus de #65 | Commencé le 20/11, annoncé dans #61. Décisions du 21/11 : Q-39 et Q-41 (1.114.9), puis les filtres de « Ventes », puis Q-30 sur toutes les pages — empilés au-dessus de #82. | Chaque défaut remesuré avant, test rouge avant / vert après, CI verte. |
+| **Q-28 — les courriels en HTML** (décidé le 21/11, confié à aucepsdev) : le texte brut reste, une partie HTML s'ajoute, fabriquée à partir du texte et échappée en un seul endroit ; les huit sauts de ligne littéraux des gabarits | Claude (`aucepsdev`) | `claude/courriels-html` | Commencé le 24/11, annoncé dans #61, avec les critères de relecture du 21/11. | Un test « piégé » sur chacun des modèles, rouge sans échappement ; la relecture de l'autre session avec sa propre charge ; CI verte. |
 
 ---
 
@@ -84,7 +85,6 @@ décidé — à placer avec le responsable du dépôt :
 | C8 — Tâches de fond auto-hébergées | `JOBS_DRIVER` déclaré sans lecteur. |
 | L1 — Exceptions `react-hooks` 7 (#65) | 3 sur 11 migrées le 21/11 (partage : `useSyncExternalStore` ; recherche de l'en-tête : état déduit au rendu). Les 8 autres restent, chacune motivée à sa ligne : animations, réponses d'action serveur (dont la saisie gardée de #59), service worker, consentement. Les 6 `window.location.href` internes (avertissements) restent aussi. |
 | Q-30 — le contraste sur toutes les pages (décidé le 21/11) | 0 texte sous 4,5:1 sur les 7 pages de la recette (axe, #77) ; le relevé Halo (#66) en comptait 799 sur 41 pages, dont 380 sur `systeme/membres` et `statuts`. Mesurer toutes les pages, listes remplies, puis corriger à la source (la charte). **Claude.** |
-| Q-28 — les courriels en HTML (décidé le 21/11) | Le texte brut reste ; une version mise en forme s'ajoute, chaque valeur échappée. **Confié à aucepsdev** ; les contraintes du dépôt sont dans #61. |
 
 ---
 
